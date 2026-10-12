@@ -137,7 +137,9 @@ public:
         static constexpr std::array<std::string_view, 12> NOTE_NAMES = {
             "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
-        const float midiNum   = 69.0f + 12.0f * std::log2(freqHz / 440.0f);
+        // Suelo explicito del dominio de log2: el guard de arriba ya excluye
+        // freqHz < 16 Hz, pero el argumento se protege aqui defensivamente.
+        const float midiNum   = 69.0f + 12.0f * std::log2(std::max(freqHz / 440.0f, 1.0e-9f));
         const int roundedMidi = static_cast<int>(std::round(midiNum));
         if (roundedMidi < 0 || roundedMidi > 127) return "";
 

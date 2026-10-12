@@ -1,0 +1,269 @@
+# GUIA DEL SISTEMA DE DISENO Y ESTILOS — ABDSharedAssets
+
+> Proposito: Especificacion de tokens de diseno, paletas tematicas y contratos de estilo para toda la suite ABDSynths.
+
+---
+
+## 1. Arquitectura de Tokens en Cascada
+
+El sistema de estilos utiliza un patron de cascada de 3 niveles:
+
+1. Host Tokens (Sintetizador / Plugin) — Define --color-bg-base, --color-panel-bg, --color-accent
+2. Global Shared Tokens (ABDSharedAssets/styles/tokens.css) — Provee valores estandar y temas preconfigurados
+3. Component Tokens (scope.css, keyboard.css) — Mapea variables especificas con fallback automatico al Host
+
+---
+
+## 2. Tokens Globales Disponibles (tokens.css)
+
+### Surfaces & Backgrounds (4 niveles)
+- --color-bg-base: Canvas, fondo principal (#0a0e14)
+- --color-panel-bg: Cards, paneles, sidebars (#0f1620)
+- --color-panel-surface: Paneles anidados, modulos (#151f2e)
+- --color-panel-surface-elevated: Modals, popovers, tooltips (#1c2a3d)
+
+### Borders (3 niveles)
+- --color-panel-border: Borde sutil por defecto (rgba(0,195,255,0.2))
+- --color-panel-border-strong: Borde enfatizado / focused (rgba(0,195,255,0.45))
+- --color-panel-border-dim: Separadores casi invisibles (rgba(0,195,255,0.1))
+
+### Accent & Interactive States
+- --color-accent: #00c3ff
+- --color-accent-rgb: 0, 195, 255
+- --color-accent-hover: #38d3ff
+- --color-accent-active: #0099cc
+- --color-accent-dim: rgba(0, 195, 255, 0.15)
+
+### Typography — Colors (3 niveles)
+- --color-text-main: #f0f7ff (headings, active labels)
+- --color-text-muted: #7e9bb5 (body text, descriptions)
+- --color-text-dim: #4a637a (secondary info, placeholders)
+
+### Text Size Scale (8 niveles)
+- --text-2xs: 7px | --text-xs: 8px | --text-sm: 9px | --text-md: 10px
+- --text-base: 11px | --text-lg: 12px | --text-xl: 13px | --text-2xl: 18px
+
+### Spacing (11 niveles)
+--space-1 (2px) hasta --space-20 (40px)
+
+### Transitions
+- --transition-fast: 0.15s ease
+- --transition-normal: 0.2s ease
+- --transition-slow: 0.35s ease
+- --transition-spring: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
+
+### Radii & Geometry
+- --radius-sm: 2px | --radius-md: 4px | --radius-lg: 8px
+- --radius-panel: 4px | --radius-chassis: 6px
+
+### Shadows (4 niveles)
+- --shadow-elevation-1/2/3: Elevacion creciente
+- --shadow-inset-bevel: Efecto bisel inset
+
+### Z-Index Scale
+--z-base(1) > --z-panel(10) > --z-navbar(30) > --z-dropdown(50) > --z-modal(100) > --z-overlay(500) > --z-toast(900)
+
+### Layout Constants
+- --navbar-height: 44px
+- --module-header-height: 28px
+- --panel-gap: var(--space-4)
+
+---
+
+## 3. Temas Predefinidos (styles/themes/)
+
+Para aplicar un tema, anade data-theme o clase skin-* en el elemento contenedor:
+
+- data-theme="ms2000" — Korg MS2000 (Azul cian / verde LCD)
+- data-theme="cz101" — Casio CZ-101 (Rojo vintage / gris pizarra)
+- data-theme="deepmind" — Behringer DeepMind (Amber / grafito)
+- data-theme="juno" — Roland Juno-106 (Franjas tricolor / verde LCD)
+- data-theme="audiolab" — ABDAudioLab (Verde nordico / oscuro cientifico)
+
+Cada tema overridea: 4 bg, 3 bordes, accent+hover+active+dim, 3 text, LCD, 3 scrollbar.
+
+Nota (2026-09-05): los modulos (scope, keyboard) ya NO embeben paletas por tema en su CSS; conservan solo fallbacks canonicos en `:root`. El color por tema llega por esta cascada de temas + el adaptador del componente (`styles/components/scope.css`, `keyboard.css`), que el host debe cargar DESPUES del css del modulo para que el mapeo gane por orden de fuente.
+
+---
+
+## 4. Componentes Compartidos (styles/components/)
+
+### 4.1 Panels & Layout (panels.css)
+
+- .chassis: Contenedor principal tipo hardware, borde fuerte, elevacion
+- .panel: Panel interior, flex column, padding y gap automatico
+- .panel-row: Fila horizontal dentro de un panel
+- .panel-elevated: Card elevada (modals, tooltips, popovers)
+- .module: Modulo individual (flex, border, radius)
+- .module-header: Cabecera de modulo, uppercase, border-bottom
+- .module-header--accent: Variante con color accent
+- .module-header--muted: Variante con color muted
+- .panel-divider: Separador horizontal 1px
+
+### 4.2 Buttons (buttons.css)
+
+- .btn: Boton base
+- .btn-xs / .btn-sm: Tamannos pequenos
+- .btn-solid: Fondo solid accent
+- .btn-outline: Borde accent, fondo transparente
+- .btn-ghost: Sin borde, transparente
+- .btn-glow: Con glow/box-shadow (patron CZ101)
+- .btn-toggle: Boton toggle fullWidth
+- .btn.active: Estado activo (cualquier variante)
+- .btn-danger: Color danger (borde + hover)
+- .led-btn: Boton LED estilo step sequencer
+- .led-btn.active: LED encendido con glow
+
+### 4.3 Controls (controls.css)
+
+- .abd-select: Select dropdown tematico
+- input[type="range"].abd-slider: Range slider tematico
+- .param-val: Valor de parametro (fuente LCD)
+
+### 4.4 Navbar (navbar.css)
+
+- .navbar: Barra de navegacion principal con backdrop-filter
+- .nav-left / .nav-right: Secciones izquierda/derecha
+- .brand-title: Nombre del sintetizador
+- .mode-selector: Contenedor de tabs segmentados
+- .mode-tab: Tab individual del selector
+
+### 4.5 LCD Display (lcd.css)
+
+- .lcd-container: Contenedor LCD con phosphor glow
+- .lcd-main: Padding y layout del contenido
+- .lcd-line-1: Primera linea (titulo/grande)
+- .lcd-line-2: Segunda linea (subtitulo/pequena)
+- .lcd-nav-btn: Boton de navegacion LCD
+
+### 4.6b Knob bipolar (widgets.css)
+
+El knob de la familia acepta `bipolar: true`, y entonces el arco se llena desde el
+centro del recorrido en vez de desde el extremo izquierdo.
+
+- `.abd-knob__rest`: la marca del reposo, el punto que dice donde esta el cero. Solo
+  existe en el DOM cuando el mando es bipolar (la skin `vector` la pinta), asi que no
+  hay ninguna regla que la esconda. Va en el hueco entre la punta del puntero y el borde
+  interior del arco: encima del arco desapareceria justo en el valor que la hace util.
+
+El wrapper lleva `data-bipolar="true|false"` para que un tema o una skin propia (que no
+sean la `vector`) puedan enterarse sin tener que preguntar al control.
+
+Un knob bipolar **sigue siendo 0..1**: el puntero, el `aria-valuenow` y el gesto no
+cambian. Lo que cambia es de donde crece el relleno. El `format` que lo muestre con
+signo es del host, que es quien sabe el rango real.
+
+### 4.6 Envelope (envelope.css)
+
+La curva ADSR y su aguja. La misma hoja sirve para el **control** (con asas) y para la
+**vista** de solo lectura, por eso las reglas del `svg` son de descendiente y no de clase:
+quien las monte no necesita saber en que modo esta.
+
+- .abd-envpad: contenedor del editor
+- .abd-envpad--view: la variante de solo lectura (sin asas, sin captura)
+- .abd-envpad__stage: el lienzo donde caen las coordenadas del gesto
+- .abd-envpad__line / __area: el trazo y su relleno
+- .abd-envpad__needle: la aguja de nivel (la que lee el needle-probe de NEURONiK)
+- .abd-envpad__handle: las tres asas arrastrables
+- .abd-envpad__values: la lectura de los cuatro tramos
+- .abd-envpad__caption: el titulo de la curva
+
+Dos cosas que el host tiene que respetar, y que se midieron:
+
+- **El caption se monta siempre**, aunque este vacio. Un `span` sin texto mide 0, pero el
+  `gap` de su contenedor flex-column no; si el consumidor lo quita "porque no tiene texto",
+  el alto del `svg` baja 2 px y la referencia visual se aparta.
+- **La vista se pinta en unidades reales**, no normalizadas: el host que pinte con 0..1
+  dibujara una forma distinta sin que nada falle.
+
+---
+
+## 4b. Fondo tintable por tema (backgrounds.css)
+
+El fondo generico de la suite NO lleva el color encima: una textura de grano gris acromatico
+(media ~106, std ~24, R=G=B) modula el color que pone el tema. Un solo asset sirve para
+antracita, rojo intenso, azules electricos, tierra o grises claros.
+
+```html
+<body class="abd-theme-bg"> ... </body>
+```
+```css
+[data-theme="rojo"] { --abd-bg-tint: #b3121f; }
+```
+
+Mezcla por defecto `soft-light` (conserva tono y luminancia del tema); el tinte por defecto
+es `--color-bg-base` del tema activo. Variante opt-in `.abd-theme-bg--full` usa el master
+completo con `cover`.
+
+### Ficheros y metricas (medidas sobre el master, L= luminancia)
+
+| fichero | bytes | rol | PSNR | banding (escalones/MP) | costura repeat |
+|---|---|---|---|---|---|
+| `bg_neutral.png` | 2.81 MB | MASTER bit-exacto (1672x941) | — | 866 | n/a |
+| `bg_neutral.webp` | 1.95 MB | variante FULL-BLEED (`--full`) | inf (lossless) | 866 | n/a |
+| `bg_tile512.webp` | 341 KB | **TILE por defecto** (`repeat`) | inf (lossless) | **267** | **0.000** |
+
+Como se fabrico el tile (script reproducible):
+1. recorte 512x512 del master de mayor std (energia del grano; y=0, x=416 en el master actual);
+2. bordes espejo-plumados de 64 px (izq<->der, top<->bottom): la costura del `repeat` queda con
+   gradiente continuo;
+3. recentrado de la media a 104.7 (la del master);
+4. WebP **sin perdida** (pixel-exacto del tile: cero banding por construccion).
+
+Por que NO lossy: la codificacion con perdida cuantiza el grano fino en mesetas — a q85 el
+banding se multiplica x6 (5093/MP) y a q75 x23 (19729/MP). Con `quality=90` la costura del
+tile tambien se degrada (0.31 relativa). El tile lossless es lo unico que cumple "cero
+banding" con 5.6x menos bytes que el full-bleed.
+
+Percepcion: el std del tile (14.95) replica el del master medido en ventanas de 512 px
+(mediana 15.16, p10 13.30, p90 17.44) — el grano que ve el ojo dentro de un viewport no
+cambia; solo desaparece la deriva de luminancia macro, imperceptible al modular un tinte.
+
+Coste en binario de plugin (NEURONiK, asset embebido via BinaryData): 1.95 MB -> 0.34 MB
+por instancia del fondo (~1.6 MB liberados por instancia). **Verificado sobre el binario
+completo** (suma de los `BinaryData*.cpp` generados en build-reference): los fuentes
+embebidos bajan de **8.1 MB a 2.69 MB (-5.4 MB, -67%)** con el tile como unico fondo del
+dist; la variante `--full` sigue disponible como asset externo, no embebido.
+
+---
+
+## 5. Como Consumir los Estilos
+
+### Opcion A: Bundle completo
+@import './shared/index.css';
+
+### Opcion B: Importacion selectiva
+@import './shared/tokens.css';
+@import './shared/themes/ms2000.css';
+@import './shared/components/panels.css';
+@import './shared/components/buttons.css';
+
+/* Si tu synth tiene envolventes, la hoja va DESPUÉS de la del tema: el
+   componente se lleva el color, el tema solo pone los tokens. */
+@import './shared/components/envelope.css';
+
+### Opcion C: Custom host tokens
+@import './shared/tokens.css';
+@import './shared/components/buttons.css';
+:root { --color-accent: #ff6600; --color-accent-dim: rgba(255,102,0,0.15); }
+
+---## 6. Adaptadores de Componente (scope.css, keyboard.css)
+
+Cada modulo (ABDScope, MidiKeyboard) tiene su CSS canonico (layout + fallbacks) y un adaptador en `styles/components/` que mapea SU token set completo a los tokens del host con fallback:
+
+- `scope.css` — 16 tokens `--scope-*` mapeados a `--color-*`/`--font-*` donde existe equivalente; look propio (trace-r, spectrum, grid, header-bg) como constantes; alias `--scope-font-lcd: var(--scope-font, ...)`.
+- `keyboard.css` — 21 tokens `--kbd-*` de color/fuente (teclas 3D ivory/white/black, FX colors, wheel, font). Estado runtime por tecla (`--kbd-pressure`, `--kbd-velocity`, `--kbd-pb-offset`, `--kbd-dirt-*`, `--kbd-mw-pressure`) NO es themable y no pertenece al adaptador.
+
+Reglas del contrato:
+1. El adaptador cubre el token set REAL del modulo (nada de subconjuntos).
+2. Los fallbacks del adaptador reflejan los defaults canonicos del modulo (paridad standalone == cascada sin tokens).
+3. El adaptador se carga DESPUES del css del modulo (gana por orden de fuente en `:root`).
+4. Los hosts pueden overridear cualquier `--scope-*`/`--kbd-*` en su propia cascada.
+5. ABDSharedAssets solo aloja activos con >=2 consumidores.
+
+---
+
+## 7. Demo
+
+Para visualizar todos los componentes, abre demo/demo.html en un navegador.
+

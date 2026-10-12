@@ -209,7 +209,7 @@ endif()
 # 7. BankManager Module (ValueTree v1, Persistence & Pro800 SysEx Adapter)
 # ==============================================================================
 option(ABDSHARED_BUILD_BANKMANAGER "Build BankManager embeddable module" OFF)
-if(ABDSHARED_BUILD_BANKMANAGER)
+if(ABDSHARED_BUILD_BANKMANAGER OR ABDSHAREDCODE_BUILD_BANKMANAGER)
     add_library(ABDShared_BankManagerCore INTERFACE)
     add_library(ABDShared::BankManagerCore ALIAS ABDShared_BankManagerCore)
     add_library(abd_bank_manager_core ALIAS ABDShared_BankManagerCore)

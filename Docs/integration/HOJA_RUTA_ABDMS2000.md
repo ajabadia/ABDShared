@@ -174,7 +174,12 @@ Eso da un nivel 1 completo sin tocar el lazo de audio ni crear nuevo módulo.
   - [x] **Matriz de Modulación Virtual:**
     - Modo Estándar (Hardware MS2000 / microKORG): **4 slots** físicos (`Patch 1`..`Patch 4`) confirmados en WebUI y hardware.
     - Modo Extendido (Advanced): Diseñado para **8 slots** (`kNumVirtualPatchSlotsAdvanced = 8` en `HardwareConstants.h`).
-    - Suite de pruebas de ABDMS2000: **201/201 tests pasando** en 19 suites de Vitest.
+    - Suite de pruebas de ABDMS2000: **203/203 tests pasando** en 19 suites de Vitest.
+    - Consolidación en `ABDShared`:
+      - Contrato canónico SSOT: `ABDShared/Contracts/korg_ms2000_parameter_spec.json` (292 parámetros completos, 253 offsets SysEx).
+      - Generador de registro: `ABDMS2000/Scripts/registry_generator.js` enlazado directamente a `ABDShared/Contracts/`.
+      - Sincronización de Assets: `ABDMS2000/Scripts/sync_assets.js` migrado para consumir marcas y modelos desde `ABDShared/Assets/`.
+      - Resource Provider nativo: `PluginEditor_ResourceProvider.cpp` prioriza `ABDShared` sobre el repositorio legado `ABDSharedAssets`.
   - **Matriz de Diferencias MS2000 vs microKORG:**
     1. *Mod Sequencer:* Exclusivo de MS2000 (3 pistas x 16 pasos); microKORG carece de él (inhibido en perfil microKORG).
     2. *Step Arpeggiator:* microKORG incorpora máscara rítmica de 8 pasos on/off; MS2000 opera por tipos/resolución estándar.

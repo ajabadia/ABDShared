@@ -1,0 +1,30 @@
+{
+  "name": "@abdsynths/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Núcleo universal transversal para la suite ABDSynths: C++, contratos, componentes WebUI y assets.",
+  "exports": {
+    "./styles": "./Assets/styles/index.css",
+    "./styles/*": "./Assets/styles/*",
+    "./themes/*": "./Assets/themes/*",
+    "./contracts/*": "./Contracts/*",
+    "./components": "./Components/index.js",
+    "./components/*": "./Components/*",
+    "./icons/*": "./Assets/icons/*",
+    "./assets/*": "./Assets/*"
+  },
+  "files": [
+    "Code",
+    "Contracts",
+    "Components",
+    "Assets",
+    "docs"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
+  }
+}

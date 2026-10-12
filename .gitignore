@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artefacts
+build/
+bin/
+dist/
+*.obj
+*.o
+*.lib
+*.a
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.wasm
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~

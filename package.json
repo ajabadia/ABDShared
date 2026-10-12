@@ -12,13 +12,16 @@
     "./components": "./Components/index.js",
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
-    "./assets/*": "./Assets/*"
+    "./assets/*": "./Assets/*",
+    "./utils": "./Utils/index.js",
+    "./utils/*": "./Utils/*"
   },
   "files": [
     "Code",
     "Contracts",
     "Components",
     "Assets",
+    "Utils",
     "docs"
   ],
   "scripts": {

@@ -69,65 +69,55 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 ## 3. Integración en la WebUI
 
-### Opción A: Sintetizadores con Bundler (Vite / pnpm) — Ej: `ABDMS2000`
+## 3. Integración en la WebUI (Arquitectura Universal Zero-Copy)
 
-En `package.json`:
+Toda la suite ABDSynths (`ABDMS2000`, `ABDCZ101`, `ABDEep`, `ABDAudioLab`) consume los componentes compartidos a través del **workspace pnpm**, eliminando de forma definitiva cualquier script de sincronización manual (`sync_shared.js`) y evitando la duplicación de código en carpetas locales.
+
+### 3.1 Declaración en `package.json`
+
+En el `package.json` de cada host/sintetizador:
 ```json
 {
   "dependencies": {
-    "@abdsynths/shared": "workspace:../ABDShared"
+    "@abdsynths/shared": "workspace:*"
   }
 }
 ```
 
-En tus archivos JavaScript/CSS:
+### 3.2 Consumo Directo en JavaScript
+
+Importa los componentes, utilidades o contratos directamente desde el namespace `@abdsynths/shared`:
 ```javascript
 // Importar componentes interactivos
 import { 
   createSynthNavBar, 
   createAboutDialog, 
   createLiveSysExInspector, 
-  mountFitStage 
+  mountFitStage,
+  Knob,
+  Slider,
+  Toggle
 } from '@abdsynths/shared/components';
 
-// Importar estilos de diseño
+// Importar utilidades
+import { enhanceRangeInputs } from '@abdsynths/shared/utils';
+
+// Importar estilos de diseño universales
 import '@abdsynths/shared/styles';
+import '@abdsynths/shared/styles/components/widgets.css';
 import '@abdsynths/shared/themes/ms2000.css';
 ```
 
----
+### 3.3 Ciclo de Vida del Desarrollo y Compilación
 
-### Opción B: Sintetizadores sin Bundler (ESM Nativo) — Ej: `ABDCZ101`
+1. **En Desarrollo (`pnpm dev` / Vite):**
+   Vite resuelve `@abdsynths/shared` al vuelo a través del symlink nativo generado por `pnpm`. La edición en `ABDShared` se refleja en caliente (HMR) en todos los sintetizadores consumidores sin necesidad de scripts de copia.
+2. **En Tests (`vitest`):**
+   Vitest resuelve los paquetes del workspace sin requerir shims locales ni validaciones byte a byte.
+3. **En Empaquetado JUCE (`pnpm run bundle`):**
+   Vite empaqueta el grafo de JavaScript y resuelve todos los bare imports generando la carpeta `WebUI/dist/`, la cual CMake incrusta directamente en el binario del plugin con `juce_add_binary_data`.
 
-Los sintetizadores donde JUCE embebe la carpeta `WebUI/` directamente mediante `juce_add_binary_data` utilizan el patrón de **copia gestionada verificada por tests**:
-
-1. En el repositorio del sintetizador existe un script `Scripts/sync_shared.js`:
-```javascript
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-
-const filesToSync = [
-  {
-    source: resolve('../../ABDShared/Components/FitStage/fitStage.js'),
-    target: resolve('WebUI/src/shared/fitStage.js')
-  },
-  {
-    source: resolve('../../ABDShared/Components/LiveSysExInspector/liveSysExInspector.js'),
-    target: resolve('WebUI/src/shared/liveSysExInspector.js')
-  },
-  {
-    source: resolve('../../ABDShared/Assets/styles/components/live-sysex-inspector.css'),
-    target: resolve('WebUI/src/styles/live-sysex-inspector.css')
-  }
-];
-
-for (const { source, target } of filesToSync) {
-  const content = readFileSync(source, 'utf8');
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, content, 'utf8');
-}
-```
-2. Un test en `WebUI/tests/` compara byte a byte la copia con el original para asegurar que nadie altere la copia a mano sin regenerar desde `ABDShared`.
+> 🚫 **Política de No-Copia (Zero-Copy):** Quedan formalmente obsoletos los scripts `sync_shared.js` y las carpetas `WebUI/src/shared/`. Todo nuevo componente transversal debe agregarse a `ABDShared/Components/` y exportarse en `@abdsynths/shared/components`.
 
 ---
 

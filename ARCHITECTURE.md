@@ -99,11 +99,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE abd_dsp_core abd_synth_core abd_au
 ```json
 {
   "dependencies": {
-    "@abdsynths/shared": "workspace:../ABDShared"
+    "@abdsynths/shared": "workspace:*"
   }
 }
 ```
-O mediante copia gestionada para proyectos nativos sin bundler:
-```bash
-node Scripts/sync_shared.js
-```
+Todos los sintetizadores resuelven componentes en tiempo real vía `pnpm-workspace.yaml` y Vite (`pnpm dev`, `pnpm run bundle`), con **cero copias de archivos por script**.
+

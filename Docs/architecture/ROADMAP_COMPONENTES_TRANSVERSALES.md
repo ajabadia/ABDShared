@@ -175,12 +175,15 @@ Es fundamental no confundir dos herramientas con objetivos y momentos de uso rad
 
 ## 6. Siguientes Pasos de Implementación
 
-1. **Prioridad 1 — Consolidación de `ABDShared`:**
+1. **Prioridad 1 — Consolidación de `ABDShared` (COMPLETADA EN LA SUITE ACTIVA):**
    - ✅ **`ABDAudioLab`:** 100% migrado y validado en C++ y WebUI contra `ABDShared`.
    - ✅ **`ABDEep`:** 100% migrado y validado (CMake nativo, WASM, WebUI, contratos) contra `ABDShared`.
-   - 🟡 **`ABDMS2000` & `ABDCZ101`:** Siguientes en el plan de migración para desconectar definitivamente las dependencias directas de `ABDSharedCode`/`ABDSharedAssets`.
+   - ✅ **`ABDCZ101`:** 100% migrado y validado (build Release C++ limpio).
+   - ✅ **`ABDMS2000`:** 100% migrado y validado (VST3 y Standalone Release generados limpiamente).
+   - ✅ **`ABDNeural`:** Configurado canónicamente para resolver `ABDShared/Code` y contratos del workspace.
+   - ✅ **`ABDJUNiO601`:** CMakeLists.txt actualizado con prioridad canónica a `ABDShared/Code`.
 2. **Prioridad 2 — Despliegue de `SynthNavBar`, `AboutDialog` y `LiveSysExInspector` en `ABDEep` y `ABDMS2000`:** Sustituir barras y modales locales por los componentes compartidos.
 3. **Prioridad 3 — Reemplazo Universal de Osciloscopios por `ABDShared/Components/Scope`:** Sustituir los scopes locales por el componente oficial flotante.
 4. **Prioridad 4 — Deprecación y Limpieza:**
    - ✅ **`ABDScope` raíz:** Retirado y archivado formalmente en `_Deprecados/ABDScope`. Directorio raíz eliminado.
-   - 🟡 **`ABDSharedCode` y `ABDSharedAssets`:** Se mantendrán activos como fallback de compatibilidad hasta que `ABDMS2000` y `ABDCZ101` concluyan su migración.
+   - 🟢 **`ABDSharedCode` y `ABDSharedAssets`:** Toda la suite activa consume `ABDShared`. Los repositorios legacy se archivan en `_Deprecados/` con fallbacks de seguridad garantizados.

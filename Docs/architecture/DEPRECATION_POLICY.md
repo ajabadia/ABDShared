@@ -50,6 +50,6 @@ export function legacyUiHelper() {
 | Elemento | Ubicación Anterior | Sustituto Oficial | Estado / Retirada |
 |---|---|---|---|
 | **`ABDScope` (Repo Raíz)** | `d:/desarrollos/ABDSynths/ABDScope` | `ABDShared/Code/Scope/` y `ABDShared/Components/Scope/` | 🔴 **Completado.** Archivado en `_Deprecados/ABDScope`. Directorio raíz eliminado. |
-| **`ABDSharedCode`** | `d:/desarrollos/ABDSynths/ABDSharedCode` | `ABDShared/Code/` | 🟡 **En transición progresiva.** Migrado en `ABDAudioLab` y `ABDEep`. Activo para `ABDMS2000` y `ABDCZ101`. Se archivará en `_Deprecados/` al finalizar la suite. |
-| **`ABDSharedAssets`** | `d:/desarrollos/ABDSynths/ABDSharedAssets` | `ABDShared/Assets/` y `ABDShared/Contracts/` | 🟡 **En transición progresiva.** Migrado en `ABDAudioLab` y `ABDEep`. Activo para `ABDMS2000` y `ABDCZ101`. Se archivará en `_Deprecados/` al finalizar la suite. |
+| **`ABDSharedCode`** | `d:/desarrollos/ABDSynths/ABDSharedCode` | `ABDShared/Code/` | 🟢 **Migración completada en la suite.** Consumido canónicamente por `ABDAudioLab`, `ABDEep`, `ABDCZ101`, `ABDMS2000`, `ABDNeural` y `ABDJUNiO601`. Listo para archivar en `_Deprecados/`. |
+| **`ABDSharedAssets`** | `d:/desarrollos/ABDSynths/ABDSharedAssets` | `ABDShared/Assets/` y `ABDShared/Contracts/` | 🟢 **Migración completada en la suite.** Consumido canónicamente por `ABDAudioLab`, `ABDEep`, `ABDCZ101`, `ABDMS2000`, `ABDNeural` y `ABDJUNiO601`. Listo para archivar en `_Deprecados/`. |
 | **`convertSysExToCutoffHz`** | Global | `conversion::normToCutoffHz` | 🔴 Retirado |

@@ -166,7 +166,8 @@ Es fundamental no confundir dos herramientas con objetivos y momentos de uso rad
 |---|---|---|---|---|---|---|---|
 | **`ABDCZ101`** | 📋 Fase 4 | ✅ Integrado | 🟡 En unificación | ✅ Integrado (Floating) | ✅ Implementado | ✅ Integrado | 📋 Modo Moderno |
 | **`ABDMS2000`** | 🟡 Migrar a Scope | 📋 Planificado | ✅ Integrado | 📋 Migrar a Floating | 📋 Migrar a SynthNavBar | 📋 Integrar compartido | ✅ 4/8 Slots |
-| **`ABDEep`** | 🟡 Migrar a Scope | 📋 Planificado | 🟡 En unificación | 🟡 Migrar a compartido | 📋 Migrar a SynthNavBar | 📋 Integrar compartido | ✅ 8 Slots |
+| **`ABDEep`** | 🟡 Migrar a Scope | 📋 Planificado | 🟡 En unificación | 🟡 Migrar a compartido | 📋 Migrar a SynthNavBar | 📋 Integrar compartido | ✅ 8 Slots (100% ABDShared) |
+| **`ABDAudioLab`** | ✅ Integrado (ScopeView) | 📋 Planificado | ❌ No aplica | 📋 Planificado | ❌ No aplica | 📋 Planificado | ❌ No aplica (100% ABDShared) |
 | **`ABDJUNiO601`** | 📋 Planificado | 📋 Planificado | 🟡 En unificación | 📋 Migrar a Floating | 📋 Planificado | 📋 Planificado | ❌ No aplica |
 | **`ABDNeural`** | 📋 Planificado | 📋 Planificado | 📋 Planificado | 📋 Integrar Floating | 📋 Planificado | 📋 Planificado | 📋 Matriz Completa |
 
@@ -174,7 +175,12 @@ Es fundamental no confundir dos herramientas con objetivos y momentos de uso rad
 
 ## 6. Siguientes Pasos de Implementación
 
-1. **Prioridad 1 — Consolidación de `ABDShared`:** Migrar formalmente código, contratos, componentes y assets a sus respectivos cuadrantes.
+1. **Prioridad 1 — Consolidación de `ABDShared`:**
+   - ✅ **`ABDAudioLab`:** 100% migrado y validado en C++ y WebUI contra `ABDShared`.
+   - ✅ **`ABDEep`:** 100% migrado y validado (CMake nativo, WASM, WebUI, contratos) contra `ABDShared`.
+   - 🟡 **`ABDMS2000` & `ABDCZ101`:** Siguientes en el plan de migración para desconectar definitivamente las dependencias directas de `ABDSharedCode`/`ABDSharedAssets`.
 2. **Prioridad 2 — Despliegue de `SynthNavBar`, `AboutDialog` y `LiveSysExInspector` en `ABDEep` y `ABDMS2000`:** Sustituir barras y modales locales por los componentes compartidos.
 3. **Prioridad 3 — Reemplazo Universal de Osciloscopios por `ABDShared/Components/Scope`:** Sustituir los scopes locales por el componente oficial flotante.
-4. **Prioridad 4 — Deprecación de `ABDScope` raíz:** Eliminar el directorio duplicado una vez completada la migración.
+4. **Prioridad 4 — Deprecación y Limpieza:**
+   - ✅ **`ABDScope` raíz:** Retirado y archivado formalmente en `_Deprecados/ABDScope`. Directorio raíz eliminado.
+   - 🟡 **`ABDSharedCode` y `ABDSharedAssets`:** Se mantendrán activos como fallback de compatibilidad hasta que `ABDMS2000` y `ABDCZ101` concluyan su migración.

@@ -52,6 +52,30 @@
   backdrop-filter: blur(12px);
 }
 
+/* Modo desacoplado en ventana externa independiente (multimonitor) */
+.sysex-inspector--detached {
+  position: static !important;
+  width: 100% !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  resize: none !important;
+}
+
+.sysex-inspector--detached .sysex-inspector__header {
+  cursor: default !important;
+}
+
+.sysex-inspector--detached .sysex-inspector__body {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow: auto;
+}
+
 /* Barra de herramientas superior / Header */
 .sysex-inspector__header {
   display: flex;
@@ -194,6 +218,13 @@
   padding: 4px 7px;
   font-size: 13px;
   line-height: 1;
+}
+
+.sysex-inspector__btn--popout:hover {
+  background: rgba(56, 189, 248, 0.18) !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
 }
 
 .sysex-inspector__btn--close:hover {

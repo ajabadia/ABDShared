@@ -120,7 +120,15 @@ export class LiveSysExInspector {
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerUp = this._onPointerUp.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
     this._dragState = null;
+
+    // Soporte para ventana externa desacoplada (multimonitor)
+    this.isDetached = false;
+    this.externalWindow = null;
+    this._originalParent = null;
+    this._originalNextSibling = null;
+    this.popoutBtnEl = null;
 
     this._buildDOM();
 
@@ -132,6 +140,7 @@ export class LiveSysExInspector {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', this._onKeyDown);
+      window.addEventListener('resize', this._onWindowResize);
     }
   }
 
@@ -225,6 +234,13 @@ export class LiveSysExInspector {
     actions.appendChild(exportBtn);
 
     if (this.options.floating) {
+      this.popoutBtnEl = document.createElement('button');
+      this.popoutBtnEl.type = 'button';
+      this.popoutBtnEl.className = 'sysex-inspector__btn sysex-inspector__btn--icon sysex-inspector__btn--popout';
+      this.popoutBtnEl.innerHTML = '&#x29C9;'; // ⧉
+      this.popoutBtnEl.title = 'Abrir en ventana externa / Desacoplar a otra pantalla';
+      this.popoutBtnEl.addEventListener('click', () => this.togglePopout());
+
       const minBtn = document.createElement('button');
       minBtn.type = 'button';
       minBtn.className = 'sysex-inspector__btn sysex-inspector__btn--icon';
@@ -241,6 +257,7 @@ export class LiveSysExInspector {
         this.hide();
       });
 
+      actions.appendChild(this.popoutBtnEl);
       actions.appendChild(minBtn);
       actions.appendChild(closeBtn);
 
@@ -280,29 +297,39 @@ export class LiveSysExInspector {
   }
 
   /**
-   * Arrastre flotante acotado al viewport
+   * Arrastre flotante acotado con control estricto de colisión contra bordes del viewport.
    */
   _onPointerDown(e) {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button') || this.isDetached) return;
     const rect = this.rootEl.getBoundingClientRect();
     this._dragState = {
       startX: e.clientX,
       startY: e.clientY,
       initialLeft: rect.left,
       initialTop: rect.top,
+      width: rect.width,
+      height: rect.height,
     };
     window.addEventListener('pointermove', this._onPointerMove);
     window.addEventListener('pointerup', this._onPointerUp);
   }
 
   _onPointerMove(e) {
-    if (!this._dragState) return;
+    if (!this._dragState || this.isDetached) return;
     const dx = e.clientX - this._dragState.startX;
     const dy = e.clientY - this._dragState.startY;
     const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const newLeft = Math.max(10, Math.min(winWidth - 120, this._dragState.initialLeft + dx));
-    const newTop = Math.max(10, Math.min(winHeight - 60, this._dragState.initialTop + dy));
+    const rectW = this._dragState.width || this.rootEl.offsetWidth || 720;
+    const rectH = this._dragState.height || this.rootEl.offsetHeight || 420;
+
+    // Control estricto de colisión: nunca permitir que ninguna parte del inspector quede semioculta o fuera de la pantalla
+    const margin = 8;
+    const maxLeft = Math.max(margin, winWidth - rectW - margin);
+    const maxTop = Math.max(margin, winHeight - rectH - margin);
+    const newLeft = Math.max(margin, Math.min(maxLeft, this._dragState.initialLeft + dx));
+    const newTop = Math.max(margin, Math.min(maxTop, this._dragState.initialTop + dy));
+
     this.rootEl.style.left = `${newLeft}px`;
     this.rootEl.style.top = `${newTop}px`;
     this.rootEl.style.right = 'auto';
@@ -314,6 +341,165 @@ export class LiveSysExInspector {
     this._dragState = null;
     window.removeEventListener('pointermove', this._onPointerMove);
     window.removeEventListener('pointerup', this._onPointerUp);
+  }
+
+  /**
+   * Asegura que el modal permanezca 100% visible dentro del viewport al cambiar el tamaño de ventana.
+   */
+  _clampToViewport() {
+    if (!this.rootEl || !this.options.floating || !this.isOpen() || this.isDetached) return;
+    const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const rect = this.rootEl.getBoundingClientRect();
+    const margin = 8;
+    const maxLeft = Math.max(margin, winWidth - rect.width - margin);
+    const maxTop = Math.max(margin, winHeight - rect.height - margin);
+
+    if (this.rootEl.style.transform === 'none' || this.rootEl.style.left) {
+      const curLeft = rect.left;
+      const curTop = rect.top;
+      const clampedLeft = Math.max(margin, Math.min(maxLeft, curLeft));
+      const clampedTop = Math.max(margin, Math.min(maxTop, curTop));
+
+      if (clampedLeft !== curLeft || clampedTop !== curTop) {
+        this.rootEl.style.left = `${clampedLeft}px`;
+        this.rootEl.style.top = `${clampedTop}px`;
+        this.rootEl.style.transform = 'none';
+      }
+    }
+  }
+
+  _onWindowResize() {
+    this._clampToViewport();
+  }
+
+  /**
+   * Alterna entre modo flotante interno y ventana externa desacoplada.
+   * @returns {this}
+   */
+  togglePopout() {
+    return this.isDetached ? this.dock() : this.popout();
+  }
+
+  /**
+   * Desacopla el inspector a una ventana externa nativa (ideal para multimonitor).
+   * @returns {this}
+   */
+  popout() {
+    if (this.isDetached || typeof window === 'undefined') return this;
+    const screenW = window.screen && window.screen.availWidth ? window.screen.availWidth : 1920;
+    const screenH = window.screen && window.screen.availHeight ? window.screen.availHeight : 1080;
+    const popWidth = Math.min(960, Math.max(760, screenW - 100));
+    const popHeight = Math.min(680, Math.max(500, screenH - 120));
+    const left = (window.screenX || 0) + Math.max(20, Math.round(((window.outerWidth || 1000) - popWidth) / 2));
+    const top = (window.screenY || 0) + Math.max(20, Math.round(((window.outerHeight || 700) - popHeight) / 2));
+
+    let extWindow = null;
+    try {
+      extWindow = window.open(
+        '',
+        `ABDSysExPopout_${Date.now()}`,
+        `width=${popWidth},height=${popHeight},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+      );
+    } catch (_) {
+      this.showFeedback('No se pudo abrir ventana emergente');
+      return this;
+    }
+
+    if (!extWindow) {
+      this.showFeedback('Ventana emergente bloqueada por el navegador');
+      return this;
+    }
+
+    this.externalWindow = extWindow;
+    this.isDetached = true;
+
+    const extDoc = extWindow.document;
+    extDoc.title = `${this.options.title || 'Live SysEx Inspector'} — Ventana Externa`;
+
+    extDoc.head.innerHTML = `
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${this.options.title || 'Live SysEx Inspector'}</title>
+      <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          background: #0d1117;
+          color: #e2e8f0;
+          overflow: auto;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+      </style>
+    `;
+
+    // Clonar hojas de estilo del documento anfitrión para paridad visual idéntica
+    const styleNodes = document.querySelectorAll('link[rel="stylesheet"], style');
+    styleNodes.forEach((node) => {
+      try {
+        extDoc.head.appendChild(node.cloneNode(true));
+      } catch (_) {}
+    });
+
+    // Guardar referencia al padre original para recolocación al acoplar
+    this._originalParent = this.rootEl.parentNode;
+    this._originalNextSibling = this.rootEl.nextSibling;
+
+    // Adaptar estilos a modo desacoplado en ventana externa
+    this.rootEl.classList.add('sysex-inspector--detached');
+    if (this.popoutBtnEl) {
+      this.popoutBtnEl.innerHTML = '&#x2913;'; // ⤓
+      this.popoutBtnEl.title = 'Reincorporar al sintetizador (Dock)';
+    }
+
+    extDoc.body.appendChild(this.rootEl);
+
+    extWindow.addEventListener('beforeunload', () => {
+      if (this.isDetached) {
+        this.dock();
+      }
+    });
+
+    this.showFeedback('Desacoplado a ventana externa');
+    return this;
+  }
+
+  /**
+   * Reincorpora el inspector al sintetizador y cierra la ventana externa.
+   * @returns {this}
+   */
+  dock() {
+    if (!this.isDetached) return this;
+    this.isDetached = false;
+
+    if (this.externalWindow && !this.externalWindow.closed) {
+      try {
+        this.externalWindow.close();
+      } catch (_) {}
+    }
+    this.externalWindow = null;
+
+    this.rootEl.classList.remove('sysex-inspector--detached');
+    if (this.popoutBtnEl) {
+      this.popoutBtnEl.innerHTML = '&#x29C9;'; // ⧉
+      this.popoutBtnEl.title = 'Abrir en ventana externa / Desacoplar a otra pantalla';
+    }
+
+    if (this._originalParent) {
+      if (this._originalNextSibling && this._originalNextSibling.parentNode === this._originalParent) {
+        this._originalParent.insertBefore(this.rootEl, this._originalNextSibling);
+      } else {
+        this._originalParent.appendChild(this.rootEl);
+      }
+    } else if (typeof document !== 'undefined') {
+      document.body.appendChild(this.rootEl);
+    }
+
+    this._clampToViewport();
+    this.showFeedback('Reincorporado al sintetizador');
+    return this;
   }
 
   /**
@@ -334,6 +520,7 @@ export class LiveSysExInspector {
     if (this.isDestroyed || !this.rootEl) return this;
     this.rootEl.style.display = 'flex';
     this.rootEl.classList.remove('is-hidden');
+    this._clampToViewport();
     if (typeof this.options.onOpen === 'function') {
       this.options.onOpen();
     }
@@ -346,6 +533,9 @@ export class LiveSysExInspector {
    */
   hide() {
     if (this.isDestroyed || !this.rootEl) return this;
+    if (this.isDetached) {
+      this.dock();
+    }
     this.rootEl.style.display = 'none';
     this.rootEl.classList.add('is-hidden');
     if (typeof this.options.onClose === 'function') {
@@ -702,12 +892,16 @@ export class LiveSysExInspector {
    */
   destroy() {
     this.isDestroyed = true;
+    if (this.isDetached) {
+      this.dock();
+    }
     clearTimeout(this.mutationTimeout);
     clearTimeout(this.feedbackTimeout);
     if (typeof window !== 'undefined') {
       window.removeEventListener('pointermove', this._onPointerMove);
       window.removeEventListener('pointerup', this._onPointerUp);
       window.removeEventListener('keydown', this._onKeyDown);
+      window.removeEventListener('resize', this._onWindowResize);
     }
     if (this.rootEl && this.rootEl.parentNode) {
       this.rootEl.parentNode.removeChild(this.rootEl);

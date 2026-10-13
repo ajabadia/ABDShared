@@ -264,5 +264,87 @@ describe('LiveSysExInspector - DOM & Reactividad', () => {
 
     inspector.destroy();
   });
+
+  it('control estricto de colisión: el arrastre clampa el inspector dentro del viewport sin quedar semioculto', () => {
+    const inspector = createLiveSysExInspector({
+      floating: true,
+    });
+
+    // Mock getBoundingClientRect
+    inspector.rootEl.getBoundingClientRect = () => ({
+      left: 100,
+      top: 100,
+      width: 720,
+      height: 400,
+      right: 820,
+      bottom: 500,
+    });
+
+    // Disparar pointerdown en el header
+    inspector.headerEl.dispatchEvent(new PointerEvent('pointerdown', { clientX: 120, clientY: 110 }));
+
+    // Intentar arrastrar 5000px hacia la derecha y hacia abajo (muy fuera de la pantalla)
+    window.dispatchEvent(new PointerEvent('pointermove', { clientX: 5120, clientY: 5110 }));
+
+    const leftVal = parseInt(inspector.rootEl.style.left, 10);
+    const topVal = parseInt(inspector.rootEl.style.top, 10);
+
+    // Con window.innerWidth por defecto (1024 en jsdom) y rect.width 720, el máximo left debe ser <= 1024 - 720 - 8 = 296
+    expect(leftVal).toBeLessThanOrEqual(window.innerWidth - 720);
+    expect(leftVal).toBeGreaterThanOrEqual(8);
+    expect(topVal).toBeLessThanOrEqual(window.innerHeight - 400);
+    expect(topVal).toBeGreaterThanOrEqual(8);
+
+    window.dispatchEvent(new PointerEvent('pointerup'));
+    inspector.destroy();
+  });
+
+  it('popout y dock desacoplan a ventana externa y reincorporan al sintetizador', () => {
+    const inspector = createLiveSysExInspector({
+      floating: true,
+      title: 'Test Inspector',
+    });
+
+    const mockExternalDoc = {
+      title: '',
+      head: {
+        innerHTML: '',
+        appendChild: vi.fn(),
+      },
+      body: {
+        appendChild: vi.fn((node) => {
+          node._inExternalDoc = true;
+        }),
+      },
+    };
+
+    const mockExternalWin = {
+      closed: false,
+      document: mockExternalDoc,
+      addEventListener: vi.fn(),
+      close: vi.fn(),
+    };
+
+    const originalOpen = window.open;
+    window.open = vi.fn(() => mockExternalWin);
+
+    expect(inspector.isDetached).toBe(false);
+
+    // Desacoplar
+    inspector.popout();
+    expect(inspector.isDetached).toBe(true);
+    expect(inspector.rootEl.classList.contains('sysex-inspector--detached')).toBe(true);
+    expect(mockExternalDoc.body.appendChild).toHaveBeenCalledWith(inspector.rootEl);
+
+    // Reincorporar (dock)
+    inspector.dock();
+    expect(inspector.isDetached).toBe(false);
+    expect(inspector.rootEl.classList.contains('sysex-inspector--detached')).toBe(false);
+    expect(mockExternalWin.close).toHaveBeenCalled();
+
+    window.open = originalOpen;
+    inspector.destroy();
+  });
 });
+
 

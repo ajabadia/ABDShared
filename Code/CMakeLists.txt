@@ -301,3 +301,167 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Scope/CMakeLists.txt")
         add_library(ABDShared::ScopeWebAssets ALIAS ABDScopeWebAssets)
     endif()
 endif()
+
+# ==============================================================================
+# 10. AudioComparator Module (Time Alignment & Spectral Cross-Correlation)
+# ==============================================================================
+option(ABDSHARED_BUILD_AUDIOCOMPARATOR "Build AudioComparator module" ON)
+if(ABDSHARED_BUILD_AUDIOCOMPARATOR)
+    add_library(ABDShared_AudioComparator STATIC
+        AudioComparator/AudioABComparator.cpp
+        AudioComparator/AudioABComparator_Alignment.cpp
+        AudioComparator/AudioABComparator_Spectral.cpp
+        AudioComparator/AudioABVerdictEngine.cpp
+    )
+    add_library(ABDShared::AudioComparator ALIAS ABDShared_AudioComparator)
+    add_library(abd_audio_comparator ALIAS ABDShared_AudioComparator)
+
+    target_sources(ABDShared_AudioComparator PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/AudioComparator/AudioABComparator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/AudioComparator/AudioABVerdictEngine.h
+    )
+
+    target_include_directories(ABDShared_AudioComparator PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    target_compile_features(ABDShared_AudioComparator PUBLIC cxx_std_20)
+
+    if(TARGET juce::juce_core)
+        target_link_libraries(ABDShared_AudioComparator PUBLIC
+            juce::juce_core
+            juce::juce_audio_basics
+            juce::juce_dsp
+        )
+    elseif(TARGET juce_core)
+        target_link_libraries(ABDShared_AudioComparator PUBLIC
+            juce_core
+            juce_audio_basics
+            juce_dsp
+        )
+    endif()
+endif()
+
+# ==============================================================================
+# 11. MidiKeyboard Module (Virtual WebUI Keyboard Bridge)
+# ==============================================================================
+if(NOT EMSCRIPTEN)
+    add_library(ABDShared_MidiKeyboardCpp INTERFACE)
+    add_library(ABDShared::MidiKeyboardCpp ALIAS ABDShared_MidiKeyboardCpp)
+    add_library(abd_midikeyboard_cpp ALIAS ABDShared_MidiKeyboardCpp)
+
+    target_sources(ABDShared_MidiKeyboardCpp INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/MidiKeyboard/JuceMidiKeyboardComponent.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/MidiKeyboard/MidiKeyboardFloatingWindow.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/MidiKeyboard/MidiKeyboardResourceProvider.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/MidiKeyboard/MidiKeyboardResourceProvider.cpp
+    )
+
+    target_include_directories(ABDShared_MidiKeyboardCpp INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_link_libraries(ABDShared_MidiKeyboardCpp INTERFACE
+        ABDShared::WebView2Bridge
+    )
+
+    if(TARGET juce::juce_core)
+        target_link_libraries(ABDShared_MidiKeyboardCpp INTERFACE
+            juce::juce_core
+            juce::juce_audio_basics
+            juce::juce_gui_extra
+        )
+    elseif(TARGET juce_core)
+        target_link_libraries(ABDShared_MidiKeyboardCpp INTERFACE
+            juce_core
+            juce_audio_basics
+            juce_gui_extra
+        )
+    endif()
+endif()
+
+# ==============================================================================
+# 12. HardwareMidiDetect & StudioTopology Modules
+# ==============================================================================
+if(NOT EMSCRIPTEN)
+    add_library(ABDShared_HardwareMidiDetect INTERFACE)
+    add_library(ABDShared::HardwareMidiDetect ALIAS ABDShared_HardwareMidiDetect)
+    add_library(abd_hardware_midi_detect ALIAS ABDShared_HardwareMidiDetect)
+
+    target_include_directories(ABDShared_HardwareMidiDetect INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_sources(ABDShared_HardwareMidiDetect INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareContract.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareContractRegistry.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareContractRegistry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareMidiDetector.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareMidiDetector.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/MidiHardwareBackend.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/JuceHardwareMidiPicker.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareMidiPickerResourceProvider.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/HardwareMidiPickerResourceProvider.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/MidiEndpointSafetyPolicy.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/MidiEndpointSafetyPolicy.cpp
+    )
+
+    if(TARGET juce::juce_core)
+        target_link_libraries(ABDShared_HardwareMidiDetect INTERFACE
+            juce::juce_audio_devices
+            juce::juce_gui_extra
+            juce::juce_core
+        )
+    elseif(TARGET juce_core)
+        target_link_libraries(ABDShared_HardwareMidiDetect INTERFACE
+            juce_audio_devices
+            juce_gui_extra
+            juce_core
+        )
+    endif()
+
+    if(ABDSHARED_NLOHMANN_TARGET)
+        target_link_libraries(ABDShared_HardwareMidiDetect INTERFACE ${ABDSHARED_NLOHMANN_TARGET})
+    endif()
+
+    if(COMMAND juce_add_binary_data)
+        file(GLOB HWD_WEB_ASSETS
+            "${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/WebUI/index.html"
+            "${CMAKE_CURRENT_SOURCE_DIR}/HardwareMidiDetect/WebUI/*.js"
+        )
+        list(FILTER HWD_WEB_ASSETS EXCLUDE REGEX "/node_modules/")
+        if(HWD_WEB_ASSETS)
+            juce_add_binary_data(HardwareMidiPickerAssets
+                HEADER_NAME "HardwareMidiPickerAssets.h"
+                NAMESPACE "HardwareMidiPickerAssets"
+                SOURCES ${HWD_WEB_ASSETS}
+            )
+
+            target_include_directories(HardwareMidiPickerAssets INTERFACE
+                "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/juce_binarydata_HardwareMidiPickerAssets/JuceLibraryCode>"
+            )
+            target_link_libraries(ABDShared_HardwareMidiDetect INTERFACE HardwareMidiPickerAssets)
+            add_library(ABDShared::HardwareMidiPickerAssets ALIAS HardwareMidiPickerAssets)
+        endif()
+
+        # StudioTopology WebUI Binary Assets
+        file(GLOB TOPOLOGY_WEB_ASSETS
+            "${CMAKE_CURRENT_SOURCE_DIR}/StudioTopology/resources/index.html"
+            "${CMAKE_CURRENT_SOURCE_DIR}/StudioTopology/resources/*.js"
+            "${CMAKE_CURRENT_SOURCE_DIR}/StudioTopology/resources/*.css"
+        )
+        if(TOPOLOGY_WEB_ASSETS)
+            juce_add_binary_data(StudioTopologyAssets
+                HEADER_NAME "StudioTopologyAssets.h"
+                NAMESPACE "StudioTopologyAssets"
+                SOURCES ${TOPOLOGY_WEB_ASSETS}
+            )
+
+            target_include_directories(StudioTopologyAssets INTERFACE
+                "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/juce_binarydata_StudioTopologyAssets/JuceLibraryCode>"
+            )
+            add_library(ABDShared::StudioTopologyAssets ALIAS StudioTopologyAssets)
+        endif()
+    endif()
+endif()
+

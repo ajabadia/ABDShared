@@ -294,29 +294,38 @@ Dependencia externa: tablas `AbdBatchedPoint` alineadas producidas por ABDAudioL
 
 ---
 
-### 1.5 Otros módulos compartidos (transversales)
+### 1.5 Otros módulos compartidos transversales consolidados
 
-No son de síntesis pura, pero forman parte del catálogo compartido:
+En `ABDShared/Code/CMakeLists.txt` se publican como targets canónicos con namespace `ABDShared::`:
 
-- **AudioComparator** — comparador A/B de audio (tiempo/espectral).
-- **HardwareDrivers** — controladores hardware (SysEx, NRPN, etc.).
-- **HardwareMidiDetect** — detección y picker MIDI.
-- **BankManager** — gestión de banco (`ABDBankManagerCore`, `FactoryContentLoader`, `Pro800Midi`, `hardwareMidiPipe`, `BankManagerWebViewAdapter`).
-- **Scope** — analizador de señal (core JUCE-free + componentes JUCE).
-- **LcdDisplay**, **Segmented** — LCD/pantallas segmentadas.
-- **StudioTopology** — topología de estudio.
-- **WebView2Bridge** — puente WebView2.
-- **AutoUpdater** — actualización automática.
-- **ABDAudioLab** — generación de tablas LUT (fuera del espacio del synth, en la raíz del workspace).
+- **AudioComparator (`ABDShared::AudioComparator`)**:
+  - Motor analítico C++ de comparación A/B para benchmarks de síntesis y emulación.
+  - Incluye alineamiento temporal cruzado (`AudioABAlignmentEngine`), extracción de métricas espectrales (`SpectralMetricsExtractor`), motor de veredictos con tolerancias multi-métrica (`AudioABVerdictEngine`) y orquestador integral (`AudioABComparator`).
+- **HardwareMidiDetect (`ABDShared::HardwareMidiDetect`)**:
+  - Detección de interfaces MIDI físicas conectadas al host (`HardwareMidiDetector`), sondeo asíncrono y monitorización reactiva de puertos.
+  - Recursos WebUI para el selector incrustados como datos binarios: `ABDShared::HardwareMidiPickerAssets` (producido con `juce_add_binary_data`).
+- **StudioTopology (`ABDShared::StudioTopologyAssets`)**:
+  - Interfaz interactiva de topología de cableado y ruteo de estudio para visualizadores web incrustados.
+- **MidiKeyboardCpp (`ABDShared::MidiKeyboardCpp`)**:
+  - Soporte de teclado virtual interactivo e integración con `WebView2Bridge`.
+- **HardwareDrivers (`ABDShared::HardwareDrivers`)**:
+  - Controladores hardware para sintetizadores (SysEx, NRPN, volcados de memoria y mapeos de controladores para CZ101, MS2000, DeepMind, etc.).
+- **BankManager (`ABDShared::BankManager`)**:
+  - Gestión de bancos de presets (`ABDBankManagerCore`, `FactoryContentLoader`, `Pro800Midi`, `hardwareMidiPipe`, `BankManagerWebViewAdapter`).
+- **Scope (`ABDShared::ScopeCore`)**:
+  - Analizador osciloscópico de señal de alta precisión (libre de JUCE en su núcleo de cálculo + adaptadores JUCE).
+- **WebView2Bridge (`ABDShared::WebView2Bridge`)**:
+  - Puente bidireccional IPC entre el motor C++ y las vistas WebUI basadas en Microsoft WebView2.
+- **AutoUpdater (`ABDShared::AutoUpdater`)**:
+  - Servicio en segundo plano para comprobación asíncrona de versiones y actualización transparente.
 
 ---
 
 ### 1.6 Diseño del build
 
-- Cada módulo es un target independiente en `ABDSharedCode/CMakeLists.txt`: DspCore, DspEffects, SynthCore, LutDSP, etc. Son headers, parte inline y parte `.cpp`.
-- Los consumidores los consumen con `add_subdirectory(ABDSharedCode)` y/o `include_directories(../ABDSharedCode)`.
-- Algunos módulos enlazan JUCE (p. ej. HardwareMidiDetect, algunas capas de HardwareDrivers). El core de síntesis busca ser tan JUCE-free como le basta; hay dependencia de `juce_audio_basics` en algunas capas (p. ej. `AudioBuffer` de DspCore y `AnalogLutFilterModule`).
-- Compatibilidad: algunos synths tienen shims locales que referencian los headers compartidos con namespace o alias (p. ej. `using DSP = abd::synth` en los shims de ABXportDsp). Esto es compatibilidad, no duplicación de implementación, pero hay que mirar el árbol de cada producto antes de citar un shim concreto como "consumo real": un shim a veces citado, `ABXportDsp/Source/DSP/ADSREnvelope.h`, **NO existe en disco en esta rama**.
+- Cada módulo es un target independiente en `ABDShared/Code/CMakeLists.txt` (DspCore, SynthCore, DspEffects, LutDSP, AudioComparator, HardwareMidiDetect, etc.).
+- Los consumidores los consumen con `add_subdirectory(ABDShared/Code)` y enlazan a los alias canónicos (`ABDShared::DspCore`, `ABDShared::SynthCore`, `ABDShared::AudioComparator`, etc.).
+- Todos los módulos respetan la modularidad y el aislamiento de dependencias: las capas puras DSP no requieren JUCE, mientras que las capas de infraestructura hardware o WebUI enlazan únicamente los módulos requeridos (`juce_audio_basics`, `juce_audio_devices`, etc.).
 
 ---
 
@@ -343,7 +352,7 @@ Esto es un resumen de OBSERVACIÓN, no un inventario completo de cada producto. 
   Usa SynthCore/ModMatrix y SynthCore/VoiceAllocator, pero tiene su propio DSP de envolventes/filtros/osciladores locales (`AdditiveVoice`, `NeurotikEngine`, `FilterBank`, etc.). No usa DspEffects para sus efectos; tiene su propio catálogo.
 
 - **ABDAudioLab:**
-  Fuera del motor, pero es de donde vienen las tablas LUT que usa LutDSP. Relevante si se quiere añadir un modelo LUT nuevo.
+  Laboratorio integral de perfilado, calibración y benchmarking de sintetizadores. Retargeteado oficialmente a `ABDShared/Code` mediante CMake (`ABDShared::*`), consume `ABDShared::AudioComparator`, `ABDShared::HardwareMidiDetect`, `ABDShared::HardwareMidiPickerAssets`, `ABDShared::StudioTopologyAssets`, `ABDShared::ScopeCore`, y resuelve contratos centralizados en `ABDShared/Contracts` y assets en `ABDShared/Assets`. Además, es el generador canónico de las tablas LUT que consume `LutDSP`.
 
 **Conclusión rápida:** la mayoría de los synths tienen sus propias copias locales de envolventes, LFOs, filtros y osciladores, con distintos niveles de cercanía a shared. SynthCore ya tiene los bloques básicos; lo que falta es confirmar cuánto se usan esos bloques realmente en cada synth y qué está duplicado en producto que podría venir de shared con un adapter mínimo.
 

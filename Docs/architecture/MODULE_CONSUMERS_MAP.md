@@ -556,9 +556,31 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ---
 
-### 4.9 `ABDAudioLab` (ya mencionado) y `ABDBankManager` (relación de corte)
+### 4.9 `ABDAudioLab`
 
-**ABDBankManager** no es consumidor externo en este inventario de la misma forma que los demás, sino el proyecto desde el que se cortó el módulo `BankManager/` dentro de ABDSharedCode. Es decir: ABDSharedCode tiene un módulo que viene del corte, y ABDBankManager es el repo que lo consume/mantiene.
+**Qué es:** Laboratorio integral de perfilado, calibración acústica, benchmarking A/B y auditoría de emulaciones y hardware físico.
+
+**Cómo consume ABDShared:**
+- CMake: Integración nativa directa mediante `add_subdirectory("${ABDSHARED_CODE_DIR}" ...)` apuntando canónicamente a `../ABDShared/Code`.
+- Enlace canónico de librerías y componentes C++:
+  - `ABDShared::AudioComparator` (análisis temporal, espectral y motor de veredictos 5D)
+  - `ABDShared::HardwareMidiDetect` y `ABDShared::HardwareMidiPickerAssets` (detección y selector UI de interfaces MIDI físicas)
+  - `ABDShared::StudioTopologyAssets` (topología interactiva de ruteo de estudio)
+  - `ABDShared::ScopeCore` (analizador osciloscópico de señal de alta precisión)
+  - `ABDShared::WebView2Bridge` (puente bidireccional IPC C++ <-> WebUI)
+  - `ABDShared::SynthCore` y `ABDShared::DspCore`
+- Resolución de contratos y assets en C++ (`LabResourcePaths`):
+  - `sharedContractsDir()` ➔ Resuelve centralizadamente `ABDShared/Contracts`.
+  - `sharedAssetsDir()` ➔ Resuelve los recursos estáticos universales en `ABDShared/Assets` (con enlaces NTFS en desarrollo para marcas y modelos 3D).
+- Generación de artefactos: Es el productor canónico de las tablas LUT y modelos empíricos que luego consume `ABDShared::LutDSP`.
+
+**Estado del consumo:** Activo y verificado (migración completada en octubre de 2026).
+
+---
+
+### 4.10 `ABDBankManager` (relación de corte)
+
+**ABDBankManager** no es consumidor externo en este inventario de la misma forma que los demás, sino el proyecto desde el que se cortó el módulo `BankManager/` dentro de ABDShared/Code. Es decir: ABDShared/Code aloja el módulo canónico resultante del corte, y ABDBankManager es el proyecto que lo consume/mantiene.
 
 ---
 

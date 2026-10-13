@@ -43,31 +43,33 @@ ABDSynths/
 
 ## 2. Integración en C++ (CMake)
 
-En el `CMakeLists.txt` del sintetizador:
+En el `CMakeLists.txt` del sintetizador o herramienta:
 
 ```cmake
-# 1. Incluir el módulo C++ de ABDShared
+# 1. Incluir el módulo C++ consolidado de ABDShared
 add_subdirectory(
     "${CMAKE_CURRENT_SOURCE_DIR}/../ABDShared/Code"
     "${CMAKE_CURRENT_BINARY_DIR}/ABDShared_build"
 )
 
-# 2. Enlazar los módulos necesarios a tu target de plugin
+# 2. Enlazar los módulos necesarios usando los alias canónicos con namespace ABDShared::
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    abd_dsp_core          # Matemáticas deterministas, buffers y filtros TPT
-    abd_synth_core        # Envolventes ADSR, LFOs, osciladores PolyBLEP
-    abd_autoupdater       # Hilo background de actualizaciones
+    ABDShared::DspCore          # Matemáticas deterministas, buffers y filtros TPT
+    ABDShared::SynthCore        # Envolventes ADSR, LFOs, osciladores PolyBLEP
+    ABDShared::DspEffects       # Motores de saturación, retardo y coros BBD
+    ABDShared::LutDSP           # Evaluador SIMD de perfiles LUT medidos
+    ABDShared::AudioComparator  # Motor de comparación y veredictos A/B 5D
+    ABDShared::HardwareMidiDetect # Detección reactiva de hardware MIDI
+    ABDShared::AutoUpdater      # Hilo background de actualizaciones
 )
 
-# 3. Incluir directorios de cabecera
+# 3. Incluir directorios de cabecera si es necesario
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../ABDShared/Code"
 )
 ```
 
 ---
-
-## 3. Integración en la WebUI
 
 ## 3. Integración en la WebUI (Arquitectura Universal Zero-Copy)
 

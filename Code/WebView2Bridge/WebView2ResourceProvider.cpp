@@ -131,16 +131,21 @@ std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const ju
 
 static juce::File findSharedAssetsRoot()
 {
-    // Try to locate ABDSharedAssets relative to the current executable
+    // Try to locate ABDShared/Assets (primary consolidated layout) or legacy ABDSharedAssets
     juce::File exeFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
     juce::File dir     = exeFile.getParentDirectory();
 
-    // Walk up to find ABDSharedAssets (monorepo root is typically 4-6 levels up from build artefacts)
+    // Walk up to find ABDShared/Assets (monorepo root is typically 4-6 levels up from build artefacts)
     for (int i = 0; i < 8 && dir.exists(); ++i)
     {
-        const juce::File candidate = dir.getChildFile("ABDSharedAssets");
-        if (candidate.isDirectory())
-            return candidate;
+        const juce::File candidateShared = dir.getChildFile("ABDShared").getChildFile("Assets");
+        if (candidateShared.isDirectory())
+            return candidateShared;
+
+        const juce::File candidateLegacy = dir.getChildFile("ABDSharedAssets");
+        if (candidateLegacy.isDirectory())
+            return candidateLegacy;
+
         dir = dir.getParentDirectory();
     }
 
@@ -148,17 +153,26 @@ static juce::File findSharedAssetsRoot()
     juce::File cwd = juce::File::getCurrentWorkingDirectory();
     for (int i = 0; i < 6 && cwd.exists(); ++i)
     {
-        const juce::File candidate = cwd.getChildFile("ABDSharedAssets");
-        if (candidate.isDirectory())
-            return candidate;
+        const juce::File candidateShared = cwd.getChildFile("ABDShared").getChildFile("Assets");
+        if (candidateShared.isDirectory())
+            return candidateShared;
+
+        const juce::File candidateLegacy = cwd.getChildFile("ABDSharedAssets");
+        if (candidateLegacy.isDirectory())
+            return candidateLegacy;
+
         cwd = cwd.getParentDirectory();
     }
 
     // Fallback: try the known monorepo root
     const juce::File projectRoot = exeFile.getParentDirectory().getParentDirectory().getParentDirectory().getParentDirectory();
-    const juce::File candidate   = projectRoot.getChildFile("ABDSharedAssets");
-    if (candidate.isDirectory())
-        return candidate;
+    const juce::File candidateShared = projectRoot.getChildFile("ABDShared").getChildFile("Assets");
+    if (candidateShared.isDirectory())
+        return candidateShared;
+
+    const juce::File candidateLegacy = projectRoot.getChildFile("ABDSharedAssets");
+    if (candidateLegacy.isDirectory())
+        return candidateLegacy;
 
     return {};
 }

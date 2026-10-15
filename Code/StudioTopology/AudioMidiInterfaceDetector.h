@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file AudioMidiInterfaceDetector.h
  * @brief Detection, grouping, and port modeling of Audio and MIDI host interfaces (Mac Audio/MIDI Setup style).
  * @author ABDSynths
@@ -215,8 +215,26 @@ public:
             DetectedInterfaceInfo audioIface;
             audioIface.id                     = "active_host_audio";
             audioIface.displayName            = currentAudioDevice;
-            audioIface.brand                  = "Windows Audio";
-            audioIface.imageRelPath           = "interfaces/generic-audio-midi-interface.png";
+            if (currentAudioDevice.containsIgnoreCase("Realtek"))
+            {
+                audioIface.brand        = "Realtek Audio";
+                audioIface.imageRelPath = "interfaces/realtek-audio.png";
+            }
+            else if (currentAudioDevice.containsIgnoreCase("PreSonus") || currentAudioDevice.containsIgnoreCase("AudioBox"))
+            {
+                audioIface.brand        = "PreSonus";
+                audioIface.imageRelPath = "interfaces/presonus-audiobox-usb.png";
+            }
+            else if (currentAudioDevice.containsIgnoreCase("MX-1") || currentAudioDevice.containsIgnoreCase("AIRA"))
+            {
+                audioIface.brand        = "Roland";
+                audioIface.imageRelPath = "interfaces/roland-mx-1.png";
+            }
+            else
+            {
+                audioIface.brand        = "Windows Audio";
+                audioIface.imageRelPath = "interfaces/generic-audio-midi-interface.png";
+            }
             audioIface.hasAudioHardware       = true;
             audioIface.hasMidiHardware        = false;
             audioIface.isAudioConnected       = true;

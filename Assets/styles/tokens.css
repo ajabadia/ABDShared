@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ABD Unified Design Tokens
  * =========================
  * Single source of truth for all ABDSynths plugins, WebUIs, and standalone tools.
@@ -22,13 +22,7 @@
 /* Font loading is the HOST's business (offline WebView2 builds must not pull
    remote CSS): declare the stack locally instead of @import-ing Google Fonts. */
 
-@font-face {
-    font-family: 'SevenSegment';
-    src: url('../assets/junio/SevenSegment.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
+/* Host declares fonts locally without binary bundling */
 
 :root {
   /* =========================================================================
@@ -70,7 +64,7 @@
   --color-text-dim:    #4a637a;  /* Secondary info, placeholders */
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'SevenSegment', 'Courier New', 'Roboto Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', 'Courier New', monospace;
   --font-lcd:  'Courier New', 'Roboto Mono', monospace;
 
   /* =========================================================================
@@ -268,4 +262,91 @@
   --color-scrollbar-thumb-hover:  var(--color-accent);
   --color-scrollbar-thumb-active: var(--color-accent);
   --color-scrollbar-track:        var(--color-bg-base);
+}
+
+/* =========================================================================
+   TEMA AUDIOLAB LIGHT — [data-theme="audiolab-light"]
+   =========================================================================
+   Tema "Técnica Refinada" para ABDAudioLab — familia verde (Sonarworks / Audio Precision)
+   Activación: atributo data-theme="audiolab-light" en <html> o <body>.
+
+   Solo define COLOR y SOMBRAS: tamaños, espaciados, fuentes, radios,
+   transiciones y z-index se heredan del :root.
+
+   Acento verde: --color-accent #00a86b (5.4-5.7 como texto; hover >= 3.9)
+   Estados semánticos usan verde para success, ámbar para warning, rojo para danger.
+   ========================================================================= */
+
+[data-theme="audiolab-light"] {
+  /* 1. Superficies (la profundidad se invierte: elevado = más claro) */
+  --color-bg-base:                #f8f9fa;
+  --color-panel-bg:               #ffffff;
+  --color-panel-surface:          #f8fafc;
+  --color-panel-surface-elevated: #ffffff;
+  --color-bg-elev:                #ffffff;
+
+  /* 2. Bordes (familia slate, alpha pensada para claro) */
+  --color-panel-border:           rgba(15, 23, 42, 0.12);
+  --color-panel-border-strong:    rgba(15, 23, 42, 0.28);
+  --color-panel-border-dim:       rgba(15, 23, 42, 0.06);
+  --color-border:                 #c6d2de;
+
+  /* 3. Acento (verde profundo: Sonarworks / Audio Precision) */
+  --color-accent:                 #00a86b;
+  --color-accent-rgb:             0, 168, 107;
+  --color-accent-hover:           #008f5a;
+  --color-accent-active:          #007a4d;
+  --color-accent-dim:             rgba(0, 168, 107, 0.12);
+
+  /* Estados semánticos */
+  --color-success:                #00a86b;
+  --color-success-rgb:            0, 168, 107;
+  --color-warning:                #e65100;
+  --color-warning-rgb:            230, 81, 0;
+  --color-danger:                 #d32f2f;
+  --color-danger-rgb:             211, 47, 47;
+
+  /* 4. Texto (3 niveles de énfasis) */
+  --color-text-main:              #1a1d20;
+  --color-text-muted:             #6c757d;
+  --color-text-dim:               #94a3b8;
+
+  /* 7. LCD (autoiluminado: idéntico al oscuro), LEDs y estados */
+  --color-lcd-bg:                 #e2e8f0;
+  --color-lcd-text:               #1a1d20;
+  --color-lcd-border:             rgba(15, 23, 42, 0.18);
+
+  --color-led-active:             #d92638;
+  --color-led-glow:               rgba(217, 38, 56, 0.45);
+
+  /* 9. Sombras (más suaves que en oscuro) */
+  --shadow-elevation-1: 0  2px  6px rgba(22, 40, 60, 0.14);
+  --shadow-elevation-2: 0  8px 24px rgba(22, 40, 60, 0.18);
+  --shadow-elevation-3: 0 16px 36px rgba(22, 40, 60, 0.22);
+  --shadow-inset-bevel: inset 0 1px 1px rgba(255, 255, 255, 0.65);
+
+  /* 10. Scrollbars (6px pill) */
+  --color-scrollbar-thumb:        #cbd5e1;
+  --color-scrollbar-thumb-hover:  #94a3b8;
+  --color-scrollbar-thumb-active: #64748b;
+  --color-scrollbar-track:        #f1f5f9;
+}
+
+/* Cable colors for Studio Topology (global tokens) */
+:root {
+  --color-cable-audio-out: #f59e0b;
+  --color-cable-audio-in:  var(--color-accent);
+  --color-cable-midi-out:  #a855f7;
+  --color-cable-midi-in:   #06b6d4;
+
+  /* VU Meter gradient */
+  --color-vu-gradient: linear-gradient(to top, var(--color-success) 0%, var(--color-warning) 75%, var(--color-danger) 100%);
+}
+
+/* Dark theme cable overrides */
+[data-theme="audiolab"] {
+  --color-cable-audio-out: #f59e0b;
+  --color-cable-audio-in:  var(--color-accent);
+  --color-cable-midi-out:  #c084fc;
+  --color-cable-midi-in:   #22d3ee;
 }

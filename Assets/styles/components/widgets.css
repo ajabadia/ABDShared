@@ -1114,10 +1114,19 @@
 /* =========================================================================
    SevenSegmentDisplay
    ========================================================================= */
+@font-face {
+    font-family: 'SevenSegment';
+    src: url('../../assets/junio/SevenSegment.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 .abd-seven-seg {
     display: inline-flex;
     gap: 2px;
     font-variant-numeric: tabular-nums;
+    font-family: 'SevenSegment', monospace;
 }
 
 .abd-seven-seg__digit {

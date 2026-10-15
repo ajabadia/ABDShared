@@ -29,11 +29,17 @@ export class AboutDialog {
   constructor(options = {}) {
     this.options = {
       id: 'abd-about-dialog',
-      appName: 'ABDSynth',
-      subtitle: 'Virtual Instrument Synthesizer',
+      appName: 'ABDAudioLab',
+      category: 'ABD SYNTHS • HARDWARE PROFILING LAB',
+      subtitle: 'Universal Hardware Profiling & DSP Synthesis Suite',
       description: 'Audio DSP Synthesizer Suite by ABD.',
-      version: '1.0.0',
+      details: 'DSP Engine: Farina Sine Sweep • Wiener-Hammerstein LNL • SIMD Splines • NAM / RTNeural',
+      copyright: '© 2026 ABD Synths',
+      version: '2.1.0',
       buildNumber: '',
+      buildDate: '',
+      imageSrc: '',
+      statusText: 'All Systems Nominal',
       repo: 'ajabadia/ABDSynths',
       manualUrl: 'https://github.com/ajabadia/ABDSynths',
       getJuceBackend: () => {
@@ -73,31 +79,63 @@ export class AboutDialog {
       document.body.appendChild(this.rootEl);
     }
 
-    const buildStr = this.options.buildNumber ? `Build #${this.options.buildNumber}` : '';
+    const buildStr = this.options.buildNumber ? `Build ${this.options.buildNumber}` : '';
+    const dateStr = this.options.buildDate ? `(${this.options.buildDate})` : '';
+    const buildFull = [buildStr, dateStr].filter(Boolean).join(' ');
     const fullVer = this.options.version.startsWith('v') ? this.options.version : `v${this.options.version}`;
+    const verLine = buildFull ? `${fullVer} • ${buildFull}` : fullVer;
 
-    this.rootEl.innerHTML = `
-      <div class="modal-box abd-about-box">
-        <h3 class="abd-about-title">${this._escape(this.options.appName)}</h3>
-        <p class="modal-sub abd-about-sub">${this._escape(this.options.subtitle)}</p>
-        <p class="abd-about-desc">${this._escape(this.options.description)}</p>
-        <p class="abd-about-build">${buildStr}</p>
-        
-        <div class="about-update-section abd-about-update-section">
-          <div class="about-update-row">
-            <span class="about-update-label">Version:</span>
-            <span class="about-update-val abd-about-version">${fullVer}</span>
-            <button type="button" class="btn-glow btn-sm abd-btn-check-updates">CHECK FOR UPDATES</button>
+    if (this.options.imageSrc) {
+      // Diseño split con imagen de laboratorio analógico y tarjeta técnica (estilo SoundId / ABDAudioLab)
+      this.rootEl.innerHTML = `
+        <div class="modal-box abd-about-box abd-about-split">
+          <div class="abd-about-media">
+            <img src="${this.options.imageSrc}" alt="${this._escape(this.options.appName)}" class="abd-about-img" />
+            <button type="button" class="abd-btn-about-close-icon abd-btn-about-close" aria-label="Cerrar diálogo" title="Cerrar">✕</button>
           </div>
-          <div class="about-update-status abd-about-status"></div>
-          <div class="about-update-action abd-about-action" hidden>
-            <a class="btn-glow btn-sm btn-update-avail abd-btn-download-update" href="#" target="_blank" rel="noopener noreferrer">DOWNLOAD UPDATE</a>
+          <div class="abd-about-content">
+            ${this.options.category ? `<div class="abd-about-category">${this._escape(this.options.category)}</div>` : ''}
+            <h3 class="abd-about-title">${this._escape(this.options.appName)}</h3>
+            <p class="modal-sub abd-about-sub">${this._escape(this.options.subtitle)}</p>
+            <p class="abd-about-version-line abd-about-version">${this._escape(verLine)}</p>
+            ${this.options.details ? `<p class="abd-about-details">${this._escape(this.options.details)}</p>` : ''}
+            <p class="abd-about-copyright">${this._escape(this.options.copyright)}</p>
+            
+            <div class="abd-about-footer-row">
+              <button type="button" class="btn btn-sm abd-btn-check-updates">Check for Updates...</button>
+              <span class="abd-about-status">${this._escape(this.options.statusText)}</span>
+              <div class="abd-about-action" hidden>
+                <a class="btn-glow btn-sm btn-update-avail abd-btn-download-update" href="#" target="_blank" rel="noopener noreferrer">DOWNLOAD UPDATE</a>
+              </div>
+            </div>
           </div>
         </div>
+      `;
+    } else {
+      // Diseño modal estándar centrado (retrocompatible con sintetizadores individuales)
+      this.rootEl.innerHTML = `
+        <div class="modal-box abd-about-box">
+          <h3 class="abd-about-title">${this._escape(this.options.appName)}</h3>
+          <p class="modal-sub abd-about-sub">${this._escape(this.options.subtitle)}</p>
+          <p class="abd-about-desc">${this._escape(this.options.description)}</p>
+          <p class="abd-about-build">${buildStr}</p>
+          
+          <div class="about-update-section abd-about-update-section">
+            <div class="about-update-row">
+              <span class="about-update-label">Version:</span>
+              <span class="about-update-val abd-about-version">${fullVer}</span>
+              <button type="button" class="btn-glow btn-sm abd-btn-check-updates">CHECK FOR UPDATES</button>
+            </div>
+            <div class="about-update-status abd-about-status"></div>
+            <div class="about-update-action abd-about-action" hidden>
+              <a class="btn-glow btn-sm btn-update-avail abd-btn-download-update" href="#" target="_blank" rel="noopener noreferrer">DOWNLOAD UPDATE</a>
+            </div>
+          </div>
 
-        <button type="button" class="btn-glow abd-btn-about-close">CLOSE</button>
-      </div>
-    `;
+          <button type="button" class="btn-glow abd-btn-about-close">CLOSE</button>
+        </div>
+      `;
+    }
 
     this.boxEl = this.rootEl.querySelector('.abd-about-box');
     this.statusEl = this.rootEl.querySelector('.abd-about-status');
@@ -116,8 +154,8 @@ export class AboutDialog {
   }
 
   _wireListeners() {
-    const closeBtn = this.rootEl.querySelector('.abd-btn-about-close');
-    closeBtn?.addEventListener('click', () => this.close());
+    const closeBtns = this.rootEl.querySelectorAll('.abd-btn-about-close');
+    closeBtns.forEach(btn => btn.addEventListener('click', () => this.close()));
 
     this.rootEl.addEventListener('click', (e) => {
       if (e.target === this.rootEl) this.close();

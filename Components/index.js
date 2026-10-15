@@ -118,3 +118,10 @@ export {
   isItemChecked,
   renderMenuItemHtml,
 } from './synthNavBar.js';
+
+// Medición de señal VU y analizador espectral logarítmico (ABDAudioLab / ABDScope)
+export { VuMeter } from './vuMeter.js';
+export { SpectrumPlotter } from './spectrumPlotter.js';
+export { HardwareRoutingDiagram } from './hardwareRoutingDiagram.js';
+export { StudioTopology } from './studioTopology.js';
+

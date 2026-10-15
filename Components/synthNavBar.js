@@ -210,19 +210,22 @@ export class SynthNavBar {
     this.element.setAttribute('role', 'navigation');
     this.element.setAttribute('aria-label', 'Main Navigation Bar');
 
+    const brandPosition = this.options.brandPosition || 'left';
     const brandHtml = this._buildBrandHtml();
     const menusHtml = this._buildMenusHeaderHtml();
 
     this.element.innerHTML = `
       <div class="nav-left">
-        ${brandHtml}
+        ${brandPosition === 'left' ? brandHtml : ''}
         <div class="menu-bar nav-menu-bar" role="menubar">
           ${menusHtml}
         </div>
         <div class="menu-dropdown nav-dropdown" role="menu" hidden></div>
       </div>
       <div class="nav-center"></div>
-      <div class="nav-right"></div>
+      <div class="nav-right">
+        ${brandPosition === 'right' ? brandHtml : ''}
+      </div>
     `;
 
     this.menuBarEl = this.element.querySelector('.nav-menu-bar');
@@ -241,9 +244,19 @@ export class SynthNavBar {
     const rightContainer = this.element.querySelector('.nav-right');
     if (rightContainer && this.options.rightSlot) {
       if (typeof this.options.rightSlot === 'string') {
-        rightContainer.innerHTML = this.options.rightSlot;
+        const slotEl = document.createElement('div');
+        slotEl.innerHTML = this.options.rightSlot;
+        if (brandPosition === 'right') {
+          rightContainer.insertBefore(slotEl, rightContainer.firstChild);
+        } else {
+          rightContainer.appendChild(slotEl);
+        }
       } else if (this.options.rightSlot instanceof HTMLElement) {
-        rightContainer.appendChild(this.options.rightSlot);
+        if (brandPosition === 'right') {
+          rightContainer.insertBefore(this.options.rightSlot, rightContainer.firstChild);
+        } else {
+          rightContainer.appendChild(this.options.rightSlot);
+        }
       }
     }
 
@@ -256,14 +269,14 @@ export class SynthNavBar {
 
   _buildBrandHtml() {
     const brand = this.options.brand || {};
-    const title = escapeHtml(brand.title || '');
+    const title = brand.title ? `<span class="brand-title">${escapeHtml(brand.title)}</span>` : '';
     const subtitle = brand.subtitle ? `<span class="brand-subtitle">${escapeHtml(brand.subtitle)}</span>` : '';
     const logo = brand.logoHtml || '';
 
     return `
       <div class="nav-brand">
         ${logo}
-        <span class="brand-title">${title}</span>
+        ${title}
         ${subtitle}
       </div>
     `;

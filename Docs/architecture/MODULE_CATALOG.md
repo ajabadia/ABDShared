@@ -72,6 +72,8 @@ Namespace: `abd::synth`
 - `void setDecay(float decay0to1) noexcept`
 - `void setSustain(float sustain0to1) noexcept`
 - `void setRelease(float release0to1) noexcept`
+- `void setHardwareMS2000Mode(bool enabled) noexcept` — activa la tabla ROM exacta `kMS2000RomEnvelopeIncrementQ23[128]` (`0x27D54`, `1,000 ms .. 3,7992 s` @ 48 kHz) y el umbral de corte de cola del DSP56362 (`P:$0A52` / `P:$0A74`).
+- `bool isHardwareMS2000Mode() const noexcept`
 - `void noteOn(float velocity = 1.0f) noexcept`
 - `void noteOff() noexcept`
 - `float getNextSample() noexcept`
@@ -89,6 +91,8 @@ Namespace: `abd::synth`
 - `void setWaveformLFO1(LFOWaveform wave) noexcept`
 - `void setWaveformLFO2(LFOWaveformLFO2 wave) noexcept`
 - `void setKeySyncMode(int mode) noexcept`
+- `void setHardwareMS2000Mode(bool enabled) noexcept` — desbloquea el rango audio-rate de `LFO2` (`0x29BE8`, hasta `194,90 Hz` en knob 127 y `500 Hz` con modulación) y la onda `Square+` unipolar `[0.0, +1.0]` del DSP56362 (`P:$053B`).
+- `bool isHardwareMS2000Mode() const noexcept`
 - `void triggerKeySync(bool isFirstTimbreNote) noexcept`
 - `void resetPhase() noexcept`
 - `float getNextSample(float frequencyModulationOctaves = 0.0f) noexcept`
@@ -175,6 +179,13 @@ Modelo: motor sin política + catálogo inyectado + etapas inyectadas.
   - `RingMod.h`
   - `ShelfFilter.h`
   - `CascadeShelfEq.h`
+  - **Familia Korg MS2000 DSP56362 (extraídos del microcódigo v1.07 `P:$0834–$10A7`, agnósticos al sample rate):**
+    - `DspMS2000ChorusFlanger.h` (`P:$0F50–$0F95`: Stereo Chorus/Flanger con LFO triangular parabólico en contrafase L/R y cuantización DRAM de 16 bits).
+    - `DspMS2000Ensemble.h` (`P:$0F96–$0FE8`: Stereo 3-Phase Ensemble con suma mono `0.35`, LFO trifásico $120^\circ$ + shimmer `0.20` y matriz `0.8 / -0.4 / -0.2`).
+    - `DspMS2000Phaser.h` (`P:$105D–$10A7`: Stereo 4-Stage Phaser con LFO cuadrático en contrafase L/R).
+    - `DspMS2000Delay.h` (`P:$0FE9–$105C`: Stereo / Cross / L-R Delay con suavizado exponencial de 1 polo del tiempo de retardo y filtro HF de 1 polo en el retorno).
+    - `DspMS2000VoiceDistortion.h` (`P:$0834–$0890`: Clipper hardware de 24 bits $\times 256$ + biquad de cabina de 2.º orden adaptado por transformada bilineal).
+    - `DspMS2000ShelfEq.h` (`P:$08B0–$08E7`: 2-Band 1st-Order Shelving EQ con ganancia post-acumulador $\times 4$ y saturación `Q23`).
 - Etapas de carácter:
   - `characters/JunoBbd.h`
   - `characters/DiodeBridge.h`

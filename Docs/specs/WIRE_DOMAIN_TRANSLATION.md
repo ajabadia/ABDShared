@@ -324,5 +324,24 @@ void testRoundTrip() {
 - **Cerrar la sesión** o continuar con la Opción B (extraer proyecto tercero)
 
 ---
+
+## 9. Verificación con Firmware Real Korg MS2000 v1.07 (`x811v107.sys` + DSP56362)
+
+Tras desensamblar el firmware `x811v107.sys` (H8S/2350) y el microcódigo del DSP56362 (`P:$0000–$12DA` @ $f_s = 48.000\text{ Hz}$), se verificaron y aplicaron en `ABDMS2000` las siguientes reglas exactas de la capa `Wire <-> Normalized <-> Domain`:
+
+1. **Codificación Bipolar Simétrica Centrada en `wire = 64` (`0x40`):**
+   - En el hardware Korg MS2000, todo byte bipolar (`-63..+63`, `-24..+24 st`, `-12..+12 dB`) tiene su **cero físico exacto en el byte `64` (`0x40`)**, no en `63.5`.
+   - En [`Conversion.gen.h`](file:///D:/desarrollos/ABDSynths/ABDMS2000/Source/State/Conversion.gen.h), [`MS2000HardwareProgram.h`](file:///D:/desarrollos/ABDSynths/ABDMS2000/Source/MIDI/MS2000HardwareProgram.h) y [`MIDIMap.cpp`](file:///D:/desarrollos/ABDSynths/ABDMS2000/Source/MIDI/MIDIMap.cpp), cuando `wireMin == 0 && wireMax == 127 && domainMin == -domainMax`, la conversión aplica:
+     $$\text{normalized} = 0{,}5 + 0{,}5 \cdot \frac{\text{clamp}(\text{wire}, 1, 127) - 64}{63}, \qquad \text{wire} = 64 + \text{round}\big((\text{normalized} \cdot 2 - 1) \cdot 63\big)$$
+   - Esto garantiza que `wireToDomain("eqLowGain", 64) == 0.0f` dB y `domainToWire("eqLowGain", 0.0f) == 64`.
+2. **Tablas LUT Exactas de la ROM (`MS2000FirmwareTables.h`):**
+   - **Envolventes (`0x27D54`, `kRomEnvelopeIncrementQ23`):** `knob 0` = `48` muestras (`1,000 ms` @ 48 kHz) hasta `knob 127` = `182.361` muestras (`3,7992 s`).
+   - **LFO1 (`0x295E8`) vs LFO2 (`0x29BE8`) (`P:$05CE`):**
+     $$f_{\text{LFO}}(\text{knob}) = \frac{\text{inc}_{\text{Q23}}(\text{knob}) \times 48.000}{2^{24}}\text{ Hz}$$
+     - `LFO1`: `0,0458 Hz` (`knob 0`) $\dots$ `36,610 Hz` (`knob 127`, sin saturar prematuramente en `20 Hz` en `knob 108`).
+     - `LFO2`: Idéntico a `LFO1` entre `0..114` (`0,0458..25,41 Hz`) y aceleración exponencial en `115..127` hasta **`194,904 Hz`** ($5{,}3202\times$ `LFO1`).
+   - **Delay Time (`0x28356`, `kRomDelayTimeSamples`):** `knob 0` = `2` muestras (`0,0417 ms`) $\dots$ `knob 127` = `65.534` muestras (`1.365,29 ms` @ 48 kHz).
+
+---
 *Documento generado durante sesión de desarrollo ABD Synths*
 *Para dudas o consulta: revisar proyectos origen ABDMS2000 y ABDEep*

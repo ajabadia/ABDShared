@@ -127,6 +127,42 @@ export class SpectrogramRenderer extends BaseRenderer {
 
     // 3. Blit offscreen canvas to active screen
     this.ctx.drawImage(this.offscreenCanvas, 0, 0, w, h);
+
+    // 4. Harmonic / partial trajectory overlays (if supplied in frame)
+    if (frame.partialTracks && Array.isArray(frame.partialTracks) && frame.partialTracks.length > 0) {
+      this._renderPartialTracks(frame.partialTracks, w, h);
+    }
+  }
+
+  _renderPartialTracks(tracks, w, h) {
+    const ctx = this.ctx;
+    ctx.save();
+    for (let t = 0; t < tracks.length; ++t) {
+      const track = tracks[t];
+      if (!track) continue;
+      const freqHz = typeof track === 'number' ? track : (track.freqHz || 0);
+      if (freqHz < MIN_FREQ || freqHz > MAX_FREQ) continue;
+
+      const normX = (Math.log10(freqHz) - LOG_MIN_FREQ) / LOG_RANGE;
+      const x = Math.round(normX * w);
+      const alpha = track.amp !== undefined ? Math.max(0.15, Math.min(1.0, track.amp)) : 0.6;
+      const col = track.color || 'rgba(0, 229, 255, ' + alpha + ')';
+
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+
+      if (track.label) {
+        ctx.fillStyle = col;
+        ctx.font = '9px monospace';
+        ctx.fillText(track.label, x + 3, h - 8);
+      }
+    }
+    ctx.restore();
   }
 
   destroy() {
@@ -135,3 +171,4 @@ export class SpectrogramRenderer extends BaseRenderer {
     this.offscreenCtx = null;
   }
 }
+

@@ -14,7 +14,12 @@
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",
     "./utils": "./Utils/index.js",
-    "./utils/*": "./Utils/*"
+    "./utils/*": "./Utils/*",
+    "./visualizers/*": "./Code/visualizers/*",
+    "./formats/neuron": "./Code/NeuronFormats/index.ts",
+    "./formats/neuron/*": "./Code/NeuronFormats/*",
+    "./dsp/neuron-analysis": "./Code/DspCore/NeuronAnalysis/index.ts",
+    "./dsp/neuron-analysis/*": "./Code/DspCore/NeuronAnalysis/*"
   },
   "files": [
     "Code",

@@ -48,3 +48,5 @@
 @import './components/live-sysex-inspector.css'; /* LiveSysExInspector: inspector reactivo */
 @import './components/about-dialog.css';        /* AboutDialog: diálogo universal y autoupdater */
 @import './components/modals.css';              /* Modals: arquitectura universal de diálogos y confirmaciones */
+@import './components/catalog-browser.css';     /* Catalog & Model Browser: navegadores de modelos/tablas de ondas estilo ABDMS2000 */
+

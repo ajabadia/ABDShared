@@ -1,0 +1,627 @@
+/**
+ * ABD Catalog & Model Browser
+ * =============================
+ * Universal browser modal styling inspired by ABDMS2000 wavetable browser:
+ * - Search bar with integrated search icon and view mode toggles
+ * - Horizontal category filter chips with live counts
+ * - Dual view modes: Cards Grid (.ndb-grid / .ndb-card) & Detailed Table (.neurondb-table)
+ * - Harmonious 10-category color palette (Hartmann Parameter Sets 0..9)
+ * - Informative selection footer with high-contrast primary action button
+ */
+
+/* ── Modal Card Chassis ────────────────────────────────── */
+.neurondb-modal-card {
+  width: min(980px, 94vw);
+  max-width: 980px;
+  height: calc(100vh - 80px);
+  max-height: 740px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel-bg, #14171d);
+  border: 1px solid var(--color-panel-border-strong, rgba(0, 229, 255, 0.25));
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.94), 0 0 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.ndb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--color-panel-header, #1a1e27);
+  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.ndb-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ndb-title-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--color-text, #e2e8f0);
+}
+
+.ndb-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--color-accent, #00e5ff);
+  color: #06090e;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ndb-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-dim, #718096);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all var(--transition-fast, 0.15s);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ndb-close-btn:hover {
+  color: #ff4757;
+  background: rgba(255, 71, 87, 0.15);
+}
+
+/* ── Integrated Search Row (ABDMS2000 style) ──────────── */
+.ndb-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-panel-surface, #11141a);
+  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ndb-search-icon {
+  position: absolute;
+  left: 26px;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-dim, #718096);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ndb-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--color-bg-base, rgba(0, 0, 0, 0.35));
+  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text, #e2e8f0);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast, 0.15s), box-shadow var(--transition-fast, 0.15s);
+}
+
+.ndb-search-input:focus {
+  border-color: var(--color-accent, #00e5ff);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+}
+
+.ndb-search-input::placeholder {
+  color: var(--color-text-muted, #4a5568);
+}
+
+.ndb-view-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+}
+
+.ndb-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim, #718096);
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast, 0.15s);
+}
+
+.ndb-view-btn.active,
+.ndb-view-btn:hover {
+  color: var(--color-accent, #00e5ff);
+  background: rgba(0, 229, 255, 0.15);
+}
+
+/* ── Category Chips Row (ABDMS2000 style) ─────────────── */
+.ndb-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 16px;
+  background: #0f1217;
+  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.06));
+  max-height: 80px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.ndb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-dim, #a0aec0);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ndb-chip-icon {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.ndb-chip-count {
+  font-size: 9px;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.65;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+.ndb-chip:hover {
+  border-color: var(--color-accent, #00e5ff);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.ndb-chip.active {
+  background: var(--color-accent, #00e5ff);
+  color: #06090e;
+  border-color: var(--color-accent, #00e5ff);
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+.ndb-chip.active .ndb-chip-icon {
+  opacity: 1;
+}
+
+.ndb-chip.active .ndb-chip-count {
+  background: rgba(0, 0, 0, 0.25);
+  color: #06090e;
+  opacity: 0.9;
+}
+
+/* ── Secondary Toolbar (Complexity filter + Status) ───── */
+.neurondb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.06));
+  flex-shrink: 0;
+}
+
+.neurondb-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.neurondb-filter-label {
+  font-size: 10px;
+  color: var(--color-text-dim, #718096);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.neurondb-select-filter {
+  background: var(--color-bg-base, rgba(0,0,0,0.4));
+  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px 8px;
+  color: var(--color-text, #e2e8f0);
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  height: 24px;
+  transition: border-color var(--transition-fast, 0.15s);
+}
+
+.neurondb-select-filter:focus {
+  border-color: var(--color-accent, #00e5ff);
+}
+
+.neurondb-scan-status {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--color-text-muted, #4a5568);
+  white-space: nowrap;
+}
+
+/* ── Content Wrap ─────────────────────────────────────── */
+.ndb-content-wrap {
+  flex: 1;
+  min-height: 260px;
+  overflow-y: auto;
+  background: #0b0e13;
+  outline: none;
+}
+
+/* ── Grid View (Cards like ABDMS2000 .wt-grid) ────────── */
+.ndb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+  padding: 12px 16px;
+  align-content: start;
+}
+
+.ndb-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: rgba(255, 255, 255, 0.02);
+  user-select: none;
+}
+
+.ndb-card:hover {
+  border-color: var(--color-accent, #00e5ff);
+  background: rgba(0, 229, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.ndb-card.wt-selected {
+  border-color: var(--color-accent, #00e5ff);
+  background: rgba(0, 229, 255, 0.14);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.28);
+}
+
+.ndb-card-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent, #00e5ff);
+}
+
+.ndb-card.wt-selected .ndb-card-icon {
+  border-color: var(--color-accent, #00e5ff);
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.ndb-card-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.ndb-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.ndb-card-slot {
+  font-size: 10px;
+  color: var(--color-accent, #00e5ff);
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+}
+
+.ndb-card-cat {
+  font-size: 8px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.ndb-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text, #e2e8f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono, monospace);
+}
+
+.ndb-card-meta {
+  display: flex;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--color-text-dim, #718096);
+}
+
+.ndb-card-badge {
+  font-family: var(--font-mono, monospace);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+/* ── Category Colors (Harmonious Hartmann Palette) ────── */
+.cat-0, .cat-neutral { color: #adb5bd; }
+.cat-1 { color: #20c997; }
+.cat-2 { color: #6bcb77; }
+.cat-3 { color: #ff922b; }
+.cat-4 { color: #4d96ff; }
+.cat-5 { color: #ffd93d; }
+.cat-6 { color: #cc5de8; }
+.cat-7 { color: #00e5ff; }
+.cat-8 { color: #748ffc; }
+.cat-9 { color: #ff6b9d; }
+
+.ndb-param-tag {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* ── Table View ───────────────────────────────────────── */
+.neurondb-table-wrap {
+  width: 100%;
+}
+
+.neurondb-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.neurondb-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-panel-header, #161920);
+  color: var(--color-text-muted, #718096);
+  font-weight: 700;
+  text-align: left;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.neurondb-table thead th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s, background 0.15s;
+}
+
+.neurondb-table thead th.is-sortable:hover {
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--color-accent, #00e5ff);
+}
+
+.neurondb-table thead th.is-sorted {
+  color: var(--color-accent, #00e5ff);
+}
+
+.sort-indicator {
+  display: inline-block;
+  width: 10px;
+  font-size: 8px;
+  margin-left: 2px;
+  color: var(--color-accent, #00e5ff);
+}
+
+.neurondb-table tbody td {
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--color-text, #e2e8f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.neurondb-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.neurondb-row:hover {
+  background: rgba(0, 229, 255, 0.06);
+}
+
+.neurondb-row.is-selected {
+  background: rgba(0, 229, 255, 0.15);
+}
+
+.col-ndb-slot {
+  width: 68px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--color-accent, #00e5ff);
+}
+
+.col-ndb-name {
+  width: 150px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+}
+
+.col-ndb-zones {
+  width: 165px;
+}
+
+.col-ndb-sources {
+  width: 90px;
+  font-family: var(--font-mono, monospace);
+}
+
+.col-ndb-param {
+  width: 170px;
+}
+
+.col-ndb-comp {
+  width: 110px;
+  font-family: var(--font-mono, monospace);
+}
+
+.col-ndb-action {
+  width: 78px;
+  text-align: right;
+}
+
+.ndb-key-span,
+.ndb-dim {
+  color: var(--color-text-dim, #718096);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+.neurondb-empty-cell {
+  text-align: center;
+  padding: var(--space-5, 20px);
+  color: var(--color-text-muted, #718096);
+}
+
+.neurondb-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  padding: 32px 16px;
+  color: var(--color-text-muted, #718096);
+}
+
+.neurondb-empty-state .empty-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  opacity: 0.5;
+  color: var(--color-text-dim, #718096);
+}
+
+.neurondb-empty-state .empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.neurondb-empty-state .empty-msg {
+  font-size: 13px;
+  color: var(--color-text-muted, #718096);
+}
+
+/* ── Selection Footer (ABDMS2000 style) ────────────────── */
+.ndb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--color-panel-header, #15181f);
+  border-top: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.ndb-footer-selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ndb-footer-slot {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--color-accent, #00e5ff);
+  font-size: 13px;
+}
+
+.ndb-footer-name {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--color-text, #e2e8f0);
+  font-size: 13px;
+}
+
+.ndb-footer-details {
+  font-size: 11px;
+  color: var(--color-text-dim, #718096);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.neurondb-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ndb-select-btn {
+  background: linear-gradient(180deg, #00e5ff 0%, #0099cc 100%);
+  color: #06090e !important;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 229, 255, 0.35);
+  transition: all 0.15s ease;
+}
+
+.ndb-select-btn:hover {
+  background: linear-gradient(180deg, #33ebff 0%, #00b3ee 100%);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.5);
+  transform: translateY(-1px);
+}

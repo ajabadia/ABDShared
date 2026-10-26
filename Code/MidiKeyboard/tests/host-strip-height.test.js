@@ -240,7 +240,7 @@ const SPECIFIER_RE = /['"]@abdsynths\/midi-keyb(\/[A-Za-z0-9._-]+)*['"]/;
 const SKIP_DIRS = new Set([
   'node_modules', 'dist', 'build', 'Build', 'Release', 'GITS', 'tmp', 'bin',
   'obj', 'legacy', 'wasm', 'coverage', 'JUCE', 'JUNO106',
-  'ABDShared', 'ABDSharedCode', 'ABDSharedAssets', 'ABDAudioLab',
+  'ABDShared', 'ABDSharedCode', 'ABDSharedAssets', 'ABDAudioLab', 'ABDAxionikVS',
 ]);
 
 /**

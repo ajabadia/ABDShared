@@ -3214,3 +3214,96 @@ describe('UX2.4 — Visual QWERTY Key Labels', () => {
   });
 });
 
+describe('MidiKeyboard multizone & extended controls', () => {
+  let container;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="piano-keyboard"></div>
+    `;
+    container = document.getElementById('piano-keyboard');
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('respects enablePanic: false by omitting auto-panic button', () => {
+    const kbd = createKeyboard({
+      containerId: 'piano-keyboard',
+      wheelPitchId: null,
+      wheelModId: null,
+      config: { enablePanic: false }
+    });
+    expect(container.querySelector('.kbd-panic-btn')).toBeNull();
+    kbd.destroy();
+  });
+
+  it('respects enableWheels: false by skipping wheel creation', () => {
+    const kbd = createKeyboard({
+      containerId: 'piano-keyboard',
+      wheelPitchId: null,
+      wheelModId: null,
+      config: { enableWheels: false }
+    });
+    expect(container.querySelector('.kbd-wheel-container')).toBeNull();
+    kbd.destroy();
+  });
+
+  it('renders multizone classes and responds to setZones & setActiveZone', () => {
+    const zones = [
+      { id: 'zone-0', lowKey: 36, highKey: 47, rootKey: 40, color: '#ffaa00' },
+      { id: 'zone-1', lowKey: 48, highKey: 59, rootKey: 52, color: '#00ccff' }
+    ];
+
+    const kbd = createKeyboard({
+      containerId: 'piano-keyboard',
+      wheelPitchId: null,
+      wheelModId: null,
+      config: {
+        numOctaves: 4,
+        startNote: 36,
+        fixedOctaves: true,
+        enablePanic: false,
+        enableWheels: false,
+        zones,
+        activeZoneIndex: 0
+      }
+    });
+
+    expect(kbd.getZones()).toHaveLength(2);
+    expect(kbd.getActiveZone()).toBe(0);
+
+    const key36 = container.querySelector('[data-note="36"]');
+    const key40 = container.querySelector('[data-note="40"]');
+    const key47 = container.querySelector('[data-note="47"]');
+    const key48 = container.querySelector('[data-note="48"]');
+    const key52 = container.querySelector('[data-note="52"]');
+
+    // Zone 0 keys
+    expect(key36.classList.contains('kbd-in-zone')).toBe(true);
+    expect(key36.classList.contains('kbd-in-active-zone')).toBe(true);
+    expect(key36.classList.contains('kbd-zone-boundary-low')).toBe(true);
+    expect(key40.classList.contains('kbd-zone-root')).toBe(true);
+    expect(key47.classList.contains('kbd-zone-boundary-high')).toBe(true);
+
+    // Zone 1 keys (not active initially)
+    expect(key48.classList.contains('kbd-in-zone')).toBe(true);
+    expect(key48.classList.contains('kbd-in-active-zone')).toBe(false);
+
+    // Switch active zone to 1
+    kbd.setActiveZone(1);
+    expect(kbd.getActiveZone()).toBe(1);
+    expect(key36.classList.contains('kbd-in-active-zone')).toBe(false);
+    expect(key48.classList.contains('kbd-in-active-zone')).toBe(true);
+    expect(key52.classList.contains('kbd-zone-root')).toBe(true);
+
+    // Clear zones
+    kbd.setZones([]);
+    expect(key36.classList.contains('kbd-in-zone')).toBe(false);
+    expect(key40.classList.contains('kbd-zone-root')).toBe(false);
+
+    kbd.destroy();
+  });
+});
+

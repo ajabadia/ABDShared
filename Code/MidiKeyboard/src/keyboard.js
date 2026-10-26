@@ -100,6 +100,10 @@ export function createKeyboard(deps = {}) {
     maxChordSlots: config.maxChordSlots ?? 12,
     getLedColor: config.getLedColor ?? null,
     getPressureState: config.getPressureState ?? null,
+    enablePanic: config.enablePanic ?? true,
+    enableWheels: config.enableWheels ?? true,
+    zones: Array.isArray(config.zones) ? [...config.zones] : [],
+    activeZoneIndex: config.activeZoneIndex ?? 0,
   };
 
   // ── State ──
@@ -146,6 +150,7 @@ export function createKeyboard(deps = {}) {
       setRetrig() {}, getRetrig: () => false, toggleRetrig() {},
       setRetrigInterval() {}, getRetrigInterval: () => 800,
       setQwertyLabels() {}, getQwertyLabels: () => false, toggleQwertyLabels() {},
+      setZones() {}, setActiveZone() {}, getZones: () => [], getActiveZone: () => 0,
     };
   }
 
@@ -271,6 +276,7 @@ export function createKeyboard(deps = {}) {
       }
     }
     _keysWrapper.appendChild(createKeyElement(cfg.startNote + cfg.numOctaves * 12, false));
+    applyZoneVisuals();
   }
 
   function createKeyElement(midiNote, isBlack) {
@@ -1301,6 +1307,85 @@ export function createKeyboard(deps = {}) {
   }
 
   // ══════════════════════════════════════════════════════════════
+  //  MULTIZONE SUPPORT (Sample / Synth Mapping)
+  // ══════════════════════════════════════════════════════════════
+
+  let _zones = Array.isArray(cfg.zones) ? [...cfg.zones] : [];
+  let _activeZoneIndex = cfg.activeZoneIndex ?? 0;
+
+  function applyZoneVisuals() {
+    const keys = getAllKeyElements();
+    if (!keys || keys.length === 0) return;
+
+    keys.forEach((keyEl) => {
+      keyEl.classList.remove(
+        'kbd-in-zone',
+        'kbd-in-active-zone',
+        'kbd-zone-root',
+        'kbd-zone-boundary-low',
+        'kbd-zone-boundary-high'
+      );
+      keyEl.style.removeProperty('--kbd-zone-color');
+    });
+
+    if (!_zones || _zones.length === 0) return;
+
+    keys.forEach((keyEl) => {
+      const midi = parseInt(keyEl.dataset.note, 10);
+      if (isNaN(midi)) return;
+
+      for (let i = 0; i < _zones.length; i++) {
+        const zone = _zones[i];
+        if (!zone) continue;
+        const low = zone.lowKey ?? zone.low ?? 0;
+        const high = zone.highKey ?? zone.high ?? 127;
+        const root = zone.rootKey ?? zone.root;
+        const isActive = (i === _activeZoneIndex) || (zone.id != null && zone.id === _activeZoneIndex);
+
+        if (midi >= low && midi <= high) {
+          keyEl.classList.add('kbd-in-zone');
+          if (isActive) {
+            keyEl.classList.add('kbd-in-active-zone');
+          }
+          if (zone.color) {
+            keyEl.style.setProperty('--kbd-zone-color', zone.color);
+          }
+          if (root != null && midi === root) {
+            keyEl.classList.add('kbd-zone-root');
+          }
+          if (midi === low) {
+            keyEl.classList.add('kbd-zone-boundary-low');
+          }
+          if (midi === high) {
+            keyEl.classList.add('kbd-zone-boundary-high');
+          }
+        }
+      }
+    });
+  }
+
+  function setZones(zones, activeIndex) {
+    _zones = Array.isArray(zones) ? [...zones] : [];
+    if (activeIndex !== undefined) {
+      _activeZoneIndex = activeIndex;
+    }
+    applyZoneVisuals();
+  }
+
+  function setActiveZone(indexOrId) {
+    _activeZoneIndex = indexOrId;
+    applyZoneVisuals();
+  }
+
+  function getZones() {
+    return [..._zones];
+  }
+
+  function getActiveZone() {
+    return _activeZoneIndex;
+  }
+
+  // ══════════════════════════════════════════════════════════════
   //  COLLAPSE / EXPAND
   // ══════════════════════════════════════════════════════════════
 
@@ -1434,8 +1519,10 @@ export function createKeyboard(deps = {}) {
 
   function init() {
     renderKeybed();
-    pitchWheel = setupWheel(wheelPitchId, true);
-    modWheel = setupWheel(wheelModId, false);
+    if (cfg.enableWheels) {
+      pitchWheel = setupWheel(wheelPitchId, true);
+      modWheel = setupWheel(wheelModId, false);
+    }
 
     const octUp = document.getElementById(octUpId);
     const octDown = document.getElementById(octDownId);
@@ -1443,20 +1530,22 @@ export function createKeyboard(deps = {}) {
     if (octDown) octDown.addEventListener('click', () => shiftOctave(-1));
 
     // Panic button
-    if (panicBtnId) {
-      const panicBtn = document.getElementById(panicBtnId);
-      if (panicBtn) panicBtn.addEventListener('click', panic);
-    } else {
-      const autoPanic = document.createElement('div');
-      autoPanic.className = 'kbd-panic-btn';
-      autoPanic.setAttribute('role', 'button');
-      autoPanic.setAttribute('tabindex', '0');
-      autoPanic.setAttribute('aria-label', 'All Notes Off — Panic (Ctrl+Q)');
-      autoPanic.setAttribute('title', 'Panic: All Notes Off (Ctrl+Q)');
-      autoPanic.innerHTML = `<span class="kbd-panic-led"></span><span class="kbd-panic-label">ALL<br>OFF</span>`;
-      autoPanic.addEventListener('click', panic);
-      autoPanic.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panic(); } });
-      container.appendChild(autoPanic);
+    if (cfg.enablePanic) {
+      if (panicBtnId) {
+        const panicBtn = document.getElementById(panicBtnId);
+        if (panicBtn) panicBtn.addEventListener('click', panic);
+      } else {
+        const autoPanic = document.createElement('div');
+        autoPanic.className = 'kbd-panic-btn';
+        autoPanic.setAttribute('role', 'button');
+        autoPanic.setAttribute('tabindex', '0');
+        autoPanic.setAttribute('aria-label', 'All Notes Off — Panic (Ctrl+Q)');
+        autoPanic.setAttribute('title', 'Panic: All Notes Off (Ctrl+Q)');
+        autoPanic.innerHTML = `<span class="kbd-panic-led"></span><span class="kbd-panic-label">ALL<br>OFF</span>`;
+        autoPanic.addEventListener('click', panic);
+        autoPanic.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panic(); } });
+        container.appendChild(autoPanic);
+      }
     }
 
     // Sustain button
@@ -1596,6 +1685,7 @@ export function createKeyboard(deps = {}) {
               renderKeybed();
               if (cfg.enableAccessibility) setupAccessibility();
               applyScaleVisuals();
+              applyZoneVisuals();
             }
           }
         }
@@ -1686,6 +1776,11 @@ export function createKeyboard(deps = {}) {
       renderKeybed();
       applyScaleVisuals();
     },
+    // Multizone mapping API
+    setZones,
+    setActiveZone,
+    getZones,
+    getActiveZone,
     getActiveNotes: () => Array.from(activeKeys.values()).map(n => n.actualNote),
     destroy: () => {
       destroyed = true;

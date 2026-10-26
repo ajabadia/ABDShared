@@ -642,3 +642,73 @@
   opacity: 0.25;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   MULTIZONE SUPPORT (Sample / Synth Mapping)
+   ══════════════════════════════════════════════════════════════ */
+
+/* In-zone key subtle tint */
+.kbd-white-key.kbd-in-zone {
+  background: linear-gradient(180deg, #f3f5f8 0%, #e2e8f0 100%);
+}
+
+.kbd-black-key.kbd-in-zone {
+  background: linear-gradient(180deg, #252930 0%, #17191d 100%);
+}
+
+/* Active zone highlight: illuminated accent line & soft tint */
+.kbd-white-key.kbd-in-active-zone {
+  background: linear-gradient(180deg, #f7fdff 0%, #d8eef8 100%) !important;
+  box-shadow: inset 0 -3px 0 var(--kbd-zone-color, #00c8ff);
+}
+
+.kbd-black-key.kbd-in-active-zone {
+  background: linear-gradient(180deg, #1c2c36 0%, #121d24 100%) !important;
+  box-shadow: inset 0 -3px 0 var(--kbd-zone-color, #00c8ff);
+}
+
+/* Zone boundaries */
+.kbd-white-key.kbd-zone-boundary-low,
+.kbd-black-key.kbd-zone-boundary-low {
+  border-left: 2px solid var(--kbd-zone-color, #00c8ff) !important;
+}
+
+.kbd-white-key.kbd-zone-boundary-high,
+.kbd-black-key.kbd-zone-boundary-high {
+  border-right: 2px solid var(--kbd-zone-color, #00c8ff) !important;
+}
+
+/* Root key marker: illuminated dot at bottom of key */
+.kbd-zone-root {
+  position: relative;
+}
+
+.kbd-white-key.kbd-zone-root::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kbd-zone-color, #00c8ff);
+  box-shadow: 0 0 8px var(--kbd-zone-color, #00c8ff), 0 0 2px #ffffff;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.kbd-black-key.kbd-zone-root::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kbd-zone-color, #00c8ff);
+  box-shadow: 0 0 8px var(--kbd-zone-color, #00c8ff), 0 0 2px #ffffff;
+  pointer-events: none;
+  z-index: 5;
+}
+

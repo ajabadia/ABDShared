@@ -112,9 +112,24 @@
   --color-led-active: #ff3344;
   --color-led-glow:   rgba(255, 51, 68, 0.6);
 
-  --color-warning:  #ffaa00;
-  --color-danger:   #ff3344;
-  --color-success:  #00e676;
+  --color-warning:     #ffaa00;
+  --color-warning-rgb: 255, 170, 0;
+  --color-danger:      #ff3344;
+  --color-danger-rgb:  255, 51, 68;
+  --color-success:     #00e676;
+  --color-success-rgb: 0, 230, 118;
+
+  /* Category colors (Harmonious Hartmann & Synthesis Palette) */
+  --color-cat-0: var(--color-text-muted);
+  --color-cat-1: #20c997;
+  --color-cat-2: #6bcb77;
+  --color-cat-3: #ff922b;
+  --color-cat-4: #4d96ff;
+  --color-cat-5: #ffd93d;
+  --color-cat-6: #cc5de8;
+  --color-cat-7: var(--color-accent);
+  --color-cat-8: #748ffc;
+  --color-cat-9: #ff6b9d;
 
   /* =========================================================================
      8. Radii & Geometry
@@ -247,9 +262,23 @@
   --color-led-active: #d92638;
   --color-led-glow:   rgba(217, 38, 56, 0.45);
 
-  --color-warning:  #b26a00;
-  --color-danger:   #d92638;
-  --color-success:  #0a8f4c;
+  --color-warning:     #b26a00;
+  --color-warning-rgb: 178, 106, 0;
+  --color-danger:      #d92638;
+  --color-danger-rgb:  217, 38, 56;
+  --color-success:     #0a8f4c;
+  --color-success-rgb: 10, 143, 76;
+
+  --color-cat-0: var(--color-text-muted);
+  --color-cat-1: #0ca678;
+  --color-cat-2: #2f9e44;
+  --color-cat-3: #d9480f;
+  --color-cat-4: #1971c2;
+  --color-cat-5: #e67700;
+  --color-cat-6: #9c36b5;
+  --color-cat-7: var(--color-accent);
+  --color-cat-8: #4263eb;
+  --color-cat-9: #d6336c;
 
   /* 9. Sombras (mas suaves que en oscuro) */
   --shadow-elevation-1: 0  2px  6px rgba(22, 40, 60, 0.14);

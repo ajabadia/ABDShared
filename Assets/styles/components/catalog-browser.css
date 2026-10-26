@@ -1,341 +1,383 @@
 /**
  * ABD Catalog & Model Browser
  * =============================
- * Universal browser modal styling inspired by ABDMS2000 wavetable browser:
- * - Search bar with integrated search icon and view mode toggles
- * - Horizontal category filter chips with live counts
- * - Dual view modes: Cards Grid (.ndb-grid / .ndb-card) & Detailed Table (.neurondb-table)
- * - Harmonious 10-category color palette (Hartmann Parameter Sets 0..9)
- * - Informative selection footer with high-contrast primary action button
+ * Universal catalog browser modal styling inspired by ABDMS2000 wavetable browser.
+ * Token-driven, theme-aware, non-atomized:
+ * - Integrates with standard ABDShared modal hierarchy (.modal-card, .modal-header, .modal-title, .modal-footer)
+ * - Category filter chips with live counts powered by semantic category tokens (--color-cat-0..9)
+ * - Dual view modes: Cards Grid (.catalog-grid / .ndb-grid) & Detailed Table (.catalog-table / .neurondb-table)
+ * - Zero hardcoded hex/rgba color literals: 100% tokens.css driven
  */
 
 /* ── Modal Card Chassis ────────────────────────────────── */
-.neurondb-modal-card {
+.neurondb-modal-card,
+.catalog-browser-card {
   width: min(980px, 94vw);
   max-width: 980px;
   height: calc(100vh - 80px);
   max-height: 740px;
   display: flex;
   flex-direction: column;
-  background: var(--color-panel-bg, #14171d);
-  border: 1px solid var(--color-panel-border-strong, rgba(0, 229, 255, 0.25));
-  border-radius: var(--radius-lg, 8px);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.94), 0 0 1px rgba(255, 255, 255, 0.2);
+  background: var(--color-panel-bg);
+  border: 1px solid var(--color-panel-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation-3), 0 0 1px var(--color-panel-border);
   overflow: hidden;
 }
 
-.ndb-modal-header {
+/* ── Modal Header Chrome ───────────────────────────────── */
+.ndb-modal-header,
+.catalog-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--color-panel-header, #1a1e27);
-  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  padding: var(--space-4) var(--space-8);
+  background: var(--color-panel-surface-elevated);
+  border-bottom: 1px solid var(--color-panel-border);
   flex-shrink: 0;
 }
 
-.ndb-header-title {
+.ndb-header-title,
+.catalog-header-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-5);
 }
 
-.ndb-title-text {
-  font-size: 13px;
+.ndb-title-text,
+.catalog-title-text {
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--color-text, #e2e8f0);
+  color: var(--color-text-main);
 }
 
-.ndb-badge {
-  font-size: 10px;
-  padding: 2px 8px;
+.ndb-badge,
+.catalog-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-4);
   border-radius: 10px;
-  background: var(--color-accent, #00e5ff);
-  color: #06090e;
+  background: var(--color-accent);
+  color: var(--color-bg-base);
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
-.ndb-close-btn {
-  background: none;
+.ndb-close-btn,
+.catalog-close-btn {
+  background: transparent;
   border: none;
-  color: var(--color-text-dim, #718096);
-  font-size: 16px;
+  color: var(--color-text-dim);
+  font-size: var(--text-2xl);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all var(--transition-fast, 0.15s);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ndb-close-btn:hover {
-  color: #ff4757;
-  background: rgba(255, 71, 87, 0.15);
+.ndb-close-btn:hover,
+.catalog-close-btn:hover {
+  color: var(--color-danger);
+  background: rgba(var(--color-danger-rgb, 255, 51, 68), 0.15);
 }
 
-/* ── Integrated Search Row (ABDMS2000 style) ──────────── */
-.ndb-search-row {
+/* ── Integrated Search Row ─────────────────────────────── */
+.ndb-search-row,
+.catalog-search-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: var(--color-panel-surface, #11141a);
-  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-8);
+  background: var(--color-panel-surface);
+  border-bottom: 1px solid var(--color-panel-border);
   position: relative;
   flex-shrink: 0;
 }
 
-.ndb-search-icon {
+.ndb-search-icon,
+.catalog-search-icon {
   position: absolute;
   left: 26px;
   width: 14px;
   height: 14px;
-  color: var(--color-text-dim, #718096);
+  color: var(--color-text-dim);
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ndb-search-input {
+.ndb-search-input,
+.catalog-search-input {
   width: 100%;
-  padding: 8px 12px 8px 34px;
-  background: var(--color-bg-base, rgba(0, 0, 0, 0.35));
-  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.12));
-  border-radius: var(--radius-sm, 4px);
-  color: var(--color-text, #e2e8f0);
-  font-size: 13px;
+  padding: var(--space-4) var(--space-6) var(--space-4) 34px;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-main);
+  font-size: var(--text-xl);
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition-fast, 0.15s), box-shadow var(--transition-fast, 0.15s);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.ndb-search-input:focus {
-  border-color: var(--color-accent, #00e5ff);
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+.ndb-search-input:focus,
+.catalog-search-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent-dim);
 }
 
-.ndb-search-input::placeholder {
-  color: var(--color-text-muted, #4a5568);
+.ndb-search-input::placeholder,
+.catalog-search-input::placeholder {
+  color: var(--color-text-dim);
 }
 
-.ndb-view-toggle {
+.ndb-view-toggle,
+.catalog-view-toggle {
   display: flex;
-  gap: 2px;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 2px;
-  border-radius: 4px;
-  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  gap: var(--space-1);
+  background: var(--color-bg-base);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-panel-border-dim);
 }
 
-.ndb-view-btn {
+.ndb-view-btn,
+.catalog-view-btn {
   background: transparent;
   border: none;
-  color: var(--color-text-dim, #718096);
-  padding: 4px 6px;
-  border-radius: 3px;
+  color: var(--color-text-dim);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast, 0.15s);
+  transition: all var(--transition-fast);
 }
 
 .ndb-view-btn.active,
-.ndb-view-btn:hover {
-  color: var(--color-accent, #00e5ff);
-  background: rgba(0, 229, 255, 0.15);
+.ndb-view-btn:hover,
+.catalog-view-btn.active,
+.catalog-view-btn:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
 }
 
-/* ── Category Chips Row (ABDMS2000 style) ─────────────── */
-.ndb-chips-row {
+/* ── Category Chips Row ───────────────────────────────── */
+.ndb-chips-row,
+.catalog-chips-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  padding: 8px 16px;
-  background: #0f1217;
-  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.06));
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-8);
+  background: var(--color-panel-bg);
+  border-bottom: 1px solid var(--color-panel-border-dim);
   max-height: 80px;
   overflow-y: auto;
   flex-shrink: 0;
 }
 
-.ndb-chip {
+.ndb-chip,
+.catalog-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+  gap: var(--space-2);
+  padding: 3px var(--space-5);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.3);
-  color: var(--color-text-dim, #a0aec0);
-  font-size: 11px;
+  border: 1px solid var(--color-panel-border-dim);
+  background: var(--color-bg-base);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   user-select: none;
 }
 
-.ndb-chip-icon {
+.ndb-chip-icon,
+.catalog-chip-icon {
   width: 12px;
   height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-.ndb-chip-count {
-  font-size: 9px;
-  font-family: var(--font-mono, monospace);
-  opacity: 0.65;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0 4px;
+.ndb-chip-count,
+.catalog-chip-count {
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  opacity: 0.75;
+  background: var(--color-panel-surface);
+  color: var(--color-text-dim);
+  padding: 0 var(--space-2);
   border-radius: 6px;
 }
 
-.ndb-chip:hover {
-  border-color: var(--color-accent, #00e5ff);
-  color: #fff;
+.ndb-chip:hover,
+.catalog-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-main);
   transform: translateY(-1px);
 }
 
-.ndb-chip.active {
-  background: var(--color-accent, #00e5ff);
-  color: #06090e;
-  border-color: var(--color-accent, #00e5ff);
+.ndb-chip.active,
+.catalog-chip.active {
+  background: var(--color-accent);
+  color: var(--color-bg-base);
+  border-color: var(--color-accent);
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 10px var(--color-accent-dim);
 }
 
-.ndb-chip.active .ndb-chip-icon {
+.ndb-chip.active .ndb-chip-icon,
+.catalog-chip.active .catalog-chip-icon {
   opacity: 1;
 }
 
-.ndb-chip.active .ndb-chip-count {
-  background: rgba(0, 0, 0, 0.25);
-  color: #06090e;
-  opacity: 0.9;
+.ndb-chip.active .ndb-chip-count,
+.catalog-chip.active .catalog-chip-count {
+  background: var(--color-panel-surface-elevated);
+  color: var(--color-text-main);
+  opacity: 1;
 }
 
-/* ── Secondary Toolbar (Complexity filter + Status) ───── */
-.neurondb-toolbar {
+/* ── Secondary Filter Toolbar ─────────────────────────── */
+.neurondb-toolbar,
+.catalog-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3, 12px);
-  padding: 6px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.06));
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-8);
+  background: var(--color-panel-surface);
+  border-bottom: 1px solid var(--color-panel-border-dim);
   flex-shrink: 0;
 }
 
-.neurondb-filter-group {
+.neurondb-filter-group,
+.catalog-filter-group {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 8px);
+  gap: var(--space-2);
 }
 
-.neurondb-filter-label {
-  font-size: 10px;
-  color: var(--color-text-dim, #718096);
+.neurondb-filter-label,
+.catalog-filter-label {
+  font-size: var(--text-md);
+  color: var(--color-text-dim);
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.neurondb-select-filter {
-  background: var(--color-bg-base, rgba(0,0,0,0.4));
-  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-sm, 4px);
-  padding: 2px 8px;
-  color: var(--color-text, #e2e8f0);
+.neurondb-select-filter,
+.catalog-select-filter {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-4);
+  color: var(--color-text-main);
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--text-base);
   outline: none;
   cursor: pointer;
   height: 24px;
-  transition: border-color var(--transition-fast, 0.15s);
+  transition: border-color var(--transition-fast);
 }
 
-.neurondb-select-filter:focus {
-  border-color: var(--color-accent, #00e5ff);
+.neurondb-select-filter:focus,
+.catalog-select-filter:focus {
+  border-color: var(--color-accent);
 }
 
-.neurondb-scan-status {
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  color: var(--color-text-muted, #4a5568);
+.neurondb-scan-status,
+.catalog-scan-status {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  color: var(--color-text-dim);
   white-space: nowrap;
 }
 
 /* ── Content Wrap ─────────────────────────────────────── */
-.ndb-content-wrap {
+.ndb-content-wrap,
+.catalog-content-wrap {
   flex: 1;
   min-height: 260px;
   overflow-y: auto;
-  background: #0b0e13;
+  background: var(--color-bg-base);
   outline: none;
 }
 
-/* ── Grid View (Cards like ABDMS2000 .wt-grid) ────────── */
-.ndb-grid {
+/* ── Grid View ────────────────────────────────────────── */
+.ndb-grid,
+.catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 8px;
-  padding: 12px 16px;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
   align-content: start;
 }
 
-.ndb-card {
+.ndb-card,
+.catalog-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-chassis);
+  border: 1px solid var(--color-panel-border-dim);
   cursor: pointer;
-  transition: all 0.15s ease;
-  background: rgba(255, 255, 255, 0.02);
+  transition: all var(--transition-fast);
+  background: var(--color-panel-surface);
   user-select: none;
 }
 
-.ndb-card:hover {
-  border-color: var(--color-accent, #00e5ff);
-  background: rgba(0, 229, 255, 0.06);
+.ndb-card:hover,
+.catalog-card:hover {
+  border-color: var(--color-panel-border-strong);
+  background: var(--color-panel-surface-elevated);
   transform: translateY(-1px);
 }
 
-.ndb-card.wt-selected {
-  border-color: var(--color-accent, #00e5ff);
-  background: rgba(0, 229, 255, 0.14);
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.28);
+.ndb-card.wt-selected,
+.ndb-card.is-selected,
+.catalog-card.is-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+  box-shadow: 0 0 12px var(--color-accent-dim);
 }
 
-.ndb-card-icon {
+.ndb-card-icon,
+.catalog-card-icon {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border-dim);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-accent, #00e5ff);
+  color: var(--color-accent);
 }
 
-.ndb-card.wt-selected .ndb-card-icon {
-  border-color: var(--color-accent, #00e5ff);
-  background: rgba(0, 229, 255, 0.2);
+.ndb-card.wt-selected .ndb-card-icon,
+.ndb-card.is-selected .ndb-card-icon,
+.catalog-card.is-selected .catalog-card-icon {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
 }
 
-.ndb-card-info {
+.ndb-card-info,
+.catalog-card-info {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -343,285 +385,325 @@
   gap: 2px;
 }
 
-.ndb-card-top {
+.ndb-card-top,
+.catalog-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
-.ndb-card-slot {
-  font-size: 10px;
-  color: var(--color-accent, #00e5ff);
-  font-family: var(--font-mono, monospace);
+.ndb-card-slot,
+.catalog-card-slot {
+  font-size: var(--text-md);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
   font-weight: 700;
 }
 
-.ndb-card-cat {
-  font-size: 8px;
-  padding: 1px 5px;
+.ndb-card-cat,
+.catalog-card-cat {
+  font-size: var(--text-xs);
+  padding: 1px var(--space-3);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border-dim);
   white-space: nowrap;
   flex-shrink: 0;
   font-weight: 600;
 }
 
-.ndb-card-name {
-  font-size: 12px;
+.ndb-card-name,
+.catalog-card-name {
+  font-size: var(--text-lg);
   font-weight: 600;
-  color: var(--color-text, #e2e8f0);
+  color: var(--color-text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 
-.ndb-card-meta {
+.ndb-card-meta,
+.catalog-card-meta {
   display: flex;
-  gap: 4px;
-  font-size: 9px;
-  color: var(--color-text-dim, #718096);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-dim);
 }
 
-.ndb-card-badge {
-  font-family: var(--font-mono, monospace);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0 4px;
+.ndb-card-badge,
+.catalog-card-badge {
+  font-family: var(--font-mono);
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border-dim);
+  padding: 0 var(--space-2);
   border-radius: 3px;
 }
 
-/* ── Category Colors (Harmonious Hartmann Palette) ────── */
-.cat-0, .cat-neutral { color: #adb5bd; }
-.cat-1 { color: #20c997; }
-.cat-2 { color: #6bcb77; }
-.cat-3 { color: #ff922b; }
-.cat-4 { color: #4d96ff; }
-.cat-5 { color: #ffd93d; }
-.cat-6 { color: #cc5de8; }
-.cat-7 { color: #00e5ff; }
-.cat-8 { color: #748ffc; }
-.cat-9 { color: #ff6b9d; }
+/* ── Semantic Category Colors (Tokens) ─────────────────── */
+.cat-0, .cat-neutral { color: var(--color-cat-0); }
+.cat-1 { color: var(--color-cat-1); }
+.cat-2 { color: var(--color-cat-2); }
+.cat-3 { color: var(--color-cat-3); }
+.cat-4 { color: var(--color-cat-4); }
+.cat-5 { color: var(--color-cat-5); }
+.cat-6 { color: var(--color-cat-6); }
+.cat-7 { color: var(--color-cat-7); }
+.cat-8 { color: var(--color-cat-8); }
+.cat-9 { color: var(--color-cat-9); }
 
-.ndb-param-tag {
+.ndb-param-tag,
+.catalog-param-tag {
   display: inline-block;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 11px;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-3);
+  font-size: var(--text-base);
 }
 
-/* ── Table View ───────────────────────────────────────── */
-.neurondb-table-wrap {
+/* ── Detailed Table View ──────────────────────────────── */
+.neurondb-table-wrap,
+.catalog-table-wrap {
   width: 100%;
 }
 
-.neurondb-table {
+.neurondb-table,
+.catalog-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 12px;
+  font-size: var(--text-lg);
 }
 
-.neurondb-table thead th {
+.neurondb-table thead th,
+.catalog-table thead th {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--color-panel-header, #161920);
-  color: var(--color-text-muted, #718096);
+  background: var(--color-panel-surface-elevated);
+  color: var(--color-text-muted);
   font-weight: 700;
   text-align: left;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
-  font-size: 10px;
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-panel-border);
+  font-size: var(--text-md);
   letter-spacing: 0.5px;
 }
 
-.neurondb-table thead th.is-sortable {
+.neurondb-table thead th.is-sortable,
+.catalog-table thead th.is-sortable {
   cursor: pointer;
   user-select: none;
-  transition: color 0.15s, background 0.15s;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.neurondb-table thead th.is-sortable:hover {
-  background: rgba(0, 229, 255, 0.08);
-  color: var(--color-accent, #00e5ff);
+.neurondb-table thead th.is-sortable:hover,
+.catalog-table thead th.is-sortable:hover {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
 }
 
-.neurondb-table thead th.is-sorted {
-  color: var(--color-accent, #00e5ff);
+.neurondb-table thead th.is-sorted,
+.catalog-table thead th.is-sorted {
+  color: var(--color-accent);
 }
 
 .sort-indicator {
   display: inline-block;
   width: 10px;
-  font-size: 8px;
+  font-size: var(--text-xs);
   margin-left: 2px;
-  color: var(--color-accent, #00e5ff);
+  color: var(--color-accent);
 }
 
-.neurondb-table tbody td {
-  padding: 5px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: var(--color-text, #e2e8f0);
+.neurondb-table tbody td,
+.catalog-table tbody td {
+  padding: 5px var(--space-6);
+  border-bottom: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.neurondb-row {
+.neurondb-row,
+.catalog-row {
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--transition-fast);
 }
 
-.neurondb-row:hover {
-  background: rgba(0, 229, 255, 0.06);
+.neurondb-row:hover,
+.catalog-row:hover {
+  background: var(--color-panel-surface);
 }
 
-.neurondb-row.is-selected {
-  background: rgba(0, 229, 255, 0.15);
+.neurondb-row.is-selected,
+.catalog-row.is-selected {
+  background: var(--color-accent-dim);
 }
 
-.col-ndb-slot {
+.col-ndb-slot,
+.col-catalog-slot {
   width: 68px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--color-accent, #00e5ff);
+  color: var(--color-accent);
 }
 
-.col-ndb-name {
+.col-ndb-name,
+.col-catalog-name {
   width: 150px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-weight: 700;
 }
 
-.col-ndb-zones {
+.col-ndb-zones,
+.col-catalog-zones {
   width: 165px;
 }
 
-.col-ndb-sources {
+.col-ndb-sources,
+.col-catalog-sources {
   width: 90px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 
-.col-ndb-param {
+.col-ndb-param,
+.col-catalog-param {
   width: 170px;
 }
 
-.col-ndb-comp {
+.col-ndb-comp,
+.col-catalog-comp {
   width: 110px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 
-.col-ndb-action {
+.col-ndb-action,
+.col-catalog-action {
   width: 78px;
   text-align: right;
 }
 
 .ndb-key-span,
-.ndb-dim {
-  color: var(--color-text-dim, #718096);
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
+.ndb-dim,
+.catalog-dim {
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
 }
 
-.neurondb-empty-cell {
+.neurondb-empty-cell,
+.catalog-empty-cell {
   text-align: center;
-  padding: var(--space-5, 20px);
-  color: var(--color-text-muted, #718096);
+  padding: var(--space-5);
+  color: var(--color-text-muted);
 }
 
-.neurondb-empty-state {
+.neurondb-empty-state,
+.catalog-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2, 8px);
-  padding: 32px 16px;
-  color: var(--color-text-muted, #718096);
+  gap: var(--space-2);
+  padding: 32px var(--space-8);
+  color: var(--color-text-muted);
 }
 
-.neurondb-empty-state .empty-icon {
+.neurondb-empty-state .empty-icon,
+.catalog-empty-state .empty-icon {
   display: inline-flex;
   width: 32px;
   height: 32px;
   opacity: 0.5;
-  color: var(--color-text-dim, #718096);
+  color: var(--color-text-dim);
 }
 
-.neurondb-empty-state .empty-icon svg {
+.neurondb-empty-state .empty-icon svg,
+.catalog-empty-state .empty-icon svg {
   width: 100%;
   height: 100%;
 }
 
-.neurondb-empty-state .empty-msg {
-  font-size: 13px;
-  color: var(--color-text-muted, #718096);
+.neurondb-empty-state .empty-msg,
+.catalog-empty-state .empty-msg {
+  font-size: var(--text-xl);
+  color: var(--color-text-muted);
 }
 
-/* ── Selection Footer (ABDMS2000 style) ────────────────── */
-.ndb-footer {
+/* ── Selection Footer ─────────────────────────────────── */
+.ndb-footer,
+.catalog-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--color-panel-header, #15181f);
-  border-top: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.08));
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-8);
+  background: var(--color-panel-surface-elevated);
+  border-top: 1px solid var(--color-panel-border);
   flex-shrink: 0;
 }
 
-.ndb-footer-selection {
+.ndb-footer-selection,
+.catalog-footer-selection {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: var(--space-4);
+  font-size: var(--text-lg);
   min-width: 0;
   flex: 1;
 }
 
-.ndb-footer-slot {
-  font-family: var(--font-mono, monospace);
+.ndb-footer-slot,
+.catalog-footer-slot {
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--color-accent, #00e5ff);
-  font-size: 13px;
+  color: var(--color-accent);
+  font-size: var(--text-xl);
 }
 
-.ndb-footer-name {
-  font-family: var(--font-mono, monospace);
+.ndb-footer-name,
+.catalog-footer-name {
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--color-text, #e2e8f0);
-  font-size: 13px;
+  color: var(--color-text-main);
+  font-size: var(--text-xl);
 }
 
-.ndb-footer-details {
-  font-size: 11px;
-  color: var(--color-text-dim, #718096);
+.ndb-footer-details,
+.catalog-footer-details {
+  font-size: var(--text-base);
+  color: var(--color-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.neurondb-footer-actions {
+.neurondb-footer-actions,
+.catalog-footer-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   flex-shrink: 0;
 }
 
-.ndb-select-btn {
-  background: linear-gradient(180deg, #00e5ff 0%, #0099cc 100%);
-  color: #06090e !important;
+.ndb-select-btn,
+.catalog-select-btn {
+  background: var(--color-accent);
+  color: var(--color-bg-base) !important;
   font-weight: 700;
   letter-spacing: 0.5px;
   border: none;
-  box-shadow: 0 2px 10px rgba(0, 229, 255, 0.35);
-  transition: all 0.15s ease;
+  box-shadow: 0 2px 10px var(--color-accent-dim);
+  transition: all var(--transition-fast);
 }
 
-.ndb-select-btn:hover {
-  background: linear-gradient(180deg, #33ebff 0%, #00b3ee 100%);
-  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.5);
+.ndb-select-btn:hover,
+.catalog-select-btn:hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 4px 14px var(--color-accent-dim);
   transform: translateY(-1px);
 }

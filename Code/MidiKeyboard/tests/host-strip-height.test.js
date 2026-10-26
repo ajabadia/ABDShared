@@ -72,6 +72,12 @@ const HOSTS = [
     cssFiles: ['ABDMCS48SE/WebUI/src/main.css'],
     stripHeightPx: 155,
   },
+  {
+    project: 'ABDNeuModMakr',
+    stripSelector: '.piano-keys-bed#piano-keyboard',
+    cssFiles: ['ABDNeuModMakr/src/style.css'],
+    stripHeightPx: 98,
+  },
 ];
 
 /** Specimen de montaje real: import del specifier + llamada al factory. */

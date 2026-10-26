@@ -7,7 +7,7 @@
   "exports": {
     "./styles": "./Assets/styles/index.css",
     "./styles/*": "./Assets/styles/*",
-    "./themes/*": "./Assets/themes/*",
+    "./themes/*": "./Assets/styles/themes/*",
     "./contracts/*": "./Contracts/*",
     "./components": "./Components/index.js",
     "./components/*": "./Components/*",

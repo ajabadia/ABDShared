@@ -306,7 +306,7 @@ endif()
 # 10. AudioComparator Module (Time Alignment & Spectral Cross-Correlation)
 # ==============================================================================
 option(ABDSHARED_BUILD_AUDIOCOMPARATOR "Build AudioComparator module" ON)
-if(ABDSHARED_BUILD_AUDIOCOMPARATOR)
+if(ABDSHARED_BUILD_AUDIOCOMPARATOR AND NOT EMSCRIPTEN)
     add_library(ABDShared_AudioComparator STATIC
         AudioComparator/AudioABComparator.cpp
         AudioComparator/AudioABComparator_Alignment.cpp

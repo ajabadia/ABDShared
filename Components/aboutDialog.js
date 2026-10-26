@@ -145,12 +145,14 @@ export class AboutDialog {
       this.focusContract.rememberTrigger(triggerEl);
     }
     this.rootEl.hidden = false;
+    this.rootEl.classList.add('active', 'is-active');
     this.focusContract?.releaseInert();
     this.focusContract?.focusFirst();
     this.queryUpdateStatus();
   }
 
   close() {
+    this.rootEl.classList.remove('active', 'is-active');
     this.rootEl.hidden = true;
     this.focusContract?.restoreFocus();
     this.focusContract?.setInert();

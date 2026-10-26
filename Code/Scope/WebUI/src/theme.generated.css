@@ -48,33 +48,39 @@
   --color-panel-bg:               #ffffff;
   --color-panel-surface:          #f8fafc;
   --color-panel-surface-elevated: #ffffff;
+  --navbar-bg:                    #ffffff;
+  --navbar-shadow:                0 1px 3px rgba(15, 23, 42, 0.08);
   --color-panel-border:           rgba(15, 23, 42, 0.12);
-  --color-panel-border-strong:    rgba(15, 23, 42, 0.28);
+  --color-panel-border-strong:    rgba(15, 23, 42, 0.24);
   --color-panel-border-dim:       rgba(15, 23, 42, 0.06);
+  --shadow-card:                  0 4px 16px rgba(15, 23, 42, 0.05);
+  --shadow-card-hover:            0 6px 20px rgba(15, 23, 42, 0.09);
 
-  /* Semantic Accents (Sonarworks / Audio Precision) */
-  --color-accent:                 #00a86b;
-  --color-accent-rgb:             0, 168, 107;
-  --color-accent-hover:           #008f5a;
-  --color-accent-active:          #007a4d;
-  --color-accent-dim:             rgba(0, 168, 107, 0.12);
+  /* Semantic Accents (Sonarworks / Audio Precision - WCAG AA compliant >= 4.5:1 on white) */
+  --color-accent:                 #007a4d;
+  --color-accent-rgb:             0, 122, 77;
+  --color-accent-hover:           #00633e;
+  --color-accent-active:          #005032;
+  --color-accent-dim:             rgba(0, 122, 77, 0.10);
 
-  --color-success:                #00a86b;
-  --color-success-rgb:            0, 168, 107;
-  --color-warning:                #e65100;
-  --color-warning-rgb:            230, 81, 0;
-  --color-danger:                 #d32f2f;
-  --color-danger-rgb:             211, 47, 47;
+  --color-success:                #007a4d;
+  --color-success-rgb:            0, 122, 77;
+  --color-warning:                #b45309;
+  --color-warning-rgb:            180, 83, 9;
+  --color-danger:                 #c5221f;
+  --color-danger-rgb:             197, 34, 31;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
 
-  /* Typography */
+  /* Typography (WCAG AA compliant: text-main 16.6:1, text-muted & dim 5.9:1) */
   --color-text-main:              #1a1d20;
-  --color-text-muted:             #6c757d;
-  --color-text-dim:               #94a3b8;
+  --color-text-muted:             #475569;
+  --color-text-dim:               #475569;
 
   /* LCD / Telemetry */
-  --color-lcd-bg:                 #e2e8f0;
-  --color-lcd-text:               #1a1d20;
-  --color-lcd-border:             rgba(15, 23, 42, 0.18);
+  --color-lcd-bg:                 #f1f5f9;
+  --color-lcd-text:               #0f172a;
+  --color-lcd-border:             rgba(15, 23, 42, 0.16);
 
   /* Scrollbars (6px pill) */
   --color-scrollbar-thumb:        #cbd5e1;
@@ -91,14 +97,24 @@
   --color-panel-bg:            #0b1118;
   --color-panel-surface:       #121a24;
   --color-panel-surface-elevated: #1a2636;
-  --color-panel-border:        rgba(0, 230, 118, 0.25);
-  --color-panel-border-strong: rgba(0, 230, 118, 0.45);
-  --color-panel-border-dim:    rgba(0, 230, 118, 0.1);
+  --color-panel-border:        rgba(255, 255, 255, 0.09);
+  --color-panel-border-strong: rgba(255, 255, 255, 0.18);
+  --color-panel-border-dim:    rgba(255, 255, 255, 0.05);
+  --shadow-card:               0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-card-hover:         0 6px 20px rgba(0, 0, 0, 0.35);
   --color-accent:        #00e676;
   --color-accent-rgb:    0, 230, 118;
   --color-accent-hover:  #33eb91;
   --color-accent-active: #00b85c;
   --color-accent-dim:    rgba(0, 230, 118, 0.15);
+  --color-success:       #00e676;
+  --color-success-rgb:   0, 230, 118;
+  --color-warning:       #ffb142;
+  --color-warning-rgb:   255, 177, 66;
+  --color-danger:        #ff5252;
+  --color-danger-rgb:    255, 82, 82;
+  --color-info:          #00c3ff;
+  --color-info-rgb:      0, 195, 255;
   --color-text-main:  #e8fff0;
   --color-text-muted: #7eb5a0;
   --color-text-dim:   #4a8a6a;

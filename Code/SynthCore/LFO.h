@@ -4,6 +4,12 @@
 namespace abd::synth
 {
 
+inline constexpr float kLfoDefaultMinFrequencyHz = 0.01f;
+inline constexpr float kLfoDefaultMaxFrequencyHz = 20.0f;
+inline constexpr float kLfoNonHardwareModulationMaxFrequencyHz = 100.0f;
+inline constexpr float kLfoModulationMinFrequencyHz = 0.001f;
+inline constexpr float kLfoHardwareMaxFrequencyHz = 500.0f;
+
 enum class LFOWaveform
 {
     Sawtooth = 0,
@@ -24,7 +30,7 @@ enum class LFOWaveformLFO2
  * @brief MS2000 Low Frequency Oscillator.
  * LFO1: Saw, Square, Triangle, Sample & Hold.
  * LFO2: Saw, Square+ (random pulse width), Sine, Sample & Hold.
- * Frequency range: logarithmic 0.01 Hz to 20 Hz (exponent ~1.25 per HW measurements).
+ * Frequency range: 0.01–20 Hz by default; hardware mode supports both LFOs up to 500 Hz.
  * Key Sync: Off (free-run), Timbre (reset on first note of layer), Voice (reset per key press).
  */
 class LFO
@@ -56,6 +62,14 @@ public:
     // Key Sync: 0=Off, 1=Timbre, 2=Voice (matches HW SysEx packed byte)
     void setKeySyncMode(int mode) noexcept { keySyncMode_ = mode; }
 
+    /**
+     * @brief Enables Korg MS2000 DSP56362 LFO behavior:
+     *        - Allows both LFOs to run up to 500 Hz (hardware-mode ceiling; ROM LFO2 maximum is ~194.904 Hz).
+     *        - LFO2 Square+ (P:$053B–$0543) outputs unipolar positive [0.0, +1.0] 50% square wave.
+     */
+    void setHardwareMS2000Mode(bool enabled) noexcept;
+    bool isHardwareMS2000Mode() const noexcept { return hardwareMS2000Mode_; }
+
     // Called when a new voice triggers.
     // isFirstTimbreNote: true if this is the first held note in the layer (for Timbre sync).
     void triggerKeySync(bool isFirstTimbreNote) noexcept;
@@ -77,6 +91,7 @@ private:
 
     int waveType_{2}; // Default: Triangle
     bool isLFO2_{false};
+    bool hardwareMS2000Mode_{false};
     int keySyncMode_{2}; // 0=Off, 1=Timbre, 2=Voice
 
     // Tempo Sync
@@ -87,7 +102,7 @@ private:
     float currentValue_{0.0f};
     float shHeldValue_{0.0f};
 
-    // Square+ per-cycle random pulse width
+    // Square+ per-cycle random pulse width (legacy default mode)
     float squarePlusPW_{0.5f};
 
     uint32_t rngState_{0x98765432};
@@ -95,6 +110,7 @@ private:
     float nextRandom() noexcept;
     void advancePhase() noexcept;
     void syncPhase() noexcept;
+    void updateTempoSyncedFrequency() noexcept;
 };
 
 } // namespace abd::synth

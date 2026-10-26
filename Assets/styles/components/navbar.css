@@ -8,11 +8,11 @@
   align-items: center;
   justify-content: space-between;
   height: var(--navbar-height, 44px);
-  background: rgba(16, 21, 30, 0.88);
+  background: var(--navbar-bg, var(--color-panel-bg));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-panel-border, rgba(0, 195, 255, 0.2));
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid var(--color-panel-border);
+  box-shadow: var(--navbar-shadow, 0 4px 18px rgba(0, 0, 0, 0.6));
   padding: 0 var(--space-4, 8px);
   flex-shrink: 0;
   z-index: var(--z-navbar, 30);
@@ -261,3 +261,75 @@
   -webkit-backdrop-filter: blur(12px);
   animation: navFadeIn 0.12s cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* ==========================================================================
+   Light Mode Theme Overrides (SoundID Reference Ergonomics / WCAG AA)
+   ========================================================================== */
+[data-theme="audiolab-light"] .navbar,
+[data-theme="light"] .navbar,
+body.skin-audiolab-light .navbar,
+body.theme-light .navbar,
+body.theme-audiolab-light .navbar {
+  --navbar-bg: #ffffff;
+  --navbar-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid var(--color-panel-border, rgba(15, 23, 42, 0.12));
+}
+
+[data-theme="audiolab-light"] .nav-menu-trigger,
+[data-theme="audiolab-light"] .menu-trigger,
+[data-theme="light"] .nav-menu-trigger,
+[data-theme="light"] .menu-trigger,
+body.skin-audiolab-light .nav-menu-trigger,
+body.theme-light .nav-menu-trigger,
+body.theme-audiolab-light .nav-menu-trigger {
+  color: var(--color-text-main, #1a1d20);
+  font-weight: 600;
+}
+
+[data-theme="audiolab-light"] .nav-menu-trigger:hover,
+[data-theme="audiolab-light"] .nav-menu-trigger.active,
+[data-theme="audiolab-light"] .menu-trigger:hover,
+[data-theme="audiolab-light"] .menu-trigger.active,
+[data-theme="light"] .nav-menu-trigger:hover,
+[data-theme="light"] .nav-menu-trigger.active,
+body.skin-audiolab-light .nav-menu-trigger:hover {
+  background: var(--color-accent-dim, rgba(0, 122, 77, 0.10));
+  color: var(--color-accent, #007a4d);
+  border-color: var(--color-panel-border, rgba(15, 23, 42, 0.15));
+}
+
+[data-theme="audiolab-light"] .nav-dropdown,
+[data-theme="audiolab-light"] .menu-dropdown,
+[data-theme="audiolab-light"] .nav-submenu,
+[data-theme="light"] .nav-dropdown,
+[data-theme="light"] .menu-dropdown,
+[data-theme="light"] .nav-submenu,
+body.skin-audiolab-light .nav-dropdown,
+body.theme-audiolab-light .nav-dropdown {
+  background: var(--color-panel-surface-elevated, #ffffff);
+  border: 1px solid var(--color-panel-border-strong, rgba(15, 23, 42, 0.16));
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="audiolab-light"] .nav-item,
+[data-theme="light"] .nav-item,
+body.skin-audiolab-light .nav-item,
+body.theme-audiolab-light .nav-item {
+  color: var(--color-text-main, #1a1d20);
+}
+
+[data-theme="audiolab-light"] .nav-item:hover,
+[data-theme="audiolab-light"] .nav-item:focus-visible,
+[data-theme="light"] .nav-item:hover,
+body.skin-audiolab-light .nav-item:hover {
+  background: var(--color-accent-dim, rgba(0, 122, 77, 0.10));
+  color: var(--color-accent, #007a4d);
+}
+
+[data-theme="audiolab-light"] .nav-kbd,
+[data-theme="light"] .nav-kbd {
+  background: var(--color-panel-surface, #f8fafc);
+  color: var(--color-text-muted, #475569);
+  border-color: var(--color-panel-border, rgba(15, 23, 42, 0.12));
+}
+

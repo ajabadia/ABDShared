@@ -14,7 +14,7 @@
 import {
   QWERTY_MAP, NOTE_NAMES, OCTAVE_PATTERN, midiToName,
   applyVelocityCurve, SCALE_INTERVALS, isInScale, snapToScale,
-  applyIvoryTexture, applyVintageWear,
+  applyIvoryTexture, applyVintageWear, getQwertyLabelForNote,
 } from './utils.js';
 
 // Shared filmstrip wheel component (ABDSharedAssets) — single source of truth
@@ -45,12 +45,16 @@ export function createKeyboard(deps = {}) {
     onPanic = null,
     onOctaveChange = null,
     onSustainChange = null,
+    onHoldChange = null,
+    onRetrigChange = null,
     onSostenutoChange = null,
     onSoftPedalChange = null,
     onAftertouch = null,
     onVelocityChange = null,
     onCollapseChange = null,
     sustainBtnId = null,
+    holdBtnId = null,
+    retrigBtnId = null,
     sostenutoBtnId = null,
     softPedalBtnId = null,
     config = {}
@@ -73,6 +77,7 @@ export function createKeyboard(deps = {}) {
     enableIvoryTexture: config.enableIvoryTexture ?? false,
     enableVintageWear: config.enableVintageWear ?? false,
     enableQwerty: config.enableQwerty ?? true,
+    showQwertyLabels: config.showQwertyLabels ?? (config.enableQwerty ?? true),
     enableTouch: config.enableTouch ?? true,
     enableAftertouch: config.enableAftertouch ?? false,
     aftertouchMode: config.aftertouchMode ?? 'channel',
@@ -80,6 +85,10 @@ export function createKeyboard(deps = {}) {
     enableAccessibility: config.enableAccessibility ?? false,
     enableCollapse: config.enableCollapse ?? false,
     enableResizeObserver: config.enableResizeObserver ?? true,
+    enableHold: config.enableHold ?? true,
+    enableRetrig: config.enableRetrig ?? true,
+    retrigIntervalMs: config.retrigIntervalMs ?? 800,
+    retrigGateRatio: config.retrigGateRatio ?? 0.6,
     enableSostenuto: config.enableSostenuto ?? false,
     enableSoftPedal: config.enableSoftPedal ?? false,
     softPedalFactor: config.softPedalFactor ?? 0.65,
@@ -96,9 +105,20 @@ export function createKeyboard(deps = {}) {
   // ── State ──
   let octaveShift = 0;
   let sustainOn = false;
+  let holdOn = false;
+  let retrigOn = false;
+  let _retrigIntervalMs = Math.max(100, Number(cfg.retrigIntervalMs) || 800);
+  let _retrigGateRatio = Math.max(0.1, Math.min(0.95, Number(cfg.retrigGateRatio) || 0.6));
+  let _retrigTimerId = null;
+  let _retrigGateOffTimeoutId = null;
+  let _retrigGateOffState = false;
+  let _showQwertyLabels = !!cfg.showQwertyLabels;
   let _channelAftertouch = 0;
   const activeKeys = new Map();
+  const _latchedNotes = new Set();
   const qwertyActive = new Set();
+  const _activePointers = new Map();
+  const _suppressedPointerUp = new Set();
   let destroyed = false;
   let _pressureRafId = null;
   let _focusedKeyIndex = -1;
@@ -121,10 +141,68 @@ export function createKeyboard(deps = {}) {
     return {
       destroy() {}, panic() {}, sweep() {}, getOctave: () => 0,
       setPitchBend() {}, setModWheel() {}, notesOffVisual() {},
+      setHold() {}, getHold: () => false, toggleHold() {},
+      latchNote() {}, unlatchNote() {}, getLatchedNotes: () => [],
+      setRetrig() {}, getRetrig: () => false, toggleRetrig() {},
+      setRetrigInterval() {}, getRetrigInterval: () => 800,
+      setQwertyLabels() {}, getQwertyLabels: () => false, toggleQwertyLabels() {},
     };
   }
 
   let _keysWrapper = null;
+
+  function _cleanupKeyVisuals(element, immediate = false) {
+    if (!element) return;
+    element.classList.remove('active', 'kbd-sustained', 'kbd-latched', 'kbd-retrig-gate-off');
+    element.style.removeProperty('--kbd-velocity');
+    if (immediate) {
+      element.classList.remove('kbd-pressure-release', 'kbd-pressured', 'kbd-pitch-bent');
+      element.style.removeProperty('--kbd-pressure');
+      element.style.removeProperty('--kbd-mw-pressure');
+      element.style.removeProperty('--kbd-pb-offset');
+      return;
+    }
+    if (cfg.enablePressureDisplay &&
+        (element.classList.contains('kbd-pressured') || element.classList.contains('kbd-pitch-bent'))) {
+      element.style.setProperty('--kbd-pressure', '0');
+      element.style.setProperty('--kbd-mw-pressure', '0');
+      element.classList.add('kbd-pressure-release');
+      const onEnd = () => {
+        element.classList.remove('kbd-pressure-release', 'kbd-pressured', 'kbd-pitch-bent');
+        element.style.removeProperty('--kbd-pressure');
+        element.style.removeProperty('--kbd-mw-pressure');
+        element.style.removeProperty('--kbd-pb-offset');
+      };
+      element.addEventListener('transitionend', onEnd, { once: true });
+      setTimeout(() => { if (element.classList.contains('kbd-pressure-release')) onEnd(); }, 500);
+    }
+  }
+
+  function _fullyReleaseNote(midiNote, fireNoteOff = true) {
+    _latchedNotes.delete(midiNote);
+    for (const [pid, note] of _activePointers) {
+      if (note === midiNote) _activePointers.delete(pid);
+    }
+    if (!activeKeys.has(midiNote)) return;
+    const state = activeKeys.get(midiNote);
+    const { actualNote, element, retrigMuted } = state;
+
+    if (cfg.enableAftertouch && onAftertouch) {
+      if (cfg.aftertouchMode === 'polyphonic') {
+        onAftertouch(actualNote, 0);
+      } else if (_channelAftertouch > 0) {
+        _channelAftertouch = 0;
+        onAftertouch(-1, 0);
+      }
+    }
+
+    activeKeys.delete(midiNote);
+    _cleanupKeyVisuals(element);
+    if (cfg.enableAccessibility) updateKeyAriaPressed(midiNote, false);
+    if (fireNoteOff && !retrigMuted) {
+      onNoteOff(actualNote);
+    }
+  }
 
   // ══════════════════════════════════════════════════════════════
   //  KEYBED RENDERING
@@ -164,6 +242,7 @@ export function createKeyboard(deps = {}) {
 
   function renderKeybed() {
     container.classList.add('kbd-piano-keys');
+    container.classList.toggle('kbd-hide-qwerty-labels', !_showQwertyLabels || !cfg.enableQwerty);
     if (!_keysWrapper) {
       _keysWrapper = container.querySelector('.kbd-keys-wrapper');
       if (!_keysWrapper) {
@@ -202,17 +281,105 @@ export function createKeyboard(deps = {}) {
     if (cfg.enableVintageWear) applyVintageWear(key, midiNote, isBlack);
     if (cfg.enableAccessibility) applyKeyAria(key, midiNote);
 
-    const playNote = (e) => {
+    const qwertyLabel = getQwertyLabelForNote(midiNote, cfg.startNote);
+    if (qwertyLabel) {
+      key.dataset.qwerty = qwertyLabel;
+      if (cfg.enableQwerty) {
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'kbd-qwerty-label';
+        labelSpan.setAttribute('aria-hidden', 'true');
+        labelSpan.textContent = qwertyLabel;
+        key.appendChild(labelSpan);
+      }
+    }
+
+    const stopNote = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
-      const actualNote = Math.max(0, Math.min(127, midiNote + octaveShift));
-      if (activeKeys.has(midiNote)) {
-        // Multi-touch: different pointer on same key — transfer ownership
-        const existing = activeKeys.get(midiNote);
-        const newPid = e && e.pointerId != null ? e.pointerId : null;
-        if (newPid != null && existing.pointerId !== newPid) {
-          existing.pointerId = newPid;
+      const pid = e && e.pointerId != null ? e.pointerId : null;
+      if (pid != null && _suppressedPointerUp.has(pid)) {
+        _suppressedPointerUp.delete(pid);
+        return;
+      }
+      if (pid != null && e && (e.type === 'pointerup' || e.type === 'pointercancel')) {
+        _activePointers.delete(pid);
+      } else if (pid == null && e && (e.type === 'pointerup' || e.type === 'pointercancel' || e.type === 'touchend' || e.type === 'touchcancel')) {
+        _activePointers.delete(1);
+      }
+      if (!activeKeys.has(midiNote)) return;
+      const state = activeKeys.get(midiNote);
+      const { element, pointerId: heldPointerId } = state;
+
+      // Multi-touch: only the pointer that started the note can stop it
+      if (pid != null && heldPointerId != null && pid !== heldPointerId) return;
+
+      state.physicallyHeld = false;
+      state.pointerId = null;
+
+      // Latch / Hold mode: keep note active until toggled off or Hold is disabled
+      if (holdOn || state.latched || _latchedNotes.has(midiNote)) {
+        state.latched = true;
+        _latchedNotes.add(midiNote);
+        if (element) {
+          element.classList.add('kbd-latched');
+          if (!state.retrigMuted) element.classList.add('active');
         }
         return;
+      }
+
+      // Sostenuto: if this note was captured, don't release until sostenuto is off
+      if (sostenutoOn && _sostenutoCaptured.has(midiNote)) return;
+
+      // Sustain: hold notes in activeKeys until sustain is turned off
+      if (sustainOn && e && (e.type === 'pointerup' || e.type === 'pointerleave' || e.type === 'pointerout' || e.type === 'pointercancel' || e.type === 'touchend' || e.type === 'touchcancel')) {
+        state.sustained = true;
+        if (element) {
+          element.classList.add('kbd-sustained');
+        }
+        return;
+      }
+
+      _fullyReleaseNote(midiNote, true);
+    };
+
+    const playNote = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const newPid = e && e.pointerId != null ? e.pointerId : null;
+      const isLatchGesture = holdOn || Boolean(e && (e.shiftKey || e.button === 2));
+      const actualNote = Math.max(0, Math.min(127, midiNote + octaveShift));
+
+      if (activeKeys.has(midiNote)) {
+        const existing = activeKeys.get(midiNote);
+        if ((existing.latched || _latchedNotes.has(midiNote)) && isLatchGesture) {
+          // Clicking an already-latched key in Hold/Shift mode unlatches and stops it
+          _suppressedPointerUp.add(newPid ?? 1);
+          _fullyReleaseNote(midiNote, true);
+          return;
+        }
+        if (!existing.physicallyHeld && existing.sustained) {
+          if (isLatchGesture) {
+            existing.latched = true;
+            _latchedNotes.add(midiNote);
+            existing.sustained = false;
+            existing.physicallyHeld = true;
+            existing.pointerId = newPid;
+            key.classList.remove('kbd-sustained');
+            key.classList.add('active', 'kbd-latched');
+            return;
+          }
+          // Re-strike a sustained note: release previous voice before re-triggering
+          _fullyReleaseNote(midiNote, true);
+        } else {
+          // Multi-touch: different pointer on same key — transfer ownership
+          if (newPid != null && existing.pointerId !== newPid) {
+            existing.pointerId = newPid;
+          }
+          if (isLatchGesture) {
+            existing.latched = true;
+            _latchedNotes.add(midiNote);
+            key.classList.add('kbd-latched');
+          }
+          return;
+        }
       }
 
       // Scale filter: check if note is in scale
@@ -238,8 +405,29 @@ export function createKeyboard(deps = {}) {
       // Soft pedal attenuates velocity
       if (softPedalOn) velocity *= cfg.softPedalFactor;
 
-      activeKeys.set(midiNote, { actualNote: noteToPlay, element: key, velocity, startPointerY: e.clientY ?? null, pointerId: e && e.pointerId != null ? e.pointerId : null });
+      if (e && (e.type === 'pointerdown' || e.type === 'pointerover') && !isLatchGesture) {
+        _activePointers.set(newPid ?? 1, midiNote);
+      }
+
+      if (isLatchGesture) {
+        _latchedNotes.add(midiNote);
+      }
+
+      activeKeys.set(midiNote, {
+        actualNote: noteToPlay,
+        element: key,
+        velocity,
+        startPointerY: e ? (e.clientY ?? null) : null,
+        pointerId: newPid,
+        physicallyHeld: true,
+        sustained: false,
+        latched: isLatchGesture,
+        retrigMuted: false,
+        source: 'pointer',
+        stopFn: stopNote,
+      });
       key.classList.add('active');
+      if (isLatchGesture) key.classList.add('kbd-latched');
       key.style.setProperty('--kbd-velocity', velocity.toFixed(3));
 
       if (cfg.enableAccessibility) {
@@ -254,62 +442,31 @@ export function createKeyboard(deps = {}) {
       if (onVelocityChange) onVelocityChange(noteToPlay, velocity);
     };
 
-    const stopNote = (e) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      if (!activeKeys.has(midiNote)) return;
-      const { actualNote, element, pointerId: heldPointerId } = activeKeys.get(midiNote);
-
-      // Multi-touch: only the pointer that started the note can stop it
-      if (e && e.pointerId != null && e.pointerId !== heldPointerId) return;
-
-      // Sostenuto: if this note was captured, don't release until sostenuto is off
-      if (sostenutoOn && _sostenutoCaptured.has(midiNote)) return;
-
-      // Sustain: hold notes in activeKeys until sustain is turned off
-      if (sustainOn && e && (e.type === 'pointerup' || e.type === 'pointerleave')) {
-        // Mark as sustained so panic can release it, but don't fire noteOff
-        element.classList.remove('active');
-        return;
-      }
-
-      if (cfg.enableAftertouch && onAftertouch) {
-        if (cfg.aftertouchMode === 'polyphonic') {
-          onAftertouch(actualNote, 0);
-        } else if (_channelAftertouch > 0) {
-          _channelAftertouch = 0;
-          onAftertouch(-1, 0);
-        }
-      }
-
-      activeKeys.delete(midiNote);
-      if (element) {
-        element.classList.remove('active');
-        element.style.removeProperty('--kbd-velocity');
-      }
-      if (cfg.enableAccessibility) updateKeyAriaPressed(midiNote, false);
-      onNoteOff(actualNote);
-
-      if (cfg.enablePressureDisplay && element &&
-          (element.classList.contains('kbd-pressured') || element.classList.contains('kbd-pitch-bent'))) {
-        element.style.setProperty('--kbd-pressure', '0');
-        element.style.setProperty('--kbd-mw-pressure', '0');
-        element.classList.add('kbd-pressure-release');
-        const onEnd = () => {
-          element.classList.remove('kbd-pressure-release', 'kbd-pressured', 'kbd-pitch-bent');
-          element.style.removeProperty('--kbd-pressure');
-          element.style.removeProperty('--kbd-mw-pressure');
-          element.style.removeProperty('--kbd-pb-offset');
-        };
-        element.addEventListener('transitionend', onEnd, { once: true });
-        setTimeout(() => { if (element.classList.contains('kbd-pressure-release')) onEnd(); }, 500);
-      }
-    };
-
     key.addEventListener('pointerdown', playNote);
     key.addEventListener('pointerup', stopNote);
-    // Note: pointerleave NOT used as stop trigger — it fires during multi-touch
-    // (jsdom synthetic events don't carry pointerId) and causes false noteOff.
-    // pointerup is reliable for all input types (touch, mouse, pen).
+    key.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); });
+
+    // Glissando: dragging a depressed pointer across keys releases the previous key and plays the new one
+    key.addEventListener('pointerover', (e) => {
+      if (e.target !== key) return;
+      const pid = e.pointerId ?? 1;
+      const isDragging = ((e.buttons ?? 0) & 1) === 1 || _activePointers.has(pid);
+      if (!isDragging || holdOn || e.shiftKey) return;
+      const prevNote = _activePointers.get(pid);
+      if (prevNote !== undefined && prevNote !== midiNote && activeKeys.has(prevNote)) {
+        const prevState = activeKeys.get(prevNote);
+        if (prevState && prevState.stopFn && !prevState.latched && !_latchedNotes.has(prevNote)) {
+          prevState.stopFn({
+            type: 'pointerleave',
+            pointerId: pid,
+            preventDefault() {},
+            stopPropagation() {},
+          });
+        }
+      }
+      _activePointers.set(pid, midiNote);
+      playNote(e);
+    });
 
     if (cfg.enableAftertouch) {
       key.addEventListener('pointermove', (e) => {
@@ -449,10 +606,6 @@ export function createKeyboard(deps = {}) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'q') {
       e.preventDefault(); panic(); return;
     }
-    // Ctrl+Space → Toggle Sustain
-    if ((e.ctrlKey || e.metaKey) && e.key === ' ') {
-      e.preventDefault(); toggleSustain(); return;
-    }
     // Ctrl+Shift+Space → Toggle Sostenuto
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') {
       e.preventDefault(); toggleSostenuto(); return;
@@ -460,6 +613,18 @@ export function createKeyboard(deps = {}) {
     // Ctrl+Alt+Space → Toggle Soft Pedal
     if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === ' ') {
       e.preventDefault(); toggleSoftPedal(); return;
+    }
+    // Ctrl+Space → Toggle Sustain
+    if ((e.ctrlKey || e.metaKey) && e.key === ' ') {
+      e.preventDefault(); toggleSustain(); return;
+    }
+    // Ctrl+H → Toggle Hold / Latch
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h' && cfg.enableHold) {
+      e.preventDefault(); toggleHold(); return;
+    }
+    // Alt+R → Toggle Retrig
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'r' && cfg.enableRetrig) {
+      e.preventDefault(); toggleRetrig(); return;
     }
 
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
@@ -482,6 +647,23 @@ export function createKeyboard(deps = {}) {
         }
       }
 
+      const shouldLatch = holdOn || e.shiftKey;
+
+      // Toggle off if already latched and pressed again in Hold/Shift mode
+      if (shouldLatch && _latchedNotes.has(midiNote)) {
+        _latchedNotes.delete(midiNote);
+        _fullyReleaseNote(midiNote, true);
+        return;
+      }
+
+      // If note was sustained (not physically held), re-strike it cleanly
+      if (activeKeys.has(midiNote)) {
+        const existing = activeKeys.get(midiNote);
+        if (!existing.physicallyHeld) {
+          _fullyReleaseNote(midiNote, true);
+        }
+      }
+
       if (!activeKeys.has(midiNote)) {
         let velocity = cfg.fixedVelocity;
         if (softPedalOn) velocity *= cfg.softPedalFactor;
@@ -489,11 +671,21 @@ export function createKeyboard(deps = {}) {
         const keyEl = (_keysWrapper || container).querySelector(`[data-note="${midiNote}"]`);
         if (keyEl) {
           keyEl.classList.add('active');
+          keyEl.classList.remove('kbd-sustained', 'kbd-retrig-gate-off');
+          if (shouldLatch) keyEl.classList.add('kbd-latched');
           keyEl.style.setProperty('--kbd-velocity', velocity.toFixed(3));
           const color = (cfg.getLedColor) ? cfg.getLedColor() : (cfg.ledColor || 'var(--color-accent)');
           keyEl.style.setProperty('--kbd-led-color', color);
         }
-        activeKeys.set(midiNote, { actualNote: noteToPlay, element: keyEl || null, velocity });
+        if (shouldLatch) _latchedNotes.add(midiNote);
+        activeKeys.set(midiNote, {
+          actualNote: noteToPlay,
+          element: keyEl || null,
+          velocity,
+          physicallyHeld: true,
+          sustained: false,
+          source: 'qwerty',
+        });
         onNoteOn(noteToPlay, velocity);
         if (onVelocityChange) onVelocityChange(noteToPlay, velocity);
         if (cfg.enableAccessibility) {
@@ -512,12 +704,61 @@ export function createKeyboard(deps = {}) {
       qwertyActive.delete(key);
       const midiNote = cfg.startNote + QWERTY_MAP[key];
       if (activeKeys.has(midiNote)) {
-        const { actualNote, element } = activeKeys.get(midiNote);
+        const entry = activeKeys.get(midiNote);
+        entry.physicallyHeld = false;
+        if (holdOn || _latchedNotes.has(midiNote)) {
+          _latchedNotes.add(midiNote);
+          if (entry.element) entry.element.classList.add('kbd-latched');
+          return;
+        }
         if (sostenutoOn && _sostenutoCaptured.has(midiNote)) return;
-        if (element) { element.classList.remove('active'); element.style.removeProperty('--kbd-velocity'); }
-        activeKeys.delete(midiNote);
-        if (cfg.enableAccessibility) updateKeyAriaPressed(midiNote, false);
-        onNoteOff(actualNote);
+        if (sustainOn) {
+          entry.sustained = true;
+          if (entry.element) entry.element.classList.add('kbd-sustained');
+          return;
+        }
+        _fullyReleaseNote(midiNote, true);
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  GLOBAL POINTER-UP SAFETY (prevents stuck notes when dragging
+  //  outside the keyboard toward SlideDrawer / Dashboard knobs)
+  // ══════════════════════════════════════════════════════════════
+
+  function handleGlobalPointerUp(e) {
+    if (destroyed) return;
+    const pid = e && e.pointerId != null ? e.pointerId : null;
+    if (pid != null) {
+      _activePointers.delete(pid);
+    } else {
+      _activePointers.clear();
+    }
+
+    if (cfg.enableAftertouch && _channelAftertouch > 0) {
+      _channelAftertouch = 0;
+      if (onAftertouch) onAftertouch(-1, 0);
+    }
+
+    for (const [baseNote, entry] of Array.from(activeKeys.entries())) {
+      if (entry.source === 'pointer' && entry.physicallyHeld) {
+        if (pid != null && entry.pointerId != null && entry.pointerId !== pid) continue;
+        entry.physicallyHeld = false;
+        entry.pointerId = null;
+        if (holdOn || entry.latched || _latchedNotes.has(baseNote)) {
+          entry.latched = true;
+          _latchedNotes.add(baseNote);
+          if (entry.element) entry.element.classList.add('kbd-latched');
+          continue;
+        }
+        if (sostenutoOn && _sostenutoCaptured.has(baseNote)) continue;
+        if (sustainOn) {
+          entry.sustained = true;
+          if (entry.element) entry.element.classList.add('kbd-sustained');
+          continue;
+        }
+        _fullyReleaseNote(baseNote, true);
       }
     }
   }
@@ -670,14 +911,28 @@ export function createKeyboard(deps = {}) {
 
   function updateSustainVisuals() {
     const led = container.querySelector('.kbd-sustain-led');
-    if (!led) return;
-    sustainOn ? led.classList.add('on') : led.classList.remove('on');
+    const btn = container.querySelector('.kbd-sustain-btn');
+    if (led) sustainOn ? led.classList.add('on') : led.classList.remove('on');
+    if (btn) sustainOn ? btn.classList.add('active') : btn.classList.remove('active');
   }
 
   function setSustain(on) {
     const val = !!on;
     if (val === sustainOn) return;
     sustainOn = val;
+
+    if (!sustainOn) {
+      // Release all sustained notes that are no longer physically held, latched, or sostenuto-captured
+      for (const [baseNote, entry] of Array.from(activeKeys.entries())) {
+        if (!entry.physicallyHeld && !entry.latched && !_latchedNotes.has(baseNote) && !(sostenutoOn && _sostenutoCaptured.has(baseNote))) {
+          _fullyReleaseNote(baseNote, true);
+        } else {
+          entry.sustained = false;
+          if (entry.element) entry.element.classList.remove('kbd-sustained');
+        }
+      }
+    }
+
     updateSustainVisuals();
     if (cfg.enableAccessibility) announce(`Sustain ${sustainOn ? 'on' : 'off'}`);
     if (onSustainChange) onSustainChange(sustainOn);
@@ -692,8 +947,9 @@ export function createKeyboard(deps = {}) {
 
   function updateSostenutoVisuals() {
     const led = container.querySelector('.kbd-sostenuto-led');
-    if (!led) return;
-    sostenutoOn ? led.classList.add('on') : led.classList.remove('on');
+    const btn = container.querySelector('.kbd-sostenuto-btn');
+    if (led) sostenutoOn ? led.classList.add('on') : led.classList.remove('on');
+    if (btn) sostenutoOn ? btn.classList.add('active') : btn.classList.remove('active');
   }
 
   function setSostenuto(on) {
@@ -704,7 +960,14 @@ export function createKeyboard(deps = {}) {
       _sostenutoCaptured.clear();
       for (const [baseNote] of activeKeys) _sostenutoCaptured.add(baseNote);
     } else {
+      const captured = Array.from(_sostenutoCaptured);
       _sostenutoCaptured.clear();
+      for (const baseNote of captured) {
+        const entry = activeKeys.get(baseNote);
+        if (entry && !entry.physicallyHeld && !entry.latched && !_latchedNotes.has(baseNote) && !sustainOn) {
+          _fullyReleaseNote(baseNote, true);
+        }
+      }
     }
     updateSostenutoVisuals();
     if (cfg.enableAccessibility) announce(`Sostenuto ${sostenutoOn ? 'on' : 'off'}`);
@@ -720,8 +983,9 @@ export function createKeyboard(deps = {}) {
 
   function updateSoftPedalVisuals() {
     const led = container.querySelector('.kbd-soft-led');
-    if (!led) return;
-    softPedalOn ? led.classList.add('on') : led.classList.remove('on');
+    const btn = container.querySelector('.kbd-soft-btn');
+    if (led) softPedalOn ? led.classList.add('on') : led.classList.remove('on');
+    if (btn) softPedalOn ? btn.classList.add('active') : btn.classList.remove('active');
   }
 
   function setSoftPedal(on) {
@@ -734,6 +998,261 @@ export function createKeyboard(deps = {}) {
   }
 
   function toggleSoftPedal() { setSoftPedal(!softPedalOn); }
+
+  // ══════════════════════════════════════════════════════════════
+  //  HOLD / LATCH MODE (UX2.4 — Hands-Free One-Mouse Editing)
+  //  Allows pinning notes or chords with a mouse click so the user
+  //  can move the cursor up to edit SlideDrawer / Dashboard knobs.
+  // ══════════════════════════════════════════════════════════════
+
+  function updateHoldVisuals() {
+    const led = container.querySelector('.kbd-hold-led');
+    const btn = container.querySelector('.kbd-hold-btn');
+    if (led) holdOn ? led.classList.add('on') : led.classList.remove('on');
+    if (btn) {
+      holdOn ? btn.classList.add('active') : btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', String(holdOn));
+    }
+  }
+
+  function setHold(on) {
+    const val = !!on;
+    if (val === holdOn) return;
+    holdOn = val;
+
+    if (holdOn) {
+      // Latch any currently active notes
+      for (const [baseNote, entry] of activeKeys) {
+        entry.latched = true;
+        _latchedNotes.add(baseNote);
+        if (entry.element) entry.element.classList.add('kbd-latched');
+      }
+    } else {
+      // Unlatch all notes and release those not physically held or sustained
+      _latchedNotes.clear();
+      for (const [baseNote, entry] of Array.from(activeKeys.entries())) {
+        entry.latched = false;
+        if (entry.element) entry.element.classList.remove('kbd-latched');
+        if (!entry.physicallyHeld) {
+          if (sustainOn) {
+            entry.sustained = true;
+            if (entry.element) entry.element.classList.add('kbd-sustained');
+          } else if (!(sostenutoOn && _sostenutoCaptured.has(baseNote))) {
+            _fullyReleaseNote(baseNote, true);
+          }
+        }
+      }
+    }
+
+    updateHoldVisuals();
+    if (cfg.enableAccessibility) announce(`Hold ${holdOn ? 'on' : 'off'}`);
+    if (onHoldChange) onHoldChange(holdOn);
+  }
+
+  function toggleHold() { setHold(!holdOn); }
+
+  function latchNote(midiNote, velocity = cfg.fixedVelocity) {
+    const baseNote = Number(midiNote);
+    if (Number.isNaN(baseNote)) return;
+    let noteToPlay = Math.max(0, Math.min(127, baseNote + octaveShift));
+    if (_scaleEnabled) {
+      const intervals = SCALE_INTERVALS[_scaleType] || SCALE_INTERVALS.major;
+      if (!isInScale(noteToPlay, _scaleRoot, intervals)) {
+        if (_scaleSnapMode === 'block') return;
+        if (_scaleSnapMode === 'snap') noteToPlay = snapToScale(noteToPlay, _scaleRoot, intervals);
+      }
+    }
+    const vel = Math.max(0.05, Math.min(1.0, Number(velocity) || cfg.fixedVelocity));
+    const keyEl = (_keysWrapper || container).querySelector(`[data-note="${baseNote}"]`);
+    _latchedNotes.add(baseNote);
+
+    if (activeKeys.has(baseNote)) {
+      const entry = activeKeys.get(baseNote);
+      entry.latched = true;
+      entry.sustained = false;
+      if (entry.element) {
+        entry.element.classList.add('active', 'kbd-latched');
+        entry.element.classList.remove('kbd-sustained');
+      }
+      return;
+    }
+
+    if (keyEl) {
+      keyEl.classList.add('active', 'kbd-latched');
+      keyEl.style.setProperty('--kbd-velocity', vel.toFixed(3));
+      const color = (cfg.getLedColor) ? cfg.getLedColor() : (cfg.ledColor || 'var(--color-accent)');
+      keyEl.style.setProperty('--kbd-led-color', color);
+    }
+    activeKeys.set(baseNote, {
+      actualNote: noteToPlay,
+      element: keyEl || null,
+      velocity: vel,
+      physicallyHeld: false,
+      sustained: false,
+      latched: true,
+      retrigMuted: false,
+      source: 'latch',
+    });
+    onNoteOn(noteToPlay, vel);
+    if (onVelocityChange) onVelocityChange(noteToPlay, vel);
+    if (cfg.enableAccessibility) updateKeyAriaPressed(baseNote, true);
+  }
+
+  function unlatchNote(midiNote) {
+    const baseNote = Number(midiNote);
+    if (!_latchedNotes.has(baseNote) && !(activeKeys.has(baseNote) && activeKeys.get(baseNote).latched)) return;
+    _latchedNotes.delete(baseNote);
+    const entry = activeKeys.get(baseNote);
+    if (!entry) return;
+    entry.latched = false;
+    if (entry.element) entry.element.classList.remove('kbd-latched');
+    if (!entry.physicallyHeld) {
+      if (sustainOn) {
+        entry.sustained = true;
+        if (entry.element) entry.element.classList.add('kbd-sustained');
+      } else if (!(sostenutoOn && _sostenutoCaptured.has(baseNote))) {
+        _fullyReleaseNote(baseNote, true);
+      }
+    }
+  }
+
+  function getLatchedNotes() {
+    const notes = [];
+    for (const baseNote of _latchedNotes) {
+      const entry = activeKeys.get(baseNote);
+      notes.push(entry ? entry.actualNote : Math.max(0, Math.min(127, baseNote + octaveShift)));
+    }
+    return notes.sort((a, b) => a - b);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  RETRIG / AUTO-REPEAT MODE (UX2.4 — Envelope Editing Aid)
+  //  Periodically re-triggers active/latched notes so users can
+  //  adjust EG Attack / Decay / Release with a single mouse.
+  // ══════════════════════════════════════════════════════════════
+
+  function updateRetrigVisuals() {
+    const led = container.querySelector('.kbd-retrig-led');
+    const btn = container.querySelector('.kbd-retrig-btn');
+    if (led) retrigOn ? led.classList.add('on') : led.classList.remove('on');
+    if (btn) {
+      retrigOn ? btn.classList.add('active') : btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', String(retrigOn));
+    }
+  }
+
+  function _scheduleRetrigGateOff() {
+    if (_retrigGateOffTimeoutId) {
+      clearTimeout(_retrigGateOffTimeoutId);
+      _retrigGateOffTimeoutId = null;
+    }
+    const gateOnMs = Math.max(20, Math.round(_retrigIntervalMs * _retrigGateRatio));
+    _retrigGateOffTimeoutId = setTimeout(() => {
+      _retrigGateOffTimeoutId = null;
+      if (destroyed || !retrigOn || activeKeys.size === 0) return;
+      _retrigGateOffState = true;
+      for (const [, entry] of activeKeys) {
+        entry.retrigMuted = true;
+        if (entry.element) entry.element.classList.add('kbd-retrig-gate-off');
+        onNoteOff(entry.actualNote);
+      }
+    }, gateOnMs);
+  }
+
+  function _stopRetrigLoop() {
+    if (_retrigTimerId) {
+      clearInterval(_retrigTimerId);
+      _retrigTimerId = null;
+    }
+    if (_retrigGateOffTimeoutId) {
+      clearTimeout(_retrigGateOffTimeoutId);
+      _retrigGateOffTimeoutId = null;
+    }
+    if (_retrigGateOffState) {
+      _retrigGateOffState = false;
+      for (const [, entry] of activeKeys) {
+        entry.retrigMuted = false;
+        if (entry.element) {
+          entry.element.classList.remove('kbd-retrig-gate-off');
+          entry.element.classList.add('active');
+        }
+        onNoteOn(entry.actualNote, entry.velocity);
+      }
+    } else {
+      for (const [, entry] of activeKeys) {
+        entry.retrigMuted = false;
+        if (entry.element) entry.element.classList.remove('kbd-retrig-gate-off');
+      }
+    }
+  }
+
+  function _startRetrigLoop() {
+    _stopRetrigLoop();
+    if (!retrigOn || destroyed) return;
+    _scheduleRetrigGateOff();
+    _retrigTimerId = setInterval(() => {
+      if (destroyed || !retrigOn) {
+        _stopRetrigLoop();
+        return;
+      }
+      if (activeKeys.size === 0) {
+        _retrigGateOffState = false;
+        _scheduleRetrigGateOff();
+        return;
+      }
+      for (const [, entry] of activeKeys) {
+        if (!_retrigGateOffState && !entry.retrigMuted) {
+          onNoteOff(entry.actualNote);
+        }
+        entry.retrigMuted = false;
+        if (entry.element) {
+          entry.element.classList.remove('kbd-retrig-gate-off');
+          entry.element.classList.add('active');
+        }
+        onNoteOn(entry.actualNote, entry.velocity);
+        if (onVelocityChange) onVelocityChange(entry.actualNote, entry.velocity);
+      }
+      _retrigGateOffState = false;
+      _scheduleRetrigGateOff();
+    }, _retrigIntervalMs);
+  }
+
+  function setRetrig(on) {
+    const val = !!on;
+    if (val === retrigOn) return;
+    retrigOn = val;
+    if (retrigOn) {
+      _startRetrigLoop();
+    } else {
+      _stopRetrigLoop();
+    }
+    updateRetrigVisuals();
+    if (cfg.enableAccessibility) announce(`Retrigger ${retrigOn ? 'on' : 'off'}`);
+    if (onRetrigChange) onRetrigChange(retrigOn);
+  }
+
+  function toggleRetrig() { setRetrig(!retrigOn); }
+
+  function setRetrigInterval(ms) {
+    const clamped = Math.max(100, Math.min(5000, Number(ms) || 800));
+    _retrigIntervalMs = clamped;
+    cfg.retrigIntervalMs = clamped;
+    if (retrigOn) _startRetrigLoop();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  QWERTY KEY LABELS (UX2.4 — Z..M, Q..P visual hints)
+  // ══════════════════════════════════════════════════════════════
+
+  function setQwertyLabels(show) {
+    _showQwertyLabels = !!show;
+    cfg.showQwertyLabels = _showQwertyLabels;
+    const hide = !_showQwertyLabels || !cfg.enableQwerty;
+    container.classList.toggle('kbd-hide-qwerty-labels', hide);
+    if (_keysWrapper) _keysWrapper.classList.toggle('kbd-hide-qwerty-labels', hide);
+  }
+
+  function toggleQwertyLabels() { setQwertyLabels(!_showQwertyLabels); }
 
   // ══════════════════════════════════════════════════════════════
   //  SCALE FILTER — lock keys to a musical scale
@@ -825,13 +1344,15 @@ export function createKeyboard(deps = {}) {
   function _releaseKey(midiNote) {
     for (const [baseNote, { actualNote, element }] of activeKeys) {
       if (actualNote === midiNote) {
-        if (element) element.classList.remove('active');
+        _latchedNotes.delete(baseNote);
+        _cleanupKeyVisuals(element, true);
         activeKeys.delete(baseNote);
         return;
       }
     }
+    _latchedNotes.delete(midiNote);
     const keyEl = (_keysWrapper || container).querySelector(`[data-note="${midiNote}"]`);
-    if (keyEl) keyEl.classList.remove('active');
+    if (keyEl) _cleanupKeyVisuals(keyEl, true);
   }
 
   function saveChord(slot, notes) {
@@ -886,18 +1407,18 @@ export function createKeyboard(deps = {}) {
   // ══════════════════════════════════════════════════════════════
 
   function panic() {
+    _activePointers.clear();
+    _suppressedPointerUp.clear();
+    if (retrigOn) setRetrig(false);
+    else _stopRetrigLoop();
+    _latchedNotes.clear();
+    if (holdOn) setHold(false);
     if (sustainOn) setSustain(false);
     if (sostenutoOn) setSostenuto(false);
     if (softPedalOn) setSoftPedal(false);
     if (_channelAftertouch > 0) { _channelAftertouch = 0; if (onAftertouch) onAftertouch(-1, 0); }
-    for (const [baseNote, { actualNote, element }] of activeKeys) {
-      if (element) {
-        element.classList.remove('active', 'kbd-pressured', 'kbd-pitch-bent');
-        element.style.removeProperty('--kbd-velocity');
-        element.style.removeProperty('--kbd-pressure');
-        element.style.removeProperty('--kbd-mw-pressure');
-        element.style.removeProperty('--kbd-pb-offset');
-      }
+    for (const [, { actualNote, element }] of activeKeys) {
+      _cleanupKeyVisuals(element, true);
       onNoteOff(actualNote);
     }
     activeKeys.clear();
@@ -955,6 +1476,42 @@ export function createKeyboard(deps = {}) {
       container.appendChild(autoSustain);
     }
 
+    // Hold / Latch button (UX2.4)
+    if (holdBtnId) {
+      const holdBtn = document.getElementById(holdBtnId);
+      if (holdBtn) holdBtn.addEventListener('click', toggleHold);
+    } else if (cfg.enableHold) {
+      const autoHold = document.createElement('div');
+      autoHold.className = 'kbd-hold-btn';
+      autoHold.setAttribute('role', 'button');
+      autoHold.setAttribute('tabindex', '0');
+      autoHold.setAttribute('aria-pressed', 'false');
+      autoHold.setAttribute('aria-label', 'Hold / Latch Notes On/Off (Ctrl+H or Shift+Click key)');
+      autoHold.setAttribute('title', 'Hold / Latch: Pin clicked notes for hands-free editing (Ctrl+H or Shift+Click key)');
+      autoHold.innerHTML = `<span class="kbd-hold-led"></span><span class="kbd-hold-label">HOLD</span>`;
+      autoHold.addEventListener('click', toggleHold);
+      autoHold.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleHold(); } });
+      container.appendChild(autoHold);
+    }
+
+    // Retrig / Auto-Repeat button (UX2.4)
+    if (retrigBtnId) {
+      const retrigBtn = document.getElementById(retrigBtnId);
+      if (retrigBtn) retrigBtn.addEventListener('click', toggleRetrig);
+    } else if (cfg.enableRetrig) {
+      const autoRetrig = document.createElement('div');
+      autoRetrig.className = 'kbd-retrig-btn';
+      autoRetrig.setAttribute('role', 'button');
+      autoRetrig.setAttribute('tabindex', '0');
+      autoRetrig.setAttribute('aria-pressed', 'false');
+      autoRetrig.setAttribute('aria-label', 'Retrigger Active Notes On/Off (Alt+R)');
+      autoRetrig.setAttribute('title', 'Retrig: Periodically re-trigger held/latched notes while editing envelopes (Alt+R)');
+      autoRetrig.innerHTML = `<span class="kbd-retrig-led"></span><span class="kbd-retrig-label">RETRIG</span>`;
+      autoRetrig.addEventListener('click', toggleRetrig);
+      autoRetrig.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRetrig(); } });
+      container.appendChild(autoRetrig);
+    }
+
     // Sostenuto button (CC#66)
     if (sostenutoBtnId) {
       const sostBtn = document.getElementById(sostenutoBtnId);
@@ -1007,6 +1564,10 @@ export function createKeyboard(deps = {}) {
       window.addEventListener('keydown', handleKeydown);
       window.addEventListener('keyup', handleKeyup);
     }
+
+    // Always listen to global pointerup/pointercancel so dragging outside the keybed releases cleanly
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
 
     updateOctaveLEDs();
 
@@ -1064,6 +1625,23 @@ export function createKeyboard(deps = {}) {
     setSustain,
     getSustain: () => sustainOn,
     toggleSustain,
+    // Hold / Latch API (UX2.4)
+    setHold,
+    getHold: () => holdOn,
+    toggleHold,
+    latchNote,
+    unlatchNote,
+    getLatchedNotes,
+    // Retrig / Auto-Repeat API (UX2.4)
+    setRetrig,
+    getRetrig: () => retrigOn,
+    toggleRetrig,
+    setRetrigInterval,
+    getRetrigInterval: () => _retrigIntervalMs,
+    // QWERTY Labels API (UX2.4)
+    setQwertyLabels,
+    getQwertyLabels: () => _showQwertyLabels,
+    toggleQwertyLabels,
     // Sostenuto API (CC#66)
     setSostenuto,
     getSostenuto: () => sostenutoOn,
@@ -1111,14 +1689,19 @@ export function createKeyboard(deps = {}) {
     getActiveNotes: () => Array.from(activeKeys.values()).map(n => n.actualNote),
     destroy: () => {
       destroyed = true;
+      _stopRetrigLoop();
       if (_pressureRafId) cancelAnimationFrame(_pressureRafId);
       if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }
       if (cfg.enableQwerty) { window.removeEventListener('keydown', handleKeydown); window.removeEventListener('keyup', handleKeyup); }
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
       if (cfg.enableAccessibility) container.removeEventListener('keydown', handleA11yKeyNav);
       for (const wheel of wheels) wheel.destroy();
       container.innerHTML = '';
       activeKeys.clear();
+      _latchedNotes.clear();
       qwertyActive.clear();
     }
   };
 }
+

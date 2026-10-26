@@ -318,9 +318,152 @@
 }
 .kbd-soft-btn:hover .kbd-soft-label { color: #aa44ff; }
 
-/* Panic + Sustain + Sostenuto + Soft buttons stay visible when collapsed */
+/* ── HOLD / LATCH BUTTON (UX2.4), cyan-amber LED ── */
+.kbd-hold-btn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 42px;
+  min-height: 80px;
+  margin: 0 4px 0 0;
+  background: linear-gradient(to bottom, #1e1e22 0%, #141418 100%);
+  border: 1px solid #333;
+  border-radius: 0 0 5px 5px;
+  border-top: none;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4);
+  transition: background 0.1s ease, box-shadow 0.1s ease, border-color 0.15s ease;
+}
+
+.kbd-hold-btn:hover {
+  background: linear-gradient(to bottom, #28282e 0%, #1a1a1e 100%);
+  border-color: #555;
+}
+
+.kbd-hold-btn:active,
+.kbd-hold-btn.active {
+  background: linear-gradient(to bottom, #16222a 0%, #0e161c 100%);
+  border-color: rgba(0, 212, 255, 0.45);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+}
+
+.kbd-hold-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10242a;
+  border: 1px solid #222;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  will-change: background, box-shadow;
+}
+
+.kbd-hold-led.on {
+  background: #00d4ff;
+  box-shadow: 0 0 6px #00d4ff, 0 0 12px rgba(0,212,255,0.5);
+}
+
+.kbd-hold-btn:hover .kbd-hold-led {
+  background: #33ddff;
+  box-shadow: 0 0 6px #33ddff, 0 0 12px rgba(51,221,255,0.4);
+}
+
+.kbd-hold-label {
+  font-family: var(--kbd-font, 'Share Tech Mono', monospace);
+  font-size: 8px;
+  font-weight: 700;
+  color: #888;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kbd-hold-btn:hover .kbd-hold-label,
+.kbd-hold-btn.active .kbd-hold-label {
+  color: #00d4ff;
+}
+
+/* ── RETRIG / AUTO-REPEAT BUTTON (UX2.4), amber-gold pulsing LED ── */
+.kbd-retrig-btn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 42px;
+  min-height: 80px;
+  margin: 0 4px 0 0;
+  background: linear-gradient(to bottom, #1e1e22 0%, #141418 100%);
+  border: 1px solid #333;
+  border-radius: 0 0 5px 5px;
+  border-top: none;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4);
+  transition: background 0.1s ease, box-shadow 0.1s ease, border-color 0.15s ease;
+}
+
+.kbd-retrig-btn:hover {
+  background: linear-gradient(to bottom, #28282e 0%, #1a1a1e 100%);
+  border-color: #555;
+}
+
+.kbd-retrig-btn:active,
+.kbd-retrig-btn.active {
+  background: linear-gradient(to bottom, #261e12 0%, #18120a 100%);
+  border-color: rgba(255, 170, 0, 0.45);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+}
+
+.kbd-retrig-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2a2010;
+  border: 1px solid #222;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  will-change: background, box-shadow;
+}
+
+.kbd-retrig-led.on {
+  background: #ffaa00;
+  box-shadow: 0 0 6px #ffaa00, 0 0 12px rgba(255,170,0,0.5);
+  animation: kbdBlinkLed 0.45s infinite alternate;
+}
+
+.kbd-retrig-btn:hover .kbd-retrig-led {
+  background: #ffbb33;
+  box-shadow: 0 0 6px #ffbb33, 0 0 12px rgba(255,187,51,0.4);
+}
+
+.kbd-retrig-label {
+  font-family: var(--kbd-font, 'Share Tech Mono', monospace);
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #888;
+  letter-spacing: 0.3px;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kbd-retrig-btn:hover .kbd-retrig-label,
+.kbd-retrig-btn.active .kbd-retrig-label {
+  color: #ffaa00;
+}
+
+/* Panic + Sustain + Hold + Retrig + Sostenuto + Soft buttons stay visible when collapsed */
 .kbd-piano-keys.kbd-collapsed .kbd-panic-btn,
 .kbd-piano-keys.kbd-collapsed .kbd-sustain-btn,
+.kbd-piano-keys.kbd-collapsed .kbd-hold-btn,
+.kbd-piano-keys.kbd-collapsed .kbd-retrig-btn,
 .kbd-piano-keys.kbd-collapsed .kbd-sostenuto-btn,
 .kbd-piano-keys.kbd-collapsed .kbd-soft-btn,
 .kbd-piano-keys.kbd-collapsed .kbd-collapse-btn {
@@ -329,7 +472,9 @@
   height: 28px;
 }
 
-/* Focus indicator for sostenuto/soft buttons */
+/* Focus indicator for hold/retrig/sostenuto/soft buttons */
+.kbd-hold-btn:focus-visible,
+.kbd-retrig-btn:focus-visible,
 .kbd-sostenuto-btn:focus-visible,
 .kbd-soft-btn:focus-visible,
 .kbd-collapse-btn:focus-visible {

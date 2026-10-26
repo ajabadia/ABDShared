@@ -54,13 +54,15 @@ const FORMAT_VERSION = 1;
 const BANK_LETTERS = 'ABCDEFGH';
 
 // ─── Command codes (ABDMS2000 SysExManager.h / MS2000_SysEx_Spec.md) ───
-const CMD_DUMP       = 0x40; // Program Data Dump (single patch)
-const CMD_ALL_DUMP   = 0x4C; // All Data Dump (128 patches)
-const CMD_REQUEST    = 0x10; // Program Dump Request
-const CMD_ALL_REQUEST = 0x0E; // All Data Dump Request
-const CMD_PARAM      = 0x41; // Parameter Change
-const CMD_ACK        = 0x23; // Write Completed
-const CMD_NACK       = 0x24; // Write Error
+const CMD_DUMP          = 0x40; // Program Data Dump (single patch)
+const CMD_ALL_DUMP      = 0x4C; // All Data Dump (128 patches)
+const CMD_REQUEST       = 0x10; // Program Dump Request
+const CMD_ALL_REQUEST   = 0x0E; // All Data Dump Request
+const CMD_WRITE_REQUEST = 0x11; // Program Write Request (F0 42 3n 58 11 00 prog F7)
+const CMD_PARAM         = 0x41; // Parameter Change (F0 42 3n 58 41 pLSB pMSB vLSB vMSB F7)
+const CMD_MODE_CHANGE   = 0x4E; // Mode Change (F0 42 3n 58 4E mode 00 F7)
+const CMD_ACK           = 0x23; // Write Completed
+const CMD_NACK          = 0x24; // Write Error
 
 // ─── Model IDs (per hardware) ───
 // MS2000 uses model byte 0x58. microKORG uses 0x71 (and 0x58 legacy). Prophecy uses 0x41 (different format).
@@ -113,6 +115,90 @@ export function korgChannelByte(channel: number): number {
   const clamped = Math.max(1, Math.min(16, Number(channel) || 1));
   const value = KORG_CHANNEL_ZERO_BASED ? clamped - 1 : clamped;
   return KORG_CHANNEL_BYTE_BASE | (value & 0x0F);
+}
+
+/**
+ * Builds a 10-byte Korg MS2000 Parameter Change (0x41) SysEx frame:
+ *   F0 42 3n 58 41 <paramLSB> <paramMSB> <valLSB> <valMSB> F7
+ */
+export function buildKorgMs2000ParamChange(
+  paramId: number,
+  value: number,
+  channel = 1,
+  modelIdByte = 0x58
+): Uint8Array {
+  const p14 = paramId & 0x3FFF;
+  const v14 = value & 0x3FFF;
+  return new Uint8Array([
+    0xF0,
+    0x42,
+    korgChannelByte(channel),
+    modelIdByte & 0x7F,
+    CMD_PARAM,
+    p14 & 0x7F,
+    (p14 >> 7) & 0x7F,
+    v14 & 0x7F,
+    (v14 >> 7) & 0x7F,
+    0xF7
+  ]);
+}
+
+/**
+ * Parses a 10-byte Korg MS2000 Parameter Change (0x41) SysEx frame.
+ */
+export function parseKorgMs2000ParamChange(
+  sysex: Uint8Array
+): { channel: number; modelIdByte: number; paramId: number; value: number } | null {
+  if (sysex.length !== 10 || sysex[0] !== 0xF0 || sysex[1] !== 0x42 || sysex[9] !== 0xF7) return null;
+  if ((sysex[2] & 0xF0) !== 0x30 || sysex[4] !== CMD_PARAM) return null;
+  const channel = (sysex[2] & 0x0F) + (KORG_CHANNEL_ZERO_BASED ? 1 : 0);
+  const paramId = (sysex[5] & 0x7F) | ((sysex[6] & 0x7F) << 7);
+  let value = (sysex[7] & 0x7F) | ((sysex[8] & 0x7F) << 7);
+  if ((value & 0x2000) !== 0) value -= 0x4000; // 14-bit two's complement signed
+  return { channel, modelIdByte: sysex[3], paramId, value };
+}
+
+/**
+ * Builds an 8-byte Korg MS2000 Program Write Request (0x11) SysEx frame:
+ *   F0 42 3n 58 11 00 <progIndex 0..127> F7
+ */
+export function buildKorgMs2000ProgramWriteRequest(
+  slot: number,
+  channel = 1,
+  modelIdByte = 0x58
+): Uint8Array {
+  const prog = Math.max(0, Math.min(127, slot | 0));
+  return new Uint8Array([
+    0xF0,
+    0x42,
+    korgChannelByte(channel),
+    modelIdByte & 0x7F,
+    CMD_WRITE_REQUEST,
+    0x00,
+    prog & 0x7F,
+    0xF7
+  ]);
+}
+
+/**
+ * Builds an 8-byte Korg MS2000 Mode Change (0x4E) SysEx frame:
+ *   F0 42 3n 58 4E <mode: 0=Play, 2=Global/LCD Edit> 00 F7
+ */
+export function buildKorgMs2000ModeChange(
+  mode: number,
+  channel = 1,
+  modelIdByte = 0x58
+): Uint8Array {
+  return new Uint8Array([
+    0xF0,
+    0x42,
+    korgChannelByte(channel),
+    modelIdByte & 0x7F,
+    CMD_MODE_CHANGE,
+    mode & 0x7F,
+    0x00,
+    0xF7
+  ]);
 }
 
 // ─── SysEx Helpers ───

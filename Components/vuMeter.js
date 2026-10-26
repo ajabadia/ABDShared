@@ -54,6 +54,10 @@ export class VuMeter {
         align-items: center;
         gap: 6px;
         height: 100%;
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        flex-shrink: 0;
       `;
 
       // Clip LED
@@ -99,13 +103,13 @@ export class VuMeter {
       // Label
       const lbl = document.createElement('span');
       lbl.className = 'meter-label';
-      lbl.style.cssText = 'font-size: 10px; font-weight: 700; color: #94a3b8;';
+      lbl.style.cssText = 'font-size: 10px; font-weight: 700; color: #94a3b8; width: 36px; min-width: 36px; text-align: center; display: inline-block;';
       lbl.textContent = channelLabel;
 
       // Text readout
       const txt = document.createElement('span');
       txt.className = 'meter-db-readout';
-      txt.style.cssText = 'font-family: monospace; font-size: 10px; color: #cbd5e1;';
+      txt.style.cssText = 'font-family: monospace; font-variant-numeric: tabular-nums; font-size: 9.5px; color: #cbd5e1; width: 36px; min-width: 36px; max-width: 36px; text-align: center; display: inline-block; white-space: nowrap; overflow: hidden;';
       txt.textContent = '-inf';
 
       strip.appendChild(clipLed);

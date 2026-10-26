@@ -14,7 +14,12 @@ if (typeof globalThis.PointerEvent === 'undefined') {
       this.clientX = opts.clientX ?? 0;
       this.clientY = opts.clientY ?? 0;
       this.pointerId = opts.pointerId ?? 1;
+      this.button = opts.button ?? 0;
       this.buttons = opts.buttons ?? 0;
+      this.shiftKey = opts.shiftKey ?? false;
+      this.ctrlKey = opts.ctrlKey ?? false;
+      this.altKey = opts.altKey ?? false;
+      this.metaKey = opts.metaKey ?? false;
     }
   };
 }
@@ -2842,3 +2847,370 @@ describe('fixed layout (config.fixedOctaves)', () => {
     kbd.destroy();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════
+//  UX2.4 — HANDS-FREE EDITING, SUSTAIN RELEASE FIX, HOLD, RETRIG, GLISSANDO, QWERTY LABELS
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('UX2.4 — Sustain Release Fix (setSustain(false) releases held notes)', () => {
+  let kbd;
+  let noteOnLog;
+  let noteOffLog;
+
+  beforeEach(() => {
+    createFixture();
+    noteOnLog = [];
+    noteOffLog = [];
+    kbd = createKeyboard({
+      config: { numOctaves: 2, startNote: 48, fixedOctaves: true, enableQwerty: true, enableTouch: false },
+      onNoteOn: (n, v) => noteOnLog.push({ note: n, vel: v }),
+      onNoteOff: (n) => noteOffLog.push(n),
+    });
+  });
+
+  afterEach(() => {
+    if (kbd) kbd.destroy();
+    destroyFixture();
+  });
+
+  it('releases pointer-triggered sustained notes when setSustain(false) is called', () => {
+    kbd.setSustain(true);
+    const key60 = document.querySelector('[data-note="60"]');
+    const key64 = document.querySelector('[data-note="64"]');
+
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    key64.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }));
+    key64.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
+
+    // Notes should still be sustained, no noteOff yet
+    expect(noteOffLog).toEqual([]);
+    expect(kbd.getActiveNotes().sort()).toEqual([60, 64]);
+    expect(key60.classList.contains('kbd-sustained')).toBe(true);
+
+    // Turning sustain off must release both notes
+    kbd.setSustain(false);
+    expect(noteOffLog.sort()).toEqual([60, 64]);
+    expect(kbd.getActiveNotes()).toEqual([]);
+    expect(key60.classList.contains('kbd-sustained')).toBe(false);
+    expect(key60.classList.contains('active')).toBe(false);
+  });
+
+  it('keeps physically held notes active when setSustain(false) is called', () => {
+    kbd.setSustain(true);
+    const key60 = document.querySelector('[data-note="60"]');
+    const key64 = document.querySelector('[data-note="64"]');
+
+    // Release 60 (sustained), keep 64 physically depressed
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    key64.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }));
+
+    kbd.setSustain(false);
+    expect(noteOffLog).toEqual([60]);
+    expect(kbd.getActiveNotes()).toEqual([64]);
+  });
+
+  it('sustains QWERTY notes on keyup and releases them on setSustain(false)', () => {
+    kbd.setSustain(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'z', bubbles: true }));
+
+    expect(noteOffLog).toEqual([]);
+    expect(kbd.getActiveNotes()).toEqual([48]);
+
+    kbd.setSustain(false);
+    expect(noteOffLog).toEqual([48]);
+    expect(kbd.getActiveNotes()).toEqual([]);
+  });
+});
+
+describe('UX2.4 — Hold / Latch Mode & Shift+Click', () => {
+  let kbd;
+  let noteOnLog;
+  let noteOffLog;
+  let holdLog;
+
+  beforeEach(() => {
+    createFixture();
+    noteOnLog = [];
+    noteOffLog = [];
+    holdLog = [];
+    kbd = createKeyboard({
+      config: { numOctaves: 2, startNote: 48, fixedOctaves: true, enableQwerty: true, enableTouch: false },
+      onNoteOn: (n, v) => noteOnLog.push({ note: n, vel: v }),
+      onNoteOff: (n) => noteOffLog.push(n),
+      onHoldChange: (h) => holdLog.push(h),
+    });
+  });
+
+  afterEach(() => {
+    if (kbd) kbd.destroy();
+    destroyFixture();
+  });
+
+  it('auto-generates HOLD button and toggles hold state on click', () => {
+    const holdBtn = document.querySelector('#piano-keyboard .kbd-hold-btn');
+    const holdLed = document.querySelector('#piano-keyboard .kbd-hold-led');
+    expect(holdBtn).not.toBeNull();
+    expect(kbd.getHold()).toBe(false);
+
+    holdBtn.click();
+    expect(kbd.getHold()).toBe(true);
+    expect(holdLed.classList.contains('on')).toBe(true);
+    expect(holdLog).toEqual([true]);
+
+    holdBtn.click();
+    expect(kbd.getHold()).toBe(false);
+    expect(holdLed.classList.contains('on')).toBe(false);
+    expect(holdLog).toEqual([true, false]);
+  });
+
+  it('pins clicked notes when HOLD is active and toggles individual notes off when clicked again', () => {
+    kbd.setHold(true);
+    const key60 = document.querySelector('[data-note="60"]');
+    const key64 = document.querySelector('[data-note="64"]');
+
+    // Click C4 and E4 and release mouse button
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    key64.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    key64.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+
+    expect(noteOnLog.map(n => n.note)).toEqual([60, 64]);
+    expect(noteOffLog).toEqual([]);
+    expect(kbd.getLatchedNotes()).toEqual([60, 64]);
+    expect(key60.classList.contains('kbd-latched')).toBe(true);
+    expect(key64.classList.contains('kbd-latched')).toBe(true);
+
+    // Click C4 again while HOLD is on -> unlatches and stops only C4
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    expect(noteOffLog).toEqual([60]);
+    expect(kbd.getLatchedNotes()).toEqual([64]);
+    expect(key60.classList.contains('kbd-latched')).toBe(false);
+
+    // Turning HOLD off releases remaining latched notes
+    kbd.setHold(false);
+    expect(noteOffLog).toEqual([60, 64]);
+    expect(kbd.getLatchedNotes()).toEqual([]);
+    expect(kbd.getActiveNotes()).toEqual([]);
+  });
+
+  it('Shift+Click and Right-Click latch/unlatch notes even when global HOLD is off', () => {
+    const key60 = document.querySelector('[data-note="60"]');
+    const key67 = document.querySelector('[data-note="67"]');
+
+    // Shift+Click on 60
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, shiftKey: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, shiftKey: true, pointerId: 1 }));
+
+    // Right-Click (button: 2) on 67
+    key67.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 2, pointerId: 1 }));
+    key67.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 2, pointerId: 1 }));
+
+    expect(kbd.getHold()).toBe(false);
+    expect(kbd.getLatchedNotes()).toEqual([60, 67]);
+    expect(noteOffLog).toEqual([]);
+
+    // Shift+Click on 60 again unlatches it
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, shiftKey: true, pointerId: 1 }));
+    key60.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, shiftKey: true, pointerId: 1 }));
+    expect(noteOffLog).toEqual([60]);
+    expect(kbd.getLatchedNotes()).toEqual([67]);
+  });
+
+  it('supports programmatic latchNote / unlatchNote and Ctrl+H shortcut', () => {
+    kbd.latchNote(60, 0.75);
+    kbd.latchNote(64, 0.75);
+    expect(kbd.getLatchedNotes()).toEqual([60, 64]);
+    expect(noteOnLog.map(n => n.note)).toEqual([60, 64]);
+
+    kbd.unlatchNote(60);
+    expect(kbd.getLatchedNotes()).toEqual([64]);
+    expect(noteOffLog).toEqual([60]);
+
+    // Ctrl+H toggles HOLD on, then Ctrl+H again toggles HOLD off and releases 64
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', ctrlKey: true, bubbles: true }));
+    expect(kbd.getHold()).toBe(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', ctrlKey: true, bubbles: true }));
+    expect(kbd.getHold()).toBe(false);
+    expect(noteOffLog).toEqual([60, 64]);
+  });
+});
+
+describe('UX2.4 — Retrig / Auto-Repeat Mode', () => {
+  let kbd;
+  let noteOnLog;
+  let noteOffLog;
+  let retrigLog;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    createFixture();
+    noteOnLog = [];
+    noteOffLog = [];
+    retrigLog = [];
+    kbd = createKeyboard({
+      config: {
+        numOctaves: 2,
+        startNote: 48,
+        fixedOctaves: true,
+        enableQwerty: true,
+        enableTouch: false,
+        retrigIntervalMs: 500,
+        retrigGateRatio: 0.6,
+      },
+      onNoteOn: (n, v) => noteOnLog.push({ note: n, vel: v }),
+      onNoteOff: (n) => noteOffLog.push(n),
+      onRetrigChange: (r) => retrigLog.push(r),
+    });
+  });
+
+  afterEach(() => {
+    if (kbd) kbd.destroy();
+    destroyFixture();
+    vi.useRealTimers();
+  });
+
+  it('auto-generates RETRIG button and periodically re-triggers latched notes', () => {
+    const retrigBtn = document.querySelector('#piano-keyboard .kbd-retrig-btn');
+    expect(retrigBtn).not.toBeNull();
+
+    // Latch note 60
+    kbd.latchNote(60, 0.8);
+    expect(noteOnLog).toHaveLength(1);
+    expect(noteOffLog).toHaveLength(0);
+
+    // Enable Retrig (500ms interval, 60% gate = 300ms gate-off, 500ms re-attack)
+    retrigBtn.click();
+    expect(kbd.getRetrig()).toBe(true);
+    expect(retrigLog).toEqual([true]);
+
+    // Advance 310ms -> gate-off should have fired onNoteOff(60)
+    vi.advanceTimersByTime(310);
+    expect(noteOffLog).toEqual([60]);
+    expect(noteOnLog).toHaveLength(1);
+
+    // Advance to 500ms -> re-attack fires onNoteOn(60)
+    vi.advanceTimersByTime(190);
+    expect(noteOnLog).toHaveLength(2);
+    expect(noteOnLog[1].note).toBe(60);
+
+    // Advance another full 500ms cycle
+    vi.advanceTimersByTime(500);
+    expect(noteOffLog).toEqual([60, 60]);
+    expect(noteOnLog).toHaveLength(3);
+
+    // Disable Retrig -> no more re-triggers
+    kbd.setRetrig(false);
+    const countAfterStop = noteOnLog.length;
+    vi.advanceTimersByTime(1500);
+    expect(noteOnLog).toHaveLength(countAfterStop);
+  });
+
+  it('updates interval via setRetrigInterval and supports Alt+R shortcut', () => {
+    kbd.setRetrigInterval(300);
+    expect(kbd.getRetrigInterval()).toBe(300);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', altKey: true, bubbles: true }));
+    expect(kbd.getRetrig()).toBe(true);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', altKey: true, bubbles: true }));
+    expect(kbd.getRetrig()).toBe(false);
+  });
+});
+
+describe('UX2.4 — Mouse Glissando & Global Pointer-Up Safety', () => {
+  let kbd;
+  let noteOnLog;
+  let noteOffLog;
+
+  beforeEach(() => {
+    createFixture();
+    noteOnLog = [];
+    noteOffLog = [];
+    kbd = createKeyboard({
+      config: { numOctaves: 2, startNote: 48, fixedOctaves: true, enableQwerty: false, enableTouch: false },
+      onNoteOn: (n, v) => noteOnLog.push({ note: n, vel: v }),
+      onNoteOff: (n) => noteOffLog.push(n),
+    });
+  });
+
+  afterEach(() => {
+    if (kbd) kbd.destroy();
+    destroyFixture();
+  });
+
+  it('glissando across keys releases the previous key and triggers the new key', () => {
+    const key60 = document.querySelector('[data-note="60"]');
+    const key61 = document.querySelector('[data-note="61"]'); // black key inside 60
+    const key62 = document.querySelector('[data-note="62"]');
+
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1 }));
+    expect(noteOnLog.map(n => n.note)).toEqual([60]);
+
+    // Slide onto black key C#4 (61)
+    key61.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, buttons: 1, pointerId: 1 }));
+    expect(noteOffLog).toEqual([60]);
+    expect(noteOnLog.map(n => n.note)).toEqual([60, 61]);
+
+    // Slide onto white key D4 (62)
+    key62.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, buttons: 1, pointerId: 1 }));
+    expect(noteOffLog).toEqual([60, 61]);
+    expect(noteOnLog.map(n => n.note)).toEqual([60, 61, 62]);
+  });
+
+  it('releasing pointer on window outside the keyboard releases held note (no stuck notes)', () => {
+    const key60 = document.querySelector('[data-note="60"]');
+    key60.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1 }));
+    expect(kbd.getActiveNotes()).toEqual([60]);
+
+    // User drags cursor up to a knob in the SlideDrawer and releases mouse button on window
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    expect(noteOffLog).toEqual([60]);
+    expect(kbd.getActiveNotes()).toEqual([]);
+    expect(key60.classList.contains('active')).toBe(false);
+  });
+});
+
+describe('UX2.4 — Visual QWERTY Key Labels', () => {
+  let kbd;
+
+  beforeEach(() => {
+    createFixture();
+    kbd = createKeyboard({
+      config: { numOctaves: 2, startNote: 48, fixedOctaves: true, enableQwerty: true, enableTouch: false },
+    });
+  });
+
+  afterEach(() => {
+    if (kbd) kbd.destroy();
+    destroyFixture();
+  });
+
+  it('renders QWERTY labels (Z..M, Q..P) on corresponding keys', () => {
+    const key48 = document.querySelector('[data-note="48"]'); // C3 -> Z
+    const key49 = document.querySelector('[data-note="49"]'); // C#3 -> S
+    const key60 = document.querySelector('[data-note="60"]'); // C4 -> Q
+    expect(key48.dataset.qwerty).toBe('Z');
+    expect(key48.querySelector('.kbd-qwerty-label')?.textContent).toBe('Z');
+    expect(key49.querySelector('.kbd-qwerty-label')?.textContent).toBe('S');
+    expect(key60.querySelector('.kbd-qwerty-label')?.textContent).toBe('Q');
+  });
+
+  it('toggles QWERTY label visibility via setQwertyLabels and toggleQwertyLabels', () => {
+    const container = document.getElementById('piano-keyboard');
+    expect(kbd.getQwertyLabels()).toBe(true);
+    expect(container.classList.contains('kbd-hide-qwerty-labels')).toBe(false);
+
+    kbd.setQwertyLabels(false);
+    expect(kbd.getQwertyLabels()).toBe(false);
+    expect(container.classList.contains('kbd-hide-qwerty-labels')).toBe(true);
+
+    kbd.toggleQwertyLabels();
+    expect(kbd.getQwertyLabels()).toBe(true);
+    expect(container.classList.contains('kbd-hide-qwerty-labels')).toBe(false);
+  });
+});
+

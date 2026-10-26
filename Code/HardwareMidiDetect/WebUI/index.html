@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -410,6 +410,15 @@
         }
       } catch (e) {}
     });
+
+    window.setTheme = function(t) {
+      if (!t) return;
+      document.documentElement.setAttribute("data-theme", t);
+      if (document.body) {
+        document.body.setAttribute("data-theme", t);
+        document.body.dataset.theme = t;
+      }
+    };
 
     // --- Receive config from C++ ---
     window.__setConfig = function(config) {

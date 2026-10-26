@@ -21,9 +21,8 @@ describe('Parameter Lookup Tests', () => {
   describe('lookupRawValue - MS2000 parameters', () => {
     it('debe convertir CC 64 a Hz para filterCutoff', () => {
       const result = lookupRawValue('filterCutoff', 64);
-      // filterCutoff: domainMin=20, domainMax=20000, curve=Pow con curveP1=0.8
-      // expected: 20 + (20000-20) * (64/127)^0.8
-      const expected = 20 + (20000 - 20) * Math.pow(64 / 127, 0.8);
+      // filterCutoff: domainMin=20, domainMax=20000, curve=Exp con curveP0=20, curveP1=6.907755
+      const expected = 20 * Math.exp(6.907755 * (64 / 127));
       expect(result).toBeCloseTo(expected, 1);
     });
 

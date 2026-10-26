@@ -22,6 +22,15 @@
   transition: opacity var(--transition-fast, 0.15s) ease, visibility var(--transition-fast, 0.15s) ease;
 }
 
+.abd-about-overlay.active,
+.abd-about-overlay.is-active,
+.modal-overlay.active.abd-about-overlay,
+.modal-overlay.is-active.abd-about-overlay {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
 .abd-about-overlay[hidden],
 .abd-about-overlay.hidden {
   display: none !important;

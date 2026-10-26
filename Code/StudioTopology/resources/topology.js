@@ -72,6 +72,23 @@ function calculateCablePath(x1, y1, x2, y2, position, groupSize) {
     return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
 }
 
+function clampNodePosition(id, pos, containerW, containerH) {
+    const isTarget = (id === 'target');
+    const halfW = isTarget ? 118 : 95;
+    const halfH = isTarget ? 135 : 105;
+    const margin = 12;
+    const headerOffset = 58;
+
+    const minX = halfW + margin;
+    const maxX = Math.max(minX, containerW - halfW - margin);
+    const minY = headerOffset + halfH;
+    const maxY = Math.max(minY, containerH - halfH - margin);
+
+    pos.x = Math.max(minX, Math.min(maxX, pos.x));
+    pos.y = Math.max(minY, Math.min(maxY, pos.y));
+    return pos;
+}
+
 /**
  * Inicializar / Actualizar la Topología
  */
@@ -104,9 +121,11 @@ function renderStudio() {
     if (topologyData.target) {
         if (!nodePositions.has('target')) {
             if (savedPositions['target'] && typeof savedPositions['target'].x === 'number') {
-                nodePositions.set('target', { x: savedPositions['target'].x, y: savedPositions['target'].y });
+                const p = { x: savedPositions['target'].x, y: savedPositions['target'].y };
+                nodePositions.set('target', clampNodePosition('target', p, width, height));
             } else {
-                nodePositions.set('target', { x: centerX, y: centerY + 15 });
+                const p = { x: centerX, y: centerY + 15 };
+                nodePositions.set('target', clampNodePosition('target', p, width, height));
             }
         }
     }
@@ -116,61 +135,53 @@ function renderStudio() {
     const connectedDevs = devices.filter(d => d.assigned);
     const unassignedDevs = devices.filter(d => !d.assigned);
 
-    // Esquinas y flancos para dispositivos conectados:
-    // Evitamos el ángulo central superior (-Math.PI/2) para que ningún interface quede justo encima del Target
-    // 0: Arriba Izquierda (Top-Left), 1: Arriba Derecha (Top-Right), 2: Lateral Izquierdo, 3: Lateral Derecho
     const cornerSlots = [
-        { x: width * 0.22, y: height * 0.28 }, // Arriba Izquierda
-        { x: width * 0.78, y: height * 0.28 }, // Arriba Derecha
-        { x: width * 0.16, y: height * 0.58 }, // Flanco Izquierdo
-        { x: width * 0.84, y: height * 0.58 }, // Flanco Derecho
-        { x: width * 0.32, y: height * 0.24 }, // Flanco Superior Izquierdo
-        { x: width * 0.68, y: height * 0.24 }  // Flanco Superior Derecho
+        { x: width * 0.22, y: height * 0.38 },
+        { x: width * 0.78, y: height * 0.38 },
+        { x: width * 0.18, y: height * 0.62 },
+        { x: width * 0.82, y: height * 0.62 },
+        { x: width * 0.30, y: height * 0.35 },
+        { x: width * 0.70, y: height * 0.35 }
     ];
 
     connectedDevs.forEach((dev, idx) => {
         if (!nodePositions.has(dev.id)) {
             if (savedPositions[dev.id] && typeof savedPositions[dev.id].x === 'number') {
-                nodePositions.set(dev.id, { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y });
+                const p = { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y };
+                nodePositions.set(dev.id, clampNodePosition(dev.id, p, width, height));
             } else {
                 const slot = cornerSlots[idx % cornerSlots.length];
-                nodePositions.set(dev.id, {
-                    x: Math.max(120, Math.min(width - 120, slot.x)),
-                    y: Math.max(100, Math.min(height - 100, slot.y))
-                });
+                const p = { x: slot.x, y: slot.y };
+                nodePositions.set(dev.id, clampNodePosition(dev.id, p, width, height));
             }
         }
     });
 
-    // Dispositivos inactivos / no asignados: fila o arco inferior
     const unassignedSlots = [
-        { x: width * 0.20, y: height * 0.82 },
-        { x: width * 0.50, y: height * 0.84 },
-        { x: width * 0.80, y: height * 0.82 },
-        { x: width * 0.35, y: height * 0.86 },
-        { x: width * 0.65, y: height * 0.86 }
+        { x: width * 0.22, y: height * 0.75 },
+        { x: width * 0.50, y: height * 0.76 },
+        { x: width * 0.78, y: height * 0.75 }
     ];
 
     unassignedDevs.forEach((dev, idx) => {
         if (!nodePositions.has(dev.id)) {
             if (savedPositions[dev.id] && typeof savedPositions[dev.id].x === 'number') {
-                nodePositions.set(dev.id, { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y });
+                const p = { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y };
+                nodePositions.set(dev.id, clampNodePosition(dev.id, p, width, height));
             } else {
                 const slot = unassignedSlots[idx % unassignedSlots.length];
-                nodePositions.set(dev.id, {
-                    x: Math.max(120, Math.min(width - 120, slot.x)),
-                    y: Math.max(100, Math.min(height - 100, slot.y))
-                });
+                const p = { x: slot.x, y: slot.y };
+                nodePositions.set(dev.id, clampNodePosition(dev.id, p, width, height));
             }
         }
     });
 
     // 3. Detección y resolución de colisiones entre nodos (Relaxation Pass)
     const allNodeKeys = Array.from(nodePositions.keys());
-    const minSeparationX = 250; // Ancho nodo (~180-230px) + margen
-    const minSeparationY = 200; // Alto nodo (~140-180px) + margen
+    const minSeparationX = 220;
+    const minSeparationY = 170;
 
-    for (let iter = 0; iter < 10; ++iter) {
+    for (let iter = 0; iter < 8; ++iter) {
         for (let i = 0; i < allNodeKeys.length; ++i) {
             for (let j = i + 1; j < allNodeKeys.length; ++j) {
                 const idA = allNodeKeys[i];
@@ -192,7 +203,6 @@ function renderStudio() {
                     const signX = dx >= 0 ? 1 : -1;
                     const signY = dy >= 0 ? 1 : -1;
 
-                    // Si idA o idB es target, preferir mover el otro nodo para mantener centrado el hero
                     if (idA === 'target') {
                         posB.x += signX * overlapX;
                         posB.y += signY * overlapY;
@@ -209,6 +219,14 @@ function renderStudio() {
             }
         }
     }
+
+    // 3b. Clamp strictly within canvas boundaries post-relaxation
+    allNodeKeys.forEach(key => {
+        const p = nodePositions.get(key);
+        if (p) {
+            clampNodePosition(key, p, width, height);
+        }
+    });
 
     // 4. Renderizar nodos con posiciones ajustadas
     if (topologyData.target) {
@@ -236,7 +254,7 @@ function renderNode(id, dev, isTarget) {
     // Badge
     const badge = document.createElement('div');
     badge.className = `node-badge ${isTarget ? 'target-badge' : (dev.assigned ? 'connected' : 'unassigned-badge')}`;
-    badge.textContent = isTarget ? 'TARGET DE MEDICIÓN' : (dev.assigned ? 'CONECTADA' : 'NO ASIGNADA');
+    badge.textContent = isTarget ? 'MEASUREMENT TARGET' : (dev.assigned ? 'CONNECTED' : 'UNASSIGNED');
     nodeEl.appendChild(badge);
 
     // Imagen
@@ -261,7 +279,7 @@ function renderNode(id, dev, isTarget) {
 
     const subtitle = document.createElement('div');
     subtitle.className = 'node-subtitle';
-    subtitle.textContent = dev.details || dev.category || (isTarget ? 'Hardware Bajo Prueba' : 'Dispositivo I/O');
+    subtitle.textContent = dev.details || dev.category || (isTarget ? 'Hardware Under Test' : 'Audio / MIDI I/O');
     nodeEl.appendChild(subtitle);
 
     // Conectores Jacks: Si el dispositivo provee lista de puertos (Mac Audio/MIDI Setup style), renderizar cada puerto
@@ -320,13 +338,20 @@ function renderNode(id, dev, isTarget) {
         const dx = e.clientX - activeDrag.startX;
         const dy = e.clientY - activeDrag.startY;
 
-        const newX = Math.max(80, Math.min(window.innerWidth - 80, activeDrag.origNodeX + dx));
-        const newY = Math.max(70, Math.min(window.innerHeight - 70, activeDrag.origNodeY + dy));
+        const container = document.getElementById('canvas-container');
+        const containerW = container ? container.clientWidth : (window.innerWidth || 720);
+        const containerH = container ? container.clientHeight : (window.innerHeight || 480);
 
-        pos.x = newX;
-        pos.y = newY;
-        nodeEl.style.left = `${newX}px`;
-        nodeEl.style.top = `${newY}px`;
+        const rawPos = {
+            x: activeDrag.origNodeX + dx,
+            y: activeDrag.origNodeY + dy
+        };
+        const clamped = clampNodePosition(id, rawPos, containerW, containerH);
+
+        pos.x = clamped.x;
+        pos.y = clamped.y;
+        nodeEl.style.left = `${clamped.x}px`;
+        nodeEl.style.top = `${clamped.y}px`;
 
         updateCables();
     });

@@ -7,33 +7,33 @@
  * Single source of truth: schemas in ABDSharedAssets/contracts/
  */
 
-import korg_ms2000_parameter_spec from '../../../ABDSharedAssets/contracts/korg_ms2000_parameter_spec.json';
-import abdms2000_modulation_matrix from '../../../ABDSharedAssets/contracts/abdms2000_modulation_matrix.json';
-import behringer_deepmind12 from '../../../ABDSharedAssets/contracts/behringer_deepmind12.json';
-import behringer_deepmind12_parameter_spec from '../../../ABDSharedAssets/contracts/behringer_deepmind12_parameter_spec.json';
-import behringer_deepmind6 from '../../../ABDSharedAssets/contracts/behringer_deepmind6.json';
-import behringer_deepmind6_parameter_spec from '../../../ABDSharedAssets/contracts/behringer_deepmind6_parameter_spec.json';
-import casio_cz101 from '../../../ABDSharedAssets/contracts/casio_cz101.json';
-import casio_cz101_parameter_spec from '../../../ABDSharedAssets/contracts/casio_cz101_parameter_spec.json';
-import casio_cz1000 from '../../../ABDSharedAssets/contracts/casio_cz1000.json';
-import casio_cz5000 from '../../../ABDSharedAssets/contracts/casio_cz5000.json';
-import behringer_jt4000 from '../../../ABDSharedAssets/contracts/behringer_jt4000.json';
-import behringer_provs_mini from '../../../ABDSharedAssets/contracts/behringer_provs_mini.json';
-import generic_midi_synth from '../../../ABDSharedAssets/contracts/generic_midi_synth.json';
-import s950_calibration from '../../../ABDSharedAssets/contracts/s950_calibration.json';
-import s950_patch_fields from '../../../ABDSharedAssets/contracts/s950_patch_fields.json';
-import neuronik_modulation_matrix from '../../../ABDSharedAssets/contracts/neuronik_modulation_matrix.json';
-import roland_aira_bitrazer from '../../../ABDSharedAssets/contracts/roland_aira_bitrazer.json';
-import roland_aira_demora from '../../../ABDSharedAssets/contracts/roland_aira_demora.json';
-import roland_aira_patch_spec from '../../../ABDSharedAssets/contracts/roland_aira_patch_spec.json';
-import roland_aira_submodules from '../../../ABDSharedAssets/contracts/roland_aira_submodules.json';
-import roland_aira_torcido from '../../../ABDSharedAssets/contracts/roland_aira_torcido.json';
-import roland_hs60 from '../../../ABDSharedAssets/contracts/roland_hs60.json';
-import roland_juno106 from '../../../ABDSharedAssets/contracts/roland_juno106.json';
-import roland_juno106_parameter_spec from '../../../ABDSharedAssets/contracts/roland_juno106_parameter_spec.json';
-import roland_juno6 from '../../../ABDSharedAssets/contracts/roland_juno6.json';
-import roland_juno60 from '../../../ABDSharedAssets/contracts/roland_juno60.json';
-import yamaha_dx7ii from '../../../ABDSharedAssets/contracts/yamaha_dx7ii.json';
+import korg_ms2000_parameter_spec from '@abdsynths/shared/contracts/korg_ms2000_parameter_spec.json';
+import abdms2000_modulation_matrix from '@abdsynths/shared/contracts/abdms2000_modulation_matrix.json';
+import behringer_deepmind12 from '@abdsynths/shared/contracts/behringer_deepmind12.json';
+import behringer_deepmind12_parameter_spec from '@abdsynths/shared/contracts/behringer_deepmind12_parameter_spec.json';
+import behringer_deepmind6 from '@abdsynths/shared/contracts/behringer_deepmind6.json';
+import behringer_deepmind6_parameter_spec from '@abdsynths/shared/contracts/behringer_deepmind6_parameter_spec.json';
+import casio_cz101 from '@abdsynths/shared/contracts/casio_cz101.json';
+import casio_cz101_parameter_spec from '@abdsynths/shared/contracts/casio_cz101_parameter_spec.json';
+import casio_cz1000 from '@abdsynths/shared/contracts/casio_cz1000.json';
+import casio_cz5000 from '@abdsynths/shared/contracts/casio_cz5000.json';
+import behringer_jt4000 from '@abdsynths/shared/contracts/behringer_jt4000.json';
+import behringer_provs_mini from '@abdsynths/shared/contracts/behringer_provs_mini.json';
+import generic_midi_synth from '@abdsynths/shared/contracts/generic_midi_synth.json';
+import s950_calibration from '@abdsynths/shared/contracts/s950_calibration.json';
+import s950_patch_fields from '@abdsynths/shared/contracts/s950_patch_fields.json';
+import neuronik_modulation_matrix from '@abdsynths/shared/contracts/neuronik_modulation_matrix.json';
+import roland_aira_bitrazer from '@abdsynths/shared/contracts/roland_aira_bitrazer.json';
+import roland_aira_demora from '@abdsynths/shared/contracts/roland_aira_demora.json';
+import roland_aira_patch_spec from '@abdsynths/shared/contracts/roland_aira_patch_spec.json';
+import roland_aira_submodules from '@abdsynths/shared/contracts/roland_aira_submodules.json';
+import roland_aira_torcido from '@abdsynths/shared/contracts/roland_aira_torcido.json';
+import roland_hs60 from '@abdsynths/shared/contracts/roland_hs60.json';
+import roland_juno106 from '@abdsynths/shared/contracts/roland_juno106.json';
+import roland_juno106_parameter_spec from '@abdsynths/shared/contracts/roland_juno106_parameter_spec.json';
+import roland_juno6 from '@abdsynths/shared/contracts/roland_juno6.json';
+import roland_juno60 from '@abdsynths/shared/contracts/roland_juno60.json';
+import yamaha_dx7ii from '@abdsynths/shared/contracts/yamaha_dx7ii.json';
 
 // Cache de parámetros cargados
 const paramCache = new Map();

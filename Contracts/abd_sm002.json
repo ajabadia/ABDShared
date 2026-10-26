@@ -13,17 +13,17 @@
   "isSoftsynth": true,
   "midiIdentification": {
     "manufacturer": "ABDSynths",
-    "manufacturerIdHex": "42",
+    "manufacturerIdHex": "7D",
     "model": "SM002",
-    "modelIdHex": "58",
-    "sysexHeaderHex": "42 58",
+    "modelIdHex": "0A",
+    "sysexHeaderHex": "7D 0A",
     "portNameMatches": []
   },
   "bankManagement": {
     "bankCapacity": 128,
     "banksCount": 8,
     "programsPerBank": 16,
-    "patchDataSize": 288,
+    "patchDataSize": 384,
     "patchNameMaxLength": 12,
     "categories": [
       "Bass",
@@ -42,18 +42,22 @@
       "korg-microkorg"
     ],
     "sysexProtocol": {
-      "manufacturerIdHex": "42",
-      "modelIdByteHex": "58",
+      "manufacturerIdHex": "7D",
+      "modelIdByteHex": "0A",
+      "programDumpCommandHex": "40",
+      "programRequestCommandHex": "10",
       "allDumpCommandHex": "4C",
       "allRequestCommandHex": "0E",
       "paramChangeCommandHex": "41",
+      "ackCommandHex": "23",
+      "nackCommandHex": "24",
       "checksumAlgorithm": "NONE",
       "encoding": "7_TO_8_BIT",
       "supportsEditBuffer": false,
       "interMessageDelayMs": 50,
       "dumpTimeoutMs": 3000,
       "midiDefaultChannel": 1,
-      "midiDefaultDeviceIdHex": "58"
+      "midiDefaultDeviceIdHex": "0A"
     }
   }
 }

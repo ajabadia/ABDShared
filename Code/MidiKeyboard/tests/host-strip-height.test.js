@@ -66,6 +66,12 @@ const HOSTS = [
     cssFiles: ['ABDNeural/WebUI/src/styles/main.css'],
     stripHeightPx: 106,
   },
+  {
+    project: 'ABDMCS48SE',
+    stripSelector: '.keyboard-container',
+    cssFiles: ['ABDMCS48SE/WebUI/src/main.css'],
+    stripHeightPx: 155,
+  },
 ];
 
 /** Specimen de montaje real: import del specifier + llamada al factory. */
@@ -234,6 +240,7 @@ const SPECIFIER_RE = /['"]@abdsynths\/midi-keyb(\/[A-Za-z0-9._-]+)*['"]/;
 const SKIP_DIRS = new Set([
   'node_modules', 'dist', 'build', 'Build', 'Release', 'GITS', 'tmp', 'bin',
   'obj', 'legacy', 'wasm', 'coverage', 'JUCE', 'JUNO106',
+  'ABDShared', 'ABDSharedCode', 'ABDSharedAssets', 'ABDAudioLab',
 ]);
 
 /**

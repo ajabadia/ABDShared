@@ -7,7 +7,8 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  QWERTY_MAP, NOTE_NAMES, OCTAVE_PATTERN, midiToName,
+  QWERTY_MAP, OFFSET_TO_QWERTY_LABEL, getQwertyLabelForNote,
+  NOTE_NAMES, OCTAVE_PATTERN, midiToName,
   applyVelocityCurve, SCALE_INTERVALS, isInScale, snapToScale,
   CZ101_PRESET, applyIvoryTexture, applyVintageWear,
 } from '../src/utils.js';
@@ -533,3 +534,36 @@ describe('applyVintageWear', () => {
     }
   });
 });
+
+// ══════════════════════════════════════════════════════════════
+//  OFFSET_TO_QWERTY_LABEL & getQwertyLabelForNote (UX2.4)
+// ══════════════════════════════════════════════════════════════
+
+describe('OFFSET_TO_QWERTY_LABEL & getQwertyLabelForNote', () => {
+  it('maps lower octave offsets 0..11 to Z..M', () => {
+    const expected = ['Z', 'S', 'X', 'D', 'C', 'V', 'G', 'B', 'H', 'N', 'J', 'M'];
+    for (let offset = 0; offset < 12; offset++) {
+      expect(OFFSET_TO_QWERTY_LABEL[offset]).toBe(expected[offset]);
+    }
+  });
+
+  it('prefers Q..E for upper octave overlap offsets 12..16', () => {
+    expect(OFFSET_TO_QWERTY_LABEL[12]).toBe('Q');
+    expect(OFFSET_TO_QWERTY_LABEL[13]).toBe('2');
+    expect(OFFSET_TO_QWERTY_LABEL[14]).toBe('W');
+    expect(OFFSET_TO_QWERTY_LABEL[15]).toBe('3');
+    expect(OFFSET_TO_QWERTY_LABEL[16]).toBe('E');
+  });
+
+  it('getQwertyLabelForNote returns correct label relative to startNote', () => {
+    expect(getQwertyLabelForNote(48, 48)).toBe('Z');
+    expect(getQwertyLabelForNote(60, 48)).toBe('Q');
+    expect(getQwertyLabelForNote(79, 48)).toBe(']');
+  });
+
+  it('getQwertyLabelForNote returns null for notes outside QWERTY range', () => {
+    expect(getQwertyLabelForNote(47, 48)).toBeNull();
+    expect(getQwertyLabelForNote(80, 48)).toBeNull();
+  });
+});
+

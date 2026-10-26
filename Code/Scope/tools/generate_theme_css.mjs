@@ -36,10 +36,16 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // ABDSharedCode, tres niveles mas arriba). La misma clase de bug que
 // WebUI/tests/theme.test.js: una raiz escrita a mano solo es cierta en uno de
 // los dos layouts, y en el otro falla — o peor, escribe en el repo equivocado.
-function findRootFrom(start) {
+function findAssetsRoot(start) {
+  const localAssets = resolve(start, '../../Assets');
+  if (existsSync(resolve(localAssets, 'styles', 'themes'))) return localAssets;
+
   let dir = start;
   for (let i = 0; i < 12; i++) {
-    if (existsSync(resolve(dir, 'ABDSharedAssets'))) return dir;
+    const abdSharedAssets = resolve(dir, 'ABDShared', 'Assets');
+    if (existsSync(resolve(abdSharedAssets, 'styles', 'themes'))) return abdSharedAssets;
+    const legacyAssets = resolve(dir, 'ABDSharedAssets');
+    if (existsSync(resolve(legacyAssets, 'styles', 'themes'))) return legacyAssets;
     const up = dirname(dir);
     if (up === dir) break;
     dir = up;
@@ -47,40 +53,14 @@ function findRootFrom(start) {
   return null;
 }
 
-function resolveRoot() {
-  const argv = process.argv;
-  const explicit = argv.find((a) => !a.startsWith('--') && /ABDSharedAssets/.test(a));
-  if (explicit) {
-    const p = resolve(explicit);
-    if (existsSync(p)) return resolve(p, '..');
-  }
-
-  const fromCwd = findRootFrom(process.cwd());
-  if (fromCwd) return fromCwd;
-
-  const fromHere = findRootFrom(HERE);
-  if (fromHere) return fromHere;
-
-  throw new Error(
-    [
-      'No se encuentra ABDSharedAssets desde el workspace actual.',
-      'Sube por los directorios hasta encontrarla (raíz de la suite) o pasa',
-      'la ruta base explícita como primer argumento no opcional.',
-      '',
-      `cwd actual: ${process.cwd()}`,
-    ].join('\n')
-  );
-}
-
-const ROOT = resolveRoot();
-// SCOPE_DIR sale de ESTE fichero y no de ROOT: ROOT/ABDScope solo existe en el
-// repo standalone. Aqui el modulo es ROOT/ABDSharedCode/Scope, y HERE/.. es el
-// directorio WebUI del modulo en los dos layouts.
 const SCOPE_DIR = resolve(HERE, '..');
 const SCOPE_WEBUI = join(SCOPE_DIR, 'WebUI');
 const SCOPE_SRC = join(SCOPE_WEBUI, 'src');
 
-const ABS_ASSETS = join(ROOT, 'ABDSharedAssets');
+const ABS_ASSETS = findAssetsRoot(HERE);
+if (!ABS_ASSETS) {
+  throw new Error('No se encuentran los assets de temas (ABDShared/Assets o ABDSharedAssets)');
+}
 const THEMES_DIR = join(ABS_ASSETS, 'styles', 'themes');
 const ADAPTER_PATH = join(ABS_ASSETS, 'styles', 'components', 'scope.css');
 

@@ -24,7 +24,7 @@ const SIGNAL_COLORS = {
   midiIn:   '#06b6d4'  // Cian (MIDI In)
 };
 
-const STORAGE_KEY = 'abd_studio_topology_positions_v1';
+const STORAGE_KEY = 'abd_studio_topology_positions_v3';
 
 export class StudioTopology {
   /**
@@ -44,6 +44,8 @@ export class StudioTopology {
 
     this.nodePositions = new Map();
     this.activeDrag = null;
+    this.lastMode = null;
+    this.lastWidth = null;
 
     this._setupDom();
     this._attachResize();
@@ -66,10 +68,7 @@ export class StudioTopology {
                 <path d="M15 2v6"/>
                 <path d="M18 8v5a6 6 0 0 1-12 0V8z"/>
               </svg>
-              <span>Entorno de Estudio &amp; Conexiones</span>
-            </div>
-            <div class="header-subtitle">
-              Arrastra cualquier equipo libremente. Los cables se adaptan a tiempo real.
+              <span>Studio Environment &amp; Connections</span>
             </div>
           </div>
           <div class="header-legend">
@@ -104,11 +103,40 @@ export class StudioTopology {
 
   _attachResize() {
     this._resizeHandler = () => {
-      if (this.data && this.data.target) {
-        this.updateCables();
+      if (this.data && (this.data.target || (this.data.devices && this.data.devices.length > 0))) {
+        const curW = this.canvasContainer ? this.canvasContainer.clientWidth : 0;
+        const curMode = curW < 560 ? 'compact' : 'desktop';
+        if (this.lastMode !== null && (this.lastMode !== curMode || Math.abs(curW - (this.lastWidth || curW)) > 60)) {
+          this.nodePositions.clear();
+        }
+        this.render();
       }
     };
     window.addEventListener('resize', this._resizeHandler);
+  }
+
+  _clampNodePosition(id, pos, containerW, containerH) {
+    const w = Math.max(containerW || 0, 520);
+    const h = Math.max(containerH || 0, 480);
+    const isNarrow = w < 560;
+    const isTarget = (id === 'target');
+    const halfW = isTarget ? (isNarrow ? 98 : 118) : (isNarrow ? 82 : 95);
+    const halfH = isTarget ? (isNarrow ? 85 : 100) : (isNarrow ? 65 : 78);
+    const margin = 12;
+    const headerOffset = isNarrow ? 76 : 56;
+
+    const minX = halfW + margin;
+    const maxX = Math.max(minX + 10, w - halfW - margin);
+    if (maxX > minX) {
+      pos.x = Math.max(minX, Math.min(maxX, pos.x));
+    } else {
+      pos.x = w / 2;
+    }
+
+    const minY = headerOffset + halfH;
+    const maxY = Math.max(minY + 10, h - halfH - margin);
+    pos.y = Math.max(minY, Math.min(maxY, pos.y));
+    return pos;
   }
 
   destroy() {
@@ -130,81 +158,128 @@ export class StudioTopology {
     if (!this.canvasContainer || !this.nodesLayer) return;
     this.nodesLayer.innerHTML = '';
 
-    const width = this.canvasContainer.clientWidth || 720;
-    const height = this.canvasContainer.clientHeight || 480;
+    const width = Math.max(this.canvasContainer.clientWidth || 0, 680);
+    const isNarrow = width < 560;
+    const curMode = isNarrow ? 'compact' : 'desktop';
 
+    if (this.lastMode !== null && this.lastMode !== curMode) {
+      this.nodePositions.clear();
+    }
+    this.lastMode = curMode;
+    this.lastWidth = width;
+
+    if (isNarrow) {
+      this.canvasContainer.style.minHeight = '600px';
+    } else {
+      this.canvasContainer.style.minHeight = '';
+    }
+
+    const height = Math.max(this.canvasContainer.clientHeight || 0, isNarrow ? 600 : 480);
     const centerX = width / 2;
-    const centerY = height / 2 + 10;
+    const headerOffset = isNarrow ? 76 : 56;
+
+    const isValidCoord = (pt) => (
+      pt && typeof pt.x === 'number' && typeof pt.y === 'number' &&
+      !isNaN(pt.x) && !isNaN(pt.y) && pt.x > 40 && pt.y > 50 && pt.x < width - 30 && pt.y < height - 30
+    );
 
     let savedPositions = {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) savedPositions = JSON.parse(raw);
-    } catch (_) {}
-
-    // 1. Posicionar Target
-    if (this.data.target) {
-      if (!this.nodePositions.has('target')) {
-        if (savedPositions['target'] && typeof savedPositions['target'].x === 'number') {
-          this.nodePositions.set('target', { x: savedPositions['target'].x, y: savedPositions['target'].y });
-        } else {
-          this.nodePositions.set('target', { x: centerX, y: centerY + 15 });
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed[curMode]) {
+          savedPositions = parsed[curMode];
         }
       }
-    }
+    } catch (_) {}
 
-    // 2. Posicionar dispositivos
     const devices = this.data.devices || [];
     const connectedDevs = devices.filter(d => d.assigned);
     const unassignedDevs = devices.filter(d => !d.assigned);
 
-    const cornerSlots = [
-      { x: width * 0.22, y: height * 0.28 },
-      { x: width * 0.78, y: height * 0.28 },
-      { x: width * 0.16, y: height * 0.58 },
-      { x: width * 0.84, y: height * 0.58 },
-      { x: width * 0.32, y: height * 0.24 },
-      { x: width * 0.68, y: height * 0.24 }
-    ];
+    if (isNarrow) {
+      // --- NARROW / COMPACT LAYOUT (Vertical Cascade) ---
+      // Tier 1: Connected audio interfaces
+      connectedDevs.forEach((dev, idx) => {
+        if (!this.nodePositions.has(dev.id)) {
+          const p = { x: centerX, y: headerOffset + 65 + idx * 135 };
+          this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+        }
+      });
 
-    connectedDevs.forEach((dev, idx) => {
-      if (!this.nodePositions.has(dev.id)) {
-        if (savedPositions[dev.id] && typeof savedPositions[dev.id].x === 'number') {
-          this.nodePositions.set(dev.id, { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y });
+      // Tier 2: Target
+      if (this.data.target && !this.nodePositions.has('target')) {
+        const targetBaseY = headerOffset + 65 + (connectedDevs.length > 0 ? connectedDevs.length * 135 + 40 : 0) + 20;
+        const p = { x: centerX, y: targetBaseY };
+        this.nodePositions.set('target', this._clampNodePosition('target', p, width, height));
+      }
+
+      // Tier 3: Unassigned / MIDI devices
+      const targetPos = this.nodePositions.get('target');
+      const targetY = targetPos ? targetPos.y : 320;
+      unassignedDevs.forEach((dev, idx) => {
+        if (!this.nodePositions.has(dev.id)) {
+          const p = { x: centerX, y: targetY + 165 + idx * 135 };
+          this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+        }
+      });
+    } else {
+      // --- DESKTOP / WIDE LAYOUT (Balanced 2D Topology) ---
+      // 1. Target in center
+      if (this.data.target && !this.nodePositions.has('target')) {
+        if (isValidCoord(savedPositions['target'])) {
+          const p = { x: savedPositions['target'].x, y: savedPositions['target'].y };
+          this.nodePositions.set('target', this._clampNodePosition('target', p, width, height));
         } else {
-          const slot = cornerSlots[idx % cornerSlots.length];
-          this.nodePositions.set(dev.id, {
-            x: Math.max(100, Math.min(width - 100, slot.x)),
-            y: Math.max(80, Math.min(height - 80, slot.y))
-          });
+          const p = { x: centerX, y: height * 0.46 };
+          this.nodePositions.set('target', this._clampNodePosition('target', p, width, height));
         }
       }
-    });
 
-    const unassignedSlots = [
-      { x: width * 0.20, y: height * 0.82 },
-      { x: width * 0.50, y: height * 0.84 },
-      { x: width * 0.80, y: height * 0.82 }
-    ];
-
-    unassignedDevs.forEach((dev, idx) => {
-      if (!this.nodePositions.has(dev.id)) {
-        if (savedPositions[dev.id] && typeof savedPositions[dev.id].x === 'number') {
-          this.nodePositions.set(dev.id, { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y });
-        } else {
-          const slot = unassignedSlots[idx % unassignedSlots.length];
-          this.nodePositions.set(dev.id, {
-            x: Math.max(100, Math.min(width - 100, slot.x)),
-            y: Math.max(80, Math.min(height - 80, slot.y))
-          });
+      // 2. Connected devices on left flank
+      const connectedSlots = [
+        { x: width * 0.22, y: height * 0.42 },
+        { x: width * 0.22, y: height * 0.72 },
+        { x: width * 0.18, y: height * 0.22 }
+      ];
+      connectedDevs.forEach((dev, idx) => {
+        if (!this.nodePositions.has(dev.id)) {
+          if (isValidCoord(savedPositions[dev.id])) {
+            const p = { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y };
+            this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+          } else {
+            const slot = connectedSlots[idx % connectedSlots.length];
+            const p = { x: slot.x, y: slot.y };
+            this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+          }
         }
-      }
-    });
+      });
 
-    // 3. Relaxation Pass (resolución de colisiones)
+      // 3. Unassigned / MIDI devices on right flank
+      const unassignedSlots = [
+        { x: width * 0.78, y: height * 0.42 },
+        { x: width * 0.78, y: height * 0.72 },
+        { x: width * 0.50, y: height * 0.82 }
+      ];
+      unassignedDevs.forEach((dev, idx) => {
+        if (!this.nodePositions.has(dev.id)) {
+          if (isValidCoord(savedPositions[dev.id])) {
+            const p = { x: savedPositions[dev.id].x, y: savedPositions[dev.id].y };
+            this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+          } else {
+            const slot = unassignedSlots[idx % unassignedSlots.length];
+            const p = { x: slot.x, y: slot.y };
+            this.nodePositions.set(dev.id, this._clampNodePosition(dev.id, p, width, height));
+          }
+        }
+      });
+    }
+
+    // Relaxation Pass (resolución de colisiones)
     const allNodeKeys = Array.from(this.nodePositions.keys());
-    const minSeparationX = 220;
-    const minSeparationY = 170;
+    const minSeparationX = isNarrow ? 0 : 210;
+    const minSeparationY = 175;
 
     for (let iter = 0; iter < 8; ++iter) {
       for (let i = 0; i < allNodeKeys.length; ++i) {
@@ -213,37 +288,61 @@ export class StudioTopology {
           const idB = allNodeKeys[j];
           const posA = this.nodePositions.get(idA);
           const posB = this.nodePositions.get(idB);
+          if (!posA || !posB) continue;
 
           const dx = posB.x - posA.x;
           const dy = posB.y - posA.y;
           const absX = Math.abs(dx);
           const absY = Math.abs(dy);
 
-          if (absX < minSeparationX && absY < minSeparationY) {
-            const overlapX = minSeparationX - absX;
-            const overlapY = minSeparationY - absY;
-            const shiftFactor = 0.5;
-            const signX = dx >= 0 ? 1 : -1;
-            const signY = dy >= 0 ? 1 : -1;
+          if (isNarrow) {
+            if (absY < minSeparationY) {
+              const overlapY = minSeparationY - absY;
+              const signY = dy >= 0 ? 1 : -1;
+              if (idA === 'target') {
+                posB.y += signY * overlapY;
+              } else if (idB === 'target') {
+                posA.y -= signY * overlapY;
+              } else {
+                posA.y -= signY * overlapY * 0.5;
+                posB.y += signY * overlapY * 0.5;
+              }
+            }
+          } else {
+            if (absX < minSeparationX && absY < minSeparationY) {
+              const overlapX = minSeparationX - absX;
+              const overlapY = minSeparationY - absY;
+              const shiftFactor = 0.5;
+              const signX = (dx > 0 || (dx === 0 && i < j)) ? 1 : -1;
+              const signY = (dy > 0 || (dy === 0 && i < j)) ? 1 : -1;
 
-            if (idA === 'target') {
-              posB.x += signX * overlapX;
-              posB.y += signY * overlapY;
-            } else if (idB === 'target') {
-              posA.x -= signX * overlapX;
-              posA.y -= signY * overlapY;
-            } else {
-              posA.x -= signX * overlapX * shiftFactor;
-              posA.y -= signY * overlapY * shiftFactor;
-              posB.x += signX * overlapX * shiftFactor;
-              posB.y += signY * overlapY * shiftFactor;
+              if (idA === 'target') {
+                posB.x += signX * overlapX;
+                posB.y += signY * overlapY;
+              } else if (idB === 'target') {
+                posA.x -= signX * overlapX;
+                posA.y -= signY * overlapY;
+              } else {
+                posA.x -= signX * overlapX * shiftFactor;
+                posA.y -= signY * overlapY * shiftFactor;
+                posB.x += signX * overlapX * shiftFactor;
+                posB.y += signY * overlapY * shiftFactor;
+              }
             }
           }
         }
       }
     }
 
-    // 4. Renderizar nodos
+    // Clamp strictly within canvas boundaries post-relaxation
+    allNodeKeys.forEach(key => {
+      const p = this.nodePositions.get(key);
+      if (p) {
+        this._clampNodePosition(key, p, width, height);
+      }
+    });
+
+    // Renderizar nodos
     if (this.data.target) {
       this._renderNode('target', this.data.target, true);
     }
@@ -268,14 +367,14 @@ export class StudioTopology {
     // Badge
     const badge = document.createElement('div');
     badge.className = `node-badge ${isTarget ? 'target-badge' : (dev.assigned ? 'connected' : 'unassigned-badge')}`;
-    badge.textContent = isTarget ? 'TARGET DE MEDICIÓN' : (dev.assigned ? 'CONECTADA' : 'NO ASIGNADA');
+    badge.textContent = isTarget ? 'MEASUREMENT TARGET' : (dev.assigned ? 'CONNECTED' : 'UNASSIGNED');
     nodeEl.appendChild(badge);
 
     // Imagen
     const imgContainer = document.createElement('div');
     imgContainer.className = 'node-image-container';
     const img = document.createElement('img');
-    img.className = 'node-image';
+    img.className = `node-image ${dev.themeClass || ''}`.trim();
     img.src = dev.image || '';
     img.alt = dev.name || 'Device';
     img.onerror = () => {
@@ -294,7 +393,7 @@ export class StudioTopology {
 
     const subtitle = document.createElement('div');
     subtitle.className = 'node-subtitle';
-    subtitle.textContent = dev.details || dev.category || (isTarget ? 'Hardware Bajo Prueba' : 'Dispositivo I/O');
+    subtitle.textContent = dev.details || dev.category || (isTarget ? 'Hardware Under Test' : 'Audio / MIDI I/O');
     nodeEl.appendChild(subtitle);
 
     // Conectores Jacks
@@ -355,13 +454,16 @@ export class StudioTopology {
       const containerW = this.canvasContainer.clientWidth || 720;
       const containerH = this.canvasContainer.clientHeight || 480;
 
-      const newX = Math.max(70, Math.min(containerW - 70, this.activeDrag.origNodeX + dx));
-      const newY = Math.max(50, Math.min(containerH - 50, this.activeDrag.origNodeY + dy));
+      const rawPos = {
+        x: this.activeDrag.origNodeX + dx,
+        y: this.activeDrag.origNodeY + dy
+      };
+      const clamped = this._clampNodePosition(id, rawPos, containerW, containerH);
 
-      pos.x = newX;
-      pos.y = newY;
-      nodeEl.style.left = `${newX}px`;
-      nodeEl.style.top = `${newY}px`;
+      pos.x = clamped.x;
+      pos.y = clamped.y;
+      nodeEl.style.left = `${clamped.x}px`;
+      nodeEl.style.top = `${clamped.y}px`;
 
       this.updateCables();
     });
@@ -375,7 +477,10 @@ export class StudioTopology {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
           const current = raw ? JSON.parse(raw) : {};
-          current[id] = { x: pos.x, y: pos.y };
+          const isNarrowDrag = (this.canvasContainer ? this.canvasContainer.clientWidth : 720) < 560;
+          const modeKey = isNarrowDrag ? 'compact' : 'desktop';
+          if (!current[modeKey]) current[modeKey] = {};
+          current[modeKey][id] = { x: pos.x, y: pos.y };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
         } catch (_) {}
       }

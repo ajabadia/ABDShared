@@ -34,6 +34,24 @@ float LFO::syncNoteToMultiplier(int idx) noexcept
     return kSyncNoteMultipliers[idx];
 }
 
+static constexpr float kHardwareSyncNoteMultipliers[15] = {
+    1.0f / 4.0f, // 0:  1/1
+    1.0f / 3.0f, // 1:  3/4
+    3.0f / 8.0f, // 2:  2/3
+    1.0f / 2.0f, // 3:  1/2
+    2.0f / 3.0f, // 4:  3/8
+    3.0f / 4.0f, // 5:  1/3
+    1.0f,        // 6:  1/4
+    4.0f / 3.0f, // 7:  3/16
+    1.5f,        // 8:  1/6
+    2.0f,        // 9:  1/8
+    8.0f / 3.0f, // 10: 3/32
+    3.0f,        // 11: 1/12
+    4.0f,        // 12: 1/16
+    6.0f,        // 13: 1/24
+    8.0f         // 14: 1/32
+};
+
 void LFO::prepare(double sampleRate) noexcept
 {
     sampleRate_ = (sampleRate > 1000.0) ? sampleRate : 44100.0;
@@ -53,24 +71,40 @@ void LFO::reset(float initialPhase) noexcept
 
 void LFO::setFrequencyHz(float freqHz) noexcept
 {
-    // MS2000 measured range: 0.01 Hz to 20.0 Hz via exponential curve
-    frequency_      = DSPUtils::clamp(freqHz, 0.01f, 20.0f);
+    const float maxHz = hardwareMS2000Mode_ ? kLfoHardwareMaxFrequencyHz : kLfoDefaultMaxFrequencyHz;
+    frequency_        = DSPUtils::clamp(freqHz, kLfoDefaultMinFrequencyHz, maxHz);
+    phaseIncrement_   = static_cast<double>(frequency_ / sampleRate_);
+}
+
+void LFO::updateTempoSyncedFrequency() noexcept
+{
+    const float multiplier = hardwareMS2000Mode_ ? kHardwareSyncNoteMultipliers[syncNoteIdx_]
+                                                  : kSyncNoteMultipliers[syncNoteIdx_];
+    const float syncHz = static_cast<float>(bpm_ / 60.0) * multiplier;
+    const float maxHz = hardwareMS2000Mode_ ? kLfoHardwareMaxFrequencyHz : kLfoDefaultMaxFrequencyHz;
+    frequency_ = DSPUtils::clamp(syncHz, kLfoDefaultMinFrequencyHz, maxHz);
     phaseIncrement_ = static_cast<double>(frequency_ / sampleRate_);
+}
+
+void LFO::setHardwareMS2000Mode(bool enabled) noexcept
+{
+    if (hardwareMS2000Mode_ == enabled)
+        return;
+
+    hardwareMS2000Mode_ = enabled;
+    if (tempoSyncEnabled_)
+        updateTempoSyncedFrequency();
+    else
+        setFrequencyHz(frequency_);
 }
 
 void LFO::setTempoSync(bool enabled, int syncNoteIdx) noexcept
 {
     tempoSyncEnabled_ = enabled;
-    syncNoteIdx_      = (syncNoteIdx >= 0 && syncNoteIdx < 15) ? syncNoteIdx : 4;
+    syncNoteIdx_      = (syncNoteIdx >= 0 && syncNoteIdx < 15) ? syncNoteIdx : (hardwareMS2000Mode_ ? 6 : 4);
 
     if (tempoSyncEnabled_)
-    {
-        // Compute frequency from current BPM + sync note division
-        float multiplier = kSyncNoteMultipliers[syncNoteIdx_];
-        float syncHz     = static_cast<float>(bpm_ / 60.0) * multiplier;
-        frequency_       = DSPUtils::clamp(syncHz, 0.01f, 20.0f);
-        phaseIncrement_  = static_cast<double>(frequency_ / sampleRate_);
-    }
+        updateTempoSyncedFrequency();
 }
 
 void LFO::setBpm(double bpm) noexcept
@@ -78,12 +112,7 @@ void LFO::setBpm(double bpm) noexcept
     bpm_ = (bpm > 1.0 && bpm < 400.0) ? bpm : 120.0;
 
     if (tempoSyncEnabled_)
-    {
-        float multiplier = kSyncNoteMultipliers[syncNoteIdx_];
-        float syncHz     = static_cast<float>(bpm_ / 60.0) * multiplier;
-        frequency_       = DSPUtils::clamp(syncHz, 0.01f, 20.0f);
-        phaseIncrement_  = static_cast<double>(frequency_ / sampleRate_);
-    }
+        updateTempoSyncedFrequency();
 }
 
 float LFO::nextRandom() noexcept
@@ -137,7 +166,10 @@ float LFO::getNextSample(float frequencyModulationOctaves) noexcept
     if (std::abs(frequencyModulationOctaves) > 0.0001f)
     {
         float modFreq = frequency_ * std::pow(2.0f, frequencyModulationOctaves * 2.0f);
-        modFreq       = DSPUtils::clamp(modFreq, 0.001f, 100.0f);
+        modFreq       = DSPUtils::clamp(modFreq,
+                                        kLfoModulationMinFrequencyHz,
+                                        hardwareMS2000Mode_ ? kLfoHardwareMaxFrequencyHz
+                                                            : kLfoNonHardwareModulationMaxFrequencyHz);
         phase_ += static_cast<double>(modFreq / sampleRate_);
         if (phase_ >= 1.0)
         {
@@ -162,7 +194,15 @@ float LFO::getNextSample(float frequencyModulationOctaves) noexcept
                 break;
 
             case LFOWaveformLFO2::SquarePlus:
-                currentValue_ = (phase_ < static_cast<double>(squarePlusPW_)) ? 1.0f : -1.0f;
+                if (hardwareMS2000Mode_)
+                {
+                    // DSP56362 P:$053B–$0543: unipolar positive square [0.0, +1.0]
+                    currentValue_ = (phase_ < 0.5) ? 1.0f : 0.0f;
+                }
+                else
+                {
+                    currentValue_ = (phase_ < static_cast<double>(squarePlusPW_)) ? 1.0f : -1.0f;
+                }
                 break;
 
             case LFOWaveformLFO2::Sine:

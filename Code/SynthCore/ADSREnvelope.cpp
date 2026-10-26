@@ -14,7 +14,7 @@ void ADSREnvelope::prepare(double sampleRate) noexcept
 void ADSREnvelope::reset() noexcept
 {
     stage_        = EnvelopeStage::Idle;
-    currentLevel_ = 0.0f;
+    currentLevel_ = 0.0;
     targetLevel_  = 0.0f;
 }
 
@@ -43,8 +43,24 @@ void ADSREnvelope::setRelease(float release0to1) noexcept
 
 void ADSREnvelope::updateRates() noexcept
 {
+    if (hardwareMS2000Mode_)
+    {
+        float attackSec  = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(attackParam_);
+        attackRate_      = 1.0 - std::exp(-1.0 / (static_cast<double>(attackSec) * sampleRate_));
+
+        // In DSP56362 (P:$08E8-$09DA), exponential decay/release 1-pole time constant tau
+        // equals the ROM 0x27D54 duration (8388608 / inc / 48000), so reaching -40 dB (ln(100))
+        // takes 4.60517 * tau.
+        float decaySec   = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_) * 4.60517f;
+        decayMult_       = EnvelopeCurves::getDecayMultiplier(decaySec, sampleRate_);
+
+        float releaseSec = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(releaseParam_) * 4.60517f;
+        releaseMult_     = EnvelopeCurves::getDecayMultiplier(releaseSec, sampleRate_);
+        return;
+    }
+
     float attackSec = EnvelopeCurves::getAttackTimeSeconds(attackParam_);
-    attackRate_     = 1.0 / (attackSec * sampleRate_);
+    attackRate_     = 1.0 - std::exp(-1.0 / (static_cast<double>(attackSec) * sampleRate_));
 
     float decaySec = EnvelopeCurves::getDecayReleaseTimeSeconds(decayParam_);
     decayMult_     = EnvelopeCurves::getDecayMultiplier(decaySec, sampleRate_);
@@ -74,16 +90,15 @@ float ADSREnvelope::getNextSample() noexcept
     switch (stage_)
     {
         case EnvelopeStage::Attack: {
-            // Exponential RC-charge curve: fast start, easing into peak
-            // Target overshoots to 1.582 so that level crosses 1.0 at the
-            // specified attack time (1 time constant = 63.2% of target).
-            constexpr float kOvershootTarget = 1.582f;
-            float coeff                      = static_cast<float>(attackRate_) * 6.0f;
-            currentLevel_ += (kOvershootTarget - currentLevel_) * coeff;
+            // Exponential RC-charge curve: fast start, easing into peak.
+            // Target overshoots to 1/(1 - exp(-1)) = 1.5819767068693265 so that level crosses 1.0
+            // at the exact specified attack time (1 time constant = 63.21205588% of target).
+            constexpr double kOvershootTarget = 1.5819767068693265;
+            currentLevel_ += (kOvershootTarget - currentLevel_) * attackRate_;
 
-            if (currentLevel_ >= 1.0f)
+            if (currentLevel_ >= 1.0 - 1e-9)
             {
-                currentLevel_ = 1.0f;
+                currentLevel_ = 1.0;
                 stage_        = EnvelopeStage::Decay;
             }
             break;
@@ -91,29 +106,30 @@ float ADSREnvelope::getNextSample() noexcept
 
         case EnvelopeStage::Decay: {
             // Exponential discharge towards sustain level
-            float diff    = currentLevel_ - sustainParam_;
-            currentLevel_ = sustainParam_ + diff * static_cast<float>(decayMult_);
+            const double sus  = static_cast<double>(sustainParam_);
+            const double diff = currentLevel_ - sus;
+            currentLevel_     = sus + diff * decayMult_;
 
-            if (std::abs(currentLevel_ - sustainParam_) < 0.0001f)
+            if (std::abs(currentLevel_ - sus) < 0.0001)
             {
-                currentLevel_ = sustainParam_;
+                currentLevel_ = sus;
                 stage_        = EnvelopeStage::Sustain;
             }
             break;
         }
 
         case EnvelopeStage::Sustain: {
-            currentLevel_ = sustainParam_;
+            currentLevel_ = static_cast<double>(sustainParam_);
             break;
         }
 
         case EnvelopeStage::Release: {
             // Exponential discharge towards zero
-            currentLevel_ *= static_cast<float>(releaseMult_);
+            currentLevel_ *= releaseMult_;
 
-            if (currentLevel_ < 0.00001f)
+            if (currentLevel_ < 0.00001)
             {
-                currentLevel_ = 0.0f;
+                currentLevel_ = 0.0;
                 stage_        = EnvelopeStage::Idle;
             }
             break;
@@ -121,11 +137,11 @@ float ADSREnvelope::getNextSample() noexcept
 
         case EnvelopeStage::Idle:
         default:
-            currentLevel_ = 0.0f;
+            currentLevel_ = 0.0;
             break;
     }
 
-    return currentLevel_ * velocityGain_;
+    return static_cast<float>(currentLevel_) * velocityGain_;
 }
 
 } // namespace abd::synth

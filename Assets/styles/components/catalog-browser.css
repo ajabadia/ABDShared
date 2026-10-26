@@ -441,6 +441,21 @@
   border-radius: 3px;
 }
 
+.ndb-card-actions,
+.catalog-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.bank-drawer-panel .ndb-grid,
+.bank-drawer-panel .catalog-grid {
+  grid-template-columns: 1fr;
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
 /* ── Semantic Category Colors (Tokens) ─────────────────── */
 .cat-0, .cat-neutral { color: var(--color-cat-0); }
 .cat-1 { color: var(--color-cat-1); }

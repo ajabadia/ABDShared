@@ -4,6 +4,19 @@ All notable changes to ABDKeyboard will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.2] - 2026-10-26
+
+### Added
+- **Multizone Mapping API**:
+  - `config.zones` / `setZones(zones, activeIndex)` — mapeo y representación de particiones multisample / multizona (`{ id, lowKey, highKey, rootKey, color }`).
+  - `setActiveZone(indexOrId)` / `getZones()` / `getActiveZone()` — conmutación y consulta de zona activa.
+  - Clases CSS en `keyboard.css`: `.kbd-in-zone`, `.kbd-in-active-zone` con acento visual, `.kbd-zone-root` (pin luminoso en la nota raíz), `.kbd-zone-boundary-low` y `.kbd-zone-boundary-high`.
+- `config.enablePanic: false` — opción para omitir la inyección automática del botón `.kbd-panic-btn` (`ALL OFF`).
+- `config.enableWheels: false` — opción para omitir el montaje de ruedas de modulación y pitch bend.
+
+### Consumers
+- **ABDNeuModMakr** — monta `@abdsynths/midi-keyb` con soporte multizona completo, indicador de nota raíz, colapso hacia abajo (`enableCollapse: true`) y omisión de ruedas y botón de pánico.
+
 ## [0.2.1] - 2026-09-24
 
 ### Added

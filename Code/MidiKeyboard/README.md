@@ -440,6 +440,13 @@ kbd.destroy();                  // Full cleanup
 │  kbd.clearChord(slot)                Clear a chord slot                    │
 │  kbd.clearAllChords()                Clear all chord memory                │
 │                                                                             │
+│  MULTIZONE MAPPING                                                          │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│  kbd.setZones(zones, activeIndex?)   Map zones [{lowKey,highKey,rootKey}]   │
+│  kbd.setActiveZone(indexOrId)        Highlight active zone & root key      │
+│  kbd.getZones()                      Returns array of defined zones         │
+│  kbd.getActiveZone()                 Returns active zone index or ID        │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐

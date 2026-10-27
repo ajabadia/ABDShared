@@ -85,6 +85,7 @@ export function createKeyboard(deps = {}) {
     enableAccessibility: config.enableAccessibility ?? false,
     enableCollapse: config.enableCollapse ?? false,
     enableResizeObserver: config.enableResizeObserver ?? true,
+    enableSustain: config.enableSustain ?? true,
     enableHold: config.enableHold ?? true,
     enableRetrig: config.enableRetrig ?? true,
     retrigIntervalMs: config.retrigIntervalMs ?? 800,
@@ -1552,7 +1553,7 @@ export function createKeyboard(deps = {}) {
     if (sustainBtnId) {
       const sustainBtn = document.getElementById(sustainBtnId);
       if (sustainBtn) sustainBtn.addEventListener('click', toggleSustain);
-    } else {
+    } else if (cfg.enableSustain) {
       const autoSustain = document.createElement('div');
       autoSustain.className = 'kbd-sustain-btn';
       autoSustain.setAttribute('role', 'button');

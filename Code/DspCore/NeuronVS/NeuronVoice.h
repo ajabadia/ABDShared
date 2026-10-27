@@ -249,6 +249,10 @@ public:
 
     NeuronEnvelope& getAmpEnv() noexcept { return ampEnv_; }
     NeuronEnvelope& getFilterEnv() noexcept { return filterEnv_; }
+    CResynator& getR1() noexcept { return r1Engine_; }
+    const CResynator& getR1() const noexcept { return r1Engine_; }
+    CResynator& getR2() noexcept { return r2Engine_; }
+    const CResynator& getR2() const noexcept { return r2Engine_; }
 
 private:
     static inline uint64_t globalNoteIdCounter_{0};

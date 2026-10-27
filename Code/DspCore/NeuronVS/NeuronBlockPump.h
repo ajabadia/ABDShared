@@ -12,6 +12,7 @@
 #include <vector>
 #include <algorithm>
 #include "DspCore/NeuronVS/NeuronVoicePool.h"
+#include "DspCore/NeuronVS/NeuronSilverRack.h"
 
 namespace abd::dsp::neuron {
 
@@ -26,6 +27,9 @@ public:
     void prepare(double sampleRate, size_t maxBlockSize = 512) {
         (void)maxBlockSize;
         sampleRate_ = sampleRate > 0.0 ? sampleRate : 44100.0;
+        silverRack_.prepare(sampleRate_);
+        masterModFX_.prepare(sampleRate_);
+        masterTimeFX_.prepare(sampleRate_);
         reset();
     }
 
@@ -33,7 +37,20 @@ public:
         internalLeft_.fill(0.0f);
         internalRight_.fill(0.0f);
         bufferReadPos_ = kNeuronInternalBlockSize; // Forzar cálculo de nuevo bloque al primer pedido
+        silverRack_.reset();
+        masterModFX_.reset();
+        masterTimeFX_.reset();
     }
+
+    /// Acceso a etapas del rack Silver y Master FX
+    CSilverRack& getSilverRack() noexcept { return silverRack_; }
+    const CSilverRack& getSilverRack() const noexcept { return silverRack_; }
+
+    CMasterModFX& getMasterModFX() noexcept { return masterModFX_; }
+    const CMasterModFX& getMasterModFX() const noexcept { return masterModFX_; }
+
+    CMasterTimeFX& getMasterTimeFX() noexcept { return masterTimeFX_; }
+    const CMasterTimeFX& getMasterTimeFX() const noexcept { return masterTimeFX_; }
 
     /// Procesa una petición de audio de longitud arbitraria bombeando en bloques de 128
     void process(float* leftOut, float* rightOut, size_t numSamples,
@@ -89,6 +106,13 @@ private:
         // 2. Renderizar todas las voces activas en el acumulador
         voicePool.renderBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize,
                               blenderAmount, filterCutoffHz, filterReso);
+
+        // 3. Procesamiento por el rack Silver (FUN_10029e34) y efectos maestros (FUN_100382b0)
+        for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+            silverRack_.process(internalLeft_[i], internalRight_[i]);
+            masterModFX_.process(internalLeft_[i], internalRight_[i]);
+            masterTimeFX_.process(internalLeft_[i], internalRight_[i]);
+        }
     }
 
     double sampleRate_{44100.0};
@@ -99,6 +123,11 @@ private:
 
     // FIFO / remanente entre bloques del host
     size_t bufferReadPos_{kNeuronInternalBlockSize};
+
+    // Racks de procesamiento DSP
+    CSilverRack silverRack_;
+    CMasterModFX masterModFX_;
+    CMasterTimeFX masterTimeFX_;
 };
 
 } // namespace abd::dsp::neuron

@@ -295,16 +295,22 @@ private:
     double position_{0.0};
 };
 
-/// Resonador completo que combina Scape y Sphere para un motor/capa
-class ResynatorCore {
+// ============================================================================
+// ResynatorLayer — Capa individual de síntesis Scape x Sphere (L1, L2, L3)
+// Representa una de las 3 capas canónicas por resonador (FUN_1002e7a0)
+// ============================================================================
+class ResynatorLayer {
 public:
-    ResynatorCore() = default;
+    ResynatorLayer() = default;
 
-    void bindZone(const ModelZoneRecord& zone) {
+    void bindZone(const ModelZoneRecord& zone, bool useHi = false) {
         gain_ = zone.volumeGain;
-        if (zone.scapeLo && zone.sphereLo) {
-            auto sc = parseScapeBuffer(zone.scapeLo, 256 * 1024);
-            auto sp = parseSphereBuffer(zone.sphereLo, 1024 * 1024);
+        const uint8_t* scData = useHi ? (zone.scapeHi ? zone.scapeHi : zone.scapeLo) : zone.scapeLo;
+        const uint8_t* spData = useHi ? (zone.sphereHi ? zone.sphereHi : zone.sphereLo) : zone.sphereLo;
+
+        if (scData && spData) {
+            auto sc = parseScapeBuffer(scData, 256 * 1024);
+            auto sp = parseSphereBuffer(spData, 1024 * 1024);
             scapeReader_.bind(sc, gain_);
             sphereReader_.bind(sp);
         } else {
@@ -320,17 +326,171 @@ public:
         sphereReader_.reset(position);
     }
 
-    /// Renderiza una muestra sumando la modulación Scape × Sphere Formants
+    void setCoordinates(float sc1, float sc2, float sp1, float sp2) noexcept {
+        scape1_ = sc1;
+        scape2_ = sc2;
+        sphere1_ = sp1;
+        sphere2_ = sp2;
+    }
+
+    void setLevel(float lvl) noexcept {
+        level_ = std::clamp(lvl, 0.0f, 2.0f);
+    }
+
+    void setDetuneSemitones(float semi) noexcept {
+        detuneSemitones_ = semi;
+    }
+
+    [[nodiscard]] float getDetuneFactor() const noexcept {
+        return std::pow(2.0f, detuneSemitones_ / 12.0f);
+    }
+
+    /// Renderiza una muestra sumando la modulación Scape × Sphere Formants de esta capa
     float renderSample(float phaseStep) {
-        float scapeVal = scapeReader_.next(phaseStep);
-        float sphereMod = sphereReader_.next(phaseStep, 0);
-        return scapeVal * sphereMod;
+        if (level_ <= 0.0001f) return 0.0f;
+        float layerStep = phaseStep * getDetuneFactor();
+        float scapeVal = scapeReader_.next(layerStep);
+        // Interpolación por coordenadas de esfera (offset dinámico de banda 0..24)
+        int32_t bandIdx = std::clamp(static_cast<int32_t>(sphere1_ * 24.0f), 0, 24);
+        float sphereMod = sphereReader_.next(layerStep, bandIdx);
+        return scapeVal * sphereMod * level_;
     }
 
 private:
     CurveReader scapeReader_;
     BandReader  sphereReader_;
     float gain_{1.0f};
+    float scape1_{0.5f};
+    float scape2_{0.5f};
+    float sphere1_{0.5f};
+    float sphere2_{0.5f};
+    float level_{1.0f};
+    float detuneSemitones_{0.0f};
 };
+
+// ============================================================================
+// CResynator — Implementación exacta de CResynator (0x6838 bytes, FUN_1002e7a0)
+// Alberga 3 capas (L1, L2, L3) y el despachador de los 7 algoritmos Parset (FUN_10031d30)
+// ============================================================================
+class CResynator {
+public:
+    CResynator() {
+        // Por defecto, L1 activa a nivel 1.0, L2 a 0.8 y L3 a 0.6 con leve desafinación analógica
+        layers_[0].setLevel(1.0f);
+        layers_[0].setDetuneSemitones(0.0f);
+        layers_[1].setLevel(0.8f);
+        layers_[1].setDetuneSemitones(0.04f);
+        layers_[2].setLevel(0.6f);
+        layers_[2].setDetuneSemitones(-0.04f);
+    }
+
+    void bindZone(const ModelZoneRecord& zone, float velocity = 1.0f) {
+        zone_ = zone;
+        // Si la velocidad supera el umbral o hay flag Hi, conmuta a fuentes agudas
+        bool useHi = (velocity > 0.70f && zone.scapeHi != nullptr);
+        for (auto& layer : layers_) {
+            layer.bindZone(zone, useHi);
+        }
+    }
+
+    void reset(double position = 0.0) {
+        for (auto& layer : layers_) {
+            layer.reset(position);
+        }
+    }
+
+    void setParset(int algorithm) noexcept {
+        parset_ = std::clamp(algorithm, 0, 6);
+    }
+
+    void setLayerCoordinates(size_t layerIdx, float sc1, float sc2, float sp1, float sp2) noexcept {
+        if (layerIdx < layers_.size()) {
+            layers_[layerIdx].setCoordinates(sc1, sc2, sp1, sp2);
+        }
+    }
+
+    void setLayerLevel(size_t layerIdx, float lvl) noexcept {
+        if (layerIdx < layers_.size()) {
+            layers_[layerIdx].setLevel(lvl);
+        }
+    }
+
+    void setLayerDetune(size_t layerIdx, float semi) noexcept {
+        if (layerIdx < layers_.size()) {
+            layers_[layerIdx].setDetuneSemitones(semi);
+        }
+    }
+
+    void setTuning(int octave, int semi, float cents) noexcept {
+        octave_ = octave;
+        semi_ = semi;
+        cents_ = cents;
+    }
+
+    void setVolume(float vol) noexcept {
+        volume_ = std::clamp(vol, 0.0f, 2.0f);
+    }
+
+    [[nodiscard]] float getTuningPitchFactor() const noexcept {
+        float totalSemitones = static_cast<float>(octave_ * 12 + semi_) + (cents_ / 100.0f);
+        return std::pow(2.0f, totalSemitones / 12.0f);
+    }
+
+    /// Despachador hacia los 7 algoritmos de síntesis Parset (FUN_10031d30)
+    static float dispatchParsetProcess(int parset, float l1, float l2, float l3) noexcept {
+        switch (parset) {
+            case 0: // Parset Engine 0 (FUN_10025380): Mezcla aditiva ponderada y formantes
+                return (l1 + l2 + l3) * 0.55f;
+
+            case 1: // Parset Engine 1 (FUN_10023990): Modulación cruzada de fase FM
+                return (l1 * (1.0f + 0.65f * std::sin(l2 * 3.14159265f)) + l3 * 0.7f) * 0.55f;
+
+            case 2: // Parset Engine 2 (FUN_10032660): Inclinación espectral armónica (Harmonic Tilt)
+                return (l1 * 1.25f + l2 * 0.75f + l3 * 0.45f) * 0.5f;
+
+            case 3: // Parset Engine 3 (FUN_10023df0): Desplazamiento de picos resonantes
+                return ((l1 - l2 * 0.85f) * 0.9f + l3 * 0.75f) * 0.55f;
+
+            case 4: // Parset Engine 4 (FUN_10032260): Saturación no-lineal multibanda
+                return std::tanh((l1 + l2 + l3) * 1.15f) * 0.75f;
+
+            case 5: // Parset Engine 5 (FUN_10024530): Modulación en anillo (Double Sideband)
+                return ((l1 * l2 * 2.2f) + l3 * 0.5f) * 0.6f;
+
+            case 6: // Parset Engine 6 (FUN_10031e70): Dispersión espacial y entrelazado espectral
+                return (l1 * 0.6f + l2 * 0.4f) * (1.0f + 0.35f * std::cos(l3 * 3.14159265f)) * 0.6f;
+
+            default:
+                return (l1 + l2 + l3) * 0.55f;
+        }
+    }
+
+    /// Renderiza una muestra orquestando las 3 capas y el algoritmo Parset (FUN_1002e7a0)
+    float renderSample(float basePhaseStep) {
+        float effectiveStep = basePhaseStep * getTuningPitchFactor();
+
+        float s1 = layers_[0].renderSample(effectiveStep);
+        float s2 = layers_[1].renderSample(effectiveStep);
+        float s3 = layers_[2].renderSample(effectiveStep);
+
+        float blended = dispatchParsetProcess(parset_, s1, s2, s3);
+        return blended * volume_;
+    }
+
+    ResynatorLayer& getLayer(size_t idx) noexcept { return layers_[std::min(idx, layers_.size() - 1)]; }
+    [[nodiscard]] const ResynatorLayer& getLayer(size_t idx) const noexcept { return layers_[std::min(idx, layers_.size() - 1)]; }
+
+private:
+    std::array<ResynatorLayer, 3> layers_{};
+    ModelZoneRecord zone_{};
+    int parset_{0};
+    int octave_{0};
+    int semi_{0};
+    float cents_{0.0f};
+    float volume_{1.0f};
+};
+
+/// Alias para preservar compatibilidad con código existente
+using ResynatorCore = CResynator;
 
 } // namespace abd::dsp::neuron

@@ -85,6 +85,47 @@ public:
         return count;
     }
 
+    /// Actualiza coordenadas y nivel de una capa (L1, L2, L3) para R1 o R2 en todas las voces
+    void updateVoiceLayerParams(int resynator, size_t layerIdx, float sc1, float sc2, float sp1, float sp2, float level) {
+        for (auto& v : voices_) {
+            auto& resy = (resynator == 0) ? v.getR1() : v.getR2();
+            resy.setLayerCoordinates(layerIdx, sc1, sc2, sp1, sp2);
+            resy.setLayerLevel(layerIdx, level);
+        }
+    }
+
+    /// Actualiza el algoritmo Parset (0..6) en todas las voces
+    void updateVoiceParset(int resynator, int parset) {
+        for (auto& v : voices_) {
+            auto& resy = (resynator == 0) ? v.getR1() : v.getR2();
+            resy.setParset(parset);
+        }
+    }
+
+    /// Actualiza la afinación en todas las voces
+    void updateVoiceTuning(int resynator, int octave, int semi, float cents) {
+        for (auto& v : voices_) {
+            auto& resy = (resynator == 0) ? v.getR1() : v.getR2();
+            resy.setTuning(octave, semi, cents);
+        }
+    }
+
+    /// Actualiza el volumen de resonador en todas las voces
+    void updateVoiceVolume(int resynator, float volume) {
+        for (auto& v : voices_) {
+            auto& resy = (resynator == 0) ? v.getR1() : v.getR2();
+            resy.setVolume(volume);
+        }
+    }
+
+    /// Actualiza envolventes en todas las voces
+    void updateVoiceEnvelopes(float aMs, float dMs, float sLevel, float rMs) {
+        for (auto& v : voices_) {
+            v.getAmpEnv().setParameters(aMs, dMs, sLevel, rMs);
+            v.getFilterEnv().setParameters(aMs, dMs, sLevel, rMs);
+        }
+    }
+
     /// Renderiza un bloque de 128 muestras para todas las voces activas
     void renderBlock(float* leftAcc, float* rightAcc, size_t blockSize,
                      float blenderAmount = 0.5f,

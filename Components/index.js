@@ -21,6 +21,7 @@ export { Toggle } from './toggle.js';
 export { Switch } from './switch.js';
 export { Wheel } from './wheel.js';
 export { XYPad } from './xypad.js';
+export { TrajectoryStick2D } from './trajectoryStick2D.js';
 export { ThemeSwitcher } from './themeSwitcher.js';
 export { computeFit, mountFitStage } from './fitStage.js';
 export { registerSkin, getSkin, applySkin, skinNames } from './skins/index.js';
@@ -40,6 +41,7 @@ export {
   envelopePoints,
 } from './envelopeCurve.js';
 export { EnvelopePad } from './envelopePad.js';
+export { MultiStageShaperPad } from './multiStageShaperPad.js';
 export { NumberBox } from './numberbox.js';
 export { createDrawer } from './drawer.js';
 // La matriz de modulacion NO es un control: no tiene parametro propio ni

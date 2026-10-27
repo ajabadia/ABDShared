@@ -1250,3 +1250,159 @@
 
 
 
+
+/* ─────────────────────────────────────────────────────────
+   ABD TrajectoryStick2D — Universal Circular Vector Stick
+   ───────────────────────────────────────────────────────── */
+.abd-trajectory-stick, .trajectory-stick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  background: var(--color-panel-surface, #1e222b);
+  border: 1px solid var(--color-border-subtle, #333a47);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-2, 8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.abd-trajectory-stick .stick-card-header, .trajectory-stick-card .stick-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.abd-trajectory-stick .stick-label, .trajectory-stick-card .stick-label {
+  font-size: var(--text-xs, 10px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-accent, #38bdf8);
+  text-transform: uppercase;
+}
+
+.abd-trajectory-stick .stick-layer-selector, .trajectory-stick-card .stick-layer-selector {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.abd-trajectory-stick .btn-layer, .trajectory-stick-card .btn-layer {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #94a3b8);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.abd-trajectory-stick .btn-layer:hover, .trajectory-stick-card .btn-layer:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.abd-trajectory-stick .btn-layer.active, .trajectory-stick-card .btn-layer.active {
+  background: var(--color-accent, #38bdf8);
+  color: #0b0f19;
+}
+
+.abd-trajectory-stick .stick-outer-ring, .trajectory-stick-card .stick-outer-ring {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: var(--space-1, 4px) 0;
+}
+
+.abd-trajectory-stick .stick-pole, .trajectory-stick-card .stick-pole {
+  position: absolute;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-text-muted, #94a3b8);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.abd-trajectory-stick .pole-n, .trajectory-stick-card .pole-n { top: 2px; }
+.abd-trajectory-stick .pole-s, .trajectory-stick-card .pole-s { bottom: 2px; }
+.abd-trajectory-stick .pole-w, .trajectory-stick-card .pole-w { left: 4px; }
+.abd-trajectory-stick .pole-e, .trajectory-stick-card .pole-e { right: 4px; }
+
+.abd-trajectory-stick .stick-pad-circle, .trajectory-stick-card .stick-pad-circle {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #151921 0%, #0d1017 100%);
+  border: 1.5px solid var(--color-border-subtle, #333a47);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.abd-trajectory-stick .stick-crosshair-h, .trajectory-stick-card .stick-crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  right: 6px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.abd-trajectory-stick .stick-crosshair-v, .trajectory-stick-card .stick-crosshair-v {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.abd-trajectory-stick .stick-target-ring, .trajectory-stick-card .stick-target-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.abd-trajectory-stick .stick-puck, .trajectory-stick-card .stick-puck {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent, #38bdf8);
+  box-shadow: 0 0 10px var(--color-accent, #38bdf8), 0 0 2px #fff;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  left: 50%;
+  top: 50%;
+  transition: transform 0.05s ease;
+}
+
+.abd-trajectory-stick .stick-card-footer, .trajectory-stick-card .stick-card-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.abd-trajectory-stick .stick-readout, .trajectory-stick-card .stick-readout {
+  font-size: 9px;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 6px;
+}

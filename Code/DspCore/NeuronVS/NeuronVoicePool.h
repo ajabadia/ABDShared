@@ -129,11 +129,18 @@ public:
     /// Renderiza un bloque de 128 muestras para todas las voces activas
     void renderBlock(float* leftAcc, float* rightAcc, size_t blockSize,
                      float blenderAmount = 0.5f,
+                     int blenderType = 0,
+                     int slicerType = 0,
+                     float slicerDepth = 0.0f,
+                     float slicerRateHz = 4.0f,
+                     int slicerWave = 0,
                      float filterCutoffHz = 2500.0f,
                      float filterReso = 0.2f) {
         for (auto& v : voices_) {
             if (v.isActive()) {
-                v.renderBlock(leftAcc, rightAcc, blockSize, blenderAmount, filterCutoffHz, filterReso);
+                v.renderBlock(leftAcc, rightAcc, blockSize, blenderAmount, blenderType,
+                              slicerType, slicerDepth, slicerRateHz, slicerWave,
+                              filterCutoffHz, filterReso);
             }
         }
     }

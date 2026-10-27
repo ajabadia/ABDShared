@@ -56,6 +56,11 @@ public:
     void process(float* leftOut, float* rightOut, size_t numSamples,
                  NeuronVoicePool& voicePool,
                  float blenderAmount = 0.5f,
+                 int blenderType = 0,
+                 int slicerType = 0,
+                 float slicerDepth = 0.0f,
+                 float slicerRateHz = 4.0f,
+                 int slicerWave = 0,
                  float filterCutoffHz = 2500.0f,
                  float filterReso = 0.2f,
                  float masterVolume = 0.85f) {
@@ -66,7 +71,8 @@ public:
         while (samplesProduced < numSamples) {
             // Si el buffer interno se ha consumido, renderizar el siguiente bloque de 128
             if (bufferReadPos_ >= kNeuronInternalBlockSize) {
-                render128Chunk(voicePool, blenderAmount, filterCutoffHz, filterReso);
+                render128Chunk(voicePool, blenderAmount, blenderType, slicerType,
+                               slicerDepth, slicerRateHz, slicerWave, filterCutoffHz, filterReso);
                 bufferReadPos_ = 0;
             }
 
@@ -97,6 +103,11 @@ private:
     /// Renderiza exactamente un bloque de 128 muestras (FUN_100382b0)
     void render128Chunk(NeuronVoicePool& voicePool,
                         float blenderAmount,
+                        int blenderType,
+                        int slicerType,
+                        float slicerDepth,
+                        float slicerRateHz,
+                        int slicerWave,
                         float filterCutoffHz,
                         float filterReso) {
         // 1. Limpiar buffer de bloque a cero (exactamente como FUN_100382b0 líneas 108..115)
@@ -105,7 +116,8 @@ private:
 
         // 2. Renderizar todas las voces activas en el acumulador
         voicePool.renderBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize,
-                              blenderAmount, filterCutoffHz, filterReso);
+                              blenderAmount, blenderType, slicerType, slicerDepth,
+                              slicerRateHz, slicerWave, filterCutoffHz, filterReso);
 
         // 3. Procesamiento por el rack Silver (FUN_10029e34) y efectos maestros (FUN_100382b0)
         for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {

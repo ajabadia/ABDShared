@@ -73,17 +73,18 @@ export class TrajectoryStick2D {
   render() {
     let layerButtonsHtml = '';
     for (let i = 0; i < this.options.numLayers; i++) {
-      const activeClass = i === this.activeLayer ? 'active' : '';
-      layerButtonsHtml += `<button type="button" class="btn-layer ${activeClass}" data-layer="${i}">L${i + 1}</button>`;
+      const isCur = i === this.activeLayer;
+      const variant = isCur ? 'btn-primary active' : 'btn-outline';
+      layerButtonsHtml += `<button type="button" class="btn btn-xs ${variant} btn-layer" data-layer="${i}">L${i + 1}</button>`;
     }
 
     const curLabels = this.layerLabels[this.activeLayer] || this.options.labels || { north: '1', south: '2', west: '-', east: '+' };
 
     const recorderControlsHtml = this.options.hasRecorder ? `
       <div class="stick-recorder-bar" style="display: flex; gap: 4px; align-items: center;">
-        <button type="button" class="btn-stick-rec ${this.isRecording ? 'recording' : ''}" title="Record Vector Trajectory">● REC</button>
-        <button type="button" class="btn-stick-play ${this.isPlaying ? 'playing' : ''}" title="Play Recorded Loop">▶ PLAY</button>
-        <button type="button" class="btn-stick-clr" title="Clear Trajectory">✕</button>
+        <button type="button" class="btn btn-xs ${this.isRecording ? 'btn-danger-solid recording' : 'btn-outline'} btn-stick-rec" title="Record Vector Trajectory">● REC</button>
+        <button type="button" class="btn btn-xs ${this.isPlaying ? 'btn-primary playing' : 'btn-outline'} btn-stick-play" title="Play Recorded Loop">▶ PLAY</button>
+        <button type="button" class="btn btn-xs btn-outline btn-stick-clr" title="Clear Trajectory">✕</button>
       </div>
     ` : '';
 
@@ -116,7 +117,7 @@ export class TrajectoryStick2D {
         <div class="stick-card-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 4px;">
           <span class="hud-pill stat-num stick-readout" style="font-size: 8.5px;">X: 0.50 | Y: 0.50</span>
           ${recorderControlsHtml}
-          ${this.options.onOpenExpanded ? `<button type="button" class="btn btn-xs btn-expand-stick" title="Expand Controls">Edit</button>` : ''}
+          ${this.options.onOpenExpanded ? `<button type="button" class="btn btn-xs btn-outline btn-expand-stick" title="Expand Controls">Edit</button>` : ''}
         </div>
       </div>
     `;
@@ -229,13 +230,11 @@ export class TrajectoryStick2D {
     if (this.isRecording) {
       if (this.isPlaying) this.stopPlayback();
       this.recordings[this.activeLayer] = []; // Reset on new rec
-      btn?.classList.add('recording');
-      btn?.style.setProperty('background', 'var(--color-danger, #ef4444)');
-      btn?.style.setProperty('color', '#fff');
+      btn?.classList.add('btn-danger-solid', 'recording');
+      btn?.classList.remove('btn-outline');
     } else {
-      btn?.classList.remove('recording');
-      btn?.style.removeProperty('background');
-      btn?.style.removeProperty('color');
+      btn?.classList.remove('btn-danger-solid', 'recording');
+      btn?.classList.add('btn-outline');
     }
   }
 
@@ -254,9 +253,8 @@ export class TrajectoryStick2D {
     if (this.isRecording) this.toggleRecording();
     this.isPlaying = true;
     const btn = this.container.querySelector('.btn-stick-play');
-    btn?.classList.add('playing');
-    btn?.style.setProperty('background', 'var(--color-accent, #38bdf8)');
-    btn?.style.setProperty('color', '#000');
+    btn?.classList.add('btn-primary', 'playing');
+    btn?.classList.remove('btn-outline');
 
     const duration = rec[rec.length - 1].t - rec[0].t;
     if (duration <= 0) return;
@@ -298,9 +296,8 @@ export class TrajectoryStick2D {
       this.animFrameId = null;
     }
     const btn = this.container.querySelector('.btn-stick-play');
-    btn?.classList.remove('playing');
-    btn?.style.removeProperty('background');
-    btn?.style.removeProperty('color');
+    btn?.classList.remove('btn-primary', 'playing');
+    btn?.classList.add('btn-outline');
   }
 
   clearTrajectory() {
@@ -342,7 +339,15 @@ export class TrajectoryStick2D {
     if (this.isPlaying) this.stopPlayback();
     this.activeLayer = Math.max(0, Math.min(this.options.numLayers - 1, layerIdx));
     this.container.querySelectorAll('.btn-layer').forEach((btn, idx) => {
-      btn.classList.toggle('active', idx === this.activeLayer);
+      const isCur = idx === this.activeLayer;
+      btn.classList.toggle('active', isCur);
+      if (isCur) {
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-outline');
+      } else {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline');
+      }
     });
 
     // Update pole labels for the layer

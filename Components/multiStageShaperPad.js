@@ -88,9 +88,9 @@ export class MultiStageShaperPad {
             <span class="panel-badge" style="font-size: 9px; font-weight: 700; color: var(--color-accent, #38bdf8);">${this.options.label}</span>
             <span class="panel-caption" style="font-size: 9px; color: var(--color-text-muted, #94a3b8);">4L4T Dynamic Contour</span>
           </div>
-          <div class="shaper-modes ndb-chips-row" style="display: flex; gap: 4px;">
-            <button type="button" class="btn-shaper-mode ${this.mode === 1 ? 'active' : ''}" data-mode="1" style="font-size: 8px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--color-border-subtle, #333); background: ${this.mode === 1 ? 'var(--color-accent, #38bdf8)' : 'transparent'}; color: ${this.mode === 1 ? '#000' : 'var(--color-text-muted, #aaa)'}; cursor: pointer;">Normal</button>
-            <button type="button" class="btn-shaper-mode ${this.mode === 2 ? 'active' : ''}" data-mode="2" style="font-size: 8px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--color-border-subtle, #333); background: ${this.mode === 2 ? 'var(--color-accent, #38bdf8)' : 'transparent'}; color: ${this.mode === 2 ? '#000' : 'var(--color-text-muted, #aaa)'}; cursor: pointer;">Repeat</button>
+          <div class="shaper-modes" style="display: flex; gap: 4px;">
+            <button type="button" class="btn btn-xs ${this.mode === 1 ? 'btn-primary active' : 'btn-outline'} btn-shaper-mode" data-mode="1">Normal</button>
+            <button type="button" class="btn btn-xs ${this.mode === 2 ? 'btn-primary active' : 'btn-outline'} btn-shaper-mode" data-mode="2">Repeat</button>
           </div>
         </div>
 

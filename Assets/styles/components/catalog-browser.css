@@ -489,6 +489,39 @@
 .cat-8 { color: var(--color-cat-8); }
 .cat-9 { color: var(--color-cat-9); }
 
+.ndb-card-icon.cat-0 { color: var(--color-cat-0); }
+.ndb-card-icon.cat-1 { color: var(--color-cat-1); }
+.ndb-card-icon.cat-2 { color: var(--color-cat-2); }
+.ndb-card-icon.cat-3 { color: var(--color-cat-3); }
+.ndb-card-icon.cat-4 { color: var(--color-cat-4); }
+.ndb-card-icon.cat-5 { color: var(--color-cat-5); }
+.ndb-card-icon.cat-6 { color: var(--color-cat-6); }
+.ndb-card-icon.cat-7 { color: var(--color-cat-7); }
+.ndb-card-icon.cat-8 { color: var(--color-cat-8); }
+.ndb-card-icon.cat-9 { color: var(--color-cat-9); }
+
+.ndb-card-cat.cat-0 { color: var(--color-cat-0); border-color: var(--color-cat-0); }
+.ndb-card-cat.cat-1 { color: var(--color-cat-1); border-color: var(--color-cat-1); }
+.ndb-card-cat.cat-2 { color: var(--color-cat-2); border-color: var(--color-cat-2); }
+.ndb-card-cat.cat-3 { color: var(--color-cat-3); border-color: var(--color-cat-3); }
+.ndb-card-cat.cat-4 { color: var(--color-cat-4); border-color: var(--color-cat-4); }
+.ndb-card-cat.cat-5 { color: var(--color-cat-5); border-color: var(--color-cat-5); }
+.ndb-card-cat.cat-6 { color: var(--color-cat-6); border-color: var(--color-cat-6); }
+.ndb-card-cat.cat-7 { color: var(--color-cat-7); border-color: var(--color-cat-7); }
+.ndb-card-cat.cat-8 { color: var(--color-cat-8); border-color: var(--color-cat-8); }
+.ndb-card-cat.cat-9 { color: var(--color-cat-9); border-color: var(--color-cat-9); }
+
+.ndb-card.cat-0:hover { border-color: var(--color-cat-0); }
+.ndb-card.cat-1:hover { border-color: var(--color-cat-1); }
+.ndb-card.cat-2:hover { border-color: var(--color-cat-2); }
+.ndb-card.cat-3:hover { border-color: var(--color-cat-3); }
+.ndb-card.cat-4:hover { border-color: var(--color-cat-4); }
+.ndb-card.cat-5:hover { border-color: var(--color-cat-5); }
+.ndb-card.cat-6:hover { border-color: var(--color-cat-6); }
+.ndb-card.cat-7:hover { border-color: var(--color-cat-7); }
+.ndb-card.cat-8:hover { border-color: var(--color-cat-8); }
+.ndb-card.cat-9:hover { border-color: var(--color-cat-9); }
+
 .ndb-param-tag,
 .catalog-param-tag {
   display: inline-block;

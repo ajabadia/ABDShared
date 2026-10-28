@@ -789,23 +789,25 @@
 }
 
 /* ── Shared transient flash (bankShell.flashStatus) ──────────
-   Centered pill above the footer: unmissable feedback for actions
-   that change no counters (refresh with identical data). The host
-   shell element is positioned (drawer panel), so this anchors to it. */
+   Centered high-contrast pill above the footer: unmissable feedback
+   for actions that change no counters (refresh with identical data).
+   The host shell element is positioned (drawer panel), so this
+   anchors to it. `ok` is a solid accent pill; `working`/`error` keep
+   the elevated surface with a colored treatment. */
 .bank-shell-flash {
   position: absolute;
   left: 50%;
   bottom: calc(var(--space-8) + 56px);
-  transform: translate(-50%, 8px);
+  transform: translate(-50%, 12px) scale(0.96);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   max-width: min(92%, 560px);
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-6);
   border-radius: 999px;
-  background: var(--color-panel-surface-elevated);
-  border: 1px solid var(--color-accent);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
-  color: var(--color-text-main);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -817,19 +819,63 @@
 
 .bank-shell-flash.is-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translate(-50%, 0) scale(1);
 }
 
-.bank-shell-flash.is-error {
-  border-color: var(--color-danger);
+.bank-shell-flash-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.bank-shell-flash-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bank-shell-flash.is-ok {
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 8px 30px var(--color-accent-dim), 0 2px 10px rgba(0, 0, 0, 0.5);
+  color: var(--color-bg-base);
+}
+
+.bank-shell-flash.is-working {
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  color: var(--color-text-main);
 }
 
 .bank-shell-flash.is-working.is-visible {
   animation: bank-shell-flash-pulse 1s ease-in-out infinite;
 }
 
+.bank-shell-flash.is-working .bank-shell-flash-icon {
+  animation: bank-shell-flash-spin 1s linear infinite;
+}
+
+.bank-shell-flash.is-error {
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-danger);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  color: var(--color-text-main);
+}
+
+.bank-shell-flash.is-error .bank-shell-flash-icon {
+  color: var(--color-danger);
+}
+
 @keyframes bank-shell-flash-pulse {
   50% {
-    opacity: 0.55;
+    opacity: 0.6;
+  }
+}
+
+@keyframes bank-shell-flash-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

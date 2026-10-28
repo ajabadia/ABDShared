@@ -47,7 +47,8 @@
  * Aviso efímero centrado (`flashStatus`): el único feedback garantizado
  * para acciones que no cambian contadores (p. ej. refrescar con los
  * mismos datos). Vive sobre el pie, se auto-oculta y no depende de que
- * el usuario mire el pie: `ok` 2.5s, `working` 4s, `error` 6s.
+ * el usuario mire el pie: `ok` 3.5s, `working` 4s, `error` 6s.
+ * Píldora sólida de alto contraste con icono por tipo.
  */
 export function createBankShell (options = {})
 {
@@ -204,6 +205,7 @@ export function createBankShell (options = {})
     flashStatus (message, kind)
     {
       const valid = kind === 'error' || kind === 'working' ? kind : 'ok';
+      const icons = { ok: '✓', working: '⟳', error: '⚠' };
       let overlay = element.querySelector('[data-shell-flash]');
       if (!overlay)
       {
@@ -215,8 +217,10 @@ export function createBankShell (options = {})
       }
       if (flashTimer) clearTimeout(flashTimer);
       overlay.className = `bank-shell-flash is-visible is-${valid}`;
-      overlay.textContent = message == null ? '' : String(message);
-      const hold = valid === 'error' ? 6000 : valid === 'working' ? 4000 : 2500;
+      overlay.innerHTML =
+        `<span class="bank-shell-flash-icon" aria-hidden="true">${icons[valid]}</span>` +
+        `<span class="bank-shell-flash-text">${escText(message == null ? '' : String(message))}</span>`;
+      const hold = valid === 'error' ? 6000 : valid === 'working' ? 4000 : 3500;
       flashTimer = setTimeout(() =>
       {
         overlay.classList.remove('is-visible');

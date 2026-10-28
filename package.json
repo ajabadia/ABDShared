@@ -10,6 +10,22 @@
     "./themes/*": "./Assets/styles/themes/*",
     "./contracts/*": "./Contracts/*",
     "./components": "./Components/index.js",
+    "./components/bank/bankShell.js": {
+      "types": "./Components/bank/bankShell.d.ts",
+      "default": "./Components/bank/bankShell.js"
+    },
+    "./components/bank/bankCard.js": {
+      "types": "./Components/bank/bankCard.d.ts",
+      "default": "./Components/bank/bankCard.js"
+    },
+    "./components/bank/bankChips.js": {
+      "types": "./Components/bank/bankChips.d.ts",
+      "default": "./Components/bank/bankChips.js"
+    },
+    "./components/bank/bankCategories.js": {
+      "types": "./Components/bank/bankCategories.d.ts",
+      "default": "./Components/bank/bankCategories.js"
+    },
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",

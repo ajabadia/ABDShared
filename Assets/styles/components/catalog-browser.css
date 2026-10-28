@@ -788,6 +788,14 @@
   transform: translateY(-1px);
 }
 
+/* ── Shared category chips (bankChips) ─────────────────────────
+   Compact variant used for the per-category filter rows. Same
+   metrics both hosts previously inlined in their drawers. */
+.ndb-chip.ndb-chip-sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
 /* ── Shared transient flash (bankShell.flashStatus) ──────────
    Centered high-contrast pill above the footer: unmissable feedback
    for actions that change no counters (refresh with identical data).

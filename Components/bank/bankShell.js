@@ -34,6 +34,10 @@
  * @param {string} [options.searchPlaceholder] texto del buscador.
  * @param {Array<{ id: string, label: string, title?: string, iconHtml?: string }>} [options.headerActions]
  *   botones de la cabecera (p. ej. limpiar, configurar, cerrar).
+ * @param {Array<{ id: string, label: string, title?: string, kind?: string }>} [options.footerActions]
+ *   botones del pie (p. ej. refrescar, carpeta, cerrar). También los sirve
+ *   `onFooterAction` por `id`; el pie lo pinta la carcasa para que no haya
+ *   dos implementaciones en los hosts.
  * @param {Function} [options.onTabChange] `(tabId)`.
  * @param {Function} [options.onSearch] `(query)`.
  * @param {Function} [options.onHeaderAction] `(actionId)`.
@@ -42,7 +46,8 @@
  * @returns {{ element: HTMLElement, contentEl: HTMLElement, toolbarEl: HTMLElement,
  *             footerEl: HTMLElement, activeTab: string, setBadge: Function,
  *             setTab: Function, getQuery: Function, flashStatus: Function,
- *             destroy: Function }}
+ *             setFootSlot: Function, setFooterStatus: Function,
+ *             setBusy: Function, destroy: Function }}
  *
  * Aviso efímero centrado (`flashStatus`): el único feedback garantizado
  * para acciones que no cambian contadores (p. ej. refrescar con los
@@ -59,6 +64,7 @@ export function createBankShell (options = {})
     activeTab = (tabs[0] && tabs[0].id) || 'models',
     searchPlaceholder = 'Search by name or slot...',
     headerActions = [],
+    footerActions = [],
     onTabChange = null,
     onSearch = null,
     onHeaderAction = null,
@@ -107,7 +113,16 @@ export function createBankShell (options = {})
       </div>
       <div data-shell-toolbar></div>
       <div class="ndb-content-wrap" data-shell-content tabindex="0"></div>
-      <div class="ndb-footer" data-shell-footer></div>
+      <div class="ndb-footer" data-shell-footer>
+        <div class="ndb-footer-selection">
+          <span class="ndb-footer-slot" data-shell-foot-slot></span>
+          <span class="ndb-footer-details" data-shell-foot-status></span>
+        </div>
+        <div class="neurondb-footer-actions">
+          ${footerActions.map((a) => `
+          <button type="button" class="btn btn-xs ${a.kind === 'primary' ? 'btn-primary' : a.kind === 'outline' ? 'btn-outline' : ''}" data-footer-action="${escAttr(a.id)}" title="${escAttr(a.title || a.label || '')}">${escText(a.label || '')}</button>`).join('')}
+        </div>
+      </div>
   `;
 
   const contentEl = element.querySelector('[data-shell-content]');
@@ -201,6 +216,28 @@ export function createBankShell (options = {})
     {
       const input = element.querySelector('[data-shell-search]');
       if (input) setTimeout(() => input.focus(), 80);
+    },
+    setFootSlot (text)
+    {
+      const slotEl = element.querySelector('[data-shell-foot-slot]');
+      if (slotEl) slotEl.textContent = text == null ? '' : String(text);
+    },
+    setFooterStatus (text)
+    {
+      const statusEl = element.querySelector('[data-shell-foot-status]');
+      if (statusEl) statusEl.textContent = text == null ? '' : String(text);
+    },
+    setBusy (actionId, active)
+    {
+      if (!actionId) return;
+      const on = active === true;
+      element
+        .querySelectorAll(`[data-header-action="${actionId}"], [data-footer-action="${actionId}"]`)
+        .forEach((btn) =>
+        {
+          btn.disabled = on;
+          btn.classList.toggle('is-refreshing', on);
+        });
     },
     flashStatus (message, kind)
     {

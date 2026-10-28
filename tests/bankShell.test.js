@@ -71,6 +71,48 @@ describe('createBankShell', () =>
     shell.destroy();
   });
 
+  it('el pie trae ranuras de slot/estado y sirve acciones del host', () =>
+  {
+    let seen = null;
+    const shell = makeShell({
+      footerActions: [
+        { id: 'refresh', label: 'Refresh', title: 'Refresh', kind: 'outline' },
+        { id: 'close', label: 'Close' },
+      ],
+      onFooterAction: (id) => { seen = id; },
+    });
+    const slot = shell.element.querySelector('[data-shell-foot-slot]');
+    const status = shell.element.querySelector('[data-shell-foot-status]');
+    expect(slot).not.toBeNull();
+    expect(status).not.toBeNull();
+    shell.setFootSlot('LIBRARY:');
+    shell.setFooterStatus('No folder configured');
+    expect(slot.textContent).toBe('LIBRARY:');
+    expect(status.textContent).toBe('No folder configured');
+    shell.element.querySelector('[data-footer-action="refresh"]').dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+    expect(seen).toBe('refresh');
+    shell.destroy();
+  });
+
+  it('setBusy desactiva los botones de una acción y los restaura', () =>
+  {
+    const shell = makeShell({
+      headerActions: [{ id: 'refresh', label: 'R' }],
+      footerActions: [{ id: 'refresh', label: 'Refresh' }],
+    });
+    const btns = () => Array.from(
+      shell.element.querySelectorAll('[data-header-action="refresh"], [data-footer-action="refresh"]')
+    );
+    expect(btns().length).toBe(2);
+    shell.setBusy('refresh', true);
+    expect(btns().every((b) => b.disabled)).toBe(true);
+    shell.setBusy('refresh', false);
+    expect(btns().every((b) => !b.disabled)).toBe(true);
+    shell.destroy();
+  });
+
   it('flashStatus muestra un aviso centrado con su clase y lo oculta', () =>
   {
     vi.useFakeTimers();

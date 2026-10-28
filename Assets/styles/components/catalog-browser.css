@@ -770,6 +770,13 @@
   flex-shrink: 0;
 }
 
+/* Hosts may serve all actions in the header and keep the footer as a
+   status line only: collapse the empty actions box (no gap left). */
+.neurondb-footer-actions:empty,
+.catalog-footer-actions:empty {
+  display: none;
+}
+
 .ndb-select-btn,
 .catalog-select-btn {
   background: var(--color-accent);

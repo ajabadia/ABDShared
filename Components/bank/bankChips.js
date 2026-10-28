@@ -16,8 +16,10 @@
  * @param {string} BankChipItem.id        identificador servido en `onPick`.
  * @param {string} BankChipItem.label     texto visible (p. ej. `0: General`).
  * @param {number} [BankChipItem.count]   conteo entre paréntesis (se omite si falta).
- * @param {string} [BankChipItem.catClass] clase de color (`cat-N`, `cat-neutral`...).
- * @param {string} [BankChipItem.title]   tooltip (default: el label).
+ * @param {string} [BankChipItem.catClass] clase de color (`cat-N`, `cat-neutral`...). * @param {string} [BankChipItem.title] tooltip (default: el label).
+ * @param {string} [BankChipItem.prefixHtml] HTML de confianza del host
+ *   delante de la etiqueta (p. ej. un `N:` en negrita con color de set).
+ *   Úsalo solo con fragmentos propios, nunca con texto de usuario.
  *
  * @param {BankChipItem[]} items
  * @param {string} [activeId] id con la clase `active`.
@@ -34,7 +36,8 @@ export function bankChipsHtml (items, activeId)
     const cls = ['ndb-chip', 'ndb-chip-sm', (item && item.catClass) || '', id === activeId ? 'active' : '']
       .filter(Boolean)
       .join(' ');
-    return `<button type="button" class="${cls}" data-chip="${escAttr(id)}" title="${escAttr((item && item.title) || label)}">${escText(label)}${count}</button>`;
+    const prefix = (item && item.prefixHtml) || '';
+    return `<button type="button" class="${cls}" data-chip="${escAttr(id)}" title="${escAttr((item && item.title) || label)}">${prefix}${escText(label)}${count}</button>`;
   }).join('');
 }
 

@@ -30,6 +30,19 @@ describe('bankChipsHtml', () =>
     expect(chips[2].textContent).toBe('Sin conteo');
   });
 
+  it('inserta el prefijo HTML del host delante de la etiqueta', () =>
+  {
+    const row = mount(
+      bankChipsHtml(
+        [{ id: '0', label: 'General', count: 3, prefixHtml: '<span class="cat-0">0:</span> ' }],
+        '0'
+      )
+    );
+    const chip = row.querySelector('[data-chip]');
+    expect(chip.querySelector('span.cat-0')?.textContent).toBe('0:');
+    expect(chip.textContent).toBe('0: General (3)');
+  });
+
   it('escapa etiquetas con comillas', () =>
   {
     const row = mount(bankChipsHtml([{ id: 'a"b', label: 'A \"B\"' }], 'nope'));

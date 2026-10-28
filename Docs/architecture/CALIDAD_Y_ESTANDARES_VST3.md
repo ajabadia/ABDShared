@@ -25,6 +25,11 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 - `[x]` ✅ **Pre-reserva total en `prepareToPlay()` / `prepare()`:** Todos los buffers de trabajo (`globalLfo1Buffer`, `globalLfo2Buffer`, `controlSeqBuffer`, `fxLevelMod`, `audioCaptureBuffer`, líneas de retardo de los 35 efectos) se dimensionan en [`SynthEngine::prepare()`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine.cpp#L16-L58) y `FXEngine::prepare()`.
 - `[x]` ✅ **Sin `new`, `malloc`, `std::vector::push_back`, `std::map` ni `juce::String` en `processBlock()`:** La lectura de los 32 slots de la matriz de modulación y los 32 pasos del secuenciador utiliza tablas `static constexpr const char*` en [`SynthEngine_Parameters.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine_Parameters.cpp#L409-L607) sin construir ningún `juce::String` en tiempo real.
 - `[x]` ✅ **Verificación empírica con reemplazo global de `operator new`:** [`ProcessBlockBenchmark.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Tools/Benchmarks/ProcessBlockBenchmark.cpp#L39-L66) intercepta globalmente `operator new` con un contador atómico `g_allocCount` durante 500 bloques con 12 voces activas + Unison + VCF + 4 slots FX, exigiendo `0 allocs` en CI (`PASS (< 50% budget, 0 allocs)`).
+- `[x]` ✅ **Sin valores mágicos en el motor DSP:** Prohibido usar números crudos/índices hardcodeados para parámetros dentro de `processBlock()` o clases DSP. Usar el registro de parámetros (SSOT) o constantes centralizadas locales. Los índices que queden aislados deben trasladarse a un archivo único de constantes (`*ParamIndices.h` / `*ParamIndices.ts`) agrupado por secciones, al estilo del ecosistema.
+- `[x]` ✅ **Sin telemetría sintética/falsa:** Los valores expuestos (CPU, uso, etc.) deben reflejar mediciones reales o claramente marcados como estimados con justificación. Nunca devolver valores inventados como si fueran medidos.
+- `[x]` ✅ **Sin valores por defecto hardcodeados críticos sin control:** Parámetros globales sensibles (volumen maestro, etc.) deben exponerse vía parámetros controlables cuando sea posible, o quedar debidamente justificados y documentados.
+- `[x]` ✅ **Rutas de parámetros únicas:** Evitar rutas duales/conflictivas (ej. `bridge_->getEffectiveSlots()` vs `store_`) que puedan desincronizarse. Si existen por compatibilidad, deben estar documentadas y con lógica de precedencia clara y testeada.
+- `[x]` ✅ **Tests autocontenidos:** Los tests deben funcionar sin rutas externas hardcodeadas ni ficheros fuera del repositorio. No se permiten `skip` silenciosos por archivos ausentes; usar fixtures locales o mocks deterministas.
 
 ### 1.2. Comunicación Lock-Free (Sin Mutex Bloqueantes en el Hilo de Audio)
 - `[x]` ✅ **`panic()` no bloqueante con `SpinLock::ScopedTryLockType` + flag atómico:** En [`SynthEngine_Snapshot.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine_Snapshot.cpp#L118-L153), si `panic()` es llamado desde la UI mientras `processBlock()` está renderizando, intenta un `ScopedTryLockType`; si el hilo de audio está ocupado, escribe `pendingPanic.store(true, std::memory_order_release)` y el propio `processBlock()` ejecuta el apagado limpio al inicio del siguiente bloque.
@@ -36,6 +41,7 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 ### 1.3. Prohibición de Llamadas al Sistema o I/O en el Hilo de Audio
 - `[x]` ✅ **Sin lectura/escritura de archivos ni sockets en `processBlock()`:** La lectura de bancos `.syx` y archivos de calibración XML se realiza exclusivamente en el hilo de mensaje.
 - `[x]` ✅ **Serialización XML fuera del hilo de audio:** En [`SynthEngine_Snapshot.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine_Snapshot.cpp#L59-L70), `updateVoiceSnapshot()` solo copia structs numéricos planos; la conversión `activeCalibration.toXml()` solo se ejecuta en `getDiagnosticSnapshot()` cuando lo solicita el hilo de control.
+- `[x]` ✅ **Infraestructura de Logging Segura y Cero I/O en Audio:** Prohibido invocar macros o funciones de logging síncrono (`AX_LOG`, `DBG`, `std::cout`, flujos de archivos) desde `processBlock()` o métodos que puedan ejecutarse en el hilo de audio. Si se requiere telemetría en tiempo real, usar ring buffers SPSC lock-free. Asimismo, queda prohibido el silenciamiento ciego con `catch (...)` en utilidades de logging o persistencia; todo fallo debe reportarse de forma estructurada a `std::cerr` o mediante código de retorno.
 
 ---
 
@@ -56,6 +62,12 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 ### 2.4. Procesamiento Inteligente en Reposo (Silencio Dinámico / Idle CPU Suspension VST3)
 - `[x]` ✅ **Cortocircuito por voz inactiva (`0% CPU` por voz en silencio):** Al inicio de `Voice::renderNextSample()` ([`Voice.cpp:216`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/Voice.cpp#L216)), si la envolvente de amplitud está en reposo (`!isActive()`), la función retorna de inmediato sin calcular osciladores, filtros ni matriz de modulación.
 - `[x]` ✅ **Suspensión automática de la cadena de efectos tras agotarse la cola (`idleTailSamplesRemaining_`):** Cuando `activeVoiceCount == 0` y no hay entrada externa ni tono de diagnóstico activo, el motor mantiene activos `ModFX`/`DelayFX`/`Reverb` únicamente durante el tiempo de cola (`getTailLengthSeconds() * sampleRate`). Una vez drenada la cola de delay/reverb (`idleTailSamplesRemaining_ == 0`), el motor salta el procesamiento por muestra de la cadena de efectos y escribe silencio limpio (`0.0f`), permitiendo al DAW activar la suspensión dinámica VST3 con consumo de CPU nulo.
+
+### 2.5. Acotación Defensiva en Modulación Exponencial (Bounded Modulation & Safe Exponentials)
+- `[x]` ✅ **Protección anti-overflow en cálculos exponenciales (`std::pow`, `std::exp`):** En modulaciones de frecuencia (pitch bend, 1V/oct, modulaciones cruzadas), el exponente debe acotarse con `std::clamp` (p. ej. `(pitchBendWheel * pbRange) / 12.0f` acotado a $[-4.0f, +4.0f]$ octavas) y validar que la frecuencia resultante esté estrictamente acotada en $[0.1\text{ Hz}, 0.49 \cdot \text{sampleRate}]$ para impedir `Inf`, `NaN` o desestabilización de filtros IIR recursivos.
+
+### 2.6. Rampas de Desvanecimiento Anti-Pop por Muestra (Sample-Accurate Anti-Pop / Voice Stealing Fades)
+- `[x]` ✅ **Micro-rampas suaves a nivel sub-bloque con seguridad de canales:** Al silenciar, robar voces o reiniciar notas, aplicar una rampa de desvanecimiento suave continua muestra a muestra decrementando un contador de muestras exacto (`antiPopRemaining_`). Prohibido aplicar desvanecimientos toscos de bloque completo que corten abruptamente. El procesamiento debe iterar canal por canal de forma segura sin asumir que los punteros de canal izquierdo y derecho son distintos (`leftChannel != rightChannel`), garantizando estabilidad en configuraciones mono o buses compartidos.
 
 ---
 
@@ -115,47 +127,61 @@ Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquit
 - `[x]` ✅ **Verificación por Tests Unitarios de Inversión (`ParamConversionUnitTests` / `DSPCoreTests_Transfer`):** Prueba automatizada de que para todo parámetro del registro se cumple el round-trip `domainToWire(wireToDomain(w)) == w` en los extremos (`0`, `127`/`255`), el centro (`64`/`128`) y barrido completo.
 
 ### 5.3. Requisitos de Arquitectura DSP para Síntesis Sustractiva y Síntesis Granular / Basada en Muestras
-1. **Síntesis Sustractiva / Virtual Analog (`ABDEep`, `ABDMS2000`, `ABDJUNiO601`):**
-   - `[x]` ✅ **Osciladores Limitados en Banda (Anti-Aliasing `PolyBLEP`):** Prohibido generar ondas de sierra o pulso/cuadrada mediante discontinuidades matemáticas ingenuas (`phase < 0.5 ? 1 : -1`), ya que pliegan armónicos por encima de Nyquist hacia la banda audible. Todos los osciladores VA deben utilizar corrección polinómica de escalón limitado en banda (`abd::synth::PolyBLEP` en `ABDShared::SynthCore` / [`VAOscillator.h`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/DSP/Oscillators/VAOscillator.h)) o tablas mip-mapped band-limited (`DWGSOscillator`).
-   - `[x]` ✅ **Suavizado de Parámetros por Muestra (`SmoothedValue` / 1-Pole Smoother):** Los parámetros continuos susceptibles de automatización rápida desde el DAW (`filterCutoff`, `masterVolume`) deben suavizarse muestra a muestra dentro de la voz o bus maestro para evitar *zipper noise*.
-2. **Síntesis Granular y Motores Basados en Muestras (`ABDNeural`, `DspGranularDelay` en `ABDShared::DspEffects` y futuros sintes granulares):**
-   - `[x]` ✅ **Intercambio Lock-Free de Muestras desde Hilo Secundario (`std::atomic<SampleBuffer*>`):** Jamás cargar o decodificar archivos de audio (`.wav`/`.flac` por *drag & drop* o preset) en el hilo de audio (`processBlock`). La lectura y decodificación se ejecutan siempre en un hilo trabajador secundario y el nuevo buffer inmutable se publica al motor de audio mediante un intercambio atómico de punteros libre de bloqueos.
-   - `[x]` ✅ **Pool Pre-Asignado de Voces y Granos (*Object Pooling* sin `new`/`delete`):** Pre-reservar en el constructor o en `prepareToPlay()` un array fijo de granos (`std::array<Grain, kMaxGrains>`, p. ej. 256–512 granos simultáneos) y reciclarlos activando/desactivando su flag `active` en lugar de alojar memoria en `processBlock`.
-   - `[x]` ✅ **Envolvente de Grano por Tabla de Búsqueda Precalculada (*Window LUT*):** Calcular la ventana de amplitud del grano (`Hann`, `Gaussian`, `Tukey`, `Blackman`) una única vez al inicializar en una LUT estática (`std::array<float, 2048>`) y leerla por indexación/interpolación en cada muestra en lugar de invocar `std::sin()` o `std::exp()` cientos de veces por muestra.
-
----
-
-## 6. Persistencia de Estado en el DAW (`getStateInformation` / `setStateInformation`), Presets `.vstpreset`, Bancos en RAM y Sanitización
-
-- `[x]` ✅ **Serialización XML binaria con etiqueta de versión (`version = 1`):**
-  - En [`ABDEep/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Plugin/PluginProcessor.cpp#L241-L251) y [`ABDMS2000/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L224-L250), `getStateInformation()` guarda una instantánea atómica de todo el `APVTS` (`apvts.copyState()`) con `version = 1`, el índice y nombre del programa activo (`currentProgramIndex`, `currentProgramName` / `presetName`) y la configuración asociada al proyecto.
-- `[x]` ✅ **Restauración exacta del sonido editado en la mezcla (*Dirty Patch Preservation*):**
-  - Al reabrir un proyecto del DAW o cargar un `.vstpreset` / `.fxp`, `setStateInformation()` restaura primero los valores exactos de los 292+ parámetros del `APVTS` (`apvts.replaceState(newTree)`) y actualiza solo el índice/nombre del programa activo (`setActiveProgramIndex`), **sin volver a volcar encima el preset de fábrica original**. Así, cualquier ajuste fino de knobs hecho por el usuario en su canción se conserva al 100%.
-- `[x]` ✅ **Persistencia del Banco de Memoria RAM Completo dentro del Proyecto DAW (`bankDataBlob`):**
-  - En sintetizadores con memoria RAM de programas editable o integrable con SysEx/BankManager (como [`ABDMS2000/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L233-L241)), `getStateInformation()` serializa también los 128 programas del banco activo en Base64 (`bankDataBlob`, ~36 KB). Si el usuario importó un banco `.syx` o escribió parches con `WRITE` durante su sesión, al abrir el proyecto del DAW en otro estudio u ordenador recupera tanto el sonido actual como su banco de 128 programas de trabajo.
-- `[x]` ✅ **Persistencia de mapeos MIDI Learn en el proyecto del DAW (`midiLearnJson`):**
-  - Además de `localStorage`, [`bridge-midi-learn_storage.js`](file:///d:/desarrollos/ABDSynths/ABDEep/WebUI/js/bridge-midi-learn_storage.js#L38-L70) sincroniza los mapeos MIDI Learn con `setMidiLearnState` / `getMidiLearnState` en C++, conservando las asignaciones CC del proyecto.
-- `[x]` ✅ **Sanitización defensiva anti-`NaN`/`Inf` y auto-curación al restaurar estado:**
-  - En [`ABDEep`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Plugin/PluginProcessor.cpp#L284-L294) y [`ABDMS2000`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L266-L285), tras `apvts.replaceState(newTree)`, se recorren todos los `RangedAudioParameter` y cualquier valor no finito (`NaN`/`Inf`) o fuera de $[0, 1]$ se restaura a `getDefaultValue()` antes de tocar los filtros IIR del motor DSP.
-- `[x]` ✅ **Sincronización inmediata Host ↔ WebUI al restaurar estado o cambiar programa desde el DAW (`updateHostDisplay` + `onStateRestored`):**
-  - Tanto al terminar `setStateInformation()` (cargar proyecto o `.vstpreset` del DAW) como en `setCurrentProgram(index)` (cambiar de preset desde el desplegable nativo de la cabecera del DAW), el procesador invoca `updateHostDisplay()` y `notifyStateRestored()` ([`PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L85-L101)), lo que dispara `bridge_->sendFullParamSync()` y `bridge_->sendPresetCatalog()` en [`PluginEditor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginEditor.cpp#L123-L131) para que todos los knobs, faders, drawers y el LCD de la WebUI reflejen al instante el nuevo estado.
-- `[x]` ✅ **Exposición de programas al navegador nativo del DAW (`getNumPrograms`, `getCurrentProgram`, `setCurrentProgram`, `getProgramName`, `changeProgramName`):**
-  - `ABDEep` expone los 1,024 programas (8 bancos × 128) y `ABDMS2000` expone los 128 programas (`A.01..H.16`) del banco activo en [`PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L75-L120).
-
----
-
-## 7. Expresión MIDI, Timing Sample-Accurate, Aftertouch Polifónico y MPE
-
-- `[x]` ✅ **Renderizado MIDI Sample-Accurate (despacho en `metadata.samplePosition` exacto):** En [`ABDEep/Source/DSP/SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine.cpp#L179-L315) y [`ABDMS2000/Source/Core/SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/SynthEngine.cpp#L765-L865), cada evento MIDI (`NoteOn`, `NoteOff`, `PitchWheel`, `CC`, `Aftertouch`) se despacha en el índice de muestra exacto (`metadata.samplePosition`) dentro del bloque de audio, logrando jitter cero e independencia total del tamaño de buffer del DAW.
-- `[x]` ✅ **Soporte completo de controladores continuos y velocidades:**
-  - `Velocity` (Note-On) y `Release Velocity` (Note-Off) como fuentes en la matriz de modulación.
-  - `Pitch Wheel` bipolar ($[-1.0, +1.0]$).
-  - `CC#1` (Mod Wheel), `CC#2` (Breath Controller), `CC#4` (Foot Controller), `CC#11` (Expression Pedal).
-  - `CC#64` (Sustain Pedal) con retención física real de notas (*sustain latch*), verificado por tests unitarios.
-- `[x]` ✅ **Channel Pressure (Aftertouch monofónico) Y Polyphonic Key Pressure (Aftertouch polifónico):** Soportados en `SynthEngine.cpp`.
-- `[~]` ⚠️ **Soporte MPE (*MIDI Polyphonic Expression* por canal / VST3 Note Expression):** Opcional para modos expandidos (*Advanced*) con controladores Roli Seaboard / LinnStrument.
-
----
+130: 1. **Síntesis Sustractiva / Virtual Analog (`ABDEep`, `ABDMS2000`, `ABDJUNiO601`):**
+131:    - `[x]` ✅ **Osciladores Limitados en Banda (Anti-Aliasing `PolyBLEP`):** Prohibido generar ondas de sierra o pulso/cuadrada mediante discontinuidades matemáticas ingenuas (`phase < 0.5 ? 1 : -1`), ya que pliegan armónicos por encima de Nyquist hacia la banda audible. Todos los osciladores VA deben utilizar corrección polinómica de escalón limitado en banda (`abd::synth::PolyBLEP` en `ABDShared::SynthCore` / [`VAOscillator.h`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/DSP/Oscillators/VAOscillator.h)) o tablas mip-mapped band-limited (`DWGSOscillator`).
+132:    - `[x]` ✅ **Suavizado de Parámetros por Muestra (`SmoothedValue` / 1-Pole Smoother):** Los parámetros continuos susceptibles de automatización rápida desde el DAW (`filterCutoff`, `masterVolume`) deben suavizarse muestra a muestra dentro de la voz o bus maestro para evitar *zipper noise*.
+133: 2. **Síntesis Granular y Motores Basados en Muestras (`ABDNeural`, `DspGranularDelay` en `ABDShared::DspEffects` y futuros sintes granulares):**
+134:    - `[x]` ✅ **Intercambio Lock-Free de Muestras desde Hilo Secundario (`std::atomic<SampleBuffer*>`):** Jamás cargar o decodificar archivos de audio (`.wav`/`.flac` por *drag & drop* o preset) en el hilo de audio (`processBlock`). La lectura y decodificación se ejecutan siempre en un hilo trabajador secundario y el nuevo buffer inmutable se publica al motor de audio mediante un intercambio atómico de punteros libre de bloqueos.
+135:    - `[x]` ✅ **Pool Pre-Asignado de Voces y Granos (*Object Pooling* sin `new`/`delete`):** Pre-reservar en el constructor o en `prepareToPlay()` un array fijo de granos (`std::array<Grain, kMaxGrains>`, p. ej. 256–512 granos simultáneos) y reciclarlos activando/desactivando su flag `active` en lugar de alojar memoria en `processBlock`.
+136:    - `[x]` ✅ **Envolvente de Grano por Tabla de Búsqueda Precalculada (*Window LUT*):** Calcular la ventana de amplitud del grano (`Hann`, `Gaussian`, `Tukey`, `Blackman`) una única vez al inicializar en una LUT estática (`std::array<float, 2048>`) y leerla por indexación/interpolación en cada muestra en lugar de invocar `std::sin()` o `std::exp()` cientos de veces por muestra.
+137: 
+138: ### 5.4. Sincronización Masiva de Parámetros y Supresión de Reentrancia (Bulk Parameter Sync & Callback Reentrancy Guard)
+139: - `[x]` ✅ **Flag Atómico de Transacción en Carga Masiva (`isBatchUpdating` / `isSyncingPreset`):** Al sincronizar el APVTS desde el motor DSP o restaurar bancos (`syncApvtsFromDspEngine`), el bucle que invoca `setValueNotifyingHost()` para cientos de parámetros debe estar blindado por un flag atómico `std::atomic<bool> isSyncingPreset_ { true };`.
+140: - `[x]` ✅ **Supresión de Eco Reactivo Host ↔ UI ↔ DSP:** Durante la sincronización masiva, los listeners de parámetros no deben reenviar eventos redundantes hacia la WebUI ni al motor DSP. Las colas de cambios pendientes de la UI deben drenarse y purgarse atómicamente antes y después de la transacción.
+141: 
+142: ---
+143: 
+144: ## 6. Persistencia de Estado en el DAW (`getStateInformation` / `setStateInformation`), Presets `.vstpreset`, Bancos en RAM y Sanitización
+145: 
+146: - `[x]` ✅ **Validación previa de buffer y tamaño mínimo antes de deserializar:** `setStateInformation(data, sizeInBytes)` debe comprobar defensivamente `data != nullptr` y `sizeInBytes >= kMinimumStateSizeBytes` antes de invocar `getXmlFromBinary()`. Si el blob está truncado o es inválido, abortar sin crash y cargar el preset por defecto de forma segura.
+147: - `[x]` ✅ **Validación y Clamping Estricto en Selección de Bancos y Programas:** En comandos MIDI de `Program Change` o cálculo de slots (`bank * 100 + prog`), validar rigurosamente que el índice resultante pertenezca al rango válido del catálogo (`slot >= 0 && slot < totalPresets`), evitando accesos fuera de límites a arrays o memorias de presets.
+148: - `[x]` ✅ **Serialización XML binaria con etiqueta de versión (`version = 1`):**
+149:   - En [`ABDEep/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Plugin/PluginProcessor.cpp#L241-L251) y [`ABDMS2000/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L224-L250), `getStateInformation()` guarda una instantánea atómica de todo el `APVTS` (`apvts.copyState()`) con `version = 1`, el índice y nombre del programa activo (`currentProgramIndex`, `currentProgramName` / `presetName`) y la configuración asociada al proyecto.
+150: - `[x]` ✅ **Restauración exacta del sonido editado en la mezcla (*Dirty Patch Preservation*):**
+151:   - Al reabrir un proyecto del DAW o cargar un `.vstpreset` / `.fxp`, `setStateInformation()` restaura primero los valores exactos de los 292+ parámetros del `APVTS` (`apvts.replaceState(newTree)`) y actualiza solo el índice/nombre del programa activo (`setActiveProgramIndex`), **sin volver a volcar encima el preset de fábrica original**. Así, cualquier ajuste fino de knobs hecho por el usuario en su canción se conserva al 100%.
+152: - `[x]` ✅ **Persistencia del Banco de Memoria RAM Completo dentro del Proyecto DAW (`bankDataBlob`):**
+153:   - En sintetizadores con memoria RAM de programas editable o integrable con SysEx/BankManager (como [`ABDMS2000/Source/Plugin/PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L233-L241)), `getStateInformation()` serializa también los 128 programas del banco activo en Base64 (`bankDataBlob`, ~36 KB). Si el usuario importó un banco `.syx` o escribió parches con `WRITE` durante su sesión, al abrir el proyecto del DAW en otro estudio u ordenador recupera tanto el sonido actual como su banco de 128 programas de trabajo.
+154: - `[x]` ✅ **Persistencia de mapeos MIDI Learn en el proyecto del DAW (`midiLearnJson`):**
+155:   - Además de `localStorage`, [`bridge-midi-learn_storage.js`](file:///d:/desarrollos/ABDSynths/ABDEep/WebUI/js/bridge-midi-learn_storage.js#L38-L70) sincroniza los mapeos MIDI Learn con `setMidiLearnState` / `getMidiLearnState` en C++, conservando las asignaciones CC del proyecto.
+156: - `[x]` ✅ **Sanitización defensiva anti-`NaN`/`Inf` y auto-curación al restaurar estado:**
+157:   - En [`ABDEep`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Plugin/PluginProcessor.cpp#L284-L294) y [`ABDMS2000`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L266-L285), tras `apvts.replaceState(newTree)`, se recorren todos los `RangedAudioParameter` y cualquier valor no finito (`NaN`/`Inf`) o fuera de $[0, 1]$ se restaura a `getDefaultValue()` antes de tocar los filtros IIR del motor DSP.
+158: - `[x]` ✅ **Sincronización inmediata Host ↔ WebUI al restaurar estado o cambiar programa desde el DAW (`updateHostDisplay` + `onStateRestored`):**
+159:   - Tanto al terminar `setStateInformation()` (cargar proyecto o `.vstpreset` del DAW) como en `setCurrentProgram(index)` (cambiar de preset desde el desplegable nativo de la cabecera del DAW), el procesador invoca `updateHostDisplay()` y `notifyStateRestored()` ([`PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L85-L101)), lo que dispara `bridge_->sendFullParamSync()` y `bridge_->sendPresetCatalog()` en [`PluginEditor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginEditor.cpp#L123-L131) para que todos los knobs, faders, drawers y el LCD de la WebUI reflejen al instante el nuevo estado.
+160: - `[x]` ✅ **Exposición de programas al navegador nativo del DAW (`getNumPrograms`, `getCurrentProgram`, `setCurrentProgram`, `getProgramName`, `changeProgramName`):**
+161:   - `ABDEep` expone los 1,024 programas (8 bancos × 128) y `ABDMS2000` expone los 128 programas (`A.01..H.16`) del banco activo en [`PluginProcessor.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L75-L120).
+162: 
+163: ---
+164: 
+165: ## 7. Expresión MIDI, Timing Sample-Accurate, Aftertouch Polifónico y MPE
+166: 
+167: - `[x]` ✅ **Renderizado MIDI Sample-Accurate (despacho en `metadata.samplePosition` exacto):** En [`ABDEep/Source/DSP/SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine.cpp#L179-L315) y [`ABDMS2000/Source/Core/SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/SynthEngine.cpp#L765-L865), cada evento MIDI (`NoteOn`, `NoteOff`, `PitchWheel`, `CC`, `Aftertouch`) se despacha en el índice de muestra exacto (`metadata.samplePosition`) dentro del bloque de audio, logrando jitter cero e independencia total del tamaño de buffer del DAW.
+168: - `[x]` ✅ **Soporte completo de controladores continuos y velocidades:**
+169:   - `Velocity` (Note-On) y `Release Velocity` (Note-Off) como fuentes en la matriz de modulación.
+170:   - `Pitch Wheel` bipolar ($[-1.0, +1.0]$).
+171:   - `CC#1` (Mod Wheel), `CC#2` (Breath Controller), `CC#4` (Foot Controller), `CC#11` (Expression Pedal).
+172:   - `CC#64` (Sustain Pedal) con retención física real de notas (*sustain latch*), verificado por tests unitarios.
+173: - `[x]` ✅ **Channel Pressure (Aftertouch monofónico) Y Polyphonic Key Pressure (Aftertouch polifónico):** Soportados en `SynthEngine.cpp`.
+174: - `[~]` ⚠️ **Soporte MPE (*MIDI Polyphonic Expression* por canal / VST3 Note Expression):** Opcional para modos expandidos (*Advanced*) con controladores Roli Seaboard / LinnStrument.
+175: 
+176: ### 7.1. Máquina de Estados MIDI para NRPN / RPN y Aislamiento de Controladores Compuestos
+177: - `[x]` ✅ **Ciclo de vida cerrado y reseteo obligatorio en controladores compuestos:** Los decodificadores de NRPN (`CC#99`, `CC#98`, `CC#6`, `CC#38`) deben operar como una máquina de estados determinista. El estado interno debe resetearse formalmente a valores inválidos (`0x7F`) ante:
+178:   1. `CC#121` (*Reset All Controllers*).
+179:   2. `CC#123` (*All Notes Off*).
+180:   3. `Program Change` / `Bank Select`.
+181:   4. Secuencias incompletas o tiempo límite de inactividad (*timeout*).
+182: - `[x]` ✅ **Aislamiento estricto por canal MIDI:** Prohibido compartir variables globales o persistentes de NRPN entre canales; cada canal MIDI debe mantener su propia máquina de estados independiente para evitar contaminación cruzada de parámetros.
+183: 
+184: ---
 
 ## 8. Ciclo de Vida del Editor (`AudioProcessorEditor` / WebView2), Escalado y Foco
 
@@ -351,6 +377,17 @@ Esta sección resume las lecciones aprendidas de auditar los 5 sintetizadores pa
    - Mantener el teclado MIDI en `ABDShared/Code/MidiKeyboard` con **HOLD (Latch)**, **Shift+Click**, **RETRIG (Auto-Repeat)** y liberación segura en `window`, y asegurar en el CSS de cada sintetizador que los *drawers* o paneles de edición nunca bloqueen con un `.drawer-backdrop` la zona inferior del teclado ni las ruedas de Pitch/Mod.
 6. **Doble Buffer Lock-Free `abd::synth::AudioThreadSnapshot<T>`, `ABDShared::ScopeCore` e Inyector 440 Hz Multi-Punto (`ABDEep` + `ABDMS2000` → exportar al resto):**
    - Usar `AudioThreadSnapshot<T>` para publicar diagnósticos de voz, `ScopeTap` (SPSC ring buffer) para el osciloscopio sin ningún mutex en el procesador, y el inyector de tono de **440 Hz seleccionable por etapa** (`Pre-Filter`, `Pre-Amp`, `Pre-FX`, `Pre-Master`, `Post-Master`) para diagnosticar al instante cualquier silencio en la cadena DSP.
+7. **Higiene y Desacoplamiento de Código derivado de Ingeniería Inversa (RE Hygiene):**
+   - Las referencias a herramientas de desensamblado (offsets de IDA, nombres Ghidra tipo `FUN_10040550`, anotaciones de paquetes binarios) deben residir en la documentación técnica de paridad (`DOCS/reverse-engineering/`) o en tablas declarativas de mapeo, nunca ensuciar el flujo principal del motor C++.
+   - Todo factor de escala empírico (p. ej. divisiones por 64.0f, 127.0f, 200.0f) debe documentarse con su derivación matemática o física.
+   - Idioma unificado: Todo el código fuente (clases, funciones, variables y comentarios técnicos en C++ y TypeScript) debe redactarse en **inglés** de forma consistente.
+8. **Arquitectura y Modularidad de Frontend WebUI (TypeScript/Vite):**
+   - **Separación estricta de capas:** Desacoplar el punto de entrada (`main.ts`) limitándolo al arranque y delegando en módulos dedicados: `StateStore` (estado centralizado reactivo), `BridgeCoordinator` (comunicación tipada C++), `Wiring` (enlace de eventos) y `Components` (vistas).
+   - **Prohibición de acceso privado / introspección por corchetes:** Prohibido acceder a miembros internos o callbacks privados mediante bracket notation (`component['callbacks']`) o scraping de texto en el DOM (`innerText`).
+   - **Uso exclusivo de constantes simbólicas (`ParamIDs`):** Prohibido el uso de índices de parámetros numéricos hardcodeados en la WebUI. Usar siempre el registro generado (`ParameterRegistry.gen.ts`).
+   - **Tipado estricto en el Bridge:** Prohibido el uso indiscriminado de `any`. Definir uniones discriminadas (*Discriminated Unions*) de TypeScript para todas las acciones y eventos del bridge.
+   - **Ciclo de vida y prevención de fugas de memoria:** Todo `addEventListener` en componentes dinámicos debe registrarse con su correspondiente método `dispose()` / `destroy()` para su desregistro limpio.
+   - **Cero stubs engañosos en producción:** Si una funcionalidad (p. ej. exportación, drag-and-drop) no está implementada en el backend, el botón debe deshabilitarse u ocultarse, nunca mostrar un `alert("Not implemented")` en interfaces de producción.
 
 ---
 
@@ -389,6 +426,12 @@ Estos anti-patrones **ya han sido eliminados en `ABDEep` y en `ABDMS2000`**, per
    - Mover knobs en `ABDCZ101` llama solo a `setValueNotifyingHost` sin abrir ni cerrar el gesto de automatización, impidiendo grabar automatización en modo *Touch* / *Latch* en DAWs profesionales. *(En `ABDMS2000` ya ha sido corregido en `bridgeCore.js`, `BridgeActions.cpp` y todos los componentes `ABD*`).*
 5. **❌ Falta de `processBlockBypassed()` (`ABDCZ101`, `ABDNeural`) y `getTailLengthSeconds() == 0` (`ABDNeural`):**
    - Activar el bypass del DAW mientras suenan notas deja voces colgadas indefinidamente en esos sintetizadores. *(En `ABDMS2000` ya se implementó `processBlockBypassed()` y `getTailLengthSeconds() = 2.5s`).*
+6. **❌ Fuga de Estado NRPN sin Reset ni Timeout:**
+   - Mantener variables persistentes `nrpnMsb_`, `nrpnLsb_` sin reseteo tras `Reset All Controllers` o cambio de programa, provocando que secuencias truncadas corrompan los parámetros siguientes.
+7. **❌ Monolitos en WebUI y Acceso por Bracket Notation (`main.ts` > 1000 líneas):**
+   - Concentrar todo el bootstrap, estado global mutable (`window.__*`) y manipulación del DOM en un único archivo, y saltarse la encapsulación accediendo a propiedades internas vía `navbar['callbacks'].onAction()`.
+8. **❌ Stubs Engañosos en UI y Tests con Skip Silencioso:**
+   - Dejar botones con `alert("Not implemented in preview")` o pruebas unitarias que hacen `if (!fileExists) return;` pasando en verde falsamente sin ejecutar ninguna aserción real.
 
 ---
 

@@ -282,3 +282,50 @@ CMake, y `LabResourcePaths` necesitó dos API nuevas para poder usarse en produc
 - Cuando un plan se desvía, dejar constancia del desvío **y de su motivo**. Un `PLAN.md` que marca
   "COMPLETO" sobre un diseño que nunca se construyó es peor que un `PLAN.md` pendiente.
 
+---
+
+## 17. Reentrancia y data races en sincronización masiva de parámetros (Bulk Parameter Sync)
+
+**El problema:** Al restaurar un preset o sincronizar el APVTS desde el motor DSP (`syncApvtsFromDspEngine()`), invocar `setValueNotifyingHost()` en bucle para cientos de parámetros dispara callbacks síncronos y asíncronos en los listeners. Si el flag de control (`isSyncingPreset_`) es un `bool` plano o se desactiva antes de que los callbacks diferidos concluyan, los listeners disparan eventos de vuelta hacia la WebUI o el DSP, creando bucles de eco, desincronizaciones de parámetros y posibles data races.
+
+**Regla:**
+- Utilizar siempre un flag atómico `std::atomic<bool> isSyncingPreset_ { false };` (o guard RAII `ScopedBatchUpdate`).
+- Desactivar o silenciar temporalmente los callbacks reactivos hacia el WebBridge y el DSP durante el bucle de sincronización.
+- Drenar y purgar de forma atómica (`swap` o `clear` bajo lock) las colas de cambios pendientes antes de iniciar y tras finalizar la sincronización masiva.
+
+---
+
+## 18. Fuga de estado en máquinas de estado MIDI compuestas (NRPN / RPN State Leakage)
+
+**El problema:** Los mensajes MIDI NRPN (Non-Registered Parameter Number) y RPN se componen de secuencias de Control Change (`CC#99` MSB, `CC#98` LSB, `CC#6` Data Entry MSB, `CC#38` Data Entry LSB). Si los valores recibidos se almacenan en variables persistentes sin timeout ni reseteo, una secuencia truncada, malformada o interrumpida por un cambio de pista dejará bytes huérfanos que contaminarán silenciosamente la siguiente secuencia de parámetros.
+
+**Regla:**
+- Implementar una máquina de estados explícita con timeout o invalidación de secuencia incompleta.
+- Resetear obligatoriamente el estado NRPN (`nrpnMsb_ = 0x7F`, `nrpnLsb_ = 0x7F`, etc.) ante:
+  1. `CC#121` (Reset All Controllers).
+  2. `CC#123` (All Notes Off).
+  3. Comandos de `Program Change` o cambio de banco.
+  4. Secuencias incompletas o no reconocidas.
+- Mantener el estado de controladores compuesto aislado por canal MIDI (`channel-isolated`).
+
+---
+
+## 19. Logging bloqueante en métodos de diagnóstico y silenciamiento ciego en `catch (...)`
+
+**El problema:** Macros de logging (`AX_LOG`, `DBG`) que realizan I/O síncrono a disco o consola (`std::cout`, `ofstream`) e invocan mutexes internos. Si alguna llamada a estas macros se produce desde `processBlock()` o funciones invocadas en tiempo real (incluso en modo de depuración), el audio thread se bloquea y se producen dropouts. Asimismo, capturar excepciones en el logger con `catch (...)` e ignorarlas silenciosamente oculta fallos críticos de permisos de disco, rutas inexistentes o saturación de almacenamiento.
+
+**Regla:**
+- **Zero I/O en tiempo real:** Prohibido invocar cualquier función o macro de logging síncrono desde el hilo de audio. Si se necesita registrar telemetría o diagnósticos desde audio, usar ring buffers SPSC lock-free hacia un worker thread secundario.
+- **Sin silenciamiento ciego:** Los bloques `catch (...)` en infraestructuras de logging o persistencia deben como mínimo reportar a `std::cerr` o retornar un código de error/estado estructurado, nunca tragar errores en silencio.
+
+---
+
+## 20. Desbordamiento numérico en modulación exponencial sin acotar (`std::pow` / `std::exp`)
+
+**El problema:** Calcular modulaciones de frecuencia o pitch bend mediante funciones trascendentes directas como `std::pow(2.0f, (pitchBendWheel * pbRange) / 12.0f)` sin acotar previamente el exponente. Si `pbRange` contiene valores extremos, no inicializados o corruptos, `std::pow` genera `Inf`, `NaN` o frecuencias que sobrepasan Nyquist ($f_s / 2$), provocando fallos en filtros IIR recursivos o cortes audibles.
+
+**Regla:**
+- Toda operación exponencial o potenciativa en el motor DSP debe aplicar clamping estricto (`std::clamp`) sobre el exponente y validar que la frecuencia resultante esté acotada dentro del rango audible seguro: `[0.1f, sampleRate * 0.49f]`.
+- Garantizar que los factores de modulación externos estén validados antes de alimentar ecuaciones exponenciales.
+
+

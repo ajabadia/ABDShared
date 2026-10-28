@@ -341,6 +341,14 @@ WebUI/tests/                     # JavaScript tests (Vitest)
 | **Phase 4** | pluginval (strictness ≥ 5), allocation audit | `bridgeWasm.test.js` (param roundtrip) |
 | **Phase 5** | Sample rate resilience, buffer size variance | Full test suite regression |
 
+#### Reglas para Tests
+
+- **Autocontenidos:** Sin rutas hardcodeadas a directorios externos (`C:/Users/...`, etc.). Usar fixtures locales en `tests/fixtures/` o mocks deterministas.
+- **Sin skips silenciosos:** Si un test requiere un recurso opcional, debe fallar con mensaje claro o generar su propio fixture. Prohibido `skip`/`xit` encubierto por "archivo no encontrado".
+- **Sin telemetría falsa:** Los tests de telemetría deben verificar valores reales o marcar explícitamente como estimados.
+- **Centralización de índices:** Al testear mapeos de parámetros, usar las constantes centralizadas (`*ParamIndices`) en lugar de números mágicos.
+- **Rutas únicas de parámetros:** Validar que no existan rutas duales ambiguas; si las hay, testear la precedencia.
+
 #### Test Patterns
 
 **C++ — NaN/Inf Detection:**
@@ -894,6 +902,16 @@ class ProgramData {
 - **TTL-based deduplication:** PendingTransaction with 300ms expiry prevents infinite loops
 - **NRPN support:** For params > 127 range (14-bit: CC#99/98 MSB/LSB + CC#6/38 Data)
 
+### 6.5 NRPN / RPN State Machine & Lifecycle Rules
+
+- **Stateful Parsing:** NRPN parameters span 4 distinct CC messages (`CC#99` MSB, `CC#98` LSB, `CC#6` Data MSB, `CC#38` Data LSB). The parser must track active parameter state per MIDI channel.
+- **Mandatory Reset Triggers:** The NRPN state machine must reset active MSB/LSB to invalid (`0x7F` / `-1`) on:
+  1. `CC#121` (Reset All Controllers)
+  2. `CC#123` (All Notes Off)
+  3. `Program Change` / Bank Select
+  4. Sequence timeout (if Data Entry does not arrive within a reasonable window, e.g., 500ms)
+- **Channel Isolation:** Never store NRPN state in shared global variables across channels. Each MIDI channel must maintain isolated state.
+
 ---
 
 ## 7. WebUI Architecture
@@ -1097,6 +1115,28 @@ std::optional<Resource> pluginResourceProvider(const String& url) {
     // ...
 }
 ```
+
+### 7.13 Frontend Architecture & Code Quality Standards (TypeScript / Vite)
+
+1. **Layer Separation (Anti-Monolith):**
+   - `main.ts`: Minimal application bootstrap (< 150 lines). Does NOT contain inline DOM creation, complex UI state, or business logic.
+   - `src/state/`: Centralized reactive state store (`AppStore`). No ad-hoc mutable globals (`window.__*`).
+   - `src/bridge/`: Typed communication coordinator.
+   - `src/ui/`: Modular drawers, panels, and self-contained components.
+2. **Encapsulation & Private API Integrity:**
+   - Never access component internals via bracket notation (e.g., `navbar['callbacks'].onAction()`).
+   - Components must communicate via clean public events, interfaces, or callback options.
+   - Never scrape DOM text (`element.innerText`) to determine business state (e.g., current model/preset). Use structured state from the store.
+3. **Symbolic Parameter Constants:**
+   - Never use hardcoded parameter indices in UI code (`setParam(41, val)`).
+   - Always import symbolic constants generated from the registry (`ParamIDs` or `ParameterRegistry.gen.ts`).
+4. **Strict Bridge Typing (Zero Any Abuse):**
+   - Define TypeScript Discriminated Unions for all bridge messages and actions.
+   - Disallow blind `any` casts on bridge message payloads.
+5. **Event Listener Lifecycle & Memory Management:**
+   - Every dynamic component must implement a `dispose()` or `destroy()` method that removes registered window/document `addEventListener` handlers.
+6. **No Mockup Stubs in Production:**
+   - Do not ship buttons or UI controls that trigger `alert("Not implemented")` or no-op console logs. If a feature is unsupported in the current engine, disable or hide the control.
 
 ---
 
@@ -1452,6 +1492,20 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
 | Hardcoded DWGS wave names in UI | Names don't match engine | Pull names from `DWGSTables` via bridge |
 | Duplicate `setupAudioInitButton()` | Second definition overwrites first | Single definition, clear branching |
 
+### From ABDAxionikVS
+
+| Anti-Pattern | Consequence | Fix |
+|---|---|---|
+| Monolithic `main.ts` (>1000 lines) with global mutable state | Hard to test, memory leaks, high regression risk | Split into `AppBootstrap`, `AppStore`, `BridgeCoordinator`, and modular drawers |
+| Bracket-notation access to private components (`navbar['callbacks']`) | Breaks encapsulation, breaks silently on refactor | Use public event emitter or strongly-typed callback interfaces |
+| Scraping DOM text (`element.innerText`) for preset/model identity | Fragile, breaks on UI localization or styling changes | Track canonical preset/model metadata in the central store |
+| Hardcoded numeric parameter indices in WebUI & DSP | Fragile to registry changes, impossible to audit | Import typed `ParamIDs` from generated contracts |
+| Synthetic/fake telemetry (`cpuUsage = 0.015f * activeVoices`) | Deceives user and host diagnostics | Compute real timing benchmarks or explicitly label as synthetic |
+| Unbounded modulations in `std::pow` / `std::exp` | NaN/Inf and IIR filter blowups | Clamp exponent (`std::clamp`) and bound resulting frequency |
+| Coarse anti-pop fades across full blocks | Abrupt audio clicks when few samples remain | Sample-accurate fade with per-sample decremented counter |
+| Stubs with `alert("Not implemented")` in UI | Unprofessional UX in production builds | Disable or hide unsupported controls |
+| Tests with hardcoded developer paths (`C:/Users/.../Downloads`) | Tests silently skip with false green in CI | Use local checked-in test fixtures or deterministic mocks |
+
 ---
 
 ### 13.4 Critical Rules for Audio Startup, WebUI & SysEx (The "Never Again" Rules)
@@ -1503,6 +1557,25 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
   1. From DAW MIDI buffer in `PluginProcessor::processBlock` → `synthEngine_.setPitchBend(...)`
   2. From WebUI virtual wheels/keys in `BridgeActions::handleJsEvent` → `synthEngine_.setPitchBend(...)`
   3. Stored as `std::atomic<float>` in `SynthEngine` and read thread-safely in `Voice::renderNextSample`.
+
+#### Rule 6: NRPN Stateful Processing & Reset Lifecycle
+- Any parser receiving multi-part MIDI messages (`CC#99`/`CC#98` followed by `CC#6`/`CC#38`) must explicitly clear its active MSB/LSB state upon receiving:
+  - `CC#121` (Reset All Controllers)
+  - `CC#123` (All Notes Off)
+  - `Program Change` / `Bank Select`
+  - Timeout after incomplete transmission
+- Storing NRPN state in unreset static/member variables leaks stale parameters across clips and tracks.
+
+#### Rule 7: Bulk APVTS Synchronization & Callback Reentrancy Guard
+- When updating APVTS parameters from a loaded preset or DSP engine snapshot (`syncApvtsFromDspEngine`):
+  - Guard the update loop with `std::atomic<bool> isSyncingPreset_ { true };`
+  - Temporarily suppress change listeners to prevent reciprocal echo storms (APVTS → UI → DSP → APVTS).
+  - Atomically drain and clear pending UI change queues before re-enabling listeners.
+
+#### Rule 8: Defensive Deserialization in State Restoration
+- In `setStateInformation(const void* data, int sizeInBytes)`:
+  - Always verify `data != nullptr` and `sizeInBytes >= kMinimumStateBytes` before calling `getXmlFromBinary()`.
+  - Validate and clamp bank/program indices in `Program Change` handlers (`slot = std::clamp(bank * 100 + prog, 0, maxSlots - 1)`).
 
 ---
 

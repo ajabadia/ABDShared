@@ -127,3 +127,12 @@ export { SpectrumPlotter } from './spectrumPlotter.js';
 export { HardwareRoutingDiagram } from './hardwareRoutingDiagram.js';
 export { StudioTopology } from './studioTopology.js';
 
+// Navegador de bancos NeuronDB (carcasa presentacional + tarjetas +
+// categorías): sirve selecciones, el host decide qué significa cargar.
+export {
+  createBankShell,
+  bankCardHtml,
+  bindBankCards,
+  classifyBankCategory,
+} from './bank/index.js';
+

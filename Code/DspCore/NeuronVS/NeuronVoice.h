@@ -12,149 +12,14 @@
 #include <algorithm>
 #include "DspCore/NeuronVS/NeuronOscillators.h"
 #include "DspCore/NeuronVS/NeuronModel.h"
+#include "DspEffects/DspNeuronSilverFilter.h"
+#include "DspEffects/DspNeuronSilverRack.h"
+#include "DspCore/DspNeuronEnvelope.h"
 
 namespace abd::dsp::neuron {
 
-/// Envolvente ADSR de alta precisión para el motor Neuron
-class NeuronEnvelope {
-public:
-    enum class State { Idle, Attack, Decay, Sustain, Release };
-
-    void setSampleRate(double sr) noexcept {
-        sampleRate_ = sr > 0.0 ? sr : 44100.0;
-        updateRates();
-    }
-
-    void setParameters(float aMs, float dMs, float sLevel, float rMs) noexcept {
-        attackMs_ = std::max(aMs, 0.5f);
-        decayMs_ = std::max(dMs, 1.0f);
-        sustainLevel_ = std::clamp(sLevel, 0.0f, 1.0f);
-        releaseMs_ = std::max(rMs, 1.0f);
-        updateRates();
-    }
-
-    void trigger(float velocity = 1.0f) noexcept {
-        velocity_ = velocity;
-        state_ = State::Attack;
-    }
-
-    void release() noexcept {
-        if (state_ != State::Idle) {
-            state_ = State::Release;
-        }
-    }
-
-    void reset() noexcept {
-        state_ = State::Idle;
-        currentLevel_ = 0.0f;
-    }
-
-    [[nodiscard]] bool isActive() const noexcept { return state_ != State::Idle; }
-    [[nodiscard]] float getLevel() const noexcept { return currentLevel_ * velocity_; }
-
-    float process() noexcept {
-        switch (state_) {
-            case State::Attack:
-                currentLevel_ += attackRate_;
-                if (currentLevel_ >= 1.0f) {
-                    currentLevel_ = 1.0f;
-                    state_ = State::Decay;
-                }
-                break;
-            case State::Decay:
-                currentLevel_ -= decayRate_;
-                if (currentLevel_ <= sustainLevel_) {
-                    currentLevel_ = sustainLevel_;
-                    state_ = State::Sustain;
-                }
-                break;
-            case State::Sustain:
-                currentLevel_ = sustainLevel_;
-                break;
-            case State::Release:
-                currentLevel_ -= releaseRate_;
-                if (currentLevel_ <= 0.0f) {
-                    currentLevel_ = 0.0f;
-                    state_ = State::Idle;
-                }
-                break;
-            case State::Idle:
-                currentLevel_ = 0.0f;
-                break;
-        }
-        return currentLevel_ * velocity_;
-    }
-
-private:
-    void updateRates() noexcept {
-        attackRate_ = static_cast<float>(1000.0 / (attackMs_ * sampleRate_));
-        decayRate_  = static_cast<float>((1.0 - sustainLevel_) * 1000.0 / (decayMs_ * sampleRate_));
-        releaseRate_ = static_cast<float>(1000.0 / (releaseMs_ * sampleRate_));
-    }
-
-    double sampleRate_{44100.0};
-    float attackMs_{10.0f};
-    float decayMs_{200.0f};
-    float sustainLevel_{0.7f};
-    float releaseMs_{300.0f};
-
-    float attackRate_{0.001f};
-    float decayRate_{0.001f};
-    float releaseRate_{0.001f};
-
-    float currentLevel_{0.0f};
-    float velocity_{1.0f};
-    State state_{State::Idle};
-};
-
-/// Filtro variable de estado (SVF) para la etapa de corte y resonancia de Neuron
-class NeuronFilter {
-public:
-    void setSampleRate(double sr) noexcept {
-        sampleRate_ = sr > 0.0 ? sr : 44100.0;
-        update();
-    }
-
-    void setCutoff(float hz) noexcept {
-        cutoff_ = std::clamp(hz, 20.0f, static_cast<float>(sampleRate_ * 0.48));
-        update();
-    }
-
-    void setResonance(float reso) noexcept {
-        resonance_ = std::clamp(reso, 0.0f, 0.98f);
-        update();
-    }
-
-    void reset() noexcept {
-        s1_ = 0.0f;
-        s2_ = 0.0f;
-    }
-
-    float process(float in) noexcept {
-        float hp = in - (2.0f * r_ + g_) * s1_ - s2_;
-        hp /= (1.0f + 2.0f * r_ * g_ + g_ * g_);
-        float bp = hp * g_ + s1_;
-        s1_ = bp * g_ + bp;
-        float lp = bp * g_ + s2_;
-        s2_ = lp * g_ + lp;
-        return lp;
-    }
-
-private:
-    void update() noexcept {
-        float norm = static_cast<float>(cutoff_ / sampleRate_);
-        g_ = std::tan(3.14159265f * norm);
-        r_ = 1.0f - resonance_;
-    }
-
-    double sampleRate_{44100.0};
-    float cutoff_{2000.0f};
-    float resonance_{0.2f};
-    float g_{0.1f};
-    float r_{0.8f};
-    float s1_{0.0f};
-    float s2_{0.0f};
-};
+using NeuronFilter = abd::dsp::DspNeuronSilverFilter;
+using NeuronEnvelope = abd::dsp::DspNeuronEnvelope;
 
 /// Una voz individual del sintetizador Neuron (2 motores R1 y R2 de 0x6838 bytes)
 class NeuronVoice {
@@ -165,42 +30,67 @@ public:
         sampleRate_ = sr > 0.0 ? sr : 44100.0;
         ampEnv_.setSampleRate(sampleRate_);
         filterEnv_.setSampleRate(sampleRate_);
+        r1ResEnv_.setSampleRate(sampleRate_);
+        r2ResEnv_.setSampleRate(sampleRate_);
         filter_.setSampleRate(sampleRate_);
     }
 
     void noteOn(uint8_t note, float velocity,
                 const ModelZoneRecord& r1Zone,
                 const ModelZoneRecord& r2Zone,
-                float pitchBendFactor = 1.0f) {
+                float pitchBendFactor = 1.0f,
+                float r1VelSwitchNorm = 0.5f,
+                float r2VelSwitchNorm = 0.5f) {
         note_ = note;
         velocity_ = velocity;
         age_ = ++globalNoteIdCounter_;
         active_ = true;
 
-        // Configurar los dos motores independientes R1 y R2 con sus zonas respectivas
-        r1Engine_.bindZone(r1Zone);
-        r2Engine_.bindZone(r2Zone);
+        // Configurar los dos motores independientes R1 y R2 con sus zonas respectivas y umbral VelocitySwitch
+        r1Engine_.bindZone(r1Zone, velocity, r1VelSwitchNorm);
+        r2Engine_.bindZone(r2Zone, velocity, r2VelSwitchNorm);
 
         // Frecuencia base de la nota
-        float freqHz = 440.0f * std::pow(2.0f, (static_cast<float>(note) - 69.0f) / 12.0f) * pitchBendFactor;
+        float freqHz = 440.0f * std::pow(2.0f, (static_cast<float>(note) - 69.0f) / 12.0f);
         // Escala canónica de Neuron: 100 muestras/ciclo del Scape
-        phaseStep_ = static_cast<float>(100.0 * freqHz / sampleRate_);
+        basePhaseStep_ = static_cast<float>(100.0 * freqHz / sampleRate_);
+        phaseStep_ = basePhaseStep_ * pitchBendFactor;
 
         // Disparar envolventes y reiniciar oscilador del Slicer
         slicerPhase_ = 0.0;
         ampEnv_.trigger(velocity);
         filterEnv_.trigger(velocity);
+        r1ResEnv_.trigger(velocity);
+        r2ResEnv_.trigger(velocity);
         filter_.reset();
+    }
+
+    void setResynatorEnabled(int resynator, bool enabled) noexcept {
+        if (resynator == 0) r1Enabled_ = enabled;
+        else r2Enabled_ = enabled;
+    }
+
+    void setPanParams(float panBipolar, float panKeyTrackBipolar) noexcept {
+        pan_ = std::clamp(panBipolar, -1.0f, 1.0f);
+        panKeyTrack_ = std::clamp(panKeyTrackBipolar, -1.0f, 1.0f);
+    }
+
+    void setPitchBendFactor(float factor) noexcept {
+        phaseStep_ = basePhaseStep_ * factor;
     }
 
     void noteOff() noexcept {
         ampEnv_.release();
         filterEnv_.release();
+        r1ResEnv_.release();
+        r2ResEnv_.release();
     }
 
     void stop() noexcept {
         ampEnv_.reset();
         filterEnv_.reset();
+        r1ResEnv_.reset();
+        r2ResEnv_.reset();
         active_ = false;
     }
 
@@ -211,37 +101,12 @@ public:
     [[nodiscard]] uint8_t getNote() const noexcept { return note_; }
     [[nodiscard]] uint64_t getAge() const noexcept { return age_; }
 
-    /// Generador determinista de las 12 formas de onda de LFO de Hartmann Neuron
+    /// Generador determinista de las 12 formas de onda de LFO de Hartmann Neuron (FUN_10044884 / neuron-lfos.pdf)
     static float evaluateLfoWaveform(int wave, double phase) noexcept {
         constexpr double twoPi = 6.28318530717958647692;
         double p = phase / twoPi;
         p -= std::floor(p);
-        switch (wave) {
-            case 0: return static_cast<float>(std::sin(phase)); // Sine
-            case 1: return static_cast<float>(4.0 * std::abs(p - 0.5) - 1.0); // Triangle
-            case 2: return static_cast<float>(2.0 * p - 1.0); // Saw Up
-            case 3: return static_cast<float>(1.0 - 2.0 * p); // Saw Down
-            case 4: return p < 0.5 ? 1.0f : -1.0f; // Square
-            case 5: return static_cast<float>((1.0 + std::sin(phase)) * 0.5); // Pos Sine
-            case 6: return static_cast<float>(1.0 - 2.0 * std::abs(p - 0.5)); // Pos Triangle
-            case 7: return p < 0.5 ? 1.0f : 0.0f; // Pos Square
-            case 8: return static_cast<float>(std::floor(p * 4.0) / 3.0 * 2.0 - 1.0); // Step
-            case 9: { // Random S&H
-                uint32_t stepIdx = static_cast<uint32_t>(p * 8.0);
-                uint32_t hash = stepIdx * 2654435761u;
-                return (static_cast<float>(hash & 0xFFFF) / 32768.0f) - 1.0f;
-            }
-            case 10: { // Random Smooth
-                double pScaled = p * 8.0;
-                uint32_t i0 = static_cast<uint32_t>(pScaled);
-                float frac = static_cast<float>(pScaled - i0);
-                float v0 = (static_cast<float>((i0 * 2654435761u) & 0xFFFF) / 32768.0f) - 1.0f;
-                float v1 = (static_cast<float>(((i0 + 1) * 2654435761u) & 0xFFFF) / 32768.0f) - 1.0f;
-                return (1.0f - frac) * v0 + frac * v1;
-            }
-            case 11: return p < 0.08 ? 1.0f : 0.0f; // Impulse
-            default: return static_cast<float>(std::sin(phase));
-        }
+        return abd::dsp::DspNeuronLfoTables::readInterpolated(wave, p * 8192.0);
     }
 
     /// Renderiza un bloque de 128 muestras para esta voz en el acumulador estéreo
@@ -252,11 +117,21 @@ public:
                      float slicerDepth = 0.0f,
                      float slicerRateHz = 4.0f,
                      int slicerWave = 0,
+                     int filterType = 0,
                      float filterCutoffHz = 2500.0f,
-                     float filterReso = 0.2f) {
+                     float filterReso = 0.2f,
+                     float filterEnvDepth = 0.0f,
+                     float filterKeyTrack = 0.0f,
+                     float filterVelDepth = 0.0f) {
         if (!isActive()) return;
 
-        filter_.setResonance(filterReso);
+        // Limpieza de estado anti-pops en conmutación de tipo de filtro (Mac 1.56 _sqe1Aw53j...)
+        if (filterType != lastFilterType_) {
+            lastFilterType_ = filterType;
+            filter_.reset();
+        }
+
+        auto fMode = static_cast<abd::dsp::DspNeuronSilverFilter::Mode>(std::clamp(filterType, 0, 4));
 
         for (size_t i = 0; i < blockSize; ++i) {
             float env = ampEnv_.process();
@@ -265,61 +140,89 @@ public:
                 break;
             }
 
+            // Envolventes dinámicas de resonador R1 y R2 (ResEnv [182..185] y [212..215])
+            float r1Mod = r1ResEnv_.process();
+            float r2Mod = r2ResEnv_.process();
+            (void)r1Mod;
+            (void)r2Mod;
+
             float fEnv = filterEnv_.process();
-            float dynCutoff = filterCutoffHz * (0.5f + 1.5f * fEnv);
-            filter_.setCutoff(dynCutoff);
+            float envOctaves = 0.0f;
+            if (std::abs(filterEnvDepth) > 0.001f) {
+                envOctaves = (fEnv * filterEnvDepth) * 3.5f;
+            }
+            float keyOctaves = 0.0f;
+            if (std::abs(filterKeyTrack) > 0.001f) {
+                keyOctaves = (static_cast<float>(note_) - 60.0f) * (filterKeyTrack / 64.0f) / 12.0f;
+            }
+            float velOctaves = 0.0f;
+            if (std::abs(filterVelDepth) > 0.001f) {
+                velOctaves = (velocity_ - 0.7874f) * (filterVelDepth / 64.0f) * 1.5f;
+            }
+            float totalOctaves = envOctaves + keyOctaves + velOctaves;
+            float dynCutoff = std::clamp(filterCutoffHz * std::pow(2.0f, totalOctaves), 20.0f, 20000.0f);
+            filter_.setParameters(fMode, dynCutoff, filterReso, 0.0f);
 
-            // 1. Renderizar motores R1 y R2
-            float s1 = r1Engine_.renderSample(phaseStep_);
-            float s2 = r2Engine_.renderSample(phaseStep_);
+            // 1. Renderizar motores R1 y R2 (respetando R1Switch [23] y R2Switch [103])
+            float s1 = r1Enabled_ ? r1Engine_.renderSample(phaseStep_) : 0.0f;
+            float s2 = r2Enabled_ ? r2Engine_.renderSample(phaseStep_) : 0.0f;
 
-            // 2. Blender (Los 10 algoritmos de fusión de Hartmann Neuron)
-            float mixed = 0.0f;
-            switch (blenderType) {
-                default:
-                case 0: // Mix (Crossfade lineal)
-                    mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2;
-                    break;
-                case 1: // Chromophonic (R1 tono con excitación de R2)
-                    mixed = (1.0f - blenderAmount) * s1 + blenderAmount * (s1 * 0.4f + s2 * 0.6f * std::copysign(1.0f, s1));
-                    break;
-                case 2: // Transsphere (cruce Scape/Sphere con dispersión)
-                    mixed = (s1 + s2) * 0.5f + (s1 - s2) * (blenderAmount - 0.5f);
-                    break;
-                case 3: // Crossmorph (interpolación con intermodulación armónica)
-                    mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2 + (s1 * s2 * 0.25f);
-                    break;
-                case 4: // Intermorph (morfología no lineal de bandas intermedias)
-                    mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2 + std::sin(3.14159f * blenderAmount) * (s1 - s2) * 0.35f;
-                    break;
-                case 5: { // Dyn Transsphere (gobernado por la envolvente dinámica)
-                    float dynA = std::clamp(blenderAmount + (env - 0.5f) * 0.4f, 0.0f, 1.0f);
-                    mixed = (1.0f - dynA) * s1 + dynA * s2;
-                    break;
+            // 2. Blender (Los 10 algoritmos de fusión de Hartmann Neuron - FUN_1002e7a0)
+            float mixedL = 0.0f;
+            float mixedR = 0.0f;
+
+            if (blenderType == 1) {
+                // Modo 1 (Chromophonic / Split, 0x1002EFF5): único reparto estéreo desacoplado
+                // Acumulador 1 = R1 * peso2 (1 - W), Acumulador 2 = R2 * peso1 (W)
+                mixedL = (1.0f - blenderAmount) * s1;
+                mixedR = blenderAmount * s2;
+            } else {
+                float mixed = 0.0f;
+                switch (blenderType) {
+                    default:
+                    case 0: // Mix (Crossfade lineal ponderado cruzado)
+                        mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2;
+                        break;
+                    case 2: // Transsphere (cruce Scape/Sphere con dispersión)
+                        mixed = (s1 + s2) * 0.5f + (s1 - s2) * (blenderAmount - 0.5f);
+                        break;
+                    case 3: // Crossmorph (interpolación con intermodulación armónica)
+                        mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2 + (s1 * s2 * 0.25f);
+                        break;
+                    case 4: // Intermorph (morfología no lineal de bandas intermedias)
+                        mixed = (1.0f - blenderAmount) * s1 + blenderAmount * s2 + std::sin(3.14159f * blenderAmount) * (s1 - s2) * 0.35f;
+                        break;
+                    case 5: { // Dyn Transsphere (gobernado por la envolvente dinámica)
+                        float dynA = std::clamp(blenderAmount + (env - 0.5f) * 0.4f, 0.0f, 1.0f);
+                        mixed = (1.0f - dynA) * s1 + dynA * s2;
+                        break;
+                    }
+                    case 6: { // Dyn Crossmorph (crossmorph dependiente de envolvente)
+                        float dynA = std::clamp(blenderAmount * env, 0.0f, 1.0f);
+                        mixed = (1.0f - dynA) * s1 + dynA * s2 + (s1 * s2 * dynA * 0.3f);
+                        break;
+                    }
+                    case 7: { // Velo Crossmorph (crossmorph según la velocidad de nota)
+                        float veloA = std::clamp(blenderAmount * velocity_, 0.0f, 1.0f);
+                        mixed = (1.0f - veloA) * s1 + veloA * s2;
+                        break;
+                    }
+                    case 8: { // Velo Chrome (Chromophonic modulado por velocidad)
+                        float veloA = std::clamp(blenderAmount * velocity_, 0.0f, 1.0f);
+                        mixed = (1.0f - veloA) * s1 + veloA * (s1 * 0.5f + s2 * 0.5f);
+                        break;
+                    }
+                    case 9: { // Ring Blend / Hard Sync
+                        float ring = s1 * s2 * 2.2f;
+                        mixed = (1.0f - blenderAmount) * ((s1 + s2) * 0.5f) + blenderAmount * ring;
+                        break;
+                    }
                 }
-                case 6: { // Dyn Crossmorph (crossmorph dependiente de envolvente)
-                    float dynA = std::clamp(blenderAmount * env, 0.0f, 1.0f);
-                    mixed = (1.0f - dynA) * s1 + dynA * s2 + (s1 * s2 * dynA * 0.3f);
-                    break;
-                }
-                case 7: { // Velo Crossmorph (crossmorph según la velocidad de nota)
-                    float veloA = std::clamp(blenderAmount * velocity_, 0.0f, 1.0f);
-                    mixed = (1.0f - veloA) * s1 + veloA * s2;
-                    break;
-                }
-                case 8: { // Velo Chrome (Chromophonic modulado por velocidad)
-                    float veloA = std::clamp(blenderAmount * velocity_, 0.0f, 1.0f);
-                    mixed = (1.0f - veloA) * s1 + veloA * (s1 * 0.5f + s2 * 0.5f);
-                    break;
-                }
-                case 9: { // Ring Blend / Hard Sync
-                    float ring = s1 * s2 * 2.2f;
-                    mixed = (1.0f - blenderAmount) * ((s1 + s2) * 0.5f) + blenderAmount * ring;
-                    break;
-                }
+                mixedL = mixed;
+                mixedR = mixed;
             }
 
-            // 3. Slicer (Modulación temporal rítmica 2D / 3D)
+            // 3. Slicer por voz (solo si se invoca directamente fuera del BlockPump)
             float slicerModL = 1.0f;
             float slicerModR = 1.0f;
             if (slicerType > 0 && slicerDepth > 0.001f) {
@@ -331,7 +234,8 @@ public:
                 if (slicerType == 1) { // 2D (Vertical Chop)
                     float chop = (lfoVal + 1.0f) * 0.5f;
                     float mod = 1.0f - slicerDepth * (1.0f - chop);
-                    mixed *= mod;
+                    mixedL *= mod;
+                    mixedR *= mod;
                 } else if (slicerType == 2) { // 3D (Spatial Pan/Chop)
                     float chop = (lfoVal + 1.0f) * 0.5f;
                     slicerModL = 1.0f - slicerDepth * (1.0f - chop);
@@ -339,18 +243,31 @@ public:
                 }
             }
 
-            // 4. Filtro resonante
-            float filtered = filter_.process(mixed);
+            // 4. Filtro resonante por voz (FUN_100382b0 L1644-1650: FUN_1003d6f0 sobre (L+R)*0.5f salvo modo 1 o filtro en bypass)
+            float filteredL = mixedL;
+            float filteredR = mixedR;
+            if (blenderType != 1 && filterType >= 0) {
+                float monoSum = (mixedL + mixedR) * 0.5f;
+                float fOut = filter_.process(monoSum);
+                filteredL = fOut;
+                filteredR = fOut;
+            }
 
-            // 5. Envolvente de amplitud y acumulación en el bus estéreo
-            float outSample = filtered * env;
-            leftAcc[i]  += outSample * slicerModL;
-            rightAcc[i] += outSample * slicerModR;
+            // 5. Envolvente de amplitud, ley de paneo (SoundPan [3] + SoundPanKeyTrack [4], centro = 0.5f) y acumulación
+            float effPan = std::clamp(pan_ + panKeyTrack_ * ((static_cast<float>(note_) - 60.0f) / 36.0f), -1.0f, 1.0f);
+            float gainL = (1.0f - effPan) * 0.5f;
+            float gainR = (1.0f + effPan) * 0.5f;
+            float outSampleL = filteredL * env * gainL;
+            float outSampleR = filteredR * env * gainR;
+            leftAcc[i]  += outSampleL * slicerModL;
+            rightAcc[i] += outSampleR * slicerModR;
         }
     }
 
     NeuronEnvelope& getAmpEnv() noexcept { return ampEnv_; }
     NeuronEnvelope& getFilterEnv() noexcept { return filterEnv_; }
+    NeuronEnvelope& getR1ResEnv() noexcept { return r1ResEnv_; }
+    NeuronEnvelope& getR2ResEnv() noexcept { return r2ResEnv_; }
     CResynator& getR1() noexcept { return r1Engine_; }
     const CResynator& getR1() const noexcept { return r1Engine_; }
     CResynator& getR2() noexcept { return r2Engine_; }
@@ -365,14 +282,22 @@ private:
     uint64_t age_{0};
     bool active_{false};
 
+    float basePhaseStep_{1.0f};
     float phaseStep_{1.0f};
     double slicerPhase_{0.0};
+    int lastFilterType_{-1};
+    bool r1Enabled_{true};
+    bool r2Enabled_{true};
+    float pan_{0.0f};
+    float panKeyTrack_{0.0f};
 
     ResynatorCore r1Engine_;
     ResynatorCore r2Engine_;
 
     NeuronEnvelope ampEnv_;
     NeuronEnvelope filterEnv_;
+    NeuronEnvelope r1ResEnv_;
+    NeuronEnvelope r2ResEnv_;
     NeuronFilter filter_;
 };
 

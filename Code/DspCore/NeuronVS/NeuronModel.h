@@ -21,7 +21,7 @@
 namespace abd::dsp::neuron {
 
 inline constexpr uint32_t kSphereFrameMagic = 0x4D2; // 1234
-inline constexpr size_t kMaxModelSources = 12;        // Hasta 12 pares scape/sphere por modelo
+inline constexpr size_t kMaxModelSources = 128;       // Hasta 128 pares scape/sphere por modelo (ej. 315/321/322 tienen 61)
 inline constexpr size_t kMidiKeysCount = 128;         // 128 notas MIDI
 
 /// Descriptor de un Chunk binario AN (csAN, psAN, mnAN, fdAN)
@@ -83,9 +83,13 @@ struct ModelZoneRecord {
     int32_t lowSource{0};
     int32_t hiSource{0};
     const uint8_t* scapeLo{nullptr};
+    size_t scapeLoSize{0};
     const uint8_t* sphereLo{nullptr};
+    size_t sphereLoSize{0};
     const uint8_t* scapeHi{nullptr};
+    size_t scapeHiSize{0};
     const uint8_t* sphereHi{nullptr};
+    size_t sphereHiSize{0};
     int32_t detune{0};
     float volumeGain{1.0f}; // 10^(dB / 20)
     float pan{0.0f};        // -1.0 .. +1.0
@@ -192,9 +196,13 @@ private:
                         keyZones_[k].lowSource = 1;
                         keyZones_[k].hiSource = 1;
                         keyZones_[k].scapeLo = src->scape->data();
+                        keyZones_[k].scapeLoSize = src->scape->size();
                         keyZones_[k].sphereLo = src->sphere->data();
+                        keyZones_[k].sphereLoSize = src->sphere->size();
                         keyZones_[k].scapeHi = src->scape->data();
+                        keyZones_[k].scapeHiSize = src->scape->size();
                         keyZones_[k].sphereHi = src->sphere->data();
+                        keyZones_[k].sphereHiSize = src->sphere->size();
                         keyZones_[k].volumeGain = 1.0f;
                     }
                     return true;
@@ -211,11 +219,16 @@ private:
         while (std::getline(in, line)) {
             if (line.empty() || line[0] == '#') continue;
 
-            size_t spacePos = line.find(' ');
-            if (spacePos == std::string::npos) continue;
+            size_t delimPos = line.find_first_of(" \t");
+            if (delimPos == std::string::npos) continue;
 
-            std::string key = line.substr(0, spacePos);
-            std::string val = line.substr(spacePos + 1);
+            std::string key = line.substr(0, delimPos);
+            size_t valStart = line.find_first_not_of(" \t", delimPos);
+            if (valStart == std::string::npos) continue;
+            std::string val = line.substr(valStart);
+            while (!val.empty() && (val.back() == '\r' || val.back() == ' ' || val.back() == '\t')) {
+                val.pop_back();
+            }
 
             size_t alphaStart = 0;
             while (alphaStart < key.size() && std::isdigit(static_cast<unsigned char>(key[alphaStart]))) {
@@ -237,14 +250,18 @@ private:
                 const auto* src = findSource(currentZone.lowSource);
                 if (src) {
                     currentZone.scapeLo = src->scape->data();
+                    currentZone.scapeLoSize = src->scape->size();
                     currentZone.sphereLo = src->sphere->data();
+                    currentZone.sphereLoSize = src->sphere->size();
                 }
             } else if (fieldName == "HiSource") {
                 currentZone.hiSource = std::stoi(val);
                 const auto* src = findSource(currentZone.hiSource);
                 if (src) {
                     currentZone.scapeHi = src->scape->data();
+                    currentZone.scapeHiSize = src->scape->size();
                     currentZone.sphereHi = src->sphere->data();
+                    currentZone.sphereHiSize = src->sphere->size();
                 }
             } else if (fieldName == "Detune") {
                 currentZone.detune = std::stoi(val);
@@ -260,8 +277,9 @@ private:
         }
         if (inZone) parsedZones.push_back(currentZone);
 
-        // Mapear cada zona sobre su rango de teclas [LowKey .. HiKey]
+        // Mapear cada zona activa sobre su rango de teclas [LowKey .. HiKey] (FUN_1000a930: ignora zonas vacías con fuentes a 0)
         for (const auto& z : parsedZones) {
+            if (z.lowSource <= 0 && z.hiSource <= 0) continue;
             int lo = std::clamp(z.lowKey, 0, 127);
             int hi = std::clamp(z.hiKey, 0, 127);
             if (lo > hi) std::swap(lo, hi);

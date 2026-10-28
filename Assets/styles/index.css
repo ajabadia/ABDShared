@@ -45,8 +45,8 @@
 @import './components/fx.css';   /* modulos de efecto del rack, temas por familia */
 @import './components/envelope.css';  /* EnvelopePad: curva ADSR compartida */
 @import './components/bank.css';      /* BankManagerModal: contenedor modal universal */
-@import './components/live-sysex-inspector.css'; /* LiveSysExInspector: inspector reactivo */
 @import './components/about-dialog.css';        /* AboutDialog: diálogo universal y autoupdater */
 @import './components/modals.css';              /* Modals: arquitectura universal de diálogos y confirmaciones */
+@import './components/pills.css';               /* Unified tokenized pill & chip selectors */
 @import './components/catalog-browser.css';     /* Catalog & Model Browser: navegadores de modelos/tablas de ondas estilo ABDMS2000 */
 

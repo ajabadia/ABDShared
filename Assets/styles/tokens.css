@@ -45,6 +45,17 @@
   /* =========================================================================
      3. Accent & Interactive States
      ========================================================================= */
+  
+  /* =========================================================================
+     Trajectory Stick 2D (Default Dark / Sunk Well)
+     ========================================================================= */
+  --color-stick-pad-bg:           #0d1017;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #151921 0%, #0d1017 100%);
+  --color-stick-pad-border:       var(--color-panel-border, #333a47);
+  --color-stick-pad-shadow:       inset 0 2px 8px rgba(0, 0, 0, 0.7);
+  --color-stick-crosshair:        rgba(255, 255, 255, 0.08);
+  --color-stick-ring:             rgba(255, 255, 255, 0.08);
+  --color-stick-pole-text:        var(--color-text-muted, #94a3b8);
   --color-accent:        #00c3ff;
   --color-accent-rgb:    0, 195, 255;
   --color-accent-hover:  #38d3ff;

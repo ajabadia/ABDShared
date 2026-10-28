@@ -20,6 +20,8 @@ export { FilmstripFader } from './filmstripFader.js';
 export { Toggle } from './toggle.js';
 export { Switch } from './switch.js';
 export { Wheel } from './wheel.js';
+export { LedLadder } from './ledLadder.js';
+export { RotaryLedKnob } from './rotaryLedKnob.js';
 export { XYPad } from './xypad.js';
 export { TrajectoryStick2D } from './trajectoryStick2D.js';
 export { ThemeSwitcher } from './themeSwitcher.js';

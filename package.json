@@ -26,6 +26,10 @@
       "types": "./Components/bank/bankCategories.d.ts",
       "default": "./Components/bank/bankCategories.js"
     },
+    "./components/pillSelector.js": {
+      "types": "./Components/pillSelector.d.ts",
+      "default": "./Components/pillSelector.js"
+    },
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",

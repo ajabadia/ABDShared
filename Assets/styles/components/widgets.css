@@ -1266,6 +1266,13 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+.abd-trajectory-stick.borderless, .trajectory-stick-card.borderless {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
 .abd-trajectory-stick .stick-card-header, .trajectory-stick-card .stick-card-header {
   width: 100%;
   display: flex;
@@ -1309,24 +1316,25 @@
   position: absolute;
   font-size: 8px;
   font-weight: 700;
-  color: var(--color-text-muted, #94a3b8);
+  color: var(--color-stick-pole-text, var(--color-text-muted, #94a3b8));
   letter-spacing: 0.04em;
   pointer-events: none;
+  z-index: 2;
 }
 
-.abd-trajectory-stick .pole-n, .trajectory-stick-card .pole-n { top: 2px; }
-.abd-trajectory-stick .pole-s, .trajectory-stick-card .pole-s { bottom: 2px; }
-.abd-trajectory-stick .pole-w, .trajectory-stick-card .pole-w { left: 4px; }
-.abd-trajectory-stick .pole-e, .trajectory-stick-card .pole-e { right: 4px; }
+.abd-trajectory-stick .pole-n, .trajectory-stick-card .pole-n { top: 2px; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+.abd-trajectory-stick .pole-s, .trajectory-stick-card .pole-s { bottom: 2px; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+.abd-trajectory-stick .pole-w, .trajectory-stick-card .pole-w { left: 4px; top: 50%; transform: translateY(-50%); text-align: right; white-space: nowrap; }
+.abd-trajectory-stick .pole-e, .trajectory-stick-card .pole-e { right: 4px; top: 50%; transform: translateY(-50%); text-align: left; white-space: nowrap; }
 
 .abd-trajectory-stick .stick-pad-circle, .trajectory-stick-card .stick-pad-circle {
   position: relative;
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, #151921 0%, #0d1017 100%);
-  border: 1.5px solid var(--color-border-subtle, #333a47);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+  background: var(--color-stick-pad-gradient, radial-gradient(circle at 50% 50%, #151921 0%, #0d1017 100%));
+  border: 1.5px solid var(--color-stick-pad-border, var(--color-border-subtle, #333a47));
+  box-shadow: var(--color-stick-pad-shadow, inset 0 2px 8px rgba(0, 0, 0, 0.7));
   cursor: crosshair;
   touch-action: none;
 }
@@ -1337,7 +1345,7 @@
   left: 6px;
   right: 6px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-stick-crosshair, rgba(255, 255, 255, 0.08));
   pointer-events: none;
 }
 
@@ -1347,7 +1355,7 @@
   top: 6px;
   bottom: 6px;
   width: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-stick-crosshair, rgba(255, 255, 255, 0.08));
   pointer-events: none;
 }
 
@@ -1357,7 +1365,7 @@
   left: 50%;
   width: 50px;
   height: 50px;
-  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border: 1px dashed var(--color-stick-ring, rgba(255, 255, 255, 0.08));
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1390,3 +1398,178 @@
   font-family: var(--font-mono, monospace);
   padding: 1px 6px;
 }
+
+/* ── LED Ladder ───────────────────────────────────────────────────────────── */
+
+.abd-led-ladder {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1, 2px);
+  user-select: none;
+  padding: 3px 2px;
+  background: var(--color-bg-base, #080c14);
+  border: 1px solid var(--color-panel-border-dim, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 2px);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.abd-led-ladder__arrow {
+  font-size: 7px;
+  line-height: 1;
+  color: var(--color-text-dim, #666e7a);
+  opacity: 0.4;
+  transition: color 0.1s ease, opacity 0.1s ease, text-shadow 0.1s ease;
+}
+
+.abd-led-ladder__arrow--active {
+  color: var(--color-accent, #00c3ff);
+  opacity: 1;
+  text-shadow: 0 0 5px var(--color-accent, #00c3ff);
+}
+
+.abd-led-ladder__track {
+  display: flex;
+  flex-direction: column-reverse; /* Bottom segment = index 0 */
+  gap: 2px;
+  width: var(--abd-led-width, 16px);
+}
+
+.abd-led-ladder__segment {
+  width: 100%;
+  height: var(--abd-led-height, 4px);
+  border-radius: 1px;
+  background: var(--color-panel-surface, #151d28);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  opacity: 0.35;
+  transition: opacity 0.04s ease-out, background 0.04s ease-out, box-shadow 0.04s ease-out;
+}
+
+.abd-led-ladder__segment--lit {
+  opacity: 1;
+  background: var(--color-accent, #00c3ff);
+  box-shadow: 0 0 6px var(--color-accent, #00c3ff);
+}
+
+/* ── Rotary LED Knob ──────────────────────────────────────────────────────── */
+
+.abd-rotary-led {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 4px);
+  user-select: none;
+  touch-action: none;
+
+  /* Theme tokens fallback */
+  --color-rotary-bezel: var(--color-bg-base, #0a0e14);
+  --color-rotary-bezel-stroke: var(--color-panel-border-dim, rgba(255, 255, 255, 0.08));
+  --color-rotary-cap-fill: var(--color-panel-surface-elevated, #1c2a3d);
+  --color-rotary-cap-stroke: var(--color-panel-border, rgba(0, 195, 255, 0.25));
+  --color-rotary-pointer: var(--color-accent, #00c3ff);
+  --color-rotary-led-lit: var(--color-accent, #00c3ff);
+  --color-rotary-led-lit-stroke: var(--color-accent, #38bdf8);
+  --color-rotary-led-unlit: var(--color-panel-border-dim, rgba(255, 255, 255, 0.08));
+  --color-rotary-led-unlit-stroke: var(--color-panel-border, rgba(255, 255, 255, 0.12));
+}
+
+/* Light theme overrides */
+[data-theme="audiolab-light"] .abd-rotary-led,
+[data-theme="light"] .abd-rotary-led,
+body.theme-light .abd-rotary-led,
+body.skin-audiolab-light .abd-rotary-led {
+  --color-rotary-bezel: #f1f5f9;
+  --color-rotary-bezel-stroke: rgba(15, 23, 42, 0.14);
+  --color-rotary-cap-fill: #ffffff;
+  --color-rotary-cap-stroke: rgba(15, 23, 42, 0.22);
+  --color-rotary-pointer: var(--color-accent, #007a4d);
+  --color-rotary-led-lit: var(--color-accent, #007a4d);
+  --color-rotary-led-lit-stroke: var(--color-accent-hover, #00633e);
+  --color-rotary-led-unlit: rgba(15, 23, 42, 0.10);
+  --color-rotary-led-unlit-stroke: rgba(15, 23, 42, 0.16);
+}
+
+.abd-rotary-led__dial {
+  position: relative;
+  cursor: grab;
+  outline: none;
+  border-radius: 50%;
+  display: block;
+}
+
+.abd-rotary-led__dial:active {
+  cursor: grabbing;
+}
+
+.abd-rotary-led__dial:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-accent, #00c3ff);
+}
+
+.abd-rotary-led__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.abd-rotary-led__bezel {
+  fill: var(--color-rotary-bezel);
+  stroke: var(--color-rotary-bezel-stroke);
+  stroke-width: 1px;
+}
+
+.abd-rotary-led__cap {
+  transition: transform 0.04s ease-out;
+}
+
+.abd-rotary-led__cap-body {
+  fill: var(--color-rotary-cap-fill);
+  stroke: var(--color-rotary-cap-stroke);
+  stroke-width: 1.5px;
+}
+
+.abd-rotary-led__cap-inset {
+  stroke: var(--color-rotary-bezel-stroke);
+  stroke-width: 1px;
+  opacity: 0.6;
+}
+
+.abd-rotary-led__pointer-line {
+  stroke: var(--color-rotary-pointer);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+}
+
+.abd-rotary-led__pointer-dot {
+  fill: var(--color-rotary-pointer);
+}
+
+.abd-rotary-led .led-dot {
+  fill: var(--color-rotary-led-unlit);
+  stroke: var(--color-rotary-led-unlit-stroke);
+  stroke-width: 0.5px;
+  transition: fill 0.05s ease, filter 0.05s ease;
+}
+
+.abd-rotary-led .led-dot.is-active {
+  fill: var(--color-rotary-led-lit);
+  stroke: var(--color-rotary-led-lit-stroke);
+  filter: drop-shadow(0 0 3px var(--color-rotary-led-lit));
+}
+
+.abd-rotary-led__label {
+  font-size: var(--text-2xs, 8.5px);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-dim, #64748b);
+  text-transform: uppercase;
+}
+
+.abd-rotary-led__value {
+  font-size: var(--text-xs, 10px);
+  font-weight: 700;
+  color: var(--color-accent, #00c3ff);
+}
+
+

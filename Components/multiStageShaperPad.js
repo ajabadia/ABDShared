@@ -3,19 +3,13 @@
  * ============================================================================
  * Designed for complex multi-stage envelopes and contour generators:
  *   - 4 Levels (L1, L2, L3, L4): Bipolar (-1.0 .. +1.0) or Unipolar (0.0 .. +1.0)
- *   - 4 Times (T1, T2, T3, T4): Normalized 0.0 .. 1.0 duration per stage
- *   - Loop / Mode flags: Normal (one-shot), Repeat (loop L1..L3 as multi-stage LFO), Longest
+ *   - 4 Times (T1, T2, T3, T4): Normalized duration per stage
+ *   - Loop / Mode flags: Normal (one-shot), Repeat (loop L1..L3 as multi-stage LFO)
  *
  * Reusable across the ABDSynths family:
  *   - Hartmann Neuron / NeuronVS (Shaper 1/2/3 4T4L: CShaper4T4L)
  *   - Casio CZ series (8-stage DCA/DCW/DCO envelopes)
  *   - Oberheim Matrix / Waldorf microwave / modern vector synths
- *
- * Family contract (see components/envelopePad.js, xypad.js, knob.js):
- *   - constructor(container, options) + setValue/getValue/destroy + onChange;
- *   - framework-agnostic DOM/SVG;
- *   - theming via --color-* tokens with fallbacks;
- *   - accessible ARIA attributes and keyboard navigation.
  */
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, Number.isFinite(v) ? v : min));
@@ -40,7 +34,7 @@ export class MultiStageShaperPad {
       editable: true,
       viewBoxWidth: 320,
       viewBoxHeight: 140,
-      times: [0.2, 0.4, 0.3, 0.5],       // T1, T2, T3, T4 (0..1)
+      times: [0.2, 0.4, 0.3, 0.5],       // T1, T2, T3, T4
       levels: [0.8, -0.4, 0.5, 0.0],     // L1, L2, L3, L4 (-1..1 if bipolar, 0..1 if unipolar)
       mode: 1,                           // 0 = Off, 1 = Normal, 2 = Repeat
       onChange: null,
@@ -54,31 +48,50 @@ export class MultiStageShaperPad {
     this.isDragging = false;
     this._destroyed = false;
 
-    this.render();
+    // Inicializar tiempos acumulados normalizados (0..1)
+    this.initCumX();
+
+    this.buildDom();
+    this.updateVisuals();
     this.bindEvents();
   }
 
-  render() {
-    const minL = this.options.bipolar ? -1.0 : 0.0;
-    const maxL = 1.0;
+  initCumX() {
+    let acc = 0;
+    this.cumX = [];
+    for (let i = 0; i < 4; i++) {
+      acc += Math.max(0.01, this.times[i] || 0.2);
+      this.cumX.push(acc);
+    }
+    // Si la suma supera 1.0, normalizar para que quepa en el canvas
+    const maxAcc = Math.max(1.0, acc);
+    for (let i = 0; i < 4; i++) {
+      this.cumX[i] = clamp(this.cumX[i] / maxAcc, 0.05 * (i + 1), 1.0);
+    }
+    // Asegurar monotonicidad
+    for (let i = 1; i < 4; i++) {
+      if (this.cumX[i] <= this.cumX[i - 1]) {
+        this.cumX[i] = Math.min(1.0, this.cumX[i - 1] + 0.05);
+      }
+    }
+  }
+
+  buildDom() {
     const W = this.options.viewBoxWidth;
     const H = this.options.viewBoxHeight;
     const midY = this.options.bipolar ? H / 2 : H - 10;
 
-    const points = this.calculatePoints(W, H, minL, maxL);
-    const pathD = this.buildPathD(points, H, midY);
-
     let handlesSvg = '';
     if (this.options.editable) {
-      points.forEach((pt, idx) => {
+      for (let idx = 0; idx < 4; idx++) {
         handlesSvg += `
           <g class="shaper-handle-group" data-handle="${idx}">
-            <circle class="shaper-handle-hit" cx="${pt.x}" cy="${pt.y}" r="14" fill="transparent" cursor="grab" />
-            <circle class="shaper-handle-outer" cx="${pt.x}" cy="${pt.y}" r="6" fill="var(--color-accent, #38bdf8)" stroke="#fff" stroke-width="1.5" />
-            <text class="shaper-handle-text" x="${pt.x}" y="${pt.y - 10}" text-anchor="middle" font-size="9" fill="var(--color-text-muted, #94a3b8)">P${idx + 1}</text>
+            <ellipse class="shaper-handle-hit" cx="0" cy="0" rx="14" ry="14" fill="transparent" cursor="grab" />
+            <ellipse class="shaper-handle-outer" cx="0" cy="0" rx="6" ry="6" fill="var(--color-accent, #38bdf8)" stroke="#fff" stroke-width="1.5" />
+            <text class="shaper-handle-text" x="0" y="0" text-anchor="middle" font-size="9" fill="var(--color-text-muted, #94a3b8)">P${idx + 1}</text>
           </g>
         `;
-      });
+      }
     }
 
     this.container.innerHTML = `
@@ -94,29 +107,40 @@ export class MultiStageShaperPad {
           </div>
         </div>
 
-        <div class="shaper-svg-container" style="position: relative; width: 100%; height: ${H}px; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden;">
+        <div class="shaper-svg-container" style="position: relative; width: 100%; height: ${H}px; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; touch-action: none;">
           <svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="none" style="display: block;">
             <!-- Grid zero line -->
             <line x1="0" y1="${midY}" x2="${W}" y2="${midY}" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="3 3" />
             <!-- Envelop fill area -->
-            <path class="shaper-fill" d="${pathD.areaD}" fill="var(--color-accent, #38bdf8)" fill-opacity="0.15" />
+            <path class="shaper-fill" d="" fill="var(--color-accent, #38bdf8)" fill-opacity="0.15" />
             <!-- Envelop stroke curve -->
-            <path class="shaper-curve" d="${pathD.lineD}" fill="none" stroke="var(--color-accent, #38bdf8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path class="shaper-curve" d="" fill="none" stroke="var(--color-accent, #38bdf8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             <!-- Handles -->
             ${handlesSvg}
           </svg>
         </div>
 
         <div class="shaper-readout-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 6px; font-size: 9px; font-family: var(--font-mono, monospace);">
-          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P1:</span> <strong>T:${this.times[0].toFixed(2)} L:${this.levels[0].toFixed(2)}</strong></div>
-          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P2:</span> <strong>T:${this.times[1].toFixed(2)} L:${this.levels[1].toFixed(2)}</strong></div>
-          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P3:</span> <strong>T:${this.times[2].toFixed(2)} L:${this.levels[2].toFixed(2)}</strong></div>
-          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P4:</span> <strong>T:${this.times[3].toFixed(2)} L:${this.levels[3].toFixed(2)}</strong></div>
+          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P1:</span> <strong class="shaper-val-p1">T:0.00 L:0.00</strong></div>
+          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P2:</span> <strong class="shaper-val-p2">T:0.00 L:0.00</strong></div>
+          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P3:</span> <strong class="shaper-val-p3">T:0.00 L:0.00</strong></div>
+          <div class="hud-pill" style="padding: 2px 4px; text-align: center;"><span style="color:var(--color-text-muted,#777)">P4:</span> <strong class="shaper-val-p4">T:0.00 L:0.00</strong></div>
         </div>
       </div>
     `;
 
     this.svgEl = this.container.querySelector('svg');
+    this.fillPathEl = this.container.querySelector('.shaper-fill');
+    this.linePathEl = this.container.querySelector('.shaper-curve');
+    this.handleHitEls = Array.from(this.container.querySelectorAll('.shaper-handle-hit'));
+    this.handleOuterEls = Array.from(this.container.querySelectorAll('.shaper-handle-outer'));
+    this.handleTextEls = Array.from(this.container.querySelectorAll('.shaper-handle-text'));
+    this.readoutEls = [
+      this.container.querySelector('.shaper-val-p1'),
+      this.container.querySelector('.shaper-val-p2'),
+      this.container.querySelector('.shaper-val-p3'),
+      this.container.querySelector('.shaper-val-p4'),
+    ];
   }
 
   calculatePoints(W, H, minL, maxL) {
@@ -125,17 +149,12 @@ export class MultiStageShaperPad {
     const marginY = 12;
     const availH = H - marginY * 2;
 
-    const sumT = this.times.reduce((acc, v) => acc + Math.max(0.01, v), 0);
-    let accumX = marginX;
-
-    return this.times.map((t, idx) => {
-      const segW = (Math.max(0.01, t) / sumT) * availW;
-      accumX += segW;
-
+    return this.cumX.map((cx, idx) => {
+      const x = marginX + clamp(cx, 0.0, 1.0) * availW;
       const normL = (this.levels[idx] - minL) / (maxL - minL);
       const y = marginY + (1.0 - clamp(normL, 0.0, 1.0)) * availH;
 
-      return { x: Math.round(accumX), y: Math.round(y) };
+      return { x: Math.round(x), y: Math.round(y) };
     });
   }
 
@@ -152,6 +171,65 @@ export class MultiStageShaperPad {
     const areaD = `${lineD} L ${lastX} ${midY} Z`;
 
     return { lineD, areaD };
+  }
+
+  updateVisuals() {
+    if (this._destroyed || !this.svgEl) return;
+
+    const minL = this.options.bipolar ? -1.0 : 0.0;
+    const maxL = 1.0;
+    const W = this.options.viewBoxWidth;
+    const H = this.options.viewBoxHeight;
+    const midY = this.options.bipolar ? H / 2 : H - 10;
+
+    const points = this.calculatePoints(W, H, minL, maxL);
+    const pathD = this.buildPathD(points, H, midY);
+
+    if (this.fillPathEl) this.fillPathEl.setAttribute('d', pathD.areaD);
+    if (this.linePathEl) this.linePathEl.setAttribute('d', pathD.lineD);
+
+    // Compensar preserveAspectRatio="none" para que los círculos nunca se achen
+    const rect = this.svgEl.getBoundingClientRect();
+    const sx = (rect && rect.width > 0) ? (rect.width / W) : 1;
+    const sy = (rect && rect.height > 0) ? (rect.height / H) : 1;
+    const outerRx = (6 / sx).toFixed(2);
+    const outerRy = (6 / sy).toFixed(2);
+    const hitRx = (14 / sx).toFixed(2);
+    const hitRy = (14 / sy).toFixed(2);
+
+    points.forEach((pt, idx) => {
+      if (this.handleHitEls[idx]) {
+        this.handleHitEls[idx].setAttribute('cx', String(pt.x));
+        this.handleHitEls[idx].setAttribute('cy', String(pt.y));
+        this.handleHitEls[idx].setAttribute('rx', hitRx);
+        this.handleHitEls[idx].setAttribute('ry', hitRy);
+      }
+      if (this.handleOuterEls[idx]) {
+        this.handleOuterEls[idx].setAttribute('cx', String(pt.x));
+        this.handleOuterEls[idx].setAttribute('cy', String(pt.y));
+        this.handleOuterEls[idx].setAttribute('rx', outerRx);
+        this.handleOuterEls[idx].setAttribute('ry', outerRy);
+      }
+      if (this.handleTextEls[idx]) {
+        this.handleTextEls[idx].setAttribute('x', String(pt.x));
+        this.handleTextEls[idx].setAttribute('y', String(pt.y - 10));
+      }
+      if (this.readoutEls[idx]) {
+        this.readoutEls[idx].textContent = `T:${this.times[idx].toFixed(2)} L:${this.levels[idx].toFixed(2)}`;
+      }
+    });
+
+    // Actualizar botones de modo
+    this.container.querySelectorAll('.btn-shaper-mode').forEach((btn) => {
+      const mode = parseInt(btn.getAttribute('data-mode') || '1', 10);
+      if (mode === this.mode) {
+        btn.classList.add('btn-primary', 'active');
+        btn.classList.remove('btn-outline');
+      } else {
+        btn.classList.remove('btn-primary', 'active');
+        btn.classList.add('btn-outline');
+      }
+    });
   }
 
   bindEvents() {
@@ -178,20 +256,36 @@ export class MultiStageShaperPad {
       if (!this.isDragging || this.activeHandle === null) return;
 
       const rect = this.svgEl.getBoundingClientRect();
-      const clientX = clamp(e.clientX - rect.left, 0, rect.width);
-      const clientY = clamp(e.clientY - rect.top, 0, rect.height);
+      const marginX = 16;
+      const marginY = 12;
+      const availW = Math.max(1, rect.width - marginX * 2);
+      const availH = Math.max(1, rect.height - marginY * 2);
 
-      const normX = clientX / rect.width;
-      const normY = 1.0 - (clientY / rect.height);
+      const clientX = clamp(e.clientX - rect.left - marginX, 0, availW);
+      const clientY = clamp(e.clientY - rect.top - marginY, 0, availH);
 
+      // Eje Y: Nivel
+      const normY = 1.0 - (clientY / availH);
       const minL = this.options.bipolar ? -1.0 : 0.0;
       const newL = minL + normY * (1.0 - minL);
       this.levels[this.activeHandle] = clamp(newL, minL, 1.0);
 
-      this.times[this.activeHandle] = clamp(normX, 0.05, 1.0);
+      // Eje X: Arrastre libre e independiente por nodo
+      const targetX = clamp(clientX / availW, 0.05, 1.0);
+      const k = this.activeHandle;
 
-      this.render();
-      this.bindEvents();
+      const minX = k === 0 ? 0.04 : this.cumX[k - 1] + 0.03;
+      const maxX = k === 3 ? 1.0 : this.cumX[k + 1] - 0.03;
+
+      this.cumX[k] = clamp(targetX, minX, maxX);
+
+      // Recalcular los tiempos individuales por tramo
+      this.times[0] = this.cumX[0];
+      for (let i = 1; i < 4; i++) {
+        this.times[i] = Math.max(0.01, this.cumX[i] - this.cumX[i - 1]);
+      }
+
+      this.updateVisuals();
 
       if (typeof this.options.onChange === 'function') {
         this.options.onChange({
@@ -216,12 +310,18 @@ export class MultiStageShaperPad {
     this.svgEl.addEventListener('pointermove', this.handlePointerMove);
     this.svgEl.addEventListener('pointerup', this.handlePointerUp);
     this.svgEl.addEventListener('pointercancel', this.handlePointerUp);
+
+    if (typeof ResizeObserver !== 'undefined' && this.svgEl) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.updateVisuals();
+      });
+      this.resizeObserver.observe(this.svgEl);
+    }
   }
 
   setMode(mode) {
     this.mode = mode;
-    this.render();
-    this.bindEvents();
+    this.updateVisuals();
     if (typeof this.options.onChange === 'function') {
       this.options.onChange({
         times: [...this.times],
@@ -232,12 +332,14 @@ export class MultiStageShaperPad {
   }
 
   setValue({ times, levels, mode }, notify = false) {
-    if (Array.isArray(times)) this.times = [...times];
+    if (Array.isArray(times)) {
+      this.times = [...times];
+      this.initCumX();
+    }
     if (Array.isArray(levels)) this.levels = [...levels];
     if (typeof mode === 'number') this.mode = mode;
 
-    this.render();
-    this.bindEvents();
+    this.updateVisuals();
 
     if (notify && typeof this.options.onChange === 'function') {
       this.options.onChange({
@@ -258,6 +360,7 @@ export class MultiStageShaperPad {
 
   destroy() {
     this._destroyed = true;
+    this.resizeObserver?.disconnect();
     this.container.innerHTML = '';
   }
 }

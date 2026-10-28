@@ -44,8 +44,18 @@ export class TrajectoryStick2D {
       initialLayer: 0,
       labels: { north: '1', south: '2', west: '-', east: '+' },
       labelsPerLayer: null, // Array of { north, south, west, east }
+      layerNames: null, // Array of custom layer button labels (e.g. ['FILT', 'FREQ', 'TIME'])
       readout: true,
+      formatReadout: null, // (layerIdx, coord) => string
       hasRecorder: true,
+      showHeader: true,
+      showLayers: true,
+      springReturn: false,
+      restX: 0.5,
+      restY: 0.5,
+      size: null,
+      className: '',
+      onLayerChange: null,
       onPositionChange: null,
       onChange: null,
       onOpenExpanded: null,
@@ -72,10 +82,13 @@ export class TrajectoryStick2D {
 
   render() {
     let layerButtonsHtml = '';
-    for (let i = 0; i < this.options.numLayers; i++) {
-      const isCur = i === this.activeLayer;
-      const variant = isCur ? 'btn-primary active' : 'btn-outline';
-      layerButtonsHtml += `<button type="button" class="btn btn-xs ${variant} btn-layer" data-layer="${i}">L${i + 1}</button>`;
+    if (this.options.numLayers > 1 && this.options.showLayers !== false) {
+      for (let i = 0; i < this.options.numLayers; i++) {
+        const isCur = i === this.activeLayer;
+        const variant = isCur ? 'btn-primary active' : 'btn-outline';
+        const layerLabel = (this.options.layerNames && this.options.layerNames[i]) || `L${i + 1}`;
+        layerButtonsHtml += `<button type="button" class="btn btn-xs ${variant} btn-layer" data-layer="${i}">${layerLabel}</button>`;
+      }
     }
 
     const curLabels = this.layerLabels[this.activeLayer] || this.options.labels || { north: '1', south: '2', west: '-', east: '+' };
@@ -88,22 +101,42 @@ export class TrajectoryStick2D {
       </div>
     ` : '';
 
+    const headerHtml = this.options.showHeader !== false ? `
+      <div class="stick-card-header">
+        <span class="stick-label">${this.options.label}</span>
+        ${layerButtonsHtml ? `<div class="stick-layer-selector">${layerButtonsHtml}</div>` : ''}
+      </div>
+    ` : '';
+
+    const readoutHtml = this.options.readout !== false
+      ? `<span class="hud-pill stat-num stick-readout" style="font-size: 8.5px;">X: 0.50 | Y: 0.50</span>`
+      : '';
+
+    const hasFooter = Boolean((this.options.readout !== false) || this.options.hasRecorder || this.options.onOpenExpanded);
+
+    const footerHtml = hasFooter ? `
+      <div class="stick-card-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 4px;">
+        ${readoutHtml}
+        ${recorderControlsHtml}
+        ${this.options.onOpenExpanded ? `<button type="button" class="btn btn-xs btn-outline btn-expand-stick" title="Expand Controls">Edit</button>` : ''}
+      </div>
+    ` : '';
+
+    const ringStyle = this.options.size ? `style="width: ${this.options.size}px; height: ${this.options.size}px;"` : '';
+    const padStyle = this.options.size ? `style="width: ${Math.round(this.options.size * 0.77)}px; height: ${Math.round(this.options.size * 0.77)}px;"` : '';
+    const extraClass = this.options.className ? ` ${this.options.className}` : '';
+
     this.container.innerHTML = `
-      <div class="trajectory-stick-card abd-trajectory-stick">
-        <div class="stick-card-header">
-          <span class="stick-label">${this.options.label}</span>
-          <div class="stick-layer-selector">
-            ${layerButtonsHtml}
-          </div>
-        </div>
+      <div class="trajectory-stick-card abd-trajectory-stick${extraClass}">
+        ${headerHtml}
 
-        <div class="stick-outer-ring">
-          <div class="stick-pole pole-n">${curLabels.north || '1'}</div>
-          <div class="stick-pole pole-s">${curLabels.south || '2'}</div>
-          <div class="stick-pole pole-w">${curLabels.west || '-'}</div>
-          <div class="stick-pole pole-e">${curLabels.east || '+'}</div>
+        <div class="stick-outer-ring" ${ringStyle}>
+          <div class="stick-pole pole-n">${curLabels.north ?? '1'}</div>
+          <div class="stick-pole pole-s">${curLabels.south ?? '2'}</div>
+          <div class="stick-pole pole-w">${curLabels.west ?? '-'}</div>
+          <div class="stick-pole pole-e">${curLabels.east ?? '+'}</div>
 
-          <div class="stick-pad-circle" tabindex="0" role="slider" aria-label="${this.options.label}">
+          <div class="stick-pad-circle" ${padStyle} tabindex="0" role="slider" aria-label="${this.options.label}">
             <svg class="stick-trail-svg" viewBox="0 0 100 100" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
               <path class="stick-trail-path" d="" fill="none" stroke="var(--color-accent, #38bdf8)" stroke-width="1.5" stroke-opacity="0.4" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -114,11 +147,7 @@ export class TrajectoryStick2D {
           </div>
         </div>
 
-        <div class="stick-card-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 4px;">
-          <span class="hud-pill stat-num stick-readout" style="font-size: 8.5px;">X: 0.50 | Y: 0.50</span>
-          ${recorderControlsHtml}
-          ${this.options.onOpenExpanded ? `<button type="button" class="btn btn-xs btn-outline btn-expand-stick" title="Expand Controls">Edit</button>` : ''}
-        </div>
+        ${footerHtml}
       </div>
     `;
 
@@ -177,6 +206,11 @@ export class TrajectoryStick2D {
         try {
           this.stickAreaEl.releasePointerCapture(e.pointerId);
         } catch (_) {}
+        if (this.options.springReturn) {
+          const rx = Number.isFinite(this.options.restX) ? this.options.restX : 0.5;
+          const ry = Number.isFinite(this.options.restY) ? this.options.restY : 0.5;
+          this.setPosition(this.activeLayer, rx, ry, true);
+        }
       }
     };
 
@@ -356,6 +390,10 @@ export class TrajectoryStick2D {
 
     this.updatePuckPosition();
     this.updateTrailPath();
+
+    if (typeof this.options.onLayerChange === 'function') {
+      this.options.onLayerChange(this.activeLayer);
+    }
   }
 
   setLayerLabels(layerIndex, labels) {
@@ -374,6 +412,18 @@ export class TrajectoryStick2D {
     }
   }
 
+  setLabels(labels = {}) {
+    if (!this.container) return;
+    const pn = this.container.querySelector('.pole-n');
+    const ps = this.container.querySelector('.pole-s');
+    const pw = this.container.querySelector('.pole-w');
+    const pe = this.container.querySelector('.pole-e');
+    if (pn && labels.north !== undefined) pn.textContent = labels.north;
+    if (ps && labels.south !== undefined) ps.textContent = labels.south;
+    if (pw && labels.west !== undefined) pw.textContent = labels.west;
+    if (pe && labels.east !== undefined) pe.textContent = labels.east;
+  }
+
   getCoordinates(layerIdx = this.activeLayer) {
     const idx = Math.max(0, Math.min(this.options.numLayers - 1, layerIdx));
     return { ...this.coords[idx] };
@@ -385,9 +435,20 @@ export class TrajectoryStick2D {
 
   setPosition(layerIdx, x, y, notify = true) {
     if (layerIdx >= 0 && layerIdx < this.options.numLayers) {
+      // Clamping estricto al círculo físico unitario
+      let dx = clamp01(x) * 2.0 - 1.0;
+      let dy = clamp01(y) * 2.0 - 1.0;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 1.0) {
+        dx /= dist;
+        dy /= dist;
+      }
+      const normX = clamp01((dx + 1.0) * 0.5);
+      const normY = clamp01((dy + 1.0) * 0.5);
+
       this.coords[layerIdx] = {
-        x: clamp01(x),
-        y: clamp01(y),
+        x: normX,
+        y: normY,
       };
       if (layerIdx === this.activeLayer) {
         this.updatePuckPosition();
@@ -420,8 +481,25 @@ export class TrajectoryStick2D {
 
   updatePuckPosition() {
     const cur = this.coords[this.activeLayer];
-    const leftPct = (cur.x * 100).toFixed(2);
-    const topPct = ((1.0 - cur.y) * 100).toFixed(2);
+    let dx = cur.x * 2.0 - 1.0;
+    let dy = cur.y * 2.0 - 1.0;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 1.0) {
+      dx /= dist;
+      dy /= dist;
+    }
+
+    // Inset visual para que el disco del puck nunca sobresalga del perímetro circular
+    const rect = this.stickAreaEl ? this.stickAreaEl.getBoundingClientRect() : null;
+    const radius = (rect && rect.width > 0) ? rect.width / 2 : 56;
+    const puckRadius = 7;
+    const maxFrac = radius > 10 ? (radius - puckRadius) / radius : 0.88;
+
+    const visualDx = dx * maxFrac;
+    const visualDy = dy * maxFrac;
+
+    const leftPct = ((visualDx + 1.0) * 50).toFixed(2);
+    const topPct = ((1.0 - visualDy) * 50).toFixed(2);
 
     if (this.puckEl) {
       this.puckEl.style.left = `${leftPct}%`;
@@ -429,7 +507,17 @@ export class TrajectoryStick2D {
     }
 
     if (this.readoutEl) {
-      this.readoutEl.textContent = `X: ${cur.x.toFixed(2)} | Y: ${cur.y.toFixed(2)}`;
+      if (typeof this.options.formatReadout === 'function') {
+        this.readoutEl.textContent = this.options.formatReadout(this.activeLayer, cur);
+      } else {
+        this.readoutEl.textContent = `X: ${cur.x.toFixed(2)} | Y: ${cur.y.toFixed(2)}`;
+      }
+    }
+  }
+
+  setReadout(text) {
+    if (this.readoutEl && typeof text === 'string') {
+      this.readoutEl.textContent = text;
     }
   }
 

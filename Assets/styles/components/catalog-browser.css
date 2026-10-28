@@ -787,3 +787,49 @@
   box-shadow: 0 4px 14px var(--color-accent-dim);
   transform: translateY(-1px);
 }
+
+/* ── Shared transient flash (bankShell.flashStatus) ──────────
+   Centered pill above the footer: unmissable feedback for actions
+   that change no counters (refresh with identical data). The host
+   shell element is positioned (drawer panel), so this anchors to it. */
+.bank-shell-flash {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space-8) + 56px);
+  transform: translate(-50%, 8px);
+  max-width: min(92%, 560px);
+  padding: var(--space-3) var(--space-5);
+  border-radius: 999px;
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  color: var(--color-text-main);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: 5;
+}
+
+.bank-shell-flash.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.bank-shell-flash.is-error {
+  border-color: var(--color-danger);
+}
+
+.bank-shell-flash.is-working.is-visible {
+  animation: bank-shell-flash-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bank-shell-flash-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

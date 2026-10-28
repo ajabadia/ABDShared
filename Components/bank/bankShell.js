@@ -41,7 +41,13 @@
  * @param {Function} [options.onClose] atajo de cierre (además del botón si lo hay).
  * @returns {{ element: HTMLElement, contentEl: HTMLElement, toolbarEl: HTMLElement,
  *             footerEl: HTMLElement, activeTab: string, setBadge: Function,
- *             setTab: Function, getQuery: Function, destroy: Function }}
+ *             setTab: Function, getQuery: Function, flashStatus: Function,
+ *             destroy: Function }}
+ *
+ * Aviso efímero centrado (`flashStatus`): el único feedback garantizado
+ * para acciones que no cambian contadores (p. ej. refrescar con los
+ * mismos datos). Vive sobre el pie, se auto-oculta y no depende de que
+ * el usuario mire el pie: `ok` 2.5s, `working` 4s, `error` 6s.
  */
 export function createBankShell (options = {})
 {
@@ -61,6 +67,7 @@ export function createBankShell (options = {})
 
   const state = { tab: activeTab, query: '' };
   const aborter = new AbortController();
+  let flashTimer = null;
   const on = (el, type, fn) => el.addEventListener(type, fn, { signal: aborter.signal });
 
   const element = document.createElement('div');
@@ -194,8 +201,32 @@ export function createBankShell (options = {})
       const input = element.querySelector('[data-shell-search]');
       if (input) setTimeout(() => input.focus(), 80);
     },
+    flashStatus (message, kind)
+    {
+      const valid = kind === 'error' || kind === 'working' ? kind : 'ok';
+      let overlay = element.querySelector('[data-shell-flash]');
+      if (!overlay)
+      {
+        overlay = document.createElement('div');
+        overlay.className = 'bank-shell-flash';
+        overlay.setAttribute('data-shell-flash', '');
+        overlay.setAttribute('role', 'status');
+        element.appendChild(overlay);
+      }
+      if (flashTimer) clearTimeout(flashTimer);
+      overlay.className = `bank-shell-flash is-visible is-${valid}`;
+      overlay.textContent = message == null ? '' : String(message);
+      const hold = valid === 'error' ? 6000 : valid === 'working' ? 4000 : 2500;
+      flashTimer = setTimeout(() =>
+      {
+        overlay.classList.remove('is-visible');
+        flashTimer = null;
+      }, hold);
+    },
     destroy ()
     {
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = null;
       aborter.abort();
       element.remove();
     },

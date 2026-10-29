@@ -54,6 +54,7 @@ export class TrajectoryStick2D {
       restX: 0.5,
       restY: 0.5,
       size: null,
+      variant: 'standard', // 'standard' | 'nuke-orb'
       className: '',
       onLayerChange: null,
       onPositionChange: null,
@@ -124,10 +125,35 @@ export class TrajectoryStick2D {
 
     const ringStyle = this.options.size ? `style="width: ${this.options.size}px; height: ${this.options.size}px;"` : '';
     const padStyle = this.options.size ? `style="width: ${Math.round(this.options.size * 0.77)}px; height: ${Math.round(this.options.size * 0.77)}px;"` : '';
+    const isNukeOrb = this.options.variant === 'nuke-orb';
+    const variantClass = isNukeOrb ? ' is-nuke-orb' : '';
     const extraClass = this.options.className ? ` ${this.options.className}` : '';
 
+    const orbBezelSvgHtml = isNukeOrb ? `
+      <svg class="stick-orb-bezel-svg" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="stick-orb-bezel-outer" cx="60" cy="60" r="57" fill="none" stroke-width="1" stroke-dasharray="2.5 2" />
+        <circle class="stick-orb-bezel-inner" cx="60" cy="60" r="53" fill="none" stroke-width="1.2" />
+        <line class="stick-orb-tick" x1="60" y1="1" x2="60" y2="6" stroke-width="1.5" />
+        <line class="stick-orb-tick" x1="60" y1="114" x2="60" y2="119" stroke-width="1.5" />
+        <line class="stick-orb-tick" x1="1" y1="60" x2="6" y2="60" stroke-width="1.5" />
+        <line class="stick-orb-tick" x1="114" y1="60" x2="119" y2="60" stroke-width="1.5" />
+        <line class="stick-orb-tick-diag" x1="19" y1="19" x2="23" y2="23" stroke-width="1.2" />
+        <line class="stick-orb-tick-diag" x1="101" y1="19" x2="97" y2="23" stroke-width="1.2" />
+        <line class="stick-orb-tick-diag" x1="19" y1="101" x2="23" y2="97" stroke-width="1.2" />
+        <line class="stick-orb-tick-diag" x1="101" y1="101" x2="97" y2="97" stroke-width="1.2" />
+      </svg>
+    ` : '';
+
+    const orbReticleSvgHtml = isNukeOrb ? `
+      <circle class="stick-orb-ring-1" cx="50" cy="50" r="16" fill="none" stroke-width="0.6" stroke-dasharray="1.5 1.5" />
+      <circle class="stick-orb-ring-2" cx="50" cy="50" r="32" fill="none" stroke-width="0.6" />
+      <circle class="stick-orb-ring-3" cx="50" cy="50" r="45" fill="none" stroke-width="0.8" stroke-dasharray="3 1.5" />
+      <line class="stick-orb-diag" x1="15" y1="15" x2="85" y2="85" stroke-width="0.5" stroke-dasharray="2 2" />
+      <line class="stick-orb-diag" x1="85" y1="15" x2="15" y2="85" stroke-width="0.5" stroke-dasharray="2 2" />
+    ` : '';
+
     this.container.innerHTML = `
-      <div class="trajectory-stick-card abd-trajectory-stick${extraClass}">
+      <div class="trajectory-stick-card abd-trajectory-stick${variantClass}${extraClass}">
         ${headerHtml}
 
         <div class="stick-outer-ring" ${ringStyle}>
@@ -136,14 +162,17 @@ export class TrajectoryStick2D {
           <div class="stick-pole pole-w">${curLabels.west ?? '-'}</div>
           <div class="stick-pole pole-e">${curLabels.east ?? '+'}</div>
 
+          ${orbBezelSvgHtml}
+
           <div class="stick-pad-circle" ${padStyle} tabindex="0" role="slider" aria-label="${this.options.label}">
             <svg class="stick-trail-svg" viewBox="0 0 100 100" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
-              <path class="stick-trail-path" d="" fill="none" stroke="var(--color-accent, #38bdf8)" stroke-width="1.5" stroke-opacity="0.4" stroke-linecap="round" stroke-linejoin="round" />
+              ${orbReticleSvgHtml}
+              <path class="stick-trail-path" d="" fill="none" stroke="var(--color-accent)" stroke-width="${isNukeOrb ? '2' : '1.5'}" stroke-opacity="${isNukeOrb ? '0.65' : '0.4'}" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <div class="stick-crosshair-h"></div>
             <div class="stick-crosshair-v"></div>
             <div class="stick-target-ring"></div>
-            <div class="stick-puck"></div>
+            <div class="stick-puck">${isNukeOrb ? '<div class="stick-puck-core"></div>' : ''}</div>
           </div>
         </div>
 

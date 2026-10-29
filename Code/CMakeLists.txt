@@ -175,6 +175,7 @@ if(ABDSHARED_BUILD_HARDWAREDRIVERS)
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/HardwareController.h
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/JunoTapeModem.h
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/MidiCcController.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/MidiLearnManager.h
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/NRPNParser.h
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/RoutingValidator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/HardwareDrivers/SysexPresetGenerator.h

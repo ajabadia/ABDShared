@@ -131,7 +131,7 @@ public:
 
     void reset(double position = 0.0) {
         position_ = position;
-        previous_ = 0.0f;
+        previous_ = valueAt(position);
         stopped_ = false;
     }
 
@@ -184,8 +184,8 @@ public:
         }
 
         float value = valueAt(position_);
-        // Énfasis de altas frecuencias canónico del Neuron: (value - previous) * 2 + value
-        float out = (value - previous_) * 2.0f + value;
+        // Énfasis suave de transitorios del Neuron (calibrado para evitar aspereza metálica y picos de inicio)
+        float out = (value - previous_) * 0.25f + value;
         previous_ = value;
 
         return out * gain_ * normFactor_;
@@ -312,6 +312,11 @@ public:
         return std::clamp(res, 0.15f, 1.25f);
     }
 
+    double advance(float step) noexcept {
+        position_ += step;
+        return position_;
+    }
+
     float next(float step, int32_t band = 0) {
         position_ += step;
         return mixAt(position_, band);
@@ -335,6 +340,19 @@ public:
     }
 
     void loadFrame(const uint8_t* sphereData, size_t totalBytes, int32_t frameIndex, int32_t dataOffset = 300, int32_t frameStride = 6568) {
+        if (sphereData == lastSphereData_ &&
+            totalBytes == lastTotalBytes_ &&
+            frameIndex == lastFrameIndex_ &&
+            dataOffset == lastDataOffset_ &&
+            frameStride == lastFrameStride_) {
+            return;
+        }
+        lastSphereData_ = sphereData;
+        lastTotalBytes_ = totalBytes;
+        lastFrameIndex_ = frameIndex;
+        lastDataOffset_ = dataOffset;
+        lastFrameStride_ = frameStride;
+
         if (!sphereData || frameStride < 6152 + 0x10 ||
             totalBytes < static_cast<size_t>(dataOffset + (frameIndex + 1) * frameStride)) {
             table_.fill(0.0f);
@@ -377,13 +395,21 @@ public:
 
         for (size_t p = 0; p < numActive; ++p) {
             uint16_t b = bins[p];
-            if (b >= 512) continue; // Evitar bins por encima de Nyquist que produzcan aliasing metálico
+            if (b == 0 || b >= 256) continue; // Evitar bins altos que produzcan aspereza metálica
             float amp = (static_cast<float>(amps[p]) / 65535.0f) * gainScale;
             double phi = -3.14159265358979323846 * (static_cast<double>(p * p)) / static_cast<double>(std::max(size_t(1), numActive - 1));
+            double dAngle = kTwoPi * (static_cast<double>(b) / 1024.0);
+            double cosStep = std::cos(dAngle);
+            double sinStep = std::sin(dAngle);
+            double curSin = std::sin(phi);
+            double curCos = std::cos(phi);
 
             for (size_t s = 0; s < 1024; ++s) {
-                double angle = kTwoPi * (static_cast<double>(b * s) / 1024.0) + phi;
-                table_[s] += amp * static_cast<float>(std::sin(angle));
+                table_[s] += amp * static_cast<float>(curSin);
+                double nextSin = curSin * cosStep + curCos * sinStep;
+                double nextCos = curCos * cosStep - curSin * sinStep;
+                curSin = nextSin;
+                curCos = nextCos;
             }
         }
         // Acotar pico de la tabla de cuerpo a 1.0f para evitar saturación en frames densos
@@ -413,6 +439,11 @@ public:
 private:
     std::array<float, 1024> table_{};
     bool valid_{false};
+    const uint8_t* lastSphereData_{nullptr};
+    size_t lastTotalBytes_{0};
+    int32_t lastFrameIndex_{-1};
+    int32_t lastDataOffset_{-1};
+    int32_t lastFrameStride_{-1};
 };
 
 // ============================================================================
@@ -433,12 +464,28 @@ public:
         if (scData && spData) {
             if (scSize == 0) scSize = 4 * 1024 * 1024;
             if (spSize == 0) spSize = 16 * 1024 * 1024;
+            if (scData == lastScapeData_ && scSize == lastScapeSize_ &&
+                spData == lastSphereData_ && spSize == lastSphereSize_ &&
+                std::abs(gain_ - lastGain_) < 1e-5f) {
+                reset(0.0);
+                return;
+            }
+            lastScapeData_ = scData;
+            lastScapeSize_ = scSize;
+            lastSphereData_ = spData;
+            lastSphereSize_ = spSize;
+            lastGain_ = gain_;
             auto sc = parseScapeBuffer(scData, scSize);
             auto sp = parseSphereBuffer(spData, spSize);
             scapeReader_.bind(sc, gain_);
             sphereReader_.bind(sp);
             bodyTable_.loadFrame(spData, spSize, 0, sp.dataOffset, sp.frameStride);
         } else {
+            lastScapeData_ = nullptr;
+            lastScapeSize_ = 0;
+            lastSphereData_ = nullptr;
+            lastSphereSize_ = 0;
+            lastGain_ = gain_;
             DecodedScapeHeader sc;
             DecodedSphereHeader sp;
             scapeReader_.bind(sc, gain_);
@@ -477,9 +524,15 @@ public:
         if (level_ <= 0.0001f) return 0.0f;
         float layerStep = phaseStep * getDetuneFactor();
         float scapeVal = scapeReader_.next(layerStep);
-        // Interpolación por coordenadas de esfera (offset dinámico de banda 0..24)
-        int32_t bandIdx = std::clamp(static_cast<int32_t>(sphere1_ * 24.0f), 0, 24);
-        float sphereMod = sphereReader_.next(layerStep, bandIdx);
+        // Interpolación continua por coordenadas de esfera (offset dinámico de banda 0.0 .. 24.0 sin escalones enteros)
+        float bandPos = std::clamp(sphere1_ * 24.0f, 0.0f, 24.0f);
+        int32_t b0 = static_cast<int32_t>(bandPos);
+        int32_t b1 = std::min(b0 + 1, 24);
+        float bFrac = bandPos - static_cast<float>(b0);
+        double spPos = sphereReader_.advance(layerStep);
+        float mod0 = sphereReader_.mixAt(spPos, b0);
+        float mod1 = (b1 != b0) ? sphereReader_.mixAt(spPos, b1) : mod0;
+        float sphereMod = mod0 + (mod1 - mod0) * bFrac;
         if (!std::isfinite(scapeVal)) scapeVal = 0.0f;
         if (!std::isfinite(sphereMod)) sphereMod = 1.0f;
 
@@ -488,7 +541,7 @@ public:
             float bodyVal = bodyTable_.sampleAt(bodyPhase_);
             bodyPhase_ += layerStep;
             if (bodyPhase_ >= 1024.0) bodyPhase_ = std::fmod(bodyPhase_, 1024.0);
-            combinedVal = scapeVal * 0.90f + bodyVal * 0.10f;
+            combinedVal = scapeVal * 0.92f + bodyVal * 0.08f;
         }
 
         return combinedVal * sphereMod * level_;
@@ -499,6 +552,11 @@ private:
     BandReader      sphereReader_;
     SphereBodyTable bodyTable_;
     double          bodyPhase_{0.0};
+    const uint8_t*  lastScapeData_{nullptr};
+    size_t          lastScapeSize_{0};
+    const uint8_t*  lastSphereData_{nullptr};
+    size_t          lastSphereSize_{0};
+    float           lastGain_{-1.0f};
     float gain_{1.0f};
     float scape1_{0.5f};
     float scape2_{0.5f};
@@ -670,24 +728,24 @@ public:
                 uint32_t sIdx = static_cast<uint32_t>(phaseAccum_) & 8191;
                 float sVal = sine[sIdx];
 
-                float f1 = cell1_.process(sVal * inSample, kCoeffs_10055018) * 14.0f;
+                float f1 = cell1_.process(sVal * inSample, kCoeffs_10055018) * 6.0f;
 
                 uint32_t nIdx = (static_cast<uint32_t>(phaseAccum_ * 0.5f)) & 4095;
-                float nVal = noise[nIdx] * 0.15f;
-                float shaped = inSample * (1.0f - std::abs(f1) * 0.5f) + nVal * f1;
+                float nVal = noise[nIdx] * 0.015f;
+                float shaped = inSample * (1.0f - std::abs(f1) * 0.35f) + nVal * f1;
 
-                // Peines Schroeder FUN_10023fe0
-                float c1 = comb1_.process(shaped, 0.85f, delayBase);
-                float c2 = comb2_.process(shaped, 0.85f, std::min(delayBase * 1.5f, 2040.0f));
+                // Peines Schroeder FUN_10023fe0 con realimentación musical suave
+                float c1 = comb1_.process(shaped, 0.32f, delayBase);
+                float c2 = comb2_.process(shaped, 0.32f, std::min(delayBase * 1.5f, 2040.0f));
                 float combOut = (c1 + c2 + shaped * 2.0f) * 0.25f;
 
                 float f2 = cell2_.process(combOut, kCoeffs_10055004);
 
                 // Suavizado de 1 polo (_DAT_1030bc68 = 1/52)
-                float absF2 = std::abs(f2 * 7.0f);
+                float absF2 = std::abs(f2 * 5.0f);
                 smoother_ = (smoother_ * 51.0f + absF2) * (1.0f / 52.0f);
 
-                prevOut_ = combOut * (1.0f - 0.9f * smoother_) + inSample * 0.9f;
+                prevOut_ = combOut * (1.0f - 0.85f * smoother_) * 0.35f + inSample * 0.85f;
                 return prevOut_;
             }
 
@@ -696,31 +754,31 @@ public:
                 phaseAccum_ += phaseStep * 8192.0f * 0.01f;
                 if (phaseAccum_ >= 8192.0f) phaseAccum_ = std::fmod(phaseAccum_, 8192.0f);
                 uint32_t nIdx = static_cast<uint32_t>(phaseAccum_) & 4095;
-                float nVal = noise[nIdx] * 0.02f * (sp1_ * sp1_); // _DAT_1030a498 = 0.02
-                float dPole = sc2_ * 10.0f;                       // _DAT_1030a4a8 = 10.0
-                float fVar1 = (nVal + (1.0f - sp1_ * sp1_) * inSample + smoother2_ * dPole) / (dPole + 1.0f);
+                float nVal = noise[nIdx] * 0.004f * (sp1_ * sp1_);
+                float dPole = sc2_ * 10.0f;
+                float fVar1 = (nVal + (1.0f - 0.35f * sp1_ * sp1_) * inSample + smoother2_ * dPole) / (dPole + 1.0f);
                 smoother2_ = fVar1;
 
-                float fb1 = std::clamp(2.0f * sp2_ - sp2_ * sp2_, 0.0f, 0.985f) * 0.85f;
+                float fb1 = std::clamp(2.0f * sp2_ - sp2_ * sp2_, 0.0f, 0.985f) * 0.32f;
                 float c1 = comb1_.process(fVar1, fb1, delayBase);
                 float c2 = comb2_.process(fVar1, fb1, std::min(delayBase * 1.33f, 2040.0f));
-                float fVar9 = ((c1 + fVar1) + (c2 + fVar1)) * 0.5f; // _DAT_1030a4b8 = 0.5
+                float fVar9 = ((c1 + fVar1) + (c2 + fVar1)) * 0.5f;
 
                 uint32_t sIdx = static_cast<uint32_t>(phaseAccum_ * (0.5f + sc1_)) & 8191;
                 float fVar2 = sine[sIdx] * fVar9;
-                float diff = (fVar2 - prevDiff_) * sc1_ * 2.0f + fVar9; // _DAT_1030a4d0 = 2.0
+                float diff = (fVar2 - prevDiff_) * sc1_ * 0.35f + fVar9;
                 prevDiff_ = fVar2;
 
-                float c3 = comb3_.process(diff, 0.75f, std::min(delayBase * 0.75f + 1.0f, 2040.0f));
-                float mixed = (1.0f - 0.5f * sp2_) * diff + (0.5f * sp2_) * (c3 + diff) * 0.5f;
+                float c3 = comb3_.process(diff, 0.25f, std::min(delayBase * 0.75f + 1.0f, 2040.0f));
+                float mixed = (1.0f - 0.35f * sp2_) * diff + (0.35f * sp2_) * (c3 + diff) * 0.5f;
 
                 float oldTap = delayLine1_[delayIdx1_];
-                delayLine1_[delayIdx1_] = 0.90f * sp1_ * oldTap + mixed; // _DAT_1030a4f0 = 0.99 acotado
-                if (++delayIdx1_ > 400) delayIdx1_ = 0; // Línea de 401 muestras (FUN_10023990 L86)
+                delayLine1_[delayIdx1_] = 0.28f * sp1_ * oldTap + mixed;
+                if (++delayIdx1_ > 400) delayIdx1_ = 0;
 
-                float out = (prevOut_ - oldTap) * sc2_ * 0.5f + mixed;
+                float wet = (prevOut_ - oldTap) * sc2_ * 0.2f + mixed;
                 prevOut_ = oldTap;
-                return out;
+                return inSample * 0.65f + wet * 0.35f;
             }
 
             case 2: // FUN_10032260 + FUN_10023c10: Síntesis FM cruzada + detector de envolvente + línea 2048
@@ -729,121 +787,118 @@ public:
                 if (phaseAccum_ >= 1.0f) phaseAccum_ -= std::floor(phaseAccum_);
 
                 // Oscilador FM 1 (_DAT_1030bcb0 = 5.0, _DAT_1030bcb8 = 2*pi)
-                double arg1 = (5.0 * static_cast<double>(fmState1_) * static_cast<double>(sp1_) +
+                double arg1 = (2.5 * static_cast<double>(fmState1_) * static_cast<double>(sp1_) +
                                6.2831853 * static_cast<double>(phaseAccum_) * static_cast<double>(0.5f + sc1_)) * 1303.7972;
                 fmState1_ = sine[static_cast<uint32_t>(static_cast<int32_t>(arg1)) & 8191];
 
                 // Oscilador FM 2 (_DAT_1030bcd0 = 2.0)
                 double arg2 = (6.2831853 * static_cast<double>(phaseAccum_) * static_cast<double>(0.5f + sc2_) +
-                               2.0 * static_cast<double>(fmState2_) * static_cast<double>(sp2_)) * 1303.7972;
+                               1.2 * static_cast<double>(fmState2_) * static_cast<double>(sp2_)) * 1303.7972;
                 fmState2_ = sine[static_cast<uint32_t>(static_cast<int32_t>(arg2)) & 8191];
 
-                float fVar4 = (fmState2_ * sc2_ + (1.0f - sc2_)) * inSample;
+                float fVar4 = (fmState2_ * sc2_ * 0.5f + (1.0f - sc2_ * 0.5f)) * inSample;
                 float fVar19 = cell2_.process(fVar4, kCoeffs_10055004);
 
-                // Detector de envolvente (51*y + |4*f19|)/52 (_DAT_1030bce0=4, _DAT_1030bcf0=51, _DAT_1030bce8=1/52)
-                float abs19 = std::abs(fVar19 * 4.0f);
+                float abs19 = std::abs(fVar19 * 3.0f);
                 smoother_ = (smoother_ * 51.0f + abs19) * (1.0f / 52.0f);
 
-                float fVar22 = (abs19 - smoother_) * sp1_ + (1.0f - sp1_) * fVar4;
+                float fVar22 = (abs19 - smoother_) * sp1_ * 0.5f + (1.0f - sp1_ * 0.5f) * fVar4;
                 float oldTap = delayLine1_[delayIdx1_];
-                delayLine1_[delayIdx1_] = sp2_ * 0.9f * oldTap + fVar22; // _DAT_1030bd00 = 0.9
+                delayLine1_[delayIdx1_] = sp2_ * 0.35f * oldTap + fVar22;
                 if (++delayIdx1_ >= 2048) delayIdx1_ = 0;
 
-                float w = 1.0f - sp2_;
-                float out = w * w * fVar22 + (prevOut_ - oldTap) * sp2_ * 0.5f +
-                            (fmState1_ * sc1_ + (1.0f - sc1_)) * inSample * 0.5f;
+                float w = 1.0f - sp2_ * 0.5f;
+                float out = w * w * fVar22 + (prevOut_ - oldTap) * sp2_ * 0.2f +
+                            (fmState1_ * sc1_ * 0.5f + (1.0f - sc1_ * 0.5f)) * inSample * 0.5f;
                 prevOut_ = oldTap;
                 return out;
             }
 
             case 3: // FUN_10023df0 + FUN_10027250: Doble peine resonante + célula 10055018 + línea 2048
             {
-                float fb1 = std::clamp(2.0f * sc1_ - sc1_ * sc1_, 0.0f, 0.98f) * 0.85f;
-                float fb2 = std::clamp(2.0f * sc2_ - sc2_ * sc2_, 0.0f, 0.98f) * 0.85f;
+                float fb1 = std::clamp(2.0f * sc1_ - sc1_ * sc1_, 0.0f, 0.98f) * 0.35f;
+                float fb2 = std::clamp(2.0f * sc2_ - sc2_ * sc2_, 0.0f, 0.98f) * 0.35f;
 
                 float c1 = comb1_.process(inSample, fb1, delayBase);
                 float c2 = comb2_.process(inSample, fb2, std::min(delayBase * 1.414f, 2040.0f));
-                float fVar8 = ((c1 + inSample) + (c2 + inSample)) * 0.5f; // _DAT_1030a5a8 = 0.5
+                float fVar8 = ((c1 + inSample) + (c2 + inSample)) * 0.5f;
 
                 float fVar9 = cell1_.process(fVar8, kCoeffs_10055018);
                 float abs9 = std::abs(fVar9 + fVar9);
-                // _DAT_1030a5b8 = 51.0, _DAT_1030a5b0 = 1/52
                 smoother_ = (smoother_ * 51.0f + abs9) * (1.0f / 52.0f);
 
-                float exc = (1.0f - sp1_) * fVar8 + (abs9 - smoother_) * sp1_;
+                float exc = (1.0f - sp1_ * 0.5f) * fVar8 + (abs9 - smoother_) * sp1_ * 0.5f;
                 float oldTap = delayLine1_[delayIdx1_];
-                delayLine1_[delayIdx1_] = oldTap * 0.9f * sp2_ + exc; // _DAT_1030a5c8 = 0.9
+                delayLine1_[delayIdx1_] = oldTap * 0.35f * sp2_ + exc;
                 if (++delayIdx1_ >= 2048) delayIdx1_ = 0;
 
-                float out = (1.0f - sp2_) * exc + (prevOut_ - oldTap) * sp2_;
+                float out = (1.0f - sp2_ * 0.4f) * exc + (prevOut_ - oldTap) * sp2_ * 0.25f;
                 prevOut_ = oldTap;
                 return out;
             }
 
             case 4: // FUN_10032660 + FUN_10024200: Triple peine Schroeder + modulación seno + tilt 50/51
             {
-                float fb1 = std::clamp(2.0f * sc1_ - sc1_ * sc1_, 0.0f, 0.98f) * 0.85f;
+                float fb1 = std::clamp(2.0f * sc1_ - sc1_ * sc1_, 0.0f, 0.98f) * 0.35f;
                 float c1 = comb1_.process(inSample, fb1, delayBase);
                 float c2 = comb2_.process(inSample, fb1, std::min(delayBase * 1.25f, 2040.0f));
-                float fVar9 = ((c1 + inSample) + (c2 + inSample)) * 0.5f; // _DAT_1030bd10 = 0.5
+                float fVar9 = ((c1 + inSample) + (c2 + inSample)) * 0.5f;
 
                 phaseAccum_ += phaseStep * 8192.0f * 0.01f * (0.5f + sc2_);
                 if (phaseAccum_ >= 8192.0f) phaseAccum_ = std::fmod(phaseAccum_, 8192.0f);
                 float modSine = sine[static_cast<uint32_t>(phaseAccum_) & 8191];
 
-                float fVar1 = modSine * sc1_ * fVar9 + (1.0f - sc1_) * fVar9;
-                float c3 = comb3_.process(fVar1, 0.80f, std::min(delayBase * 2.0f, 2040.0f));
-                float fVar13 = (c3 + fVar1) * sp2_ * 0.5f + fVar1 * (1.0f - sp2_); // _DAT_1030bd24 = 0.5
+                float fVar1 = modSine * sc1_ * 0.4f * fVar9 + (1.0f - sc1_ * 0.4f) * fVar9;
+                float c3 = comb3_.process(fVar1, 0.30f, std::min(delayBase * 2.0f, 2040.0f));
+                float fVar13 = (c3 + fVar1) * sp2_ * 0.35f + fVar1 * (1.0f - sp2_ * 0.35f);
 
                 float fVar10 = cell1_.process(fVar13, kCoeffs_10055004);
-                float abs10 = std::abs(fVar10 * 7.0f); // _DAT_1030bd28 = 7.0
-                smoother_ = (smoother_ * 51.0f + abs10) * 0.019231001f; // _DAT_1030bd2c=51, _DAT_1030bd30=1/52
+                float abs10 = std::abs(fVar10 * 5.0f);
+                smoother_ = (smoother_ * 51.0f + abs10) * 0.019231001f;
 
-                float exc = (abs10 - smoother_) * sp1_ + (1.0f - sp1_) * fVar13;
+                float exc = (abs10 - smoother_) * sp1_ * 0.4f + (1.0f - sp1_ * 0.4f) * fVar13;
                 float oldTap = delayLine1_[delayIdx1_];
-                delayLine1_[delayIdx1_] = oldTap * sp2_ * 0.89999998f + exc; // _DAT_1030bd38 = 0.9
+                delayLine1_[delayIdx1_] = oldTap * sp2_ * 0.35f + exc;
                 if (++delayIdx1_ >= 2048) delayIdx1_ = 0;
 
-                float w = 1.0f - sp2_;
-                float combMix = (prevOut_ - oldTap) * sp2_ + exc * w * w;
+                float w = 1.0f - sp2_ * 0.4f;
+                float combMix = (prevOut_ - oldTap) * sp2_ * 0.25f + exc * w * w;
                 prevOut_ = oldTap;
 
-                // _DAT_1030bd44 = 50.0, _DAT_1030bd48 = 0.01961f (1/51)
                 smoother2_ = (smoother2_ * 50.0f + combMix) * 0.019610001f;
-                float out = (combMix - prevDiff_) * sc2_ * 0.5f + combMix + smoother2_ * sp1_ * 0.5f;
+                float out = (combMix - prevDiff_) * sc2_ * 0.2f + combMix + smoother2_ * sp1_ * 0.3f;
                 prevDiff_ = combMix;
                 return out;
             }
 
             case 5: // FUN_10024530 + FUN_10027510: Cascada de 4 células biquad (1005502c, 10055004, 10055054, 100550a4)
             {
-                float c1 = comb1_.process(inSample, 0.75f, 47.743999f); // 0x423ef9db = 47.744
-                float diff1 = (c1 - prevDiff_) * 2.0f * sc1_ + inSample;
+                float c1 = comb1_.process(inSample, 0.30f, 47.743999f);
+                float diff1 = (c1 - prevDiff_) * 0.4f * sc1_ + inSample;
                 prevDiff_ = c1;
 
                 float f15 = cell1_.process(diff1, kCoeffs_1005502c);
                 float f16 = cell2_.process(inSample, kCoeffs_10055004);
-                float abs16 = std::abs(f16 * 4.0f);
+                float abs16 = std::abs(f16 * 3.0f);
                 smoother_ = (smoother_ * 51.0f + abs16) * (1.0f / 52.0f);
 
-                float mid = (abs16 - smoother_) * sp1_ + (1.0f - sp1_) * inSample + f15 * sc2_ * 0.5f;
+                float mid = (abs16 - smoother_) * sp1_ * 0.4f + (1.0f - sp1_ * 0.4f) * inSample + f15 * sc2_ * 0.35f;
                 smoother2_ = (smoother2_ * 50.0f + mid) * (1.0f / 51.0f);
 
-                float hpMid = mid - smoother2_;
+                float hpMid = mid - smoother2_ * 0.5f;
                 float f12_a = cell3_.process(hpMid, kCoeffs_10055054);
                 float old1 = delayLine1_[delayIdx1_];
-                delayLine1_[delayIdx1_] = 0.85f * sp1_ * old1 + f12_a;
+                delayLine1_[delayIdx1_] = 0.35f * sp1_ * old1 + f12_a;
                 if (++delayIdx1_ >= 2048) delayIdx1_ = 0;
 
-                float stage2 = old1 * sc1_ * 0.5f + hpMid;
+                float stage2 = old1 * sc1_ * 0.3f + hpMid;
                 float f12_b = cell4_.process(stage2, kCoeffs_100550a4);
                 float old2 = delayLine2_[delayIdx2_];
-                delayLine2_[delayIdx2_] = 0.85f * sp2_ * old2 + f12_b;
+                delayLine2_[delayIdx2_] = 0.35f * sp2_ * old2 + f12_b;
                 if (++delayIdx2_ >= 2048) delayIdx2_ = 0;
 
                 float pole = sp2_ * 4.0f;
-                prevOut_ = (prevOut_ * pole + old2 * sc2_ * 0.5f + stage2) / (pole + 1.0f);
+                prevOut_ = (prevOut_ * pole + old2 * sc2_ * 0.3f + stage2) / (pole + 1.0f);
                 return prevOut_;
             }
 
@@ -954,6 +1009,8 @@ public:
         for (auto& layer : layers_) {
             layer.bindZone(zone, useHi);
         }
+        parsetEngine_.reset();
+        warmLp_ = 0.0f;
     }
 
     void reset(double position = 0.0) {
@@ -961,6 +1018,7 @@ public:
             layer.reset(position);
         }
         parsetEngine_.reset();
+        warmLp_ = 0.0f;
     }
 
     void setParset(int algorithm) noexcept {
@@ -1012,13 +1070,15 @@ public:
         float s3 = layers_[2].renderSample(effectiveStep);
 
         // Suma de excitación de capas activas normalizada para preservar headroom en Parset
-        float excitation = (s1 + s2 + s3) * 0.65f;
+        float excitation = (s1 + s2 + s3) * 0.55f;
 
         // Despacho a través del motor Parset (FUN_10031d30)
         float processed = parsetEngine_.process(parset_, excitation, effectiveStep);
         if (!std::isfinite(processed)) processed = 0.0f;
-        processed = std::clamp(processed, -1.5f, 1.5f);
-        return processed * volume_;
+        // Suavizado paso-bajo cálido de 1 polo (~6.5 kHz) para eliminar aspereza metálica digital
+        warmLp_ += 0.52f * (processed - warmLp_);
+        float out = std::clamp(warmLp_, -1.5f, 1.5f);
+        return out * volume_;
     }
 
     ResynatorLayer& getLayer(size_t idx) noexcept { return layers_[std::min(idx, layers_.size() - 1)]; }
@@ -1034,6 +1094,7 @@ private:
     int semi_{0};
     float cents_{0.0f};
     float volume_{1.0f};
+    float warmLp_{0.0f};
 };
 
 /// Alias para preservar compatibilidad con código existente

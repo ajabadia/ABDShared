@@ -24,6 +24,9 @@
    * `rightSlot`: Espacio para botones de pánico MIDI, medidores de CPU y selectores de tema.
 4. **Auto-conexión con `AboutDialog`:**
    * Al pulsar `Help ➔ About...` o `Help ➔ Check for Updates...`, se invoca automáticamente el diálogo modal universal.
+5. **Botones de acción rápida (`rightSlot`):**
+   * Botones de acceso directo a drawers y paneles: NUKE, Matrix, MIDI, SysEx, Effects, NeuronDB, Settings, Theme toggle.
+   * El botón `SysEx` usa el icono compartido `SysExIcon` exportado desde `@abdsynths/shared/components` (`D:\desarrollos\ABDSynths\ABDShared\Components\SynthNavBar\index.js`).
 
 ---
 

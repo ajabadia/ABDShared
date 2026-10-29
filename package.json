@@ -30,6 +30,10 @@
       "types": "./Components/pillSelector.d.ts",
       "default": "./Components/pillSelector.js"
     },
+    "./components/midiLearn.js": {
+      "types": "./Components/midiLearn.d.ts",
+      "default": "./Components/midiLearn.js"
+    },
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",

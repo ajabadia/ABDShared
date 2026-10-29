@@ -105,6 +105,8 @@ export class Knob
         // que_no_ skin (un tema, un test de accesibilidad, un CSS propio) para
         // saber que este mando tiene el cero en el centro.
         this.wrapper.dataset.bipolar = this.options.bipolar ? 'true' : 'false';
+        if (this.options.paramIndex !== undefined && this.options.paramIndex !== null)
+            this.wrapper.dataset.paramIndex = String(this.options.paramIndex);
 
         if (this.options.label)
         {

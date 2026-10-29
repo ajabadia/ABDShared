@@ -75,7 +75,7 @@ export {
 // repo, y un panel tiene que poder ENSENAR eso en vez de inventar un 0.
 export { buildS950Calibration, s950AxisFor, s950Coverage, S950_UNITS } from './s950Calibration.js';
 export { enhanceRangeInputs, destroyEnhancedRangeInputs } from '../utils/index.js';
-export { WAVE_ICONS, FILTER_ICONS } from './icons.js';
+export { WAVE_ICONS, FILTER_ICONS, CONTROL_ICONS } from './icons.js';
 export { SevenSegmentDisplay } from './sevenSegmentDisplay.js';
 export { SilverFilmstripKnob } from './silverFilmstripKnob.js';
 export { EffectLEDButton } from './effectLEDButton.js';
@@ -121,6 +121,7 @@ export {
   DEFAULT_NAVBAR_MENUS,
   isItemChecked,
   renderMenuItemHtml,
+  SysExIcon,
 } from './synthNavBar.js';
 
 // Medición de señal VU y analizador espectral logarítmico (ABDAudioLab / ABDScope)
@@ -138,3 +139,14 @@ export {
   classifyBankCategory,
 } from './bank/index.js';
 
+// Sistema universal de MIDI Learn & CC/NRPN Mapping Matrix (N:M)
+export {
+  createMidiLearnStore,
+  evaluateMidiMapping,
+  formatMidiSourceBadge,
+  formatMidiMappingSummary,
+  MIDI_SOURCE_TYPES,
+  MIDI_CURVE_TYPES,
+  attachMidiLearnUI,
+  createMidiLearnDrawerContent,
+} from './midiLearn.js';

@@ -91,6 +91,8 @@ export class Slider
             + (vertical ? ' abd-slider--vertical' : '');
         this.wrapper.style.setProperty(
             '--abd-slider-length', `${this.options.length}px`);
+        if (this.options.paramIndex !== undefined && this.options.paramIndex !== null)
+            this.wrapper.dataset.paramIndex = String(this.options.paramIndex);
 
         if (this.options.label)
         {

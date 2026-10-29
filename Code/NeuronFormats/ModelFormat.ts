@@ -1044,6 +1044,8 @@ export interface ModelExportPackageOptions {
   neuronikModelJson?: string;
   /** Original lossless audio buffers to preserve in Extended mode (`Samples/<filename>`) for future re-processing */
   sourceSamples?: { name: string; data: Uint8Array }[];
+  /** Optional safe parameter overrides for `Sounds/<NNN>.sound/sound.script` (ADSR, Filter, LFO) */
+  soundParameterOverrides?: Record<string, number>;
 }
 
 /**
@@ -1092,6 +1094,13 @@ export function buildModelExportZip(options: ModelExportPackageOptions): Uint8Ar
       name: fullName.slice(0, 16),
       r1ModelIndex: options.slot,
     });
+    if (options.soundParameterOverrides) {
+      for (const [k, v] of Object.entries(options.soundParameterOverrides)) {
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          soundPreset.values.set(k, v);
+        }
+      }
+    }
     entries.push({
       path: `${soundPrefix}/sound.script`,
       data: serializeSoundScript(soundPreset),

@@ -55,9 +55,15 @@ export function decodeSysExHeader(buf) {
   } else if (buf[1] === 0x00 && buf.length >= 4 && buf[2] === 0x20 && buf[3] === 0x32) {
     mfgId = 'Behringer (0x00 0x20 0x32)';
     model = 'DeepMind';
+  } else if (buf[1] === 0x00 && buf.length >= 4 && buf[2] === 0x20 && buf[3] === 0x50) {
+    mfgId = 'Hartmann GmbH (0x00 0x20 0x50)';
+    model = buf.length >= 5 && buf[4] === 0x01 ? 'Neuron / NeuronVS' : 'Neuron';
+    if (buf.length >= 6) {
+      deviceId = `0x${toHexByte(buf[5])}`;
+    }
   }
 
-  if (buf.length >= 3) {
+  if (!deviceId && buf.length >= 3) {
     deviceId = `0x${toHexByte(buf[2])}`;
   }
 

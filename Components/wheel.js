@@ -60,6 +60,7 @@ export class Wheel {
     this.min = options.min !== undefined ? options.min : this.isPitch ? -8192 : 0;
     this.max = options.max !== undefined ? options.max : this.isPitch ? 8191 : 127;
     this.label = options.label || (this.isPitch ? 'PITCH' : 'MOD');
+    this.paramIndex = options.paramIndex;
     this.valueFormatter = options.valueFormatter || this.defaultValueFormatter.bind(this);
     this._destroyed = false;
     this.notices = createContinuousNotices({
@@ -85,6 +86,9 @@ export class Wheel {
     // undefined (reading 'addEventListener')") que no decia nada de la causa real.
     // La rueda repinta su contenedor: es suyo (1:1).
     this.container.classList.add('kbd-wheel-wrapper');
+    if (this.paramIndex !== undefined && this.paramIndex !== null) {
+      this.container.dataset.paramIndex = String(this.paramIndex);
+    }
     this.container.innerHTML = `
       <label class="kbd-wheel-label">${this.label}</label>
       <div class="kbd-wheel-sprite"

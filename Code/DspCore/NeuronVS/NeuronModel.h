@@ -42,6 +42,12 @@ public:
         return parseChunks();
     }
 
+    bool loadFromBytes(std::vector<uint8_t> rawBytes) {
+        bytes_ = std::move(rawBytes);
+        if (bytes_.empty()) return false;
+        return parseChunks();
+    }
+
     [[nodiscard]] const std::vector<uint8_t>& getBytes() const noexcept { return bytes_; }
     [[nodiscard]] const uint8_t* data() const noexcept { return bytes_.data(); }
     [[nodiscard]] size_t size() const noexcept { return bytes_.size(); }
@@ -158,6 +164,122 @@ public:
 
         // 3. Parsear map.script y mapear las 128 teclas MIDI
         return parseMapScript(folderPath / "map.script");
+    }
+
+    /// Genera en memoria un modelo neuronal sintético determinista (para WASM o fallback sin NeuronDB en disco).
+    /// El slot 511 genera la onda canónica 'sinew'; los slots 0..510 generan espectros armónicos diferenciados.
+    bool loadEmbeddedSyntheticModel(int modelSlotNumber) {
+        char buf[32];
+        if (modelSlotNumber == 511) {
+            name_ = "sinew";
+        } else {
+            std::snprintf(buf, sizeof(buf), "Model #%03d", std::clamp(modelSlotNumber, 0, 511));
+            name_ = buf;
+        }
+
+        // 1. Construir chunk csAN (.scape) de 100 muestras int16 (0x104 + 200 = 460 bytes)
+        constexpr size_t kScapeHeaderSize = 0x104;
+        constexpr int32_t kCycleSamples = 100;
+        std::vector<uint8_t> scapeBytes(kScapeHeaderSize + kCycleSamples * sizeof(int16_t), 0);
+        uint32_t scapeChunkSize = static_cast<uint32_t>(scapeBytes.size());
+        uint32_t scapeFormat = 256;
+        int32_t curveId = modelSlotNumber;
+        int32_t resolution = kCycleSamples;
+        int32_t flags = 0;
+        int32_t length = kCycleSamples;
+        int32_t loopStart = 0;
+        int32_t loopEnd = kCycleSamples;
+
+        std::memcpy(scapeBytes.data() + 0, "csAN", 4);
+        std::memcpy(scapeBytes.data() + 4, &scapeChunkSize, 4);
+        std::memcpy(scapeBytes.data() + 8, &scapeFormat, 4);
+        std::memcpy(scapeBytes.data() + 12, &curveId, 4);
+        std::memcpy(scapeBytes.data() + 16, &resolution, 4);
+        std::memcpy(scapeBytes.data() + 20, &flags, 4);
+        std::memcpy(scapeBytes.data() + 24, &length, 4);
+        std::memcpy(scapeBytes.data() + 28, &loopStart, 4);
+        std::memcpy(scapeBytes.data() + 32, &loopEnd, 4);
+
+        auto* samples = reinterpret_cast<int16_t*>(scapeBytes.data() + kScapeHeaderSize);
+        constexpr double kTwoPi = 6.28318530717958647692;
+        const int numHarmonics = (modelSlotNumber == 511) ? 3 : (2 + (modelSlotNumber % 5));
+        const double morphTilt = (modelSlotNumber == 511) ? 0.35 : (0.25 + (modelSlotNumber % 11) * 0.04);
+
+        for (int i = 0; i < kCycleSamples; ++i) {
+            double phase = kTwoPi * (static_cast<double>(i) / static_cast<double>(kCycleSamples));
+            double acc = std::sin(phase);
+            for (int h = 2; h <= numHarmonics; ++h) {
+                double hd = static_cast<double>(h);
+                double hWeight = (((h + modelSlotNumber) % 2 == 0 ? 1.0 : -0.75) * morphTilt) / (hd * hd);
+                acc += hWeight * std::sin(phase * hd);
+            }
+            int32_t val = static_cast<int32_t>(std::clamp(acc * 1650.0, -16000.0, 16000.0));
+            samples[i] = static_cast<int16_t>(val);
+        }
+
+        // 2. Construir chunk psAN (.sphere) mínimo válido (dataOffset=300, 1 frame, 25 bandas x 4 floats)
+        constexpr int32_t kDataOffset = 300;
+        constexpr int32_t kBands = 25;
+        constexpr int32_t kSlotsPerBand = 4;
+        constexpr int32_t kFrameStride = 16 + kBands * kSlotsPerBand * 4;
+        std::vector<uint8_t> sphereBytes(static_cast<size_t>(kDataOffset + kFrameStride), 0);
+        uint32_t sphereChunkSize = static_cast<uint32_t>(sphereBytes.size());
+        int32_t sphereVersion = 288;
+        int32_t frameCount = 1;
+        int32_t decodeMode = 0;
+
+        std::memcpy(sphereBytes.data() + 0, "psAN", 4);
+        std::memcpy(sphereBytes.data() + 4, &sphereChunkSize, 4);
+        std::memcpy(sphereBytes.data() + 8, &sphereVersion, 4);
+        std::memcpy(sphereBytes.data() + 12, &curveId, 4);
+        std::memcpy(sphereBytes.data() + 20, &resolution, 4);
+        std::memcpy(sphereBytes.data() + 24, &frameCount, 4);
+        std::memcpy(sphereBytes.data() + 32, &kSlotsPerBand, 4);
+        std::memcpy(sphereBytes.data() + 36, &kSlotsPerBand, 4);
+        std::memcpy(sphereBytes.data() + 40, &kBands, 4);
+        std::memcpy(sphereBytes.data() + 60, &decodeMode, 4);
+        std::memcpy(sphereBytes.data() + 68, &kFrameStride, 4);
+        std::memcpy(sphereBytes.data() + 72, &kDataOffset, 4);
+
+        for (int b = 0; b < kBands; ++b) {
+            float bandGain = (modelSlotNumber == 511)
+                ? 0.85f
+                : (0.45f + 0.45f * std::sin(static_cast<float>(b * (1 + (modelSlotNumber % 5))) * 0.35f));
+            size_t bOff = static_cast<size_t>(kDataOffset + 16 + b * kSlotsPerBand * 4);
+            std::memcpy(sphereBytes.data() + bOff, &bandGain, sizeof(float));
+        }
+
+        auto scapeBuf = std::make_unique<AnChunkBuffer>();
+        auto sphereBuf = std::make_unique<AnChunkBuffer>();
+        if (!scapeBuf->loadFromBytes(std::move(scapeBytes)) || !sphereBuf->loadFromBytes(std::move(sphereBytes))) {
+            return false;
+        }
+
+        sources_.clear();
+        SourcePair pair;
+        pair.index = 1;
+        pair.scape = std::move(scapeBuf);
+        pair.sphere = std::move(sphereBuf);
+        sources_.push_back(std::move(pair));
+
+        const auto* src = findSource(1);
+        for (size_t k = 0; k < kMidiKeysCount; ++k) {
+            keyZones_[k].lowKey = 0;
+            keyZones_[k].hiKey = 127;
+            keyZones_[k].rootKey = 69;
+            keyZones_[k].lowSource = 1;
+            keyZones_[k].hiSource = 1;
+            keyZones_[k].scapeLo = src->scape->data();
+            keyZones_[k].scapeLoSize = src->scape->size();
+            keyZones_[k].sphereLo = src->sphere->data();
+            keyZones_[k].sphereLoSize = src->sphere->size();
+            keyZones_[k].scapeHi = src->scape->data();
+            keyZones_[k].scapeHiSize = src->scape->size();
+            keyZones_[k].sphereHi = src->sphere->data();
+            keyZones_[k].sphereHiSize = src->sphere->size();
+            keyZones_[k].volumeGain = 1.0f;
+        }
+        return true;
     }
 
     [[nodiscard]] const std::string& getName() const noexcept { return name_; }
@@ -278,8 +400,18 @@ private:
         if (inZone) parsedZones.push_back(currentZone);
 
         // Mapear cada zona activa sobre su rango de teclas [LowKey .. HiKey] (FUN_1000a930: ignora zonas vacías con fuentes a 0)
+        // Si una zona activa referencia un LowSource o HiSource (> 0) cuyo par .scape/.sphere no existe o está incompleto,
+        // el modelo se rechaza como no cargable.
+        bool anyActiveZone = false;
         for (const auto& z : parsedZones) {
             if (z.lowSource <= 0 && z.hiSource <= 0) continue;
+            if (z.lowSource > 0 && (z.scapeLo == nullptr || z.sphereLo == nullptr)) {
+                return false;
+            }
+            if (z.hiSource > 0 && (z.scapeHi == nullptr || z.sphereHi == nullptr)) {
+                return false;
+            }
+            anyActiveZone = true;
             int lo = std::clamp(z.lowKey, 0, 127);
             int hi = std::clamp(z.hiKey, 0, 127);
             if (lo > hi) std::swap(lo, hi);
@@ -288,7 +420,7 @@ private:
             }
         }
 
-        return true;
+        return anyActiveZone;
     }
 
     std::filesystem::path modelPath_;

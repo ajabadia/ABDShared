@@ -97,9 +97,9 @@ public:
             cutoffNorm_ = std::clamp(cutoffHzOrNorm, 0.0f, 1.0f);
             cutoffHz_   = 20.0f * std::pow(900.0f, cutoffNorm_);
         } else {
-            cutoffHz_ = std::clamp(cutoffHzOrNorm, 15.0f, static_cast<float>(sampleRate_ * 0.49));
-            // Inversa exacta del mapeo exponencial 20 * 900^c (con ajuste a la ley cuadrática de FUN_10021c90)
-            float norm = std::sqrt(std::clamp((cutoffHz_ - 20.0f) / 22000.0f, 0.0f, 1.0f));
+            cutoffHz_ = std::clamp(cutoffHzOrNorm, 20.0f, static_cast<float>(sampleRate_ * 0.49));
+            // Inversa exacta del mapeo exponencial 20 * 900^c (ln(900) = 6.80239476f)
+            float norm = std::log(std::max(cutoffHz_, 20.0f) / 20.0f) / 6.80239476f;
             cutoffNorm_ = std::clamp(norm, 0.0f, 1.0f);
         }
     }
@@ -235,6 +235,7 @@ private:
             }
             float fVar3 = 7.1237929e-05f;
             uint32_t uVar11 = radToTableIndex(static_cast<double>(fVar2 * fVar3));
+            if (uVar11 == 0u) uVar11 = 1u;
             const auto& sine = getSineTable();
 
             fVar2 = (1.0f - param_3) + 0.01f;
@@ -340,6 +341,7 @@ private:
             }
             dVar6 = dVar6 * 7.1237929109352447e-05;
             uint32_t uVar11 = radToTableIndex(dVar6);
+            if (uVar11 == 0u) uVar11 = 1u;
             const auto& sine = getSineTable();
 
             float fVar2 = (1.0f - param_3) + 0.01f;

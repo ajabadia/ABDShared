@@ -54,7 +54,8 @@ public:
     void setParameters(float aNorm, float dNorm, float sNorm, float rNorm) noexcept {
         aNorm_ = std::clamp(aNorm, 0.0f, 1.0f);
         dNorm_ = std::clamp(dNorm, 0.0f, 1.0f);
-        sustainLevel_ = std::clamp(sNorm, 0.0f, 1.0f);
+        float sClamped = std::clamp(sNorm, 0.0f, 1.0f);
+        sustainLevel_ = (sClamped + sClamped) - (sClamped * sClamped);
         rNorm_ = std::clamp(rNorm, 0.0f, 1.0f);
         updateRates();
     }
@@ -70,7 +71,7 @@ public:
         float dClamped = std::clamp(decaySec, 0.001f, kMaxSec);
         float rClamped = std::clamp(releaseSec, 0.001f, kMaxSec);
 
-        aNorm_ = std::sqrt(aClamped / kMaxSec);
+        aNorm_ = std::cbrt(aClamped / kMaxSec);
         dNorm_ = std::sqrt(dClamped / kMaxSec);
         sustainLevel_ = std::clamp(sustainLevel, 0.0f, 1.0f);
         rNorm_ = std::sqrt(rClamped / kMaxSec);
@@ -105,6 +106,15 @@ public:
     [[nodiscard]] State getState() const noexcept { return state_; }
     [[nodiscard]] float getLevel() const noexcept { return currentLevel_ * velocity_; }
 
+    void setRepeatMode(bool repeat) noexcept {
+        repeatMode_ = repeat;
+        if (repeatMode_ && state_ == State::Sustain) {
+            state_ = State::Attack;
+        }
+    }
+
+    [[nodiscard]] bool isRepeatMode() const noexcept { return repeatMode_; }
+
     /**
      * @brief Calcula la siguiente muestra de envolvente.
      */
@@ -124,16 +134,19 @@ public:
                     currentLevel_ -= diff * decayCoeff_;
                     if (currentLevel_ <= sustainLevel_ + 0.0005f) {
                         currentLevel_ = sustainLevel_;
-                        state_ = State::Sustain;
+                        state_ = repeatMode_ ? State::Attack : State::Sustain;
                     }
                 } else {
                     currentLevel_ = sustainLevel_;
-                    state_ = State::Sustain;
+                    state_ = repeatMode_ ? State::Attack : State::Sustain;
                 }
                 break;
 
             case State::Sustain:
                 currentLevel_ = sustainLevel_;
+                if (repeatMode_) {
+                    state_ = State::Attack;
+                }
                 break;
 
             case State::Release:
@@ -158,17 +171,20 @@ public:
 
 private:
     void updateRates() noexcept {
-        // En Hartmann Neuron (FUN_10040550), la escala temporal canónica es cuadrática:
-        // samples = norm^2 * (20.0s * sampleRate)
+        // En Hartmann Neuron (FUN_10040550), el ataque sigue ley cúbica (norm^3 * 20s)
+        // y Decay/Release siguen ley cuadrática (norm^2 * 20s):
         double maxSamples = 20.0 * sampleRate_;
 
-        double aSamples = std::max(1.0, static_cast<double>(aNorm_ * aNorm_) * maxSamples);
+        double minAttackSamples = std::max(1.0, 0.004 * sampleRate_);
+        double aSamples = std::max(minAttackSamples, static_cast<double>(aNorm_ * aNorm_ * aNorm_) * maxSamples);
         attackRate_ = static_cast<float>(1.0 / aSamples);
 
-        double dSamples = std::max(1.0, static_cast<double>(dNorm_ * dNorm_) * maxSamples);
+        double minDecaySamples = std::max(1.0, 0.005 * sampleRate_);
+        double dSamples = std::max(minDecaySamples, static_cast<double>(dNorm_ * dNorm_) * maxSamples);
         decayCoeff_ = static_cast<float>(1.0 - std::exp(-3.5 / dSamples));
 
-        double rSamples = std::max(1.0, static_cast<double>(rNorm_ * rNorm_) * maxSamples);
+        double minReleaseSamples = std::max(1.0, 0.005 * sampleRate_);
+        double rSamples = std::max(minReleaseSamples, static_cast<double>(rNorm_ * rNorm_) * maxSamples);
         releaseCoeff_ = static_cast<float>(std::exp(-4.6 / rSamples));
     }
 
@@ -184,6 +200,7 @@ private:
 
     float currentLevel_{0.0f};
     float velocity_{1.0f};
+    bool repeatMode_{false};
     State state_{State::Idle};
 };
 

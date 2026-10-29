@@ -49,4 +49,5 @@
 @import './components/modals.css';              /* Modals: arquitectura universal de diálogos y confirmaciones */
 @import './components/pills.css';               /* Unified tokenized pill & chip selectors */
 @import './components/catalog-browser.css';     /* Catalog & Model Browser: navegadores de modelos/tablas de ondas estilo ABDMS2000 */
-
+@import './components/midi-learn.css';          /* MIDI Learn & CC/NRPN Mapping Matrix (N:M) */
+@import './components/live-sysex-inspector.css'; /* LiveSysExInspector: inspector reactivo de tramas MIDI SysEx */

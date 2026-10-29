@@ -8,5 +8,6 @@
 export * from './NeuronTypes.ts';
 export * from './ModelFormat.ts';
 export * from './SoundFormat.ts';
+export * from './NeuronDbMapper.ts';
 export * from './WavAiffDecoder.ts';
 export * from './ZipArchive.ts';

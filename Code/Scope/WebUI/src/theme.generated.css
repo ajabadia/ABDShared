@@ -274,6 +274,242 @@
   --color-scrollbar-thumb-active: #3580b8;
   --color-scrollbar-track:        #081420;
 }
+
+/* ── theme: neuron-dark ── */
+/* canonical: ABDSharedAssets/styles/themes/neuron-dark.css */
+/* Hartmann Neuron Hardware -- Anthracite & Luminous Amber (Dark Theme) */
+/* Studio / Rack Night Mode aesthetic with amber LED illuminated indicators */
+[data-theme="neuron-dark"], body.skin-neuron-dark, body.theme-neuron-dark {
+  --color-bg-base:                #0e1014;
+  --color-panel-bg:               #14171d;
+  --color-panel-surface:          #1b2029;
+  --color-panel-surface-elevated: #242a36;
+  --navbar-bg:                    #14171d;
+  --navbar-shadow:                0 2px 10px rgba(0, 0, 0, 0.45);
+  --color-panel-border:           rgba(255, 157, 0, 0.16);
+  --color-panel-border-strong:    rgba(255, 157, 0, 0.36);
+  --color-panel-border-dim:       rgba(255, 255, 255, 0.06);
+  --shadow-card:                  0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover:            0 6px 20px rgba(0, 0, 0, 0.50);
+
+  /* Signature Hartmann Neon Amber Accents */
+  --color-accent:                 #ff9500;
+  --color-accent-rgb:             255, 149, 0;
+  --color-accent-hover:           #ffa726;
+  --color-accent-active:          #e68500;
+  --color-accent-dim:             rgba(255, 149, 0, 0.16);
+
+  --color-success:                #00e676;
+  --color-success-rgb:            0, 230, 118;
+  --color-warning:                #ffa726;
+  --color-warning-rgb:            255, 167, 38;
+  --color-danger:                 #ff5252;
+  --color-danger-rgb:             255, 82, 82;
+  --color-info:                   #38bdf8;
+  --color-info-rgb:               56, 189, 248;
+
+  /* Typography */
+  --color-text-main:              #f5f5f4;
+  --color-text-muted:             #a8a29e;
+  --color-text-dim:               #6b7280;
+
+  /* LCD / Telemetry */
+  --color-lcd-bg:                 #090a0d;
+  --color-lcd-text:               #ff9d00;
+  --color-lcd-border:             rgba(255, 157, 0, 0.40);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #2b3342;
+  --color-scrollbar-thumb-hover:  #3b465a;
+  --color-scrollbar-thumb-active: #ff9500;
+  --color-scrollbar-track:        #0e1014;
+
+  /* Trajectory Stick 2D */
+  --color-stick-pad-bg:           #0f1218;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #1c222c 0%, #0d0f14 100%);
+  --color-stick-pad-border:       rgba(255, 157, 0, 0.22);
+  --color-stick-pad-shadow:       inset 0 2px 8px rgba(0, 0, 0, 0.70);
+  --color-stick-crosshair:        rgba(255, 149, 0, 0.28);
+  --color-stick-ring:             rgba(255, 149, 0, 0.24);
+  --color-stick-pole-text:        #9ca3af;
+}
+
+/* ── theme: neuron-light ── */
+/* canonical: ABDSharedAssets/styles/themes/neuron-light.css */
+/* Hartmann Neuron Hardware -- Champagne Aluminum & Amber Neon (Light Theme) */
+/* Inspired by the Axel Hartmann Neuron Synthesizer (2002) physical hardware */
+[data-theme="neuron-light"], [data-theme="neuron"], body.skin-neuron-light, body.theme-neuron-light {
+  --color-bg-base:                #dedad3;
+  --color-panel-bg:               #ebe7df;
+  --color-panel-surface:          #f6f4ee;
+  --color-panel-surface-elevated: #ffffff;
+  --navbar-bg:                    #ebe7df;
+  --navbar-shadow:                0 1px 3px rgba(35, 30, 24, 0.10);
+  --color-panel-border:           rgba(45, 38, 30, 0.15);
+  --color-panel-border-strong:    rgba(45, 38, 30, 0.30);
+  --color-panel-border-dim:       rgba(45, 38, 30, 0.08);
+  --shadow-card:                  0 4px 16px rgba(35, 30, 24, 0.07);
+  --shadow-card-hover:            0 6px 20px rgba(35, 30, 24, 0.12);
+
+  /* Signature Hartmann Amber-Orange Accents (Axel Hartmann illuminated encoders) */
+  --color-accent:                 #d95300;
+  --color-accent-rgb:             217, 83, 0;
+  --color-accent-hover:           #ea580c;
+  --color-accent-active:          #b44200;
+  --color-accent-dim:             rgba(217, 83, 0, 0.12);
+
+  --color-success:                #15803d;
+  --color-success-rgb:            21, 128, 61;
+  --color-warning:                #d97706;
+  --color-warning-rgb:            217, 119, 6;
+  --color-danger:                 #dc2626;
+  --color-danger-rgb:             220, 38, 38;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
+
+  /* Typography (High contrast charcoal on warm champagne alloy) */
+  --color-text-main:              #1c1917;
+  --color-text-muted:             #57534e;
+  --color-text-dim:               #78716c;
+
+  /* LCD / Telemetry (Authentic Hartmann dark bezel with glowing amber VFD/LCD text) */
+  --color-lcd-bg:                 #181512;
+  --color-lcd-text:               #ff9d00;
+  --color-lcd-border:             rgba(255, 157, 0, 0.40);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #c8c2b5;
+  --color-scrollbar-thumb-hover:  #a8a192;
+  --color-scrollbar-thumb-active: #78716c;
+  --color-scrollbar-track:        #ebe7df;
+
+  /* Trajectory Stick 2D (Illuminated Orange Ring Vector Pad) */
+  --color-stick-pad-bg:           #dedad3;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #f6f4ee 0%, #d4cfc4 100%);
+  --color-stick-pad-border:       rgba(45, 38, 30, 0.22);
+  --color-stick-pad-shadow:       inset 0 2px 6px rgba(35, 30, 24, 0.14);
+  --color-stick-crosshair:        rgba(217, 83, 0, 0.35);
+  --color-stick-ring:             rgba(217, 83, 0, 0.30);
+  --color-stick-pole-text:        #44403c;
+}
+
+/* ── theme: virus-snow-dark ── */
+/* canonical: ABDSharedAssets/styles/themes/virus-snow-dark.css */
+/* Access Virus Snow -- Polar Navy & Fluorescent Cyan (Dark Theme) */
+/* Dark studio variant with glowing ice-cyan fluorescent displays */
+[data-theme="virus-snow-dark"], body.skin-virus-snow-dark, body.theme-virus-snow-dark {
+  --color-bg-base:                #070d16;
+  --color-panel-bg:               #0e1726;
+  --color-panel-surface:          #142136;
+  --color-panel-surface-elevated: #1b2c48;
+  --navbar-bg:                    #0e1726;
+  --navbar-shadow:                0 2px 10px rgba(0, 0, 0, 0.50);
+  --color-panel-border:           rgba(56, 189, 248, 0.18);
+  --color-panel-border-strong:    rgba(56, 189, 248, 0.42);
+  --color-panel-border-dim:       rgba(56, 189, 248, 0.08);
+  --shadow-card:                  0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover:            0 6px 20px rgba(0, 0, 0, 0.50);
+
+  /* Signature Fluorescent Ice Cyan Accents */
+  --color-accent:                 #00e5ff;
+  --color-accent-rgb:             0, 229, 255;
+  --color-accent-hover:           #38d3ff;
+  --color-accent-active:          #00b8d4;
+  --color-accent-dim:             rgba(0, 229, 255, 0.16);
+
+  --color-success:                #00e676;
+  --color-success-rgb:            0, 230, 118;
+  --color-warning:                #ffb142;
+  --color-warning-rgb:            255, 177, 66;
+  --color-danger:                 #ff5252;
+  --color-danger-rgb:             255, 82, 82;
+  --color-info:                   #00e5ff;
+  --color-info-rgb:               0, 229, 255;
+
+  /* Typography */
+  --color-text-main:              #f0f9ff;
+  --color-text-muted:             #7dd3fc;
+  --color-text-dim:               #38bdf8;
+
+  /* LCD / Telemetry */
+  --color-lcd-bg:                 #040a12;
+  --color-lcd-text:               #00e5ff;
+  --color-lcd-border:             rgba(0, 229, 255, 0.40);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #1e324f;
+  --color-scrollbar-thumb-hover:  #29446b;
+  --color-scrollbar-thumb-active: #00e5ff;
+  --color-scrollbar-track:        #070d16;
+
+  /* Trajectory Stick 2D */
+  --color-stick-pad-bg:           #0a121e;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #152336 0%, #070d16 100%);
+  --color-stick-pad-border:       rgba(0, 229, 255, 0.22);
+  --color-stick-pad-shadow:       inset 0 2px 8px rgba(0, 0, 0, 0.70);
+  --color-stick-crosshair:        rgba(0, 229, 255, 0.25);
+  --color-stick-ring:             rgba(0, 229, 255, 0.22);
+  --color-stick-pole-text:        #7dd3fc;
+}
+
+/* ── theme: virus-snow ── */
+/* canonical: ABDSharedAssets/styles/themes/virus-snow.css */
+/* Access Virus Snow -- Polar White Anodized & Cyan (Light Theme) */
+/* Inspired by the Access Virus TI Snow hardware synthesizer */
+[data-theme="virus-snow"], [data-theme="virus-snow-light"], body.skin-virus-snow, body.theme-virus-snow {
+  --color-bg-base:                #e7ecf1;
+  --color-panel-bg:               #f5f8fa;
+  --color-panel-surface:          #ffffff;
+  --color-panel-surface-elevated: #ffffff;
+  --navbar-bg:                    #f5f8fa;
+  --navbar-shadow:                0 1px 3px rgba(15, 23, 42, 0.08);
+  --color-panel-border:           rgba(15, 23, 42, 0.12);
+  --color-panel-border-strong:    rgba(0, 145, 181, 0.35);
+  --color-panel-border-dim:       rgba(15, 23, 42, 0.06);
+  --shadow-card:                  0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover:            0 6px 20px rgba(15, 23, 42, 0.10);
+
+  /* Signature Access Virus TI Polar Cyan Accents (WCAG AA compliant >= 4.5:1 on white) */
+  --color-accent:                 #0088a8;
+  --color-accent-rgb:             0, 136, 168;
+  --color-accent-hover:           #00a0c6;
+  --color-accent-active:          #006e88;
+  --color-accent-dim:             rgba(0, 136, 168, 0.12);
+
+  --color-success:                #059669;
+  --color-success-rgb:            5, 150, 105;
+  --color-warning:                #d97706;
+  --color-warning-rgb:            217, 119, 6;
+  --color-danger:                 #e11d48;
+  --color-danger-rgb:             225, 29, 72;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
+
+  /* Typography */
+  --color-text-main:              #0f172a;
+  --color-text-muted:             #475569;
+  --color-text-dim:               #64748b;
+
+  /* LCD / Telemetry (Signature Virus Snow Ice-Cyan Display) */
+  --color-lcd-bg:                 #071924;
+  --color-lcd-text:               #38bdf8;
+  --color-lcd-border:             rgba(56, 189, 248, 0.35);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #cbd5e1;
+  --color-scrollbar-thumb-hover:  #94a3b8;
+  --color-scrollbar-thumb-active: #64748b;
+  --color-scrollbar-track:        #f5f8fa;
+
+  /* Trajectory Stick 2D */
+  --color-stick-pad-bg:           #e8eff5;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #ffffff 0%, #cbdbe8 100%);
+  --color-stick-pad-border:       rgba(15, 23, 42, 0.20);
+  --color-stick-pad-shadow:       inset 0 2px 6px rgba(15, 23, 42, 0.12);
+  --color-stick-crosshair:        rgba(0, 136, 168, 0.28);
+  --color-stick-ring:             rgba(0, 136, 168, 0.24);
+  --color-stick-pole-text:        #334155;
+}
 /* ── adapter: module tokens → host tokens ── */
 /* canonical: ABDSharedAssets/styles/components/scope.css */
 /**

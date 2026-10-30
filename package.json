@@ -34,6 +34,14 @@
       "types": "./Components/midiLearn.d.ts",
       "default": "./Components/midiLearn.js"
     },
+    "./components/i18n.js": {
+      "types": "./Components/i18n.d.ts",
+      "default": "./Components/i18n.js"
+    },
+    "./i18n": {
+      "types": "./Components/i18n.d.ts",
+      "default": "./Components/i18n.js"
+    },
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",

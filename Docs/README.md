@@ -31,6 +31,8 @@ Docs/
   * **Arquitectura de Núcleo Headless y Máquinas Emuladas:** Patrón de desacoplamiento estricto donde el motor DSP/emulación opera de forma autónoma sin dependencias de JUCE, DAW ni frontend, facilitando pruebas CLI independientes.
 * [PATRON_DUAL_ENGINE_SANCTUARY.md](architecture/PATRON_DUAL_ENGINE_SANCTUARY.md)
   * **Arquitectura de Emulación:** Separación estricta entre el motor clásico de emulación vintage (santuario matemático intocable) y el motor expandido con componentes transversales de `ABDShared`.
+* [I18N_MULTI_LANGUAGE_STANDARD.md](architecture/I18N_MULTI_LANGUAGE_STANDARD.md)
+  * **Estándar de Internacionalización (`i18n`) en 2 Capas:** Motor reactivo universal (`@abdsynths/shared/i18n`), diccionario común de términos de la suite (`SHARED_EN` / `SHARED_ES`), regla de no-traducción de acrónimos de síntesis y fusión con extensiones específicas por sintetizador.
 * [MODULE_CATALOG.md](architecture/MODULE_CATALOG.md) & [MODULE_CONSUMERS_MAP.md](architecture/MODULE_CONSUMERS_MAP.md)
   * Catálogo de módulos C++/WebUI de `ABDShared` y mapa de adopción y dependencias por proyecto.
 * [DEPRECATION_POLICY.md](architecture/DEPRECATION_POLICY.md)

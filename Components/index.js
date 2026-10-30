@@ -150,3 +150,14 @@ export {
   attachMidiLearnUI,
   createMidiLearnDrawerContent,
 } from './midiLearn.js';
+
+// Motor universal reactivo de Internacionalización (i18n) en 2 Capas (Base Común + Extensión de Sintetizador)
+export {
+  SHARED_EN,
+  SHARED_ES,
+  SHARED_LOCALES,
+  DEFAULT_STORAGE_KEY,
+  deepMergeLocales,
+  collectLocaleKeys,
+  createSynthI18n,
+} from './i18n.js';

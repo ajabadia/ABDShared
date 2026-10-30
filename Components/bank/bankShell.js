@@ -212,6 +212,35 @@ export function createBankShell (options = {})
       state.tab = tabId;
       paintTabs();
     },
+    setTitle (newTitle)
+    {
+      const titleEl = element.querySelector(".ndb-title-text");
+      if (titleEl) titleEl.textContent = newTitle == null ? "" : String(newTitle);
+    },
+    setSearchPlaceholder (placeholder)
+    {
+      const input = element.querySelector("[data-shell-search]");
+      if (input) input.placeholder = placeholder == null ? "" : String(placeholder);
+    },
+    setTabLabels (labelsById)
+    {
+      if (!labelsById || typeof labelsById !== "object") return;
+      element.querySelectorAll("[data-shell-tab]").forEach((chip) =>
+      {
+        const id = chip.getAttribute("data-shell-tab");
+        if (id && labelsById[id])
+        {
+          const nameEl = chip.querySelector(".ndb-chip-name");
+          if (nameEl) nameEl.textContent = String(labelsById[id]);
+        }
+      });
+    },
+    setHeaderActionTitle (actionId, newTitle)
+    {
+      if (!actionId) return;
+      const btn = element.querySelector(`[data-header-action="${actionId}"]`);
+      if (btn) btn.setAttribute("title", newTitle == null ? "" : String(newTitle));
+    },
     focusSearch ()
     {
       const input = element.querySelector('[data-shell-search]');

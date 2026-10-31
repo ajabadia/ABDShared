@@ -33,6 +33,10 @@ Docs/
   * **Arquitectura de Emulación:** Separación estricta entre el motor clásico de emulación vintage (santuario matemático intocable) y el motor expandido con componentes transversales de `ABDShared`.
 * [I18N_MULTI_LANGUAGE_STANDARD.md](architecture/I18N_MULTI_LANGUAGE_STANDARD.md)
   * **Estándar de Internacionalización (`i18n`) en 2 Capas:** Motor reactivo universal (`@abdsynths/shared/i18n`), diccionario común de términos de la suite (`SHARED_EN` / `SHARED_ES`), regla de no-traducción de acrónimos de síntesis y fusión con extensiones específicas por sintetizador.
+* [MODULAR_PACKAGES_STANDARD.md](architecture/MODULAR_PACKAGES_STANDARD.md)
+  * **Estándar de Modularización y Subpaquetes:** Arquitectura de división de `ABDShared` en paquetes autónomos (`@abdsynths/i18n`, `@abdsynths/midi-keyb`), patrón de "Metapaquete Sombrilla" retrocompatible y política Zero-Fork.
+* [SECURITY_STANDARDS.md](architecture/SECURITY_STANDARDS.md)
+  * **Estándar de Seguridad App/Web (todos los proyectos):** validación en frontera, escape en salida, anti-XSS/SSRF/traversal, caps anti-DoS/Zip-Slip, bridge local con auth+CORS, checklist de PR y regresión mínima.
 * [MODULE_CATALOG.md](architecture/MODULE_CATALOG.md) & [MODULE_CONSUMERS_MAP.md](architecture/MODULE_CONSUMERS_MAP.md)
   * Catálogo de módulos C++/WebUI de `ABDShared` y mapa de adopción y dependencias por proyecto.
 * [DEPRECATION_POLICY.md](architecture/DEPRECATION_POLICY.md)

@@ -119,6 +119,34 @@ import '@abdsynths/shared/themes/ms2000.css';
 3. **En Empaquetado JUCE (`pnpm run bundle`):**
    Vite empaqueta el grafo de JavaScript y resuelve todos los bare imports generando la carpeta `WebUI/dist/`, la cual CMake incrusta directamente en el binario del plugin con `juce_add_binary_data`.
 
+### 3.4 Consumo de Subpaquetes Modulares (@abdsynths/i18n, @abdsynths/contracts, @abdsynths/midi-keyb, @abdsynths/scope)
+
+Para herramientas satélite o aplicaciones que no requieran los ~72 MB del paquete completo (C++ DSP + assets pesados), `ABDShared` ofrece subpaquetes autónomos que se pueden consumir de forma aislada:
+
+```json
+{
+  "dependencies": {
+    "@abdsynths/i18n": "workspace:*",
+    "@abdsynths/contracts": "workspace:*",
+    "@abdsynths/midi-keyb": "workspace:*",
+    "@abdsynths/scope": "workspace:*"
+  }
+}
+```
+
+En repositorios externos o satélites (como `ABDfxbloader`):
+```json
+{
+  "dependencies": {
+    "@abdsynths/i18n": "github:ajabadia/ABDShared#main&path:Components/I18n",
+    "@abdsynths/contracts": "github:ajabadia/ABDShared#main&path:Contracts",
+    "@abdsynths/scope": "github:ajabadia/ABDShared#main&path:Code/Scope/WebUI"
+  }
+}
+```
+
+Para más detalles, consulta el estándar normativo: [MODULAR_PACKAGES_STANDARD.md](../architecture/MODULAR_PACKAGES_STANDARD.md).
+
 > 🚫 **Política de No-Copia (Zero-Copy):** Quedan formalmente obsoletos los scripts `sync_shared.js` y las carpetas `WebUI/src/shared/`. Todo nuevo componente transversal debe agregarse a `ABDShared/Components/` y exportarse en `@abdsynths/shared/components`.
 
 ---

@@ -47,6 +47,20 @@
     "serve": "^14.2.0",
     "vitest": "^2.0.0"
   },
+  "files": [
+    "src/",
+    "index.html",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajabadia/ABDShared.git",
+    "directory": "Code/Scope/WebUI"
+  },
   "engines": {
     "node": ">=20.0.0"
   }

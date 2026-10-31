@@ -1,0 +1,102 @@
+name: Publish Modular Packages to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Components/I18n/**'
+      - 'Code/MidiKeyboard/**'
+      - 'Contracts/**'
+      - 'Code/Scope/WebUI/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@abdsynths'
+
+      - name: Run I18n tests
+        working-directory: Components/I18n
+        run: |
+          npm install --no-package-lock
+          npm test
+
+      - name: Run Contracts tests
+        working-directory: Contracts
+        run: |
+          npm test
+
+      - name: Run Scope WebUI tests
+        working-directory: Code/Scope/WebUI
+        run: |
+          npm install --no-package-lock
+          npm test
+
+      - name: Publish @abdsynths/i18n
+        working-directory: Components/I18n
+        run: |
+          # Solo publica si la versión en package.json no está ya en el registro
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version > /dev/null 2>&1; then
+            echo "Version ${PACKAGE_VERSION} of ${PACKAGE_NAME} is already published, skipping."
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @abdsynths/contracts
+        working-directory: Contracts
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version > /dev/null 2>&1; then
+            echo "Version ${PACKAGE_VERSION} of ${PACKAGE_NAME} is already published, skipping."
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @abdsynths/midi-keyb
+        working-directory: Code/MidiKeyboard
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version > /dev/null 2>&1; then
+            echo "Version ${PACKAGE_VERSION} of ${PACKAGE_NAME} is already published, skipping."
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @abdsynths/scope
+        working-directory: Code/Scope/WebUI
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version > /dev/null 2>&1; then
+            echo "Version ${PACKAGE_VERSION} of ${PACKAGE_NAME} is already published, skipping."
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

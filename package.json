@@ -56,6 +56,8 @@
     "./scope/*": "./Code/Scope/WebUI/src/*",
     "./formats/neuron": "./Code/NeuronFormats/index.ts",
     "./formats/neuron/*": "./Code/NeuronFormats/*",
+    "./formats/sampler": "./Code/SamplerFormats/index.ts",
+    "./formats/sampler/*": "./Code/SamplerFormats/*",
     "./dsp/neuron-analysis": "./Code/DspCore/NeuronAnalysis/index.ts",
     "./dsp/neuron-analysis/*": "./Code/DspCore/NeuronAnalysis/*"
   },

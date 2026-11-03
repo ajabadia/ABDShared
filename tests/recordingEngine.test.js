@@ -44,12 +44,29 @@ describe('ABDShared RecordingEngine (portable recorder core)', () => {
     expect(() => engine.pauseRecording()).toThrow(/illegal/);
   });
 
-  it('meters live input while monitoring without storing', async () => {
+  it('meters live input while monitoring with ballistic decay and without storing', async () => {
     const engine = await monitoringEngine(fakeSource());
     engine.pushSamples([tone(480, 440, 48000, 0.5)]);
     expect(engine.getLevels().peakLeft).toBeCloseTo(0.5, 2);
+    // Subsequent silent blocks decay the meter smoothly instead of staying stuck at 0.5
+    engine.pushSamples([new Float32Array(480)]);
+    expect(engine.getLevels().peakLeft).toBeLessThan(0.5);
+    expect(engine.getLevels().peakLeft).toBeCloseTo(0.5 * 0.85, 2);
     expect(engine.getRecordedFrames()).toBe(0);
     expect(engine.getState()).toBe('monitoring');
+  });
+
+  it('autoClassify automatically classifies tonal takes as chromatic when enabled', async () => {
+    const sr = 48000;
+    const engine = await monitoringEngine(fakeSource(sr, 1), {
+      trimSilence: false,
+      autoClassify: true,
+    });
+    engine.startRecording();
+    engine.pushSamples([tone(sr, 220, sr, 0.4)]);
+    const take = engine.stopRecording();
+    expect(take.classification).toBe('chromatic');
+    expect(take.classificationConfidence).toBeGreaterThan(0.5);
   });
 
   it('records, pauses (gap not stored) and resumes', async () => {

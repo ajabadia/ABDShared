@@ -9,6 +9,7 @@ import {
   trimSilence,
   computeNoiseProfile,
   classifyTake,
+  extractTakeFeatures,
 } from '../Code/DspCore/TakeDsp/takeDsp.ts';
 
 function sineBuffer(frames, freqHz, sampleRate, amp = 0.5) {
@@ -140,5 +141,28 @@ describe('ABDShared TakeDsp (recording utilities)', () => {
     expect(['unknown', 'chromatic', 'drums']).toContain(vague.kind);
     expect(vague.confidence).toBeGreaterThanOrEqual(0);
     expect(vague.confidence).toBeLessThanOrEqual(1);
+  });
+
+  it('extractTakeFeatures differentiates tonal notes from percussive transients', () => {
+    const sr = 48000;
+    const tonal = sineBuffer(sr, 220, sr, 0.5);
+    const tonalFeat = extractTakeFeatures(tonal, sr);
+    expect(tonalFeat.harmonicity01).toBeGreaterThan(0.6);
+    expect(classifyTake(tonalFeat).kind).toBe('chromatic');
+
+    // Percussive noise hits
+    const drums = new Float32Array(sr);
+    let seed = 42;
+    for (let hit = 0; hit < 6; hit++) {
+      const start = Math.floor((hit * sr) / 6);
+      for (let i = 0; i < 4000 && start + i < sr; i++) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        const env = Math.exp(-i / 600);
+        drums[start + i] = ((seed / 0x7fffffff) * 2 - 1) * env * 0.8;
+      }
+    }
+    const drumFeat = extractTakeFeatures(drums, sr);
+    expect(drumFeat.transientDensity01).toBeGreaterThan(0.3);
+    expect(classifyTake(drumFeat).kind).toBe('drums');
   });
 });

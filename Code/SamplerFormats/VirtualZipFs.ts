@@ -67,6 +67,7 @@ export function isIgnorableOrUnsafePath(path: string): boolean {
  */
 export class VirtualZipFs {
   private readonly files = new Map<string, VirtualFileEntry>();
+  private readonly lowerMap = new Map<string, string>();
   private readonly directories = new Set<string>();
 
   public static async fromZipBuffer(
@@ -108,6 +109,7 @@ export class VirtualZipFs {
       ...entry,
       path: norm,
     });
+    this.lowerMap.set(norm.toLowerCase(), norm);
 
     // Record directory hierarchy
     const parts = norm.split('/');
@@ -119,11 +121,17 @@ export class VirtualZipFs {
   }
 
   public getFile(path: string): VirtualFileEntry | undefined {
-    return this.files.get(normalizeVirtualPath(path));
+    const norm = normalizeVirtualPath(path);
+    const direct = this.files.get(norm);
+    if (direct) return direct;
+    const resolved = this.lowerMap.get(norm.toLowerCase());
+    return resolved ? this.files.get(resolved) : undefined;
   }
 
   public hasFile(path: string): boolean {
-    return this.files.has(normalizeVirtualPath(path));
+    const norm = normalizeVirtualPath(path);
+    if (this.files.has(norm)) return true;
+    return this.lowerMap.has(norm.toLowerCase());
   }
 
   public listFiles(): VirtualFileEntry[] {

@@ -7,7 +7,7 @@
 
 import { VirtualZipFs, type VirtualFileEntry } from './VirtualZipFs.ts';
 import { isSupportedAudioFileName } from '../NeuronFormats/UniversalAudioDecoder.ts';
-import { parseSf2Presets } from './Sf2Parser.ts';
+import { listSf2Presets } from './Sf2Parser.ts';
 
 const BARE_NOTE_OR_LAYER_RE =
   /^(?:[A-Ga-g][#b]?-?[0-9]|0?\d{1,3}|v[0-9]+|vl[0-9]+|vel[0-9]+|velocity[0-9]+|rr[0-9]+|layer[0-9]+|low|high|soft|loud)$/i;
@@ -122,7 +122,7 @@ export async function discoverSamplerAssets(
       handledFiles.add(f.path);
       try {
         const sf2Bytes = await Promise.resolve(f.getData());
-        const presets = parseSf2Presets(sf2Bytes.buffer as ArrayBuffer);
+        const presets = listSf2Presets(sf2Bytes.buffer as ArrayBuffer);
         if (presets.length === 0) {
           items.push({
             id: f.path,

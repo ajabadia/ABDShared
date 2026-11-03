@@ -5,12 +5,16 @@ import * as path from 'node:path';
 import {
   AXIONIK_EXPANDED_MODEL_CONTRACT_VERSION,
   AXIONIK_CLASSIC_ENGINE_PROFILE,
+  AXIONIK_PLUS_ENGINE_PROFILE,
+  AXIONIK_EXPANDED_ENGINE_PROFILE,
   AXIONIK_CLASSIC_ENHANCED_ENGINE_PROFILE,
   AXIONIK_EXPANDED_V1_ENGINE_PROFILE,
   isAxionikEngineCap,
   isAxionikEngineGeneration,
   isAxionikExpandedModel,
   meetsEngineCaps,
+  normalizeAxionikEngineGeneration,
+  validateModelFormatForMode,
 } from '../Contracts/axionikExpandedModel.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -81,21 +85,40 @@ describe('@abdsynths/shared axionikExpandedModel v2.0.0', () => {
     expect(meetsEngineCaps([], [])).toBe(true);
   });
 
-  it('guards accept only known generations and caps', () => {
+  it('guards accept canonical generations (classic, plus, expanded) and legacy aliases', () => {
     expect(isAxionikEngineGeneration('classic')).toBe(true);
+    expect(isAxionikEngineGeneration('plus')).toBe(true);
+    expect(isAxionikEngineGeneration('expanded')).toBe(true);
     expect(isAxionikEngineGeneration('classic-enhanced')).toBe(true);
     expect(isAxionikEngineGeneration('expanded-v1')).toBe(true);
     expect(isAxionikEngineGeneration('rompler')).toBe(false);
+    expect(normalizeAxionikEngineGeneration('classic-enhanced')).toBe('plus');
+    expect(normalizeAxionikEngineGeneration('expanded-v1')).toBe('expanded');
     expect(isAxionikEngineCap('morph-3d')).toBe(true);
     expect(isAxionikEngineCap('warp-drive')).toBe(false);
   });
 
-  it('defines the 3 canonical CMake variant profiles (ABDJUNiO601 pattern) and advanced Resynator v2 fields', () => {
+  it('enforces strict per-mode model format matching (each mode accepts only its own format)', () => {
+    expect(validateModelFormatForMode('classic', 'classic').allowed).toBe(true);
+    expect(validateModelFormatForMode('plus', 'plus').allowed).toBe(true);
+    expect(validateModelFormatForMode('expanded', 'expanded').allowed).toBe(true);
+    expect(validateModelFormatForMode('plus', 'classic').allowed).toBe(false);
+    expect(validateModelFormatForMode('classic', 'expanded').allowed).toBe(false);
+    expect(validateModelFormatForMode('expanded', 'classic').allowed).toBe(false);
+    expect(validateModelFormatForMode('expanded', 'plus').reason).toContain('mode-format-mismatch');
+  });
+
+  it('defines the 3 canonical CMake variant profiles (classic, plus, expanded) and advanced Resynator v2 fields', () => {
     expect(AXIONIK_CLASSIC_ENGINE_PROFILE.variantIndex).toBe(0);
-    expect(AXIONIK_CLASSIC_ENHANCED_ENGINE_PROFILE.variantIndex).toBe(1);
-    expect(AXIONIK_EXPANDED_V1_ENGINE_PROFILE.variantIndex).toBe(2);
+    expect(AXIONIK_CLASSIC_ENGINE_PROFILE.generation).toBe('classic');
+    expect(AXIONIK_PLUS_ENGINE_PROFILE.variantIndex).toBe(1);
+    expect(AXIONIK_PLUS_ENGINE_PROFILE.generation).toBe('plus');
+    expect(AXIONIK_EXPANDED_ENGINE_PROFILE.variantIndex).toBe(2);
+    expect(AXIONIK_EXPANDED_ENGINE_PROFILE.generation).toBe('expanded');
+    expect(AXIONIK_CLASSIC_ENHANCED_ENGINE_PROFILE).toBe(AXIONIK_PLUS_ENGINE_PROFILE);
+    expect(AXIONIK_EXPANDED_V1_ENGINE_PROFILE).toBe(AXIONIK_EXPANDED_ENGINE_PROFILE);
     expect(
-      meetsEngineCaps(AXIONIK_EXPANDED_V1_ENGINE_PROFILE.caps, [
+      meetsEngineCaps(AXIONIK_EXPANDED_ENGINE_PROFILE.caps, [
         'hd-spectral',
         'formant-pitch-split',
         'surround',

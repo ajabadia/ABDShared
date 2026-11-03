@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 import * as path from 'node:path';
 import {
   AXIONIK_EXPANDED_MODEL_CONTRACT_VERSION,
+  AXIONIK_CLASSIC_ENGINE_PROFILE,
+  AXIONIK_CLASSIC_ENHANCED_ENGINE_PROFILE,
+  AXIONIK_EXPANDED_V1_ENGINE_PROFILE,
   isAxionikEngineCap,
   isAxionikEngineGeneration,
   isAxionikExpandedModel,
@@ -79,10 +82,52 @@ describe('@abdsynths/shared axionikExpandedModel v2.0.0', () => {
   });
 
   it('guards accept only known generations and caps', () => {
+    expect(isAxionikEngineGeneration('classic')).toBe(true);
+    expect(isAxionikEngineGeneration('classic-enhanced')).toBe(true);
     expect(isAxionikEngineGeneration('expanded-v1')).toBe(true);
     expect(isAxionikEngineGeneration('rompler')).toBe(false);
     expect(isAxionikEngineCap('morph-3d')).toBe(true);
     expect(isAxionikEngineCap('warp-drive')).toBe(false);
+  });
+
+  it('defines the 3 canonical CMake variant profiles (ABDJUNiO601 pattern) and advanced Resynator v2 fields', () => {
+    expect(AXIONIK_CLASSIC_ENGINE_PROFILE.variantIndex).toBe(0);
+    expect(AXIONIK_CLASSIC_ENHANCED_ENGINE_PROFILE.variantIndex).toBe(1);
+    expect(AXIONIK_EXPANDED_V1_ENGINE_PROFILE.variantIndex).toBe(2);
+    expect(
+      meetsEngineCaps(AXIONIK_EXPANDED_V1_ENGINE_PROFILE.caps, [
+        'hd-spectral',
+        'formant-pitch-split',
+        'surround',
+        'hybrid-transient',
+      ])
+    ).toBe(true);
+
+    const rich = minimalModel({
+      spectralBySample: {
+        'choir-a.wav': minimalModel().spectral,
+      },
+      resynators: [
+        {
+          id: 'R1',
+          version: 2,
+          model: 'resonator-hd',
+          params: { body: 0.7 },
+          shapers: {
+            inharmonicityB: 0.0004,
+            parity: -0.25,
+            entropyRoughness: 0.15,
+            spectralShiftHz: 12,
+            hfRollOffDbPerOct: -3,
+            formantShiftSt: 2,
+            formantPreserve: 0.9,
+            residualMix: 0.2,
+            spatialSpread: 0.75,
+          },
+        },
+      ],
+    });
+    expect(isAxionikExpandedModel(rich)).toBe(true);
   });
 
   it('JSON schema file parses and pins version 2.0.0', () => {

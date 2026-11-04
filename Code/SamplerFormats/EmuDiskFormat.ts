@@ -645,7 +645,9 @@ function parseE4bBank(
         for (let i = 0; i < sample.pcmData.length; i++) {
           float32[i] = sample.pcmData[i] / 32768.0;
         }
-        audioBuffers.set(sampleWavName, encodeWavPcm16([float32], sample.sampleRate));
+        const wavBuf = encodeWavPcm16([float32], sample.sampleRate);
+        audioBuffers.set(sample.name, wavBuf);
+        audioBuffers.set(sampleWavName, wavBuf);
       }
 
       regions.push({
@@ -655,8 +657,8 @@ function parseE4bBank(
         rootKey,
         lowKey: keyLow,
         highKey: keyHigh,
-        lowVel: velLow,
-        highVel: velHigh,
+        lowVel: Math.max(1, velLow),
+        highVel: Math.max(1, velHigh),
         detuneCents: Math.round((coarseTuning + zoneFine) * 100 + sample.fineTune),
         volumeDb: zoneVol,
         pan: zonePan,
@@ -767,7 +769,9 @@ function parseE3bBank(
       for (let i = 0; i < sample.pcmData.length; i++) {
         float32[i] = sample.pcmData[i] / 32768.0;
       }
-      audioBuffers.set(sampleWavName, encodeWavPcm16([float32], sample.sampleRate));
+      const wavBuf = encodeWavPcm16([float32], sample.sampleRate);
+      audioBuffers.set(sample.name, wavBuf);
+      audioBuffers.set(sampleWavName, wavBuf);
     }
 
     const lowKey = Math.min(108, keyOffset);

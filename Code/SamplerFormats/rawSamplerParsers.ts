@@ -201,7 +201,7 @@ import {
   parseNicnt,
   generateMaschineSoundXml,
 } from './MaschineNicntFormat.ts';
-import { identifyDiskImageFormat } from './IsoFormatIdentifier.ts';
+import { identifyDiskImageFormat, extractIso9660Entries } from './IsoFormatIdentifier.ts';
 
 export type RawSamplerFormat =
   | 'dspreset'
@@ -2116,6 +2116,65 @@ export async function listZipSamplerPrograms(
         // Fallback
       }
     }
+
+    // 9. Standard ISO-9660 CD-ROM Image ("CD001" at 0x8001)
+    if (identifyDiskImageFormat(data) === 'iso_9660') {
+      const isoEntries = extractIso9660Entries(data);
+      const isoPrograms: ArchiveSamplerProgramInfo[] = [];
+      const audioFolders = new Map<string, number>();
+
+      for (const [norm, fileBytes] of isoEntries.entries()) {
+        const nLower = norm.toLowerCase();
+        const base = cleanBasename(norm);
+        if (base.startsWith('.') || base.startsWith('._')) continue;
+
+        if (/\.(akp|pgm|set|xpm|xty|xtd|e4b|esi|x7u|x8u|x3a|krz|k25|k26|kmp|dls|exs|dspreset|nki|vstpreset|sfz|adv|talsmpl|txprog|fzv|fzf|s3p|sxt|dwp)$/.test(nLower)) {
+          const ext = base.split('.').pop()?.toLowerCase() || '';
+          const stem = base.replace(/\.[^.]+$/, '');
+          if (/\.(e4b|esi|iso|img|dsk|bin|hda|out|efe|ede|gkh)$/.test(nLower)) {
+            const subBuf = fileBytes.buffer.slice(fileBytes.byteOffset, fileBytes.byteOffset + fileBytes.byteLength) as ArrayBuffer;
+            const subProgs = await listZipSamplerPrograms(base, subBuf);
+            for (const sp of subProgs) {
+              isoPrograms.push({
+                id: `${norm}::${sp.id}`,
+                index: isoPrograms.length,
+                name: sp.name,
+                format: sp.format,
+                regionCount: sp.regionCount,
+                detail: `${base} — ${sp.detail || 'Program'}`,
+              });
+            }
+          } else {
+            isoPrograms.push({
+              id: norm,
+              index: isoPrograms.length,
+              name: stem,
+              format: (ext === 'akp' || ext === 'pgm' || ext === 'set' || ext === 's3p' ? 'akai_disk' : ext === 'x7u' || ext === 'x8u' || ext === 'x3a' ? 'yamaha_disk' : 'xpm') as any,
+              detail: `ISO-9660 (${ext.toUpperCase()})`,
+            });
+          }
+        } else if (isSupportedAudioFileName(nLower)) {
+          const folder = norm.includes('/') ? norm.slice(0, norm.lastIndexOf('/')) : 'Root';
+          audioFolders.set(folder, (audioFolders.get(folder) ?? 0) + 1);
+        }
+      }
+
+      if (isoPrograms.length > 0) return isoPrograms;
+      if (audioFolders.size > 0) {
+        let idx = 0;
+        for (const [folder, count] of audioFolders.entries()) {
+          isoPrograms.push({
+            id: `ISO_AUDIO_DIR::${folder}`,
+            index: idx++,
+            name: folder === 'Root' ? cleanBasename(filename).replace(/\.[^.]+$/, '') : cleanBasename(folder),
+            format: 'akai_disk',
+            regionCount: count,
+            detail: `ISO-9660 Audio Folder (${count} samples)`,
+          });
+        }
+        return isoPrograms;
+      }
+    }
   }
 
   if (!lower.endsWith('.zip') && !lower.endsWith('.xpn') && !isZipHeader(data)) {
@@ -2419,6 +2478,27 @@ export async function listZipSamplerPrograms(
         format: 'ni_maschine',
         detail: 'Native Instruments Maschine / NICNT',
       });
+    } else if (/\.(iso|img|dsk|bin|hda|out|efe|ede|gkh|e4b|esi)$/.test(nLower)) {
+      try {
+        const entryBytes = extractZipEntry(zipBytes, entry);
+        const entryBuf = entryBytes.buffer.slice(
+          entryBytes.byteOffset,
+          entryBytes.byteOffset + entryBytes.byteLength
+        ) as ArrayBuffer;
+        const innerProgs = await listZipSamplerPrograms(base, entryBuf);
+        for (const ip of innerProgs) {
+          programs.push({
+            id: `${norm}::${ip.id}`,
+            index: programs.length,
+            name: ip.name,
+            format: ip.format,
+            regionCount: ip.regionCount,
+            detail: ip.detail ? `${base} — ${ip.detail}` : base,
+          });
+        }
+      } catch {
+        // Ignore non-sampler disk image inside zip
+      }
     }
   }
 
@@ -2505,6 +2585,80 @@ export async function parseUniversalSampler(
     if (isYamahaDiskImage(data)) {
       return parseYamahaDiskProgram(data, targetProgramPath);
     }
+    if (diskType === 'iso_9660') {
+      const isoEntries = extractIso9660Entries(data);
+      if (isoEntries.size > 0) {
+        if (targetProgramPath && targetProgramPath.startsWith('ISO_AUDIO_DIR::')) {
+          const targetDir = targetProgramPath.slice('ISO_AUDIO_DIR::'.length);
+          const audioBuffers = new Map<string, ArrayBuffer>();
+          const regions: ParsedImportRegion[] = [];
+          let key = 36;
+          for (const [entryPath, bytes] of isoEntries.entries()) {
+            const folder = entryPath.includes('/') ? entryPath.slice(0, entryPath.lastIndexOf('/')) : 'Root';
+            if (folder !== targetDir || !isSupportedAudioFileName(entryPath.toLowerCase())) continue;
+            const cleanKey = cleanBasename(entryPath);
+            let rawBuf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+            if (!/\.(wav|aif|aiff)$/i.test(cleanKey)) {
+              try {
+                rawBuf = await transcodeAnyAudioToWavBuffer(rawBuf, cleanKey);
+              } catch {
+                // Keep rawBuf
+              }
+            }
+            audioBuffers.set(cleanKey, rawBuf);
+            const note = Math.min(127, key++);
+            regions.push({
+              id: `iso_reg_${regions.length + 1}`,
+              sampleName: cleanKey,
+              samplePath: cleanKey,
+              rootKey: note,
+              lowKey: note,
+              highKey: note,
+              lowVel: 1,
+              highVel: 127,
+              detuneCents: 0,
+              volumeDb: 0,
+              pan: 0,
+              loopMode: 'no_loop',
+              loopStart: 0,
+              loopEnd: 0,
+            });
+          }
+          const presetName = targetDir === 'Root' ? cleanBasename(filename).replace(/\.[^.]+$/, '') : cleanBasename(targetDir);
+          return {
+            format: 'akai_disk',
+            formatLabel: 'ISO-9660 Sample CD-ROM',
+            presetName,
+            modelName: presetName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 11),
+            detectedCategory: 'Synthesizers & Keyboards',
+            suggestedParameterSet: 0,
+            regions,
+            audioBuffers,
+          };
+        }
+
+        let targetIsoFile = targetProgramPath;
+        let innerIsoProg: string | undefined;
+        if (targetIsoFile && targetIsoFile.includes('::')) {
+          const idx = targetIsoFile.indexOf('::');
+          innerIsoProg = targetIsoFile.slice(idx + 2);
+          targetIsoFile = targetIsoFile.slice(0, idx);
+        }
+        if (!targetIsoFile || !isoEntries.has(targetIsoFile)) {
+          for (const k of isoEntries.keys()) {
+            if (/\.(akp|pgm|set|xpm|xty|xtd|e4b|esi|x7u|x8u|x3a|krz|k25|k26|kmp|dls|exs|dspreset|nki|vstpreset|sfz|adv|talsmpl|txprog|fzv|fzf|s3p|sxt|dwp)$/i.test(k)) {
+              targetIsoFile = k;
+              break;
+            }
+          }
+        }
+        if (targetIsoFile && isoEntries.has(targetIsoFile)) {
+          const fBytes = isoEntries.get(targetIsoFile)!;
+          const fBuf = fBytes.buffer.slice(fBytes.byteOffset, fBytes.byteOffset + fBytes.byteLength) as ArrayBuffer;
+          return parseUniversalSampler(targetIsoFile, fBuf, isoEntries, innerIsoProg);
+        }
+      }
+    }
   }
 
   // 1. If it's a ZIP archive containing a bank + samples (also Akai .xpn, Bitwig .multisample)
@@ -2558,9 +2712,18 @@ export async function parseUniversalSampler(
     let soundboxEntry: string | undefined;
     let omnisphereEntry: string | undefined;
     let maschineEntry: string | undefined;
+    let diskImageEntry: string | undefined;
     const xpmEntries: string[] = [];
 
-    const normTarget = targetProgramPath?.replace(/\\/g, '/');
+    const rawNormTarget = targetProgramPath?.replace(/\\/g, '/');
+    let normTarget = rawNormTarget;
+    let innerDiskProgramId: string | undefined;
+    if (rawNormTarget && rawNormTarget.includes('::')) {
+      const sepIdx = rawNormTarget.indexOf('::');
+      normTarget = rawNormTarget.slice(0, sepIdx);
+      innerDiskProgramId = rawNormTarget.slice(sepIdx + 2);
+    }
+
     for (const name of indexMap.keys()) {
       if (normTarget && name !== normTarget) continue;
       const nLower = name.toLowerCase();
@@ -2596,7 +2759,14 @@ export async function parseUniversalSampler(
       else if (nLower.endsWith('.sbpack') || (nLower.endsWith('.xml') && name.toLowerCase().includes('soundbox'))) soundboxEntry = name;
       else if (nLower.endsWith('.zmap') || nLower.endsWith('.prt_omn')) omnisphereEntry = name;
       else if (nLower.endsWith('.mxsnd') || nLower.endsWith('.mxgrp') || nLower.endsWith('.nicnt')) maschineEntry = name;
+      else if (/\.(iso|img|dsk|bin|hda|out|efe|ede|gkh|e4b|esi)$/.test(nLower)) diskImageEntry = name;
       else if (/\.(xpm|xty|xtd)$/.test(nLower) && !nLower.includes('[previews]')) xpmEntries.push(name);
+    }
+
+    if (diskImageEntry) {
+      const dBytes = extractZipEntry(rawZipBytes, indexMap.get(diskImageEntry)!);
+      const dBuf = dBytes.buffer.slice(dBytes.byteOffset, dBytes.byteOffset + dBytes.byteLength) as ArrayBuffer;
+      return parseUniversalSampler(diskImageEntry, dBuf, undefined, innerDiskProgramId);
     }
 
     const extractAudioBuffers = async (onlyStems?: Set<string>): Promise<Map<string, ArrayBuffer>> => {

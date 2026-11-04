@@ -388,7 +388,9 @@ export function parseRolandDiskProgram(
       }
 
       const wavName = `${sample.name}.wav`;
-      audioBuffers.set(wavName, encodeWavPcm16([float32], sample.sampleFrequency));
+      const wavBuf = encodeWavPcm16([float32], sample.sampleFrequency);
+      audioBuffers.set(sample.name, wavBuf);
+      audioBuffers.set(wavName, wavBuf);
       audioFrames[sIdx] = numFrames;
     }
   }

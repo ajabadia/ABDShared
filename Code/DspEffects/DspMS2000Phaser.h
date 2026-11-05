@@ -102,8 +102,12 @@ public:
     {
         updateCoefficients();
 
-        float xL = left + fbL_ * feedback_;
-        float xR = right + fbR_ * feedback_;
+        // P:$106D–$10A4: en el DSP56362 las 4 etapas todo-paso operan con un
+        // escalado interno de 0.5 a la entrada para evitar desbordamiento por
+        // realimentación resonante (X:$0266 = $3C0000 = 0.46875) y saturan en
+        // el acumulador Q23 ([-1, +1]) antes de realimentar y mezclar 50/50.
+        float xL = std::clamp(0.5f * left + fbL_ * feedback_, -1.0f, 1.0f);
+        float xR = std::clamp(0.5f * right + fbR_ * feedback_, -1.0f, 1.0f);
 
         for (int k = 0; k < NumStages; ++k)
         {
@@ -111,12 +115,13 @@ public:
             xR = processStage(stateR_[k], xR, coeffR_);
         }
 
-        fbL_ = xL;
-        fbR_ = xR;
+        fbL_ = std::clamp(xL, -1.0f, 1.0f);
+        fbR_ = std::clamp(xR, -1.0f, 1.0f);
 
-        // P:$10A5–$10A7: mezcla 50% dry + 50% wet
-        left  = 0.5f * (left + xL);
-        right = 0.5f * (right + xR);
+        // P:$10A5–$10A7: mezcla dry + wet escalada por depth_
+        const float wetMix = depth_;
+        left  = left * (1.0f - 0.5f * wetMix) + xL * wetMix;
+        right = right * (1.0f - 0.5f * wetMix) + xR * wetMix;
     }
 
     void process(const float* inL, const float* inR,
@@ -186,7 +191,7 @@ private:
 
     float rateHz_   = 0.5f;
     float depth_    = 0.5f;
-    float feedback_ = 0.0f;
+    float feedback_ = 0.46875f;  // X:$0266 = $3C0000 en DSP56362
 
     double lfoPhase_ = 0.0;
     double lfoInc_   = 0.5 / 44100.0;

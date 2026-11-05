@@ -63,6 +63,11 @@ private:
     double attackRate_{0.01};
     double decayMult_{0.999};
     double releaseMult_{0.999};
+    double hwPhase_{0.0};
+    double hwStartLevel_{0.0};
+    double hwDecayDelta_{0.0};
+    double hwReleaseDelta_{0.0};
+    double hwAttackDelta_{0.0};
 
     void updateRates() noexcept;
 };

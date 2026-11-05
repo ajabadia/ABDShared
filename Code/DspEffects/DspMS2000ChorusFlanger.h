@@ -93,17 +93,14 @@ public:
         if (lfoPhase_ >= 1.0)
             lfoPhase_ -= static_cast<double>( static_cast<int>(lfoPhase_) );
 
-        // LFO en cuadratura (P:$0F50–$0F5E): triángulo suavizado parabólicamente
-        double phaseR = lfoPhase_ + 0.25;
-        if (phaseR >= 1.0)
-            phaseR -= 1.0;
+        // LFO en antifase 180° (P:$0F50–$0F5E, P:$0F83 `eor y1,a`): triángulo suavizado parabólicamente
+        const float shaped = shapedTriangle(static_cast<float>(lfoPhase_));
+        const float modL = 0.5f * (shaped + 1.0f);
+        const float modR = 0.5f * (1.0f - shaped);
 
-        const float modL = 0.5f * (shapedTriangle(static_cast<float>(lfoPhase_)) + 1.0f);
-        const float modR = 0.5f * (shapedTriangle(static_cast<float>(phaseR)) + 1.0f);
-
-        // Retardo en muestras escalado por sampleRate_ (2.5 ms base + hasta 5.0 ms de barrido)
+        // Retardo en muestras escalado por sampleRate_ (Flanger ~0.67 ms hasta Chorus ~8.0 ms según depth_)
         const float sr        = static_cast<float>(sampleRate_);
-        const float minDelay  = 0.0025f * sr;
+        const float minDelay  = (0.00067f + 0.00183f * depth_) * sr;
         const float sweepSpan = 0.0050f * sr * depth_;
 
         const float delaySamplesL = minDelay + modL * sweepSpan;
@@ -122,9 +119,11 @@ public:
 
         writePos_ = (writePos_ + 1) % N;
 
-        // Mezcla 50/50 dry/wet (P:$0F90–$0F95)
-        left  = 0.5f * (left + wetL);
-        right = 0.5f * (right + wetR);
+        // Mezcla dry/wet con headroom de bus DSP56362 (P:$0F5D–$0F64 / P:$0F90–$0F95)
+        const float wetMix  = 0.5f * depth_;
+        const float dryGain = 1.0f - wetMix;
+        left  = dryGain * left + wetMix * wetL;
+        right = dryGain * right + wetMix * wetR;
     }
 
     void process(const float* inL, const float* inR,

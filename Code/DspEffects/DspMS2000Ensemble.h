@@ -102,11 +102,11 @@ public:
         if (fastPhase_ >= 1.0)
             fastPhase_ -= static_cast<double>(static_cast<int>(fastPhase_));
 
-        // 3 fases separadas 120° ($555555 = 1/3) + 20% shimmer rápido ($19999A)
+        // 3 fases separadas 120° ($555555 = 1/3) + 20% shimmer rápido ($19999A, P:$0FD6/$0FD9: + en tap1/2, - en tap3)
         const float fastTri = 0.20f * triangleWave(static_cast<float>(fastPhase_));
         const float mod1    = triangleWave( wrap01(static_cast<float>(slowPhase_)) ) + fastTri;
         const float mod2    = triangleWave( wrap01(static_cast<float>(slowPhase_ + (1.0 / 3.0))) ) + fastTri;
-        const float mod3    = triangleWave( wrap01(static_cast<float>(slowPhase_ + (2.0 / 3.0))) ) + fastTri;
+        const float mod3    = triangleWave( wrap01(static_cast<float>(slowPhase_ + (2.0 / 3.0))) ) - fastTri;
 
         // Retardo base 5.0 ms y excursión ±3.5 ms escalados por sampleRate_
         const float sr        = static_cast<float>(sampleRate_);
@@ -120,11 +120,13 @@ public:
         writePos_ = (writePos_ + 1) % N;
 
         // P:$0FD2–$0FE8: matriz estéreo ($666666 = 0.8, $333333 = 0.4, $199999 = 0.2)
-        const float wetL = 0.8f * tap1 + 0.4f * tap2 + 0.2f * tap3;
-        const float wetR = 0.2f * tap1 + 0.4f * tap2 + 0.8f * tap3;
+        // Escalada proporcionalmente con depth_ para evitar filtrado peine estático a baja profundidad.
+        const float wetL = (0.8f * tap1 + 0.4f * tap2 + 0.2f * tap3) * depth_;
+        const float wetR = (0.2f * tap1 + 0.4f * tap2 + 0.8f * tap3) * depth_;
+        const float dryGain = 1.0f - 0.5f * depth_;
 
-        left  = 0.5f * left + wetL;
-        right = 0.5f * right + wetR;
+        left  = dryGain * left + wetL;
+        right = dryGain * right + wetR;
     }
 
     void process(const float* inL, const float* inR,

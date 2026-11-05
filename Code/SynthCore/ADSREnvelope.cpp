@@ -45,12 +45,20 @@ void ADSREnvelope::updateRates() noexcept
 {
     if (hardwareMS2000Mode_)
     {
-        float attackSec  = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(attackParam_);
-        attackRate_      = 1.0 - std::exp(-1.0 / (static_cast<double>(attackSec) * sampleRate_));
+        // En el DSP56362 (P:$0583..$05A4), cada generador de envolvente decrementa la fase x0
+        // en [1.0, 0.0] por muestra usando `inc` de la ROM 0x27D54 y aplica interpolación parabólica
+        // `env = target + (start - target) * x0^2` (P:$0597..$05A1).
+        // `getMS2000HardwareEnvelopeTimeSeconds(knob)` = `(0x7FFFFF / inc) / 48000` = tiempo real de la rampa.
+        const double attackFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(attackParam_));
+        attackRate_    = 1.0 - std::exp(-1.0 / (attackFullSec * sampleRate_));
+        hwAttackDelta_ = (attackFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (attackFullSec * sampleRate_)) : 1.0;
 
-        // In DSP56362 (P:$08E8-$09DA), exponential decay/release 1-pole time constant tau
-        // equals the ROM 0x27D54 duration (8388608 / inc / 48000), so reaching -40 dB (ln(100))
-        // takes 4.60517 * tau.
+        const double decayFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_));
+        hwDecayDelta_ = (decayFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (decayFullSec * sampleRate_)) : 1.0;
+
+        const double releaseFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(releaseParam_));
+        hwReleaseDelta_ = (releaseFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (releaseFullSec * sampleRate_)) : 1.0;
+
         float decaySec   = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_) * 4.60517f;
         decayMult_       = EnvelopeCurves::getDecayMultiplier(decaySec, sampleRate_);
 
@@ -74,14 +82,20 @@ void ADSREnvelope::noteOn(float velocity) noexcept
     velocityGain_ = std::max(0.1f, std::min(1.0f, velocity));
     stage_        = EnvelopeStage::Attack;
     targetLevel_  = 1.0f;
+    if (hardwareMS2000Mode_)
+    {
+        hwPhase_ = 1.0;
+    }
 }
 
 void ADSREnvelope::noteOff() noexcept
 {
     if (stage_ != EnvelopeStage::Idle)
     {
-        stage_       = EnvelopeStage::Release;
-        targetLevel_ = 0.0f;
+        stage_        = EnvelopeStage::Release;
+        targetLevel_  = 0.0f;
+        hwPhase_      = 1.0;
+        hwStartLevel_ = currentLevel_;
     }
 }
 
@@ -90,6 +104,26 @@ float ADSREnvelope::getNextSample() noexcept
     switch (stage_)
     {
         case EnvelopeStage::Attack: {
+            if (hardwareMS2000Mode_)
+            {
+                // Ley parabólica del DSP56362 (P:$0597..$05A1): env = target + (start - target) * x0^2.
+                // En Attack (start = 0.0, target = 1.0): env = 1.0 - hwPhase_^2, con hwPhase_ bajando de
+                // 1.0 a 0.0 a razón de hwAttackDelta_ por muestra (1 muestra = 1 decremento; el DSP
+                // decrementa cada 8 muestras pero la fase total en [1.0, 0.0] dura igual 8 * tau_48k).
+                hwPhase_ -= hwAttackDelta_;
+                if (hwPhase_ <= 0.0)
+                {
+                    hwPhase_      = 1.0;
+                    currentLevel_ = 1.0;
+                    stage_        = EnvelopeStage::Decay;
+                    hwStartLevel_ = 1.0;
+                }
+                else
+                {
+                    currentLevel_ = 1.0 - hwPhase_ * hwPhase_;
+                }
+                break;
+            }
             // Exponential RC-charge curve: fast start, easing into peak.
             // Target overshoots to 1/(1 - exp(-1)) = 1.5819767068693265 so that level crosses 1.0
             // at the exact specified attack time (1 time constant = 63.21205588% of target).
@@ -100,13 +134,30 @@ float ADSREnvelope::getNextSample() noexcept
             {
                 currentLevel_ = 1.0;
                 stage_        = EnvelopeStage::Decay;
+                hwPhase_      = 1.0;
+                hwStartLevel_ = 1.0;
             }
             break;
         }
 
         case EnvelopeStage::Decay: {
+            const double sus = static_cast<double>(sustainParam_);
+            if (hardwareMS2000Mode_)
+            {
+                hwPhase_ -= hwDecayDelta_;
+                if (hwPhase_ <= 0.0 || std::abs(hwStartLevel_ - sus) < 0.0001)
+                {
+                    hwPhase_      = 0.0;
+                    currentLevel_ = sus;
+                    stage_        = EnvelopeStage::Sustain;
+                }
+                else
+                {
+                    currentLevel_ = sus + (hwStartLevel_ - sus) * (hwPhase_ * hwPhase_);
+                }
+                break;
+            }
             // Exponential discharge towards sustain level
-            const double sus  = static_cast<double>(sustainParam_);
             const double diff = currentLevel_ - sus;
             currentLevel_     = sus + diff * decayMult_;
 
@@ -124,6 +175,21 @@ float ADSREnvelope::getNextSample() noexcept
         }
 
         case EnvelopeStage::Release: {
+            if (hardwareMS2000Mode_)
+            {
+                hwPhase_ -= hwReleaseDelta_;
+                if (hwPhase_ <= 0.0 || hwStartLevel_ < 0.00001)
+                {
+                    hwPhase_      = 0.0;
+                    currentLevel_ = 0.0;
+                    stage_        = EnvelopeStage::Idle;
+                }
+                else
+                {
+                    currentLevel_ = hwStartLevel_ * (hwPhase_ * hwPhase_);
+                }
+                break;
+            }
             // Exponential discharge towards zero
             currentLevel_ *= releaseMult_;
 

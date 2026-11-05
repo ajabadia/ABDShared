@@ -11,6 +11,7 @@
 #include <array>
 #include <vector>
 #include <algorithm>
+#include <functional>
 #include "DspCore/NeuronVS/NeuronVoicePool.h"
 #include "DspCore/NeuronVS/NeuronSilverRack.h"
 
@@ -65,6 +66,15 @@ public:
     /// Conmutador de modo de limitación: false (por defecto) = clamp limpio [-1.0, +1.0]; true = bug histórico Clip-to-Zero de 0x1000bc40
     void setOracleClipToZeroMode(bool enabled) noexcept { oracleClipToZeroMode_ = enabled; }
     [[nodiscard]] bool getOracleClipToZeroMode() const noexcept { return oracleClipToZeroMode_; }
+
+    /// Callback opcional para inyectar los Resynators v2 (modo expanded) en el bus de voces
+    /// ANTES del Blender/Slicer/SilverRack/MasterFX (paridad con la cadena original Neuron).
+    using ExpandedVoiceRenderCallback = std::function<void(
+        float* leftAcc, float* rightAcc, size_t blockSize, float blenderAmount, int blenderType
+    )>;
+    void setExpandedVoiceRenderCallback(ExpandedVoiceRenderCallback cb) {
+        expandedVoiceRenderCb_ = std::move(cb);
+    }
 
     /// Procesa una petición de audio de longitud arbitraria bombeando en bloques de 128
     void process(float* leftOut, float* rightOut, size_t numSamples,
@@ -152,6 +162,13 @@ private:
                               filterType, filterCutoffHz, filterReso,
                               filterEnvDepth, filterKeyTrack, filterVelDepth);
 
+        // 2b. Si hay Resynators v2 cargados (modo expanded), inyectar R1+R2 mezclados por Blender
+        // ANTES del Slicer Global, Silver Rack (Filtro + FreqFX + TimeFX) y Master FX.
+        if (expandedVoiceRenderCb_) {
+            expandedVoiceRenderCb_(internalLeft_.data(), internalRight_.data(),
+                                   kNeuronInternalBlockSize, blenderAmount, blenderType);
+        }
+
         // 3. Configurar el Slicer Global (FUN_100295d0 en e[0xd94])
         globalSlicer_.setParameters(slicerType, slicerDepth, slicerRateHz, slicerWave);
 
@@ -167,6 +184,7 @@ private:
 
     double sampleRate_{44100.0};
     bool oracleClipToZeroMode_{false};
+    ExpandedVoiceRenderCallback expandedVoiceRenderCb_{};
 
     // Buffers internos de 128 muestras
     std::array<float, kNeuronInternalBlockSize> internalLeft_{};

@@ -39,6 +39,17 @@
  * Los comentarios C/C++ se eliminan antes de buscar, para que la documentación que
  * explica el fallo (que necesariamente lo menciona) no se dispare a sí misma.
  *
+ * ## Las dos mitades del guard
+ *
+ *   - **Negativa** (`scanForForbiddenCalls`): barre **todo** `sourceRoot` buscando
+ *     `backend.emitEvent` en C++. Ningún fichero se escapa, esté declarado o no.
+ *   - **Positiva** (`emitters`): fija qué ficheros DEBEN emitir con
+ *     `emitEventIfBrowserIsVisible`; si uno deja de hacerlo, el guard falla.
+ *
+ * Para que la mitad positiva no se quede corta en silencio, `findWebViewHosts`
+ * localiza los ficheros que crean el componente web y `checkBridgeDirection` exige
+ * que estén en `emitters`: un host nuevo no puede colarse sin declarar.
+ *
  * Este módulo es ESM puro y sin dependencias: lo consumen los runners de cada host
  * (vitest en ABDMS2000 / ABDCZ101) y también scripts `node` sueltos (ABDJUNiO601,
  * que no tiene runner JS). Vive en `ABDSharedCode/WebView2Bridge/` porque es el
@@ -53,6 +64,23 @@ export const FORBIDDEN_CALL = 'backend.emitEvent';
 
 /** Llamada correcta *desde C++* (canal nativo → JS). */
 export const REQUIRED_CALL = 'emitEventIfBrowserIsVisible';
+
+/**
+ * Patrones que delatan al fichero que **crea** (o extiende) el componente web.
+ * Ese fichero es el host del WebView y, por tanto, el sitio donde vive el emisor
+ * nativo → JS: la lista `emitters` no puede quedarse corta sin que nadie lo note.
+ *
+ * Se buscan formas de *construcción o herencia*, nunca de configuración: repartir
+ * los `withNativeFunction(...)` en otro fichero (ABDEep lo hace en
+ * `PluginEditor_NativeFunctions.cpp`) no convierte a ese fichero en host, y
+ * marcarlo daría un falso positivo.
+ */
+export const WEB_HOST_PATTERNS = [
+  /make_unique\s*<\s*juce::WebBrowserComponent\s*>/,
+  /new\s+juce::WebBrowserComponent\b/,
+  /make_unique\s*<\s*abd::webview2::JuceWebView2Component\s*>/,
+  /:\s*public\s+abd::webview2::JuceWebView2Component\b/
+];
 
 /** Extensiones consideradas código C++ (incluye Objective-C++ de las variantes mac). */
 export const CPP_FILE_PATTERN = /\.(h|hpp|cpp|cc|cxx|mm|ipp)$/i;
@@ -131,6 +159,27 @@ export function scanForForbiddenCalls(sourceRoot) {
 }
 
 /**
+ * Ficheros C++ que crean (o extienden) el componente web: los hosts del WebView y,
+ * por tanto, los candidatos a emisor nativo → JS.
+ *
+ * Sin esta lista, `emitters` podría quedarse corta en silencio: la mitad negativa
+ * del guard ya vigila todo `sourceRoot`, pero un host nuevo sin declarar no tendría
+ * exigida la mitad positiva (que emita de verdad).
+ *
+ * @param {string} sourceRoot raíz del código C++ del host
+ * @returns {string[]} rutas relativas a `sourceRoot`, con `/` como separador
+ */
+export function findWebViewHosts(sourceRoot) {
+  const absoluteRoot = path.resolve(sourceRoot);
+  return listCppSources(absoluteRoot)
+    .filter(file => {
+      const source = stripCppComments(fs.readFileSync(file, 'utf8'));
+      return WEB_HOST_PATTERNS.some(pattern => pattern.test(source));
+    })
+    .map(file => path.relative(absoluteRoot, file).split(path.sep).join('/'));
+}
+
+/**
  * Comprueba la dirección del canal en un host.
  *
  * @param {object} options
@@ -144,6 +193,8 @@ export function scanForForbiddenCalls(sourceRoot) {
  *   findings: { file: string, lines: number[] }[],
  *   missingEmitters: string[],
  *   absentEmitters: string[],
+ *   webViewHosts: string[],
+ *   undeclaredHosts: string[],
  *   problems: string[]
  * }}
  */
@@ -167,6 +218,11 @@ export function checkBridgeDirection({ sourceRoot, emitters = [] } = {}) {
     }
   }
 
+  // La mitad positiva no puede quedarse corta: todo fichero que cree el componente
+  // web debe estar declarado, o su emisor quedaría sin exigir.
+  const declaredEmitters = new Set(emitters.map(emitter => emitter.split(path.sep).join('/')));
+  const webViewHosts = findWebViewHosts(absoluteRoot);
+  const undeclaredHosts = webViewHosts.filter(host => !declaredEmitters.has(host));
   const problems = [];
   for (const { file, lines } of findings) {
     problems.push(
@@ -181,12 +237,20 @@ export function checkBridgeDirection({ sourceRoot, emitters = [] } = {}) {
     problems.push(`${emitter} no existe: el guard quedó desactualizado.`);
   }
 
+  for (const host of undeclaredHosts) {
+    problems.push(
+      `${host} crea el componente web pero no está declarado en emitters: ` +
+        `añádelo al guard para que exija ${REQUIRED_CALL}.`
+    );
+  }
   return {
     ok: problems.length === 0,
     scanned,
     findings,
     missingEmitters,
     absentEmitters,
+    webViewHosts,
+    undeclaredHosts,
     problems
   };
 }

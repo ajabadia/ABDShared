@@ -86,6 +86,21 @@ Esto garantiza que el centro físico del hardware (`64` en MIDI CC/SysEx o `0` e
 
 ---
 
+### 4.4 Mapeo de Controladores Semánticos, Automatización DAW y Beneficios de Integración
+Al implementar la especificación de parámetros canónica v2.0 (`parameter_dictionary.schema.json`) con `semanticRole` y `SymBipolar`, los sintetizadores y samplers de la suite adquieren tres ventajas directas:
+
+1. **En el DAW (Cubase, Ableton, Logic, Reaper, Bitwig, Pro Tools)**:
+   - **Centro muerto exacto en automatización**: Los 176+ parámetros con rango asimétrico (`[-64..+63]`, p. ej. pan, afinaciones finas, balance de osciladores/resynators) caen exactamente en `0` en el punto medio (`0.5` normalizado VST3), eliminando desafinaciones o desfases al dibujar automatizaciones.
+   - **Carpetas y Categorías de Automatización**: El DAW organiza los cientos de parámetros en carpetas semánticas legibles (`Filter`, `Envelope`, `Oscillator`, `Master`) usando los atributos de categoría de JUCE derivados del diccionario, en vez de desplegar listas planas inmanejables.
+2. **En Controladores Físicos y Teclados Maestros (MIDI Learn y Plantillas)**:
+   - **Mapeo universal por `semanticRole`**: Asignar un knob de tu controlador a `FilterCutoff` funciona automáticamente en cualquier sintetizador o sampler de la familia sin remapear índices numéricos internos.
+   - **NRPN de Alta Resolución (14-bit)**: Posibilidad de controlar filtros y parámetros críticos con 16.384 pasos sin efecto cremallera (*zipper noise*), utilizando los pares estándar `nrpnMsb / nrpnLsb`.
+3. **En la Interfaz Web y Ecosistema Multi-Instrumento (`ABDNeuModMakr`)**:
+   - **Iconografía e identificación clara**: Cajones de MIDI Learn muestran nombres canónicos e iconos de rol en lugar de abreviaturas crudas o crípticas del firmware original.
+   - **Roundtrip Rompler/Multisample coherente**: Cuando `ABDNeuModMakr` exporta un instrumento o modelo extendido con asignaciones de filtro o envolvente, el motor destino (`ABDAxionikVS` / sampler) las conecta automáticamente a sus parámetros DSP gracias a las claves canónicas compartidas.
+
+---
+
 ## 5. Flujo Paso a Paso para Integrar o Actualizar un Proyecto
 
 1. **Validar / Migrar el Contrato en `ABDShared/Contracts/<modelo>_parameter_spec.json`**:

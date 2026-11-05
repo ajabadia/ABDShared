@@ -93,6 +93,9 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 
 ### 5.1. Registro APVTS, Gestos de Automatización (`beginChangeGesture` / `endChangeGesture`) y Sincronización Host ↔ UI
 - `[x]` ✅ **Todos los parámetros registrados en `AudioProcessorValueTreeState` (APVTS) con IDs y nombres semánticos claros:** Más de 240–292 parámetros generados desde una única fuente de verdad (`ParameterRegistry.gen.h`) con nombres legibles en los carriles de automatización y MIDI Learn del DAW (`"OSC 1 Wave"`, `"Filter Cutoff"`, `"EG1 Attack"` en lugar de `"Param_0"`).
+- `[x]` ✅ **Categorías y Metadatos Semánticos de JUCE en APVTS (`semanticRole` y `category`):**
+  - Los parámetros deben categorizarse en `juce::AudioProcessorParameter::category` (`kFilter`, `kEnvelope`, `kOscillator`, `kMaster`, etc.) y enriquecerse con el `semanticRole` del diccionario canónico (`ABDShared/Contracts/parameter_dictionary.schema.json`).
+  - Esto permite al DAW (Cubase, Ableton, Logic, Reaper, Bitwig) organizar automáticamente los cientos de carriles de automatización en carpetas y grupos lógicos legibles, en lugar de desplegar una lista plana e inmanejable.
 - `[x]` ✅ **Notificación al host vía `setValueNotifyingHost()`:** Cada cambio de parámetro notifica correctamente al host DAW.
 - `[x]` ✅ **Gestos de automatización (`beginChangeGesture` / `endChangeGesture`) conectados de extremo a extremo (C++ ↔ WebUI):**
   - El puente C++ expone `beginGesture` y `endGesture` e invoca `param->beginChangeGesture()` / `param->endChangeGesture()`.
@@ -121,7 +124,9 @@ Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquit
   4. `domainToNormalized(id, float domain) noexcept -> float`
   5. `wireToDomain(id, uint16_t raw) noexcept -> float`
   6. `domainToWire(id, float domain) noexcept -> uint16_t`
-- `[x]` ✅ **Cero físico exacto en parámetros bipolares MIDI (`wire = 64` / `0x40`):** En sintetizadores hardware cuyos parámetros bipolares (`-63..+63`, `-24..+24 st`, `-12..+12 dB`, `Pan`) tienen su centro en el byte `64` (`0x40`), la conversión aplica simetría exacta alrededor de `64` (`norm = 0.5 + 0.5 * (clamp(wire, 1, 127) - 64) / 63`), garantizando que `wireToDomain(64) == 0.0f` y `domainToWire(0.0f) == 64` sin deriva de medio escalón (`63.5`).
+- `[x]` ✅ **Cero físico exacto en parámetros bipolares MIDI (`wire = 64` / `0x40`) y firmware `[-64..+63]` (`wire = 0`):**
+  - En sintetizadores hardware cuyos parámetros bipolares (`-63..+63`, `-24..+24 st`, `-12..+12 dB`, `Pan`) tienen su centro en el byte `64` (`0x40`), la conversión aplica simetría exacta alrededor de `64` (`norm = 0.5 + 0.5 * (clamp(wire, 1, 127) - 64) / 63`), garantizando que `wireToDomain(64) == 0.0f` y `domainToWire(0.0f) == 64` sin deriva de medio escalón (`63.5`).
+  - **Curva `SymBipolar` con `wireZeroCenter: 0` (`-64..+63`)**: En registros internos con rangos asimétricos bipolares centrados en 0 (como Hartmann Neuron / `ABDAxionikVS`), el centro en el host DAW (`0.5` normalizado) mapea con precisión exacta a `0` sin desafinaciones ni desviaciones por redondeo.
 - `[x]` ✅ **Soporte de curvas analíticas (`Linear`, `Exp`, `Pow`, `Log`) y tablas LUT de ROM hardware (`CurveType::Lut`):** Cuando el hardware original utiliza tablas no lineales en ROM (como [`MS2000FirmwareTables.h`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/MS2000FirmwareTables.h) extraída del firmware `x811v107.sys` para incrementos `Q23` de envolventes `1 ms..3,80 s`, `LFO1 0,046..36,61 Hz`, `LFO2` audio-rate hasta `194,90 Hz` y `Delay 0,04..1365,29 ms`, o las curvas de calibración de `ABDEep`), la capa de traducción interpola directamente sobre la LUT oficial.
 - `[x]` ✅ **Formateo de unidades físicas unificado para UI y LCD (`displayFormatter` / `LCDMenuFormatter`):** Los tooltips de los controles y la pantalla LCD muestran siempre la unidad física traducida (`Hz`, `kHz`, `ms`, `s`, `dB`, `st`, `BPM`) coherente con el motor DSP.
 - `[x]` ✅ **Verificación por Tests Unitarios de Inversión (`ParamConversionUnitTests` / `DSPCoreTests_Transfer`):** Prueba automatizada de que para todo parámetro del registro se cumple el round-trip `domainToWire(wireToDomain(w)) == w` en los extremos (`0`, `127`/`255`), el centro (`64`/`128`) y barrido completo.
@@ -180,6 +185,16 @@ Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquit
 180:   3. `Program Change` / `Bank Select`.
 181:   4. Secuencias incompletas o tiempo límite de inactividad (*timeout*).
 182: - `[x]` ✅ **Aislamiento estricto por canal MIDI:** Prohibido compartir variables globales o persistentes de NRPN entre canales; cada canal MIDI debe mantener su propia máquina de estados independiente para evitar contaminación cruzada de parámetros.
+183: - `[x]` ✅ **NRPN de Alta Resolución (14 bits / 16.384 pasos) y Direccionamiento Estándar (`nrpnMsb` / `nrpnLsb`):**
+184:   - Los sintetizadores deben soportar control continuo de 14 bits mediante pares NRPN MSB/LSB declarados en el catálogo de parámetros (`nrpnMsb = index >> 7`, `nrpnLsb = index & 0x7F`), eliminando el escalonamiento audible (*zipper noise*) en barridos de filtro y modulaciones complejas.
+185: 
+186: ### 7.2. Sistema Canónico de MIDI Learn y Mapeo Semántico Transversal (`semanticRole`)
+187: - `[x]` ✅ **Mapeo Many-to-Many ($N:M$) con `abd::hw::MidiLearnManager`:**
+188:   - Soporte de 1-a-$N$ (macro control físico para múltiples destinos) y $N$-a-1 (múltiples controladores para un destino) sin asignación dinámica de memoria en el hilo de audio.
+189: - `[x]` ✅ **Resolución Semántica Transversal (`semanticRole`):**
+190:   - El sistema de mapeo de controladores físicos (`MidiLearnManager` y `midiLearnStore.js`) debe ser capaz de enlazar asignaciones por su rol semántico estándar (`FilterCutoff`, `AmpEnvAttack`, `MasterVolume`, `MasterPan`, etc.), permitiendo que una plantilla física de controlador hardware funcione inmediatamente al cambiar de instrumento en la suite ABDSynths sin necesidad de reconfigurar mapeos índice por índice.
+191: - `[x]` ✅ **Feedback Visual Canónico e Iconografía de Rol en UI:**
+192:   - Los cajones de MIDI Learn (`midiLearnDrawer`) y menús contextuales deben mostrar los nombres legibles e iconografía asociada al rol semántico en lugar de códigos numéricos crudos o etiquetas abreviadas heredadas del hardware antiguo.
 183: 
 184: ---
 

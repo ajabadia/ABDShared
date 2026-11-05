@@ -1,0 +1,34 @@
+name: Guard del puente WebView2
+
+on:
+  push:
+    paths:
+      - 'Code/WebView2Bridge/**'
+      - '.github/workflows/bridge-guard.yml'
+  pull_request:
+    paths:
+      - 'Code/WebView2Bridge/**'
+      - '.github/workflows/bridge-guard.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: bridge-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  selftest:
+    name: Autotest del guard compartido
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Sin dependencias: el módulo solo usa node:fs y node:path.
+      - name: Autotest (node --test)
+        run: node --test Code/WebView2Bridge/testing/webviewBridgeDirection.selftest.mjs

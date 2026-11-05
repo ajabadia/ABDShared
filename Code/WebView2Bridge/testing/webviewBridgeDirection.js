@@ -46,9 +46,12 @@
  *   - **Positiva** (`emitters`): fija qué ficheros DEBEN emitir con
  *     `emitEventIfBrowserIsVisible`; si uno deja de hacerlo, el guard falla.
  *
- * Para que la mitad positiva no se quede corta en silencio, `findWebViewHosts`
- * localiza los ficheros que crean el componente web y `checkBridgeDirection` exige
- * que estén en `emitters`: un host nuevo no puede colarse sin declarar.
+ * Para que la mitad positiva no se quede corta en silencio, `checkBridgeDirection`
+ * exige que todo fichero que use `emitEventIfBrowserIsVisible` figure en `emitters`:
+ * un emisor nuevo no puede colarse sin declarar. `findWebViewHosts` queda como dato
+ * de diagnóstico (qué ficheros montan el componente) y no pesa en el veredicto: un
+ * host puede no emitir nunca —ABDAxionikVS responde a la WebUI llamando a su propia
+ * API de página— y entonces no hay canal nativo → JS que exigir.
  *
  * Este módulo es ESM puro y sin dependencias: lo consumen los runners de cada host
  * (vitest en ABDMS2000 / ABDCZ101) y también scripts `node` sueltos (ABDJUNiO601,
@@ -186,7 +189,8 @@ export function findWebViewHosts(sourceRoot) {
  * @param {string} options.sourceRoot raíz del código C++ del host
  * @param {string[]} [options.emitters] ficheros (relativos a `sourceRoot`) que emiten
  *   hacia el WebUI: deben usar {@link REQUIRED_CALL}. Si falta el fichero o no la usa,
- *   se reporta (es la mitad positiva del guard: no basta con no equivocarse).
+ *   se reporta (es la mitad positiva del guard: no basta con no equivocarse). A la
+ *   inversa, todo fichero que use {@link REQUIRED_CALL} tiene que estar aquí.
  * @returns {{
  *   ok: boolean,
  *   scanned: number,
@@ -194,7 +198,7 @@ export function findWebViewHosts(sourceRoot) {
  *   missingEmitters: string[],
  *   absentEmitters: string[],
  *   webViewHosts: string[],
- *   undeclaredHosts: string[],
+ *   undeclaredEmitters: string[],
  *   problems: string[]
  * }}
  */
@@ -218,11 +222,14 @@ export function checkBridgeDirection({ sourceRoot, emitters = [] } = {}) {
     }
   }
 
-  // La mitad positiva no puede quedarse corta: todo fichero que cree el componente
-  // web debe estar declarado, o su emisor quedaría sin exigir.
+  // La lista debe ser exactamente la de ficheros que emiten: si alguien emite sin
+  // declararlo, su mitad positiva quedaría sin exigir.
   const declaredEmitters = new Set(emitters.map(emitter => emitter.split(path.sep).join('/')));
   const webViewHosts = findWebViewHosts(absoluteRoot);
-  const undeclaredHosts = webViewHosts.filter(host => !declaredEmitters.has(host));
+  const undeclaredEmitters = listCppSources(absoluteRoot)
+    .filter(file => stripCppComments(fs.readFileSync(file, 'utf8')).includes(REQUIRED_CALL))
+    .map(file => path.relative(absoluteRoot, file).split(path.sep).join('/'))
+    .filter(file => !declaredEmitters.has(file));
   const problems = [];
   for (const { file, lines } of findings) {
     problems.push(
@@ -237,10 +244,10 @@ export function checkBridgeDirection({ sourceRoot, emitters = [] } = {}) {
     problems.push(`${emitter} no existe: el guard quedó desactualizado.`);
   }
 
-  for (const host of undeclaredHosts) {
+  for (const file of undeclaredEmitters) {
     problems.push(
-      `${host} crea el componente web pero no está declarado en emitters: ` +
-        `añádelo al guard para que exija ${REQUIRED_CALL}.`
+      `${file} emite con ${REQUIRED_CALL} pero no está declarado en emitters: ` +
+        'añádelo al guard para que lo exija en positivo.'
     );
   }
   return {
@@ -250,7 +257,7 @@ export function checkBridgeDirection({ sourceRoot, emitters = [] } = {}) {
     missingEmitters,
     absentEmitters,
     webViewHosts,
-    undeclaredHosts,
+    undeclaredEmitters,
     problems
   };
 }

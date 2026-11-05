@@ -83,23 +83,21 @@ void ADSREnvelope::updateRates() noexcept
 void ADSREnvelope::noteOn(float velocity) noexcept
 {
     velocityGain_ = std::max(0.1f, std::min(1.0f, velocity));
-    if (hardwareMS2000Mode_ && stage_ != EnvelopeStage::Idle)
-    {
-        // Retrigger: keep current phase so the envelope does not snap back to
-        // 0.0 (which would produce a hard-zero click on active-voice retrigger).
-        // Attack resumes from the current hwPhase_ towards targetLevel_ = 1.0.
-        targetLevel_ = 1.0f;
-        stage_ = EnvelopeStage::Attack;
-    }
-    else
-    {
-        stage_        = EnvelopeStage::Attack;
-        targetLevel_  = 1.0f;
-        if (hardwareMS2000Mode_)
-        {
-            hwPhase_ = 1.0;
-        }
-    }
+
+    const bool retrigger = stage_ != EnvelopeStage::Idle;
+    stage_       = EnvelopeStage::Attack;
+    targetLevel_ = 1.0f;
+
+    // Retrigger con reset = 0: conserva la fase para no volver a 0.0 (un salto a
+    // cero en una voz activa produce un click) y el ataque continua desde el
+    // nivel actual. Es el comportamiento historico del motor.
+    if (retrigger && !resetToZero_)
+        return;
+
+    // Primer disparo o reset = 1 (ti::FLAGS bit 4/5): ataque desde 0.0.
+    currentLevel_ = 0.0;
+    if (hardwareMS2000Mode_)
+        hwPhase_ = 1.0;
 }
 
 void ADSREnvelope::noteOff() noexcept

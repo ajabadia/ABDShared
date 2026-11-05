@@ -38,6 +38,15 @@ public:
     }
     bool isHardwareMS2000Mode() const noexcept { return hardwareMS2000Mode_; }
 
+    /**
+     * Reinicia el ataque desde 0.0 al re-disparar en vez de continuar desde el
+     * nivel actual (bits 4/5 de ti::FLAGS en el MS2000; medido en el oraculo:
+     * con el bit a 1 la amplitud cae al nivel de inicio del ataque, con 0 sigue
+     * subiendo sin discontinuidad).
+     */
+    void setResetToZero(bool enabled) noexcept { resetToZero_ = enabled; }
+    bool isResetToZero() const noexcept { return resetToZero_; }
+
     void noteOn(float velocity = 1.0f) noexcept;
     void noteOff() noexcept;
 
@@ -50,6 +59,7 @@ private:
     double sampleRate_{44100.0};
     EnvelopeStage stage_{EnvelopeStage::Idle};
     bool hardwareMS2000Mode_{false};
+    bool resetToZero_{false};
 
     float attackParam_{0.1f};
     float decayParam_{0.3f};

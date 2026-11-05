@@ -46,17 +46,20 @@ void ADSREnvelope::updateRates() noexcept
     if (hardwareMS2000Mode_)
     {
         // En el DSP56362 (P:$0583..$05A4), cada generador de envolvente decrementa la fase x0
-        // en [1.0, 0.0] por muestra usando `inc` de la ROM 0x27D54 y aplica interpolación parabólica
-        // `env = target + (start - target) * x0^2` (P:$0597..$05A1).
-        // `getMS2000HardwareEnvelopeTimeSeconds(knob)` = `(0x7FFFFF / inc) / 48000` = tiempo real de la rampa.
-        const double attackFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(attackParam_));
+        // en [1.0, 0.0] ejecutando `sub x0,a` (con incQ23 de ROM 0x27D54) 1 vez cada 8 muestras
+        // (TDM de 8 ranuras, `and #$07,a` en P:$058E) -> Fs_eg = 48000/8 = 6000 Hz.
+        // La ley es `env = target + (start - target) * x0^2` (P:$0597, $05A1).
+        // `getMS2000HardwareEnvelopeTimeSeconds(knob)` = (0x7FFFFF/inc)/48000 = tiempo de rampa
+        // a 48 kHz si cada muestra lo ejecutara; como el hardware lo ejecuta cada 8 muestras,
+        // el tiempo real es 8x mayor y la rampa en software debe usar `* 8.0`.
+        const double attackFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(attackParam_)) * 8.0;
         attackRate_    = 1.0 - std::exp(-1.0 / (attackFullSec * sampleRate_));
         hwAttackDelta_ = (attackFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (attackFullSec * sampleRate_)) : 1.0;
 
-        const double decayFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_));
+        const double decayFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_)) * 8.0;
         hwDecayDelta_ = (decayFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (decayFullSec * sampleRate_)) : 1.0;
 
-        const double releaseFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(releaseParam_));
+        const double releaseFullSec = static_cast<double>(EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(releaseParam_)) * 8.0;
         hwReleaseDelta_ = (releaseFullSec > 1e-6 && sampleRate_ > 1000.0) ? (1.0 / (releaseFullSec * sampleRate_)) : 1.0;
 
         float decaySec   = EnvelopeCurves::getMS2000HardwareEnvelopeTimeSeconds(decayParam_) * 4.60517f;
@@ -80,11 +83,22 @@ void ADSREnvelope::updateRates() noexcept
 void ADSREnvelope::noteOn(float velocity) noexcept
 {
     velocityGain_ = std::max(0.1f, std::min(1.0f, velocity));
-    stage_        = EnvelopeStage::Attack;
-    targetLevel_  = 1.0f;
-    if (hardwareMS2000Mode_)
+    if (hardwareMS2000Mode_ && stage_ != EnvelopeStage::Idle)
     {
-        hwPhase_ = 1.0;
+        // Retrigger: keep current phase so the envelope does not snap back to
+        // 0.0 (which would produce a hard-zero click on active-voice retrigger).
+        // Attack resumes from the current hwPhase_ towards targetLevel_ = 1.0.
+        targetLevel_ = 1.0f;
+        stage_ = EnvelopeStage::Attack;
+    }
+    else
+    {
+        stage_        = EnvelopeStage::Attack;
+        targetLevel_  = 1.0f;
+        if (hardwareMS2000Mode_)
+        {
+            hwPhase_ = 1.0;
+        }
     }
 }
 

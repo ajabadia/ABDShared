@@ -54,6 +54,7 @@ public:
         int number{74};            // CC 0..127 or NRPN 0..16383
         int targetIndex{-1};       // Numeric parameter index (e.g. 0..444 in Axionik)
         juce::String targetKey;    // Canonical string parameter ID (optional, for APVTS string lookup)
+        juce::String semanticRole; // Standard transversal role (e.g. "FilterCutoff", "AmpEnvAttack")
         float minNorm{0.0f};       // Normalized minimum output [0..1]
         float maxNorm{1.0f};       // Normalized maximum output [0..1]
         bool invert{false};        // Invert polarity (127 -> minNorm, 0 -> maxNorm)
@@ -84,11 +85,12 @@ public:
     /**
      * @brief Starts interactive MIDI Learn for a target parameter.
      */
-    void startLearning(int targetIndex, const juce::String& targetKey = {}, LearnMode mode = LearnMode::Replace) {
+    void startLearning(int targetIndex, const juce::String& targetKey = {}, LearnMode mode = LearnMode::Replace, const juce::String& semanticRole = {}) {
         {
             std::scoped_lock lock(mutex_);
             learningTargetIndex_ = targetIndex;
             learningTargetKey_ = targetKey;
+            learningSemanticRole_ = semanticRole;
             learnMode_ = mode;
         }
         stateChangedPending_.store(true, std::memory_order_release);
@@ -102,6 +104,7 @@ public:
             std::scoped_lock lock(mutex_);
             learningTargetIndex_ = -1;
             learningTargetKey_.clear();
+            learningSemanticRole_.clear();
             learnMode_ = LearnMode::None;
         }
         stateChangedPending_.store(true, std::memory_order_release);
@@ -226,6 +229,7 @@ public:
                     next.number = number;
                     next.targetIndex = learningTargetIndex_;
                     next.targetKey = learningTargetKey_;
+                    next.semanticRole = learningSemanticRole_;
                     next.minNorm = 0.0f;
                     next.maxNorm = 1.0f;
                     next.invert = false;
@@ -235,6 +239,7 @@ public:
 
                 learningTargetIndex_ = -1;
                 learningTargetKey_.clear();
+                learningSemanticRole_.clear();
                 learnMode_ = LearnMode::None;
                 stateChangedPending_.store(true, std::memory_order_release);
                 return true;
@@ -369,6 +374,9 @@ public:
             item->setProperty("number", m.number);
             item->setProperty("targetIndex", m.targetIndex);
             item->setProperty("targetKey", m.targetKey);
+            if (m.semanticRole.isNotEmpty()) {
+                item->setProperty("semanticRole", m.semanticRole);
+            }
             item->setProperty("minNorm", m.minNorm);
             item->setProperty("maxNorm", m.maxNorm);
             item->setProperty("invert", m.invert);
@@ -416,6 +424,7 @@ public:
             m.number = std::clamp(static_cast<int>(mObj->getProperty("number")), 0, 16383);
             m.targetIndex = static_cast<int>(mObj->getProperty("targetIndex"));
             m.targetKey = mObj->getProperty("targetKey").toString();
+            m.semanticRole = mObj->hasProperty("semanticRole") ? mObj->getProperty("semanticRole").toString() : juce::String();
             m.minNorm = mObj->hasProperty("minNorm") ? std::clamp(static_cast<float>(mObj->getProperty("minNorm")), 0.0f, 1.0f) : 0.0f;
             m.maxNorm = mObj->hasProperty("maxNorm") ? std::clamp(static_cast<float>(mObj->getProperty("maxNorm")), 0.0f, 1.0f) : 1.0f;
             m.invert = static_cast<bool>(mObj->getProperty("invert"));
@@ -466,6 +475,9 @@ public:
             entry.setProperty("number", m.number, nullptr);
             entry.setProperty("targetIndex", m.targetIndex, nullptr);
             entry.setProperty("targetKey", m.targetKey, nullptr);
+            if (m.semanticRole.isNotEmpty()) {
+                entry.setProperty("semanticRole", m.semanticRole, nullptr);
+            }
             entry.setProperty("minNorm", m.minNorm, nullptr);
             entry.setProperty("maxNorm", m.maxNorm, nullptr);
             entry.setProperty("invert", m.invert, nullptr);
@@ -494,6 +506,7 @@ public:
             m.number = std::clamp(static_cast<int>(child.getProperty("number", 0)), 0, 16383);
             m.targetIndex = static_cast<int>(child.getProperty("targetIndex", -1));
             m.targetKey = child.getProperty("targetKey", "").toString();
+            m.semanticRole = child.getProperty("semanticRole", "").toString();
             m.minNorm = std::clamp(static_cast<float>(child.getProperty("minNorm", 0.0f)), 0.0f, 1.0f);
             m.maxNorm = std::clamp(static_cast<float>(child.getProperty("maxNorm", 1.0f)), 0.0f, 1.0f);
             m.invert = static_cast<bool>(child.getProperty("invert", false));
@@ -514,6 +527,7 @@ private:
     std::vector<Mapping> mappings_;
     int learningTargetIndex_{-1};
     juce::String learningTargetKey_;
+    juce::String learningSemanticRole_;
     LearnMode learnMode_{LearnMode::None};
     uint32_t nextIdCounter_{100};
     LastMidiActivity lastActivity_{};

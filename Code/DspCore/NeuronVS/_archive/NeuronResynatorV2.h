@@ -1,7 +1,26 @@
 // ============================================================================
+// ARCHIVADA 2026-11-06: esta cabecera fue la referencia offline del Resynator
+// v2, pero NINGÚN binario la compiló jamás y divergió del motor embarcado.
+// La fuente de la verdad es `AxionikExpandedSynthesizer.h` (ABDAxionikVS) +
+// el contrato `axionikExpandedModel.ts` + el vector dorado WASM
+// (tests/resynatorWasmParity.test.ts). Se conserva aquí por sus ideas no
+// portadas: envolvente de formantes Bark-24, residuo DDSP, transitorio PCM,
+// LFO de beating/PWM (ver roadmap). No volver a incluirla en ningún build.
+// ============================================================================
+// ============================================================================
 // ABDShared — DspCore/NeuronVS/NeuronResynatorV2.h
-// Motor propietario Resynator v2 (Fase B / Modo Extended) para ABDAxionikVS
+// Referencia propietaria Resynator v2 (Fase B / Modo Extended) para ABDAxionikVS
 // y preescucha WASM / nativa.
+//
+// NOTA DE PARIDAD (auditoría 2026-11-06): esta cabecera es la referencia de
+// calidad offline; el sinte embarcado (`AxionikExpandedSynthesizer.h`) es una
+// adaptación RT que NO la incluye y difiere deliberadamente en: formantes por
+// índice de parcial (vs. envolvente Bark aquí), residuo = ruido blanco (vs.
+// 24 bandas Bark), transitorio = impulso de ruido (vs. empalme PCM — el
+// modelo no incrusta PCM), sin LFO de beating/PWM, tope de 48 parciales por
+// voz, downmix Haas y mezcla *0.2 con envolvente. Ningún binario la compila
+// hoy; no "re-alinearla" en silencio: cualquier cambio aquí debe portarse al
+// motor embarcado y a `ResynatorV2Preview.ts` con test.
 //
 // Características clave (C++20 puro, header-only, 100 % libre de JUCE, RT-Safe):
 //   1. Banco de osciladores armónicos en fase continua de hasta 256 parciales
@@ -177,11 +196,14 @@ public:
         parityGain = 1.0f - effParity; // atenúa impares
       }
 
-      // Roll-off espectral en dB/octava relativo a f0
-      if (std::abs(shapers.hfRollOffDbPerOct) > 0.01f && n > 1.0f) {
-        float octavesAboveF0 = std::log2(n);
-        float tiltDb = shapers.hfRollOffDbPerOct * octavesAboveF0;
-        amp *= std::pow(10.0f, std::clamp(tiltDb, -60.0f, 24.0f) / 20.0f);
+      // Roll-off espectral en dB/octava relativo a la base neutra de -6 dB/oct
+      // (estándar de fichero: todos los escritores de modelos emiten valores
+      // centrados en -6; paridad con `AxionikExpandedSynthesizer.h`, que calcula
+      // (v + 6) * octavas, y con `ResynatorV2Preview.ts`).
+      float octavesAboveF0 = std::log2(n);
+      float extraRollDb = (shapers.hfRollOffDbPerOct + 6.0f) * octavesAboveF0;
+      if (std::abs(extraRollDb) > 0.05f && n > 1.0f) {
+        amp *= std::pow(10.0f, std::clamp(extraRollDb, -48.0f, 18.0f) / 20.0f);
       }
 
       // Desplazamiento de formantes sobre las 24 bandas Bark

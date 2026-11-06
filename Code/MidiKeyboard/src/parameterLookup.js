@@ -7,6 +7,7 @@
  * Single source of truth: schemas in ABDSharedAssets/contracts/
  */
 
+import { hasLut, lutNormalizedForValue, lutValueAt } from '@abdsynths/shared/contracts/lutRegistry.js';
 import korg_ms2000_parameter_spec from '@abdsynths/shared/contracts/korg_ms2000_parameter_spec.json';
 import abdms2000_modulation_matrix from '@abdsynths/shared/contracts/abdms2000_modulation_matrix.json';
 import behringer_deepmind12 from '@abdsynths/shared/contracts/behringer_deepmind12.json';
@@ -57,6 +58,7 @@ function loadSchemaParameters(schema) {
           curve: p.curve || 'Linear',
           curveP0: typeof p.curveP0 === 'number' ? p.curveP0 : 1.0,
           curveP1: typeof p.curveP1 === 'number' ? p.curveP1 : 1.0,
+          lutId: typeof p.lutId === 'string' ? p.lutId : null,
           domainMin: typeof p.domainMin === 'number' ? p.domainMin : (typeof p.min === 'number' ? p.min : 0),
           domainMax: typeof p.domainMax === 'number' ? p.domainMax : (typeof p.max === 'number' ? p.max : 127),
           unit: p.unit || '',
@@ -163,10 +165,18 @@ export function lookupRawValue(id, raw) {
     return raw; // Fallback: retornar raw sin convertir
   }
 
-  const { curve, curveP0, curveP1, domainMin, domainMax } = meta;
+  const { curve, curveP0, curveP1, domainMin, domainMax, lutId } = meta;
   const t = Math.max(0.0, Math.min(1.0, raw / 127.0));
 
   switch (curve) {
+    case 'Lut': {
+      // La tabla de firmware es la verdad: 128 entradas indexadas por el raw 0..127.
+      if (!lutId || !hasLut(lutId)) {
+        throw new Error(`Parameter '${id}' declara curve 'Lut' sin tabla resoluble (lutId: ${lutId})`);
+      }
+      return lutValueAt(lutId, t);
+    }
+
     case 'Linear':
       return t * (domainMax - domainMin) + domainMin;
 
@@ -202,9 +212,16 @@ export function domainToRawValue(id, domainValue) {
     return 64; // Fallback: valor medio
   }
 
-  const { curve, curveP0, curveP1, domainMin, domainMax } = meta;
+  const { curve, curveP0, curveP1, domainMin, domainMax, lutId } = meta;
 
   switch (curve) {
+    case 'Lut': {
+      if (!lutId || !hasLut(lutId)) {
+        throw new Error(`Parameter '${id}' declara curve 'Lut' sin tabla resoluble (lutId: ${lutId})`);
+      }
+      return Math.max(0, Math.min(127, Math.round(lutNormalizedForValue(lutId, domainValue) * 127.0)));
+    }
+
     case 'Exp': {
       if (!curveP0 || !curveP1 || domainValue <= 0) return 0;
       const t = Math.log(domainValue / curveP0) / curveP1;
@@ -244,7 +261,10 @@ export function lookupRawValueWithInterpolation(id, raw) {
     return raw;
   }
 
-  const { domainMin, domainMax } = meta;
+  const { curve, domainMin, domainMax } = meta;
+
+  // En Lut los extremos los define la tabla, no el dominio declarado en el spec
+  if (curve === 'Lut') return lookupRawValue(id, raw);
 
   // Clamp estricto del valor raw antes de lookup
   if (raw <= 0) return domainMin;

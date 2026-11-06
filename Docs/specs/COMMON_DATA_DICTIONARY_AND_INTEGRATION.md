@@ -3,6 +3,7 @@
 - **Esquema Normativo**: [`Contracts/parameter_dictionary.schema.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/parameter_dictionary.schema.json)
 - **Motor de Traducción TypeScript**: [`Contracts/MidiTranslationEngine.ts`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/MidiTranslationEngine.ts)
 - **Especificación de Voz de Sampler**: [`Contracts/sampler_voice_parameter_spec.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/sampler_voice_parameter_spec.json)
+- **Tablas LUT de Firmware**: [`Contracts/lut_tables.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/lut_tables.json) + [`Contracts/lutRegistry.js`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/lutRegistry.js)
 - **Contrato de Matriz de Modulación**: [`Contracts/modulation_matrix.schema.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/modulation_matrix.schema.json)
 - **Documento Complementario Wire <-> Domain**: [`Docs/specs/WIRE_DOMAIN_TRANSLATION.md`](file:///D:/desarrollos/ABDSynths/ABDShared/Docs/specs/WIRE_DOMAIN_TRANSLATION.md)
 
@@ -29,7 +30,7 @@ Al auditar los contratos existentes en `ABDShared/Contracts/` y los repositorios
 | **2** | **Vocabulario dispar en `type` y `unit`** | `type` mezcla `"choice"`, `"discrete"`, `"integer"` y `"bipolar"`. `unit` mezcla español e inglés (`"semitonos"`, `"nota MIDI"`, `"wave"`, `"cents"`, `"Hz"`). | `type` restringido a 5 primitivos: `"continuous"`, `"bipolar"`, `"integer"`, `"choice"`, `"boolean"`. `unit` normalizado a símbolos estándar: `"Hz"`, `"s"`, `"ms"`, `"dB"`, `"st"`, `"cents"`, `"BPM"`, `"%"`, `"pan"`, `"midi_note"`, `"velocity"`, `"frames"`, `"enum"`, `"normalized"`. |
 | **3** | **Residuos de copy-paste en parámetros discretos** | En `casio_cz101_parameter_spec.json`, parámetros `type: "choice"` tienen `curve: "Linear", curveP0: 1, curveP1: 0.8`. | En `type: "choice" \| "integer" \| "boolean"`, `curve` es implícitamente `"Linear"` escalonado y no debe llevar coeficientes `curveP0`/`curveP1` de filtros continuos. |
 | **4** | **Simetría Bipolar Hardware (`wire = 64` -> `0.0` físico)** | `ABDMS2000` (`korg_ms2000_parameter_spec.json` con 34 parámetros `SymBipolar` + `wireZeroCenter: 64` y `Conversion.gen.h`) y `ABDAxionikVS` (`ParameterEngineBridge::remap`) implementan el centro exacto en C++, y `MidiTranslationEngine.ts` lo soporta nativamente. | Nuevo tipo de curva `"SymBipolar"` + propiedad `wireZeroCenter` (por defecto `64` cuando `[min..max] = [0..127]` o `0` cuando `[-64..+63]`), garantizando `0.0` exacto en JS y C++. |
-| **5** | **Curvas LUT de Firmware no declaradas en TS** | `ABDMS2000` ya declara `curve: "Lut"` (`lutId: "ms2000_lfo1_hz"` / `"ms2000_lfo2_hz"`) en `korg_ms2000_parameter_spec.json` y `Conversion.gen.h` (`case 3`). | Añadidos `'SymBipolar'`, `'PiecewiseLinear'` y `'Lut'` (con `lutId`) al contrato común. |
+| **5** | **Curvas LUT de Firmware no declaradas en TS** | `ABDMS2000` ya declara `curve: "Lut"` (`lutId: "ms2000_lfo1_hz"` / `"ms2000_lfo2_hz"`) en `korg_ms2000_parameter_spec.json` y `Conversion.gen.h` (`case 3`). | Añadidos `'SymBipolar'`, `'PiecewiseLinear'` y `'Lut'` (con `lutId`) al contrato común; las tablas son datos en `Contracts/lut_tables.json` (128 valores por `lutId`, generados desde la ROM) y se resuelven en `MidiTranslationEngine` y en el lookup del teclado. Ver §4.5. |
 | **6** | **Separación entre Especificación de Parámetros y Offsets Binarios/SysEx** | `ABDMS2000` ya incluye los 245 descriptores `binaryPacking` y 39 `semanticRole` en `korg_ms2000_parameter_spec.json` sincronizados con `MS2000HardwareProgram.h`. `s950_patch_fields.json` define `byteOffset`, `bitMask` y `encoding` en un esquema distinto. | Bloque opcional `binaryPacking: { byteOffset, bitMask, bitShift, byteSize, encoding }` dentro de cada `ParameterEntry`, unificando control UI, dominio DSP y posición en el dump binario. |
 | **7** | **Sintetizadores sin `*_parameter_spec.json` en `ABDShared/Contracts`** | `ABDAxionikVS` (445 params en `SndDatStore.h`), `ABDPro008` (`Pro800ParameterSchema.ts` en `ABDBankManager`) y `ABDNeural` (70 params en `ParameterDefinitions.h`) aún no exportan su `*_parameter_spec.json` a `ABDShared/Contracts`. | Exportar `hartmann_neuron_parameter_spec.json`, `behringer_pro800_parameter_spec.json` y `neuronik_parameter_spec.json` bajo `parameter_dictionary.schema.json`. |
 
@@ -98,6 +99,33 @@ Al implementar la especificación de parámetros canónica v2.0 (`parameter_dict
 3. **En la Interfaz Web y Ecosistema Multi-Instrumento (`ABDNeuModMakr`)**:
    - **Iconografía e identificación clara**: Cajones de MIDI Learn muestran nombres canónicos e iconos de rol en lugar de abreviaturas crudas o crípticas del firmware original.
    - **Roundtrip Rompler/Multisample coherente**: Cuando `ABDNeuModMakr` exporta un instrumento o modelo extendido con asignaciones de filtro o envolvente, el motor destino (`ABDAxionikVS` / sampler) las conecta automáticamente a sus parámetros DSP gracias a las claves canónicas compartidas.
+
+### 4.5 Curva de Tabla de Firmware (`curve: "Lut"`)
+
+Cuando el hardware resuelve un parámetro con una tabla grabada en su ROM, el contrato **no** aproxima esa tabla con una fórmula: el parámetro declara `curve: "Lut"` + `lutId`, y la tabla se resuelve en [`Contracts/lut_tables.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/lut_tables.json) mediante [`Contracts/lutRegistry.js`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/lutRegistry.js).
+
+Para una tabla de $n$ entradas $T_0 \dots T_{n-1}$ en la unidad física declarada (`unit`), el índice normalizado es $k = x \cdot (n-1)$:
+$$y(x) = T_{\lfloor k \rfloor} + \big(k - \lfloor k \rfloor\big)\left(T_{\lfloor k \rfloor + 1} - T_{\lfloor k \rfloor}\right), \qquad x = \text{tramo por bisección} + \text{despeje lineal}$$
+
+Con $n = 128$ y un knob MIDI de 128 pasos, $x = \text{raw}/127$ cae **exactamente** sobre la entrada `raw`: el camino `Wire -> Domain` no interpola ni redondea.
+
+Reglas normativas:
+
+1. **`curveP0` / `curveP1` no aplican a `Lut`** y no deben declararse: una LUT no es un `Exp` disfrazado.
+2. **`domainMin` / `domainMax` deben ser exactamente `T_0` y `T_{n-1}`.** Los extremos del dominio documentan la tabla; la guarda de paridad (`Contracts/lutTables.test.js`) lo verifica para todos los contratos.
+3. **La tabla es la verdad.** Si el `lutId` falta o no existe, el motor lanza `LutNotFoundError` en lugar de degradar silenciosamente a `Linear`.
+4. **Los valores se devuelven sin recortar** contra el dominio declarado: una tabla nunca se trunca por un `domainMax` obsoleto.
+5. **Las tablas se generan desde la ROM**, no se teclean: `node Contracts/generators/ms2000_lfo_luts.mjs` las regenera y `--check` falla si divergen palabra a palabra del firmware.
+6. **En mesetas** (valores repetidos por cuantización del DSP) la inversa es many-to-one y devuelve el inicio de la meseta.
+
+*Ejemplo real (LFO del KORG MS2000)*, con $f = \text{inc}_{\text{Q23}} \times 48000 / 2^{24}$:
+
+| `lutId` | Offset ROM | Recorrido |
+|---|---|---|
+| `ms2000_lfo1_hz` | `0x295E8` (`P:$0500`) | `0,0457763671875 Hz` (knob 0) → `36,609649658203125 Hz` (knob 127) |
+| `ms2000_lfo2_hz` | `0x29BE8` (`P:$052A`) | `0,0457763671875 Hz` → `194,90432739257812 Hz` (idéntica a LFO1 hasta knob 114; diverge en 115) |
+
+La tabla **no es exponencial ni lineal**: una `Exp` con los coeficientes que declaraba el spec (`0,035 · e^{7,5x}`, recortada a `20 Hz`) se desvía entre un −45 % y un +55 % del hardware a lo largo del recorrido (en el CC 64 daba `1,53 Hz` donde la ROM da `2,40 Hz`). De ahí que estos parámetros se declaren como `Lut` y no con coeficientes de curva.
 
 ---
 

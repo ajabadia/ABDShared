@@ -339,7 +339,8 @@ Tras desensamblar el firmware `x811v107.sys` (H8S/2350) y el microcódigo del DS
    - **LFO1 (`0x295E8`) vs LFO2 (`0x29BE8`) (`P:$05CE`):**
      $$f_{\text{LFO}}(\text{knob}) = \frac{\text{inc}_{\text{Q23}}(\text{knob}) \times 48.000}{2^{24}}\text{ Hz}$$
      - `LFO1`: `0,0458 Hz` (`knob 0`) $\dots$ `36,610 Hz` (`knob 127`, sin saturar prematuramente en `20 Hz` en `knob 108`).
-     - `LFO2`: Idéntico a `LFO1` entre `0..114` (`0,0458..25,41 Hz`) y aceleración exponencial en `115..127` hasta **`194,904 Hz`** ($5{,}3202\times$ `LFO1`).
+     - `LFO2`: Idéntico a `LFO1` entre `0..114` (`0,0458..23,7865 Hz`) y aceleración exponencial en `115..127` hasta **`194,904 Hz`** ($5{,}3239\times$ `LFO1`).
+     - Estas 128 entradas se publican al resto de la suite como tablas `Lut` en [`Contracts/lut_tables.json`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/lut_tables.json) (`ms2000_lfo1_hz` / `ms2000_lfo2_hz`), generadas desde la ROM con `Contracts/generators/ms2000_lfo_luts.mjs` (ver CDD §4.5).
    - **Delay Time (`0x28356`, `kRomDelayTimeSamples`):** `knob 0` = `2` muestras (`0,0417 ms`) $\dots$ `knob 127` = `65.534` muestras (`1.365,29 ms` @ 48 kHz).
 
 ---

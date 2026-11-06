@@ -73,9 +73,11 @@ const HOSTS = [
     stripHeightPx: 155,
   },
   {
+    // NeuModMakr partió style.css en módulos: style.css solo orquesta @imports
+    // y la franja (height: 98px) vive en el módulo espectral del teclado.
     project: 'ABDNeuModMakr',
     stripSelector: '.piano-keys-bed#piano-keyboard',
-    cssFiles: ['ABDNeuModMakr/src/style.css'],
+    cssFiles: ['ABDNeuModMakr/src/styles/04-spectral-keyboard.css'],
     stripHeightPx: 98,
   },
 ];

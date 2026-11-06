@@ -37,10 +37,13 @@ describe('Parameter Lookup Tests', () => {
     });
   });
 
-  describe('lookupRawValue - ABDEep parameters', () => {
-    it('debe convertir CC 64 a Hz para lfo1Freq', () => {
-      const result = lookupRawValue('lfo1Freq', 64);
-      // lfo1Freq: domainMin=0.01, domainMax=20, curve=Exp con curveP0=0.035, curveP1=7.5
+  describe('lookupRawValue - curvas Exp de DeepMind', () => {
+    it('debe convertir CC 64 a Hz para lfo1Rate', () => {
+      // La caché resuelve por id y gana el primer schema cargado: `lfo1Freq`
+      // pertenece también al spec de MS2000 (curve: Lut), así que aquí se usa
+      // `lfo1Rate`, que solo declara el DeepMind y mantiene la curva Exp.
+      const result = lookupRawValue('lfo1Rate', 64);
+      // lfo1Rate: domainMin=0.01, domainMax=20, curve=Exp con curveP0=0.035, curveP1=7.5
       const expected = 0.035 * Math.exp(7.5 * (64 / 127));
       expect(result).toBeCloseTo(expected, 2);
     });

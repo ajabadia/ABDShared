@@ -85,6 +85,9 @@ export { TapeEchoVisual } from './tapeEchoVisual.js';
 // una intencion sin cambio, no (lo hablan Toggle, Segmented y XYPad).
 export { sameControlValue, transitioned, announceTransition } from './transitionNotices.js';
 export { announceMovement, announceSettled, createContinuousNotices } from './continuousNotices.js';
+// Contrato compartido de TEXTOS DE LCD: el aviso se compone una vez y todos los
+// consumidores (menu, panel, drawer, bridge) pintan el mismo builder.
+export { buildWriteCompletedNotice } from './lcdNotices.js';
 
 // Temas de los modulos de efecto del rack FX: el tema va por FAMILIA
 // (reverb, tape, space...) y no por efecto, porque hay 57 ids y once

@@ -114,6 +114,6 @@ Docs/
 * [ABOUT_DIALOG.md](ui-ux/ABOUT_DIALOG.md)
   * Modal universal de información de versión, build, créditos y enlaces de soporte.
 * [LCD_GUIDE.md](ui-ux/LCD_GUIDE.md)
-  * Pantalla LCD fosforescente retro con soporte para nombres de parches y parámetros.
+  * Pantalla LCD fosforescente retro con soporte para nombres de parches y parámetros, más el **estándar de mensajes centralizados**: un builder puro por texto (`build*Notice` / `build*Readout`), qué avisos merecen contrato, dueño del LCD frente al eco de parámetros y guardas de literales duplicados.
 * [LIVE_SYSEX_INSPECTOR.md](ui-ux/LIVE_SYSEX_INSPECTOR.md)
   * Inspector y depurador interactivo de tramas SysEx en tiempo real.

@@ -49,7 +49,22 @@ jobs:
           npm install --no-audit --no-fund --legacy-peer-deps
           npm test
 
+      - name: Check package scope against repository owner
+        id: scope
+        run: |
+          # GitHub Packages solo admite publicar en el scope del propietario del
+          # repositorio. Si no coincide, se omiten los publish con aviso (403
+          # «owner not found») en lugar de dejar el workflow en rojo.
+          SCOPE=$(node -p "require('./Components/I18n/package.json').name.split('/')[0].replace('@','')")
+          if [ "$(echo "$SCOPE" | tr 'A-Z' 'a-z')" = "$(echo "$GITHUB_REPOSITORY_OWNER" | tr 'A-Z' 'a-z')" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Los paquetes usan el scope @${SCOPE} pero el repositorio es de ${GITHUB_REPOSITORY_OWNER}; GitHub Packages rechazaria el publish. Se omite."
+          fi
+
       - name: Publish @abdsynths/i18n
+        if: steps.scope.outputs.enabled == 'true'
         working-directory: Components/I18n
         run: |
           # Solo publica si la versión en package.json no está ya en el registro
@@ -64,6 +79,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @abdsynths/contracts
+        if: steps.scope.outputs.enabled == 'true'
         working-directory: Contracts
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
@@ -77,6 +93,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @abdsynths/midi-keyb
+        if: steps.scope.outputs.enabled == 'true'
         working-directory: Code/MidiKeyboard
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
@@ -90,6 +107,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @abdsynths/scope
+        if: steps.scope.outputs.enabled == 'true'
         working-directory: Code/Scope/WebUI
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")

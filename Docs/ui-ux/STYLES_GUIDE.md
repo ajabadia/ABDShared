@@ -180,6 +180,10 @@ Dos cosas que el host tiene que respetar, y que se midieron:
 
 ## 4b. Fondo tintable por tema (backgrounds.css)
 
+> 🟢 **Marcado 2026-11-07 — la cascada y el tile ya están aquí.** La crítica de «texturas JPG/PNG de varios MB por skin» describe el estado anterior: esta guía ya documenta el tile neutro `bg_tile512.webp` (341 KB, WebP **lossless**, costura `repeat` = 0.000) y la reducción medida de **8,1 MB → 2,69 MB**. Lo que falta es prohibir explícitamente embeber `bg_neutral.png` (2,81 MB) o `bg_neutral.webp` (1,95 MB) en `BinaryData`.
+> **Alternativa:** regla dura «sólo el tile se embebe» y `--full` siempre como asset externo.
+> **Prioridad:** baja. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+
 El fondo generico de la suite NO lleva el color encima: una textura de grano gris acromatico
 (media ~106, std ~24, R=G=B) modula el color que pone el tema. Un solo asset sirve para
 antracita, rojo intenso, azules electricos, tierra o grises claros.
@@ -248,6 +252,10 @@ dist; la variante `--full` sigue disponible como asset externo, no embebido.
 :root { --color-accent: #ff6600; --color-accent-dim: rgba(255,102,0,0.15); }
 
 ---## 6. Adaptadores de Componente (scope.css, keyboard.css)
+
+> 🟡 **Marcado 2026-11-07 — encabezado roto y prefijo de tokens sin decidir.** Este título está pegado al separador (`---## 6.`), así que no se renderiza como encabezado. Además conviven `--color-*` (guía de diseño) y `--abd-bg-tint` (aquí): la auditoría propone migrar todo a `--abd-*`, lo que evita colisiones con tokens del host pero rompe a todos los consumidores si se hace por partes.
+> **Alternativa:** decidir el prefijo de una vez y migrar en un único commit con los adaptadores actualizados.
+> **Prioridad:** baja. Ver [acta 2026](./REVISION_UI_UX_2026.md).
 
 Cada modulo (ABDScope, MidiKeyboard) tiene su CSS canonico (layout + fallbacks) y un adaptador en `styles/components/` que mapea SU token set completo a los tokens del host con fallback:
 

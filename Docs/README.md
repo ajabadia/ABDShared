@@ -74,7 +74,7 @@ Docs/
 * [SCOPE_INTEGRATION_GUIDE.md](integration/SCOPE_INTEGRATION_GUIDE.md)
   * **Integración de Osciloscopio en Tiempo Real:** Protocolo de sincronización de audio mediante colas lock-free de lectura y escritura entre el motor DSP y el visualizador.
 * [WEBVIEW_BRIDGE_PROTOCOL.md](integration/WEBVIEW_BRIDGE_PROTOCOL.md)
-  * **Protocolo de Comunicación WebUI/C++:** Especificación de mensajes bidireccionales, sincronización de estado y regla crítica de emisión nativa (`emitEventIfBrowserIsVisible`) en JUCE 8.
+  * **Protocolo de Comunicación WebUI/C++:** Especificación de mensajes bidireccionales, sincronización de estado y regla crítica de emisión nativa (`emitEventIfBrowserIsVisible`) en JUCE 8/9.
 * [WASM_DSP_BUILD_GUIDE.md](integration/WASM_DSP_BUILD_GUIDE.md)
   * **Pipeline de Compilación WebAssembly/AudioWorklet:** Guía de compilación con Emscripten, soporte `-msimd128` y exposición de APIs con `EMSCRIPTEN_KEEPALIVE`.
 * [BANK_MANAGER_INTEGRATION.md](integration/BANK_MANAGER_INTEGRATION.md)

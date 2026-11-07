@@ -13,6 +13,10 @@
 
 ## 2. Características
 
+> 🟠 **Marcado 2026-11-07 — faltan ranuras y gestión de foco.** Este documento no usa la palabra «Skin» ni describe botones que incrementen parámetros a ciegas: esa crítica no aplica. Lo que sí falta es normativo: **canal MIDI global (Ch 1..16)**, **dispositivo de audio**, **diagnóstico multipunto de 440 Hz** y la integración con `overlayFocus.js` para que `Escape` cierre en orden (la propia `ABOUT_DIALOG.md` ya la documenta).
+> **Alternativa:** añadir esas cuatro ranuras a §2 y declarar el foco como responsabilidad del navbar.
+> **Prioridad:** media. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+
 1. **Paridad de Comandos JUCE:**
    * Soporte declarativo para menús principales y submenús anidados en cascada (`▸`).
    * Elementos seleccionables con checkmarks reactivos (`✓`).

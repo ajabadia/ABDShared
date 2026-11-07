@@ -5,6 +5,10 @@
 ## Última actualización: Sesión actual
 ## Estado: ✅ Verificado y probado
 
+> 🔴 **Marcado 2026-11-07 — documento superado por CDD v2.0.** Este texto es v1.0: su `ParameterMeta` no contempla `SymBipolar`, `wireZeroCenter` ni `Lut`, que [`COMMON_DATA_DICTIONARY_AND_INTEGRATION.md`](./COMMON_DATA_DICTIONARY_AND_INTEGRATION.md) §4.3–§4.5 ya define como canónicos. El defecto que denuncia la auditoría **es real y está vivo**: `ABDAxionikVS/Source/DSP/DspEngineFacade.cpp` normaliza con `(raw + 64.0f) / 127.0f`, así que el centro bipolar cae en `0,503937` y el recorrido no es simétrico. La ubicación del defecto no es el motor DSP (que ya consume magnitudes físicas) sino la fachada.
+> **Alternativa:** tratar §4 del CDD como única matemática vigente, mover la normalización de la fachada a `Conversion.gen.h` y generar esta capa desde el registro.
+> **Prioridad:** alta. Ver [acta 2026](./REVISION_SPECS_2026.md).
+
 ## 1. VISIÓN GENERAL
 
 La capa **wire↔domain** es el puente de traducción entre:
@@ -159,6 +163,10 @@ SynthEngine
 ```
 
 ## 5. ESPECIFICACIÓN TÉCNICA PARA REUTILIZAR EN OTROS SINTETIZADORES
+
+> 🟠 **Marcado 2026-11-07 — fórmulas de ejemplo y numeración.** Los tres ejemplos normalizan dividiendo por `127.0f`, que es exactamente lo que produce el centro asimétrico descrito arriba; y el documento repite `## 6` tres veces, tiene un `### Paso 5` sin `Paso 4` y dos bloques «Próximos pasos» idénticos. La sección `5` aparece después de la `6`.
+> **Alternativa:** sustituir los ejemplos por las funciones generadas (`Conversion.gen.h`) y renumerar de una pasada al reescribir.
+> **Prioridad:** media. Ver [acta 2026](./REVISION_SPECS_2026.md).
 
 ### Paso 1: Definir los Parámetros
 

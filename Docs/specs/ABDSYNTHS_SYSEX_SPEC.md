@@ -91,6 +91,10 @@ preset y `sendPatch(..., { confirm: true })` espera la confirmación del destino
 
 ### 2.2 Empaquetado 7→8 y tamaños
 
+> 🟠 **Marcado 2026-11-07 — asignación en el codec y falta de fuzzing.** `abd::hw::SysExCodec::unpack7to8(const uint8_t*, size_t, std::vector<uint8_t>&)` **asigna** en cada llamada; su llamador documentado vive en el hilo MIDI y no en el de audio, así que la crítica de «buffers dinámicos en el hilo de audio» no describe el estado actual del árbol, pero el contrato no impide lo contrario. Tampoco exige la invariante `encode(decode(bytes)) == bytes` que pide la auditoría; el desempaquetado por desplazamientos ya es el implementado.
+> **Alternativa:** sobrecarga de capacidad fija (`std::span<uint8_t>` de destino, sin asignar), prohibición explícita de `std::vector` en rutas RT y gate de fuzzing round-trip en CI.
+> **Prioridad:** media. Ver [acta 2026](./REVISION_SPECS_2026.md).
+
 El mismo codec de siempre (`abd::hw::SysExCodec`, compartido con el formato Korg):
 
 - Cada grupo de **7 bytes reales** viaja como **1 byte de MSBs + 7 bytes de datos**.

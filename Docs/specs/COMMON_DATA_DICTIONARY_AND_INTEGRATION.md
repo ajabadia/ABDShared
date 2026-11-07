@@ -11,6 +11,10 @@
 
 ## 1. Propósito y Alcance
 
+> 🟠 **Marcado 2026-11-07 — enrutado por identificadores.** La premisa de «IDs de texto evaluados en tiempo real» no describe este estándar: `ABDAxionikVS` genera `ParameterRegistry.gen.h` con 445 descriptores indexados por `size_t` y `semanticRole` como `std::string_view` resuelto en compilación, y el puente WebUI viaja con índices numéricos. Un typo en un nombre no rompe la compilación cruzada porque no hay nombres en el camino. Lo que el documento **no** garantiza es que ningún lookup por nombre (`findByParamId`) se ejecute en el hilo de audio, ni que `ParamDescriptor` sea `trivially copyable`.
+> **Alternativa:** declarar esa prohibición en §1 y añadir un `static_assert` en el registro generado.
+> **Prioridad:** media. Ver [acta 2026](./REVISION_SPECS_2026.md).
+
 Establecer un **Diccionario de Datos Común (Single Source of Truth — SSOT)** para todos los instrumentos de **ABDSynths** (sintetizadores analógicos/VA fijos, sintetizadores bitímbricos/vectoriales, herramientas de modelado neuronal y samplers multi-zona), de modo que:
 
 1. **Controles en Pantalla (WebUI)**: Knobs, Sliders, Segmented Controls, XY Pads y Pantallas LCD consuman exactamente los mismos descriptores (`min`, `max`, `default`, `unit`, `choices`, `curve`) sin hardcodear rangos ni etiquetas.
@@ -88,6 +92,10 @@ Esto garantiza que el centro físico del hardware (`64` en MIDI CC/SysEx o `0` e
 ---
 
 ### 4.4 Mapeo de Controladores Semánticos, Automatización DAW y Beneficios de Integración
+
+> 🔴 **Marcado 2026-11-07 — carpetas de automatización del DAW.** El texto promete que el DAW agrupa los parámetros en carpetas semánticas «usando los atributos de categoría de JUCE derivados del diccionario». Verificado en `ABDAxionikVS`: no existe ningún `AudioProcessorParameterGroup` en `Source/`, así que el host muestra una lista plana de 445 parámetros. La ventaja descrita **no está implementada**.
+> **Alternativa:** generar `addParameterGroup(...)` desde la `category` del diccionario y verificar la jerarquía en Cubase 14 y Bitwig.
+> **Prioridad:** alta (es una promesa del documento que hoy es falsa). Ver [acta 2026](./REVISION_SPECS_2026.md).
 Al implementar la especificación de parámetros canónica v2.0 (`parameter_dictionary.schema.json`) con `semanticRole` y `SymBipolar`, los sintetizadores y samplers de la suite adquieren tres ventajas directas:
 
 1. **En el DAW (Cubase, Ableton, Logic, Reaper, Bitwig, Pro Tools)**:

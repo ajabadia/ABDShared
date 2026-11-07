@@ -1,5 +1,9 @@
 # JUNiO 601 — Formato interno canónico de SysEx, presets y tape
 
+> 🟠 **Marcado 2026-11-07 — título, restos de extracción y ausencia de política de envío.** El epígrafe dice «JUNiO 601» mientras el fichero es `JUNO-106_SYSEX_SPEC.md`, y las ~30 marcas `[file:22]` son restos de la extracción del PDF, no enlaces. El documento fija el layout canónico de 18 bytes y **no** la transmisión, así que la crítica de saturación del puerto MIDI no se dirime aquí: pertenece al transporte.
+> **Alternativa:** unificar el nombre, retirar las marcas y añadir una sección normativa de envío (cola lock-free, coalescer a ~60 Hz) o remitir a `Docs/hw-sysex-contract.md`.
+> **Prioridad:** baja. Ver [acta 2026](../REVISION_SPECS_2026.md).
+
 Este documento fija el formato canónico de intercambio para evitar que el mapeo de `SW1` y `SW2` vuelva a divergir entre SysEx, presets, JSON, tape y motor. [file:22]
 
 ## Principio de verdad

@@ -106,3 +106,41 @@ Criterio de prioridad: primero lo que produce un defecto **audible para el usuar
 4. **Gate de conteo** en el catálogo de efectos para impedir que tabla y cierre diverjan otra vez.
 5. **Newton condicional** en el VCF del Juno-106: coste cero en régimen normal, segunda iteración solo cerca de la auto-oscilación.
 6. **Aviso de latencia**: todo sobremuestreo añade retardo y debe compensarse con `setLatencySamples`, no declararse "despreciable".
+
+
+---
+
+## Apéndice A: Matriz Canónica de Conmutación Funcional de Modelos (Hardware vs. Expandido)
+
+> **Rescate de Especificación Crítica (ex-HOJA_RUTA_ABDMS2000 / ABDEep):**
+> La conmutación de modelos (mediante `synthMode` en el store/bridge y reflejado en el `ThemeSwitcher`) **no es un cambio cosmético de skin**: es una conmutación funcional determinista sobre el motor C++ y WASM.
+
+| Característica / Subsistema | Modo microKORG (`model = 0`) | Modo MS2000 (`model = 1`) | Modo Expandido / Advanced (`model = 2`) |
+| :--- | :--- | :--- | :--- |
+| **Polifonía (`VoiceManager`)** | **4 voces estrictas** (capado hardware) | **4 voces estrictas** (capado hardware) | **16 a 32 voces** (desbloqueo de potencia DSP) |
+| **Vocoder** | **8 bandas de análisis/síntesis** | **16 bandas de análisis/síntesis** | **16 bandas** + formantes ampliados |
+| **Modulation Sequencer** | **Inhibido / Oculto** (paridad microKORG) | **Activo** (3 pistas × 16 pasos) | **Activo** + sync libre y curvas extendidas |
+| **Virtual Patch Matrix** | **4 slots** estándar | **4 slots** estándar | **8 a 16 slots** de modulación |
+| **DWGS Waveform ROM** | 64 ondas clásicas | 64 ondas clásicas | Catálogo completo (512+ slots / Custom Wavetables) |
+| **Asignación de Unison** | Monofónico apilado | Monofónico apilado | Polifónico con `unisonSpread` y detune estéreo |
+
+**Regla de Despacho en Tiempo Real:**
+Al cambiar de modelo en la WebUI, `BridgeActions` despacha el evento atómico `setSynthMode(int mode)` a `SynthEngine`, el cual reconfigura el pool de voces de `VoiceManager` y el banco de filtros del Vocoder en el límite del siguiente bloque de audio sin locks ni realocaciones.
+
+---
+
+## Apéndice B: Estándar de Higiene de Ingeniería Inversa (RE Hygiene)
+
+> **Directiva contra Números Mágicos en Código DSP:**
+> Todo parámetro, tabla de escalado o constante de circuito derivada de análisis de desensamblado (IDA Pro, Ghidra, radare2, volcados de ROM) debe respetar las siguientes reglas de higiene antes de integrarse en `SynthCore` o en los motores específicos:
+
+1. **Aislamiento en Tablas Declarativas:**
+   - Prohibido intercalar constantes hexadecimales o direcciones de memoria (`0x1C`, `0x4000`) directamente en las rutinas de cálculo `processBlock` o `renderNextSample`.
+   - Todos los offsets y tablas de calibración deben aislarse en encabezados de constantes dedicados (`RomCalibrationTables.h`, `HardwareMemoryOffsets.h`) con su tipo exacto (`static constexpr`).
+2. **Ficha de Justificación Física del Factor de Escala:**
+   - Cada multiplicador empírico extraído de firmware debe documentarse con su equivalencia en el dominio analógico real:
+     - Escala del conversor DAC (ej. $V_{\text{ref}} / 2^{12}$).
+     - Ley de conicidad del potenciómetro físico (lineal vs. logarítmico tipo A/C).
+     - Razón de impedancias y respuesta de compensación de graves en filtro OTA.
+3. **Prohibición de Números Mágicos Huérfanos:**
+   - Todo número flotante no evidente (ej. `0.02341f`, `1.4142f`) debe declararse como constante con nombre auto-explicativo (ej. `kOtaLinearCompensationFactor`, `kResonanceClippingKnee`).

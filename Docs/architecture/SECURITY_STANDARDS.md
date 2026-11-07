@@ -103,6 +103,58 @@ Sanitizar solo en el frontend no protege nada: con las DevTools de WebView2 abie
 - [ ] **S11.3** Las reservas de memoria para buffers de samples se dimensionan con el tamaño real del fichero (`os.path.getsize()` / `juce::File::getSize()`), nunca con lo declarado en el header: un WAV que declara 4 GB y ocupa 2 KB provoca un OOM DoS si se hace `resize()` antes de leer.
 - [ ] **S11.4** El header se valida además por coherencia: nº de canales acotado (≤ 8), `bitsPerSample` en allowlist, chunk `data` que quepa en el fichero real y duración declarada acotada.
 
+### 11.5 Patrón C++ Canónico: Blindaje de `juce::AudioFormatReader` contra Bombas DoS
+
+```cpp
+// C++20 - Rutina canónica de carga segura contra bombas DoS de samples
+std::unique_ptr<juce::AudioBuffer<float>> loadSampleSafely(
+    juce::AudioFormatManager& formatManager,
+    const juce::File& file,
+    int64_t maxAllowedBytes = 256 * 1024 * 1024) // Techo estricto: 256 MB
+{
+    // 1. Validar tamaño real en disco antes de tocar el formato
+    const auto physicalFileSize = file.getSize();
+    if (physicalFileSize <= 0 || physicalFileSize > maxAllowedBytes)
+    {
+        DBG("Seguridad: Archivo rechazado por tamaño físico no admisible.");
+        return nullptr;
+    }
+
+    // 2. Abrir lector de formato
+    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+    if (!reader)
+        return nullptr;
+
+    // 3. Validar coherencia estructural del header
+    if (reader->numChannels == 0 || reader->numChannels > 8 ||
+        reader->sampleRate <= 0.0 || reader->sampleRate > 192000.0)
+    {
+        DBG("Seguridad: Header con canales o frecuencia fuera de límites.");
+        return nullptr;
+    }
+
+    // 4. Protección contra Bomba DoS (Header falsificado vs. Tamaño real en disco)
+    // El tamaño de PCM en memoria no puede superar desproporcionadamente el tamaño físico
+    // (factor máximo de descompresión admisible para formatos estándar, ej. ratio 4x)
+    const int64_t rawPcmBytesNeeded = reader->lengthInSamples * reader->numChannels * sizeof(float);
+    const int64_t maxPlausibleBytes = physicalFileSize * 4 + 1024; // Margen para cabeceras y expansión float
+
+    if (rawPcmBytesNeeded > maxAllowedBytes || rawPcmBytesNeeded > maxPlausibleBytes)
+    {
+        DBG("Seguridad: Detección de Bomba DoS en sample. Reserva cancelada.");
+        return nullptr;
+    }
+
+    // 5. Asignación segura con tamaño validado
+    auto buffer = std::make_unique<juce::AudioBuffer<float>>(
+        static_cast<int>(reader->numChannels),
+        static_cast<int>(reader->lengthInSamples));
+
+    reader->read(buffer.get(), 0, static_cast<int>(reader->lengthInSamples), 0, true, true);
+    return buffer;
+}
+```
+
 ## 12. Checklist rápida de PR (adiciones 2026-11)
 
 - [ ] El puente C++ descarta y sanitiza cualquier parámetro fuera de rango enviado desde WebView2 (no se confía en la validación de JS).

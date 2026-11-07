@@ -70,6 +70,13 @@ Para cumplir la estricta garantía de tiempo real sin contención de hilos y con
 - Generador lineal congruencial (LCG) interno de 32 bits ($a = 1664525$, $c = 1013904223$).
 - Cero llamadas a `std::rand()` o generadores con bloqueo de hilos.
 
+> **🟡 Marca de revisión (2026-11-07) — falta la componente compartida de la deriva.**
+> Dos precisiones frente a la crítica externa: (1) el motor **no** usa `std::rand`, usa este LCG determinista y lo prohíbe explícitamente, que es la decisión correcta para calibración reproducible; (2) el *random walk* ya pasa por un filtro de 1 polo, así que su espectro está dominado por baja frecuencia y cambiarlo por ruido de Perlin o rosa **no aporta nada medible**.
+> **Lo que sí falta:** `resetForNote(voiceIndex)` solo cambia la semilla, de modo que las 16 voces derivan de forma **independiente**. El hardware tiene una deriva **común** (reloj, temperatura de placa) más una por voz; sin la parte común suena a coro desafinado, no a instrumento.
+> **Alternativa:** `drift_i(t) = w · shared(t) + (1 − w) · perVoice_i(t)` con `w` configurable (0 = independiente, 1 = totalmente correlado). Dos componentes y un peso bastan; la matriz de covarianza que propone la crítica no hace falta para el comportamiento audible.
+> **Coste a vigilar:** hay `tanh` por muestra en 5 derivas × N voces; sustituirlo por Padé [3/3] lo reduce ~5× sin cambio audible y unifica con `DspMath`.
+> **Prioridad:** media. Ver `REVISION_DSP_2026.md` §2.4 y §4.
+
 ---
 
 ## 4. API Pública

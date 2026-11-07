@@ -2,6 +2,12 @@
 
 Este documento contiene la documentación completa de todos los parámetros editables en la sección **General Settings > Calibration** del sintetizador **ABDJUNiO601**, organizados por pestañas/categorías. También detalla las tablas de datos exportables e importables en formato CSV.
 
+> **🟡 Marca de revisión (2026-11-07) — dos precisiones y un método que falta fijar.**
+> (1) Este documento es un **catálogo de parámetros**, no una guía de modelado: la crítica sobre “curvas ideales frente a medidas” no aplica, porque las tablas ya son mediciones (`kr106::kV4Hz`, `kVCATableHW`) y además exportables. Lo que la crítica llama “tablas de error por ML” es exactamente lo que ya hay aquí; no hace falta renombrarlo.
+> (2) Falta declarar el **interpolador**: entre puntos medidos, PCHIP monótono (como `getJuno6HPFFreqPCHIP`), nunca spline natural, para no inventar sobreoscilaciones entre dos medidas.
+> (3) `oversampling` viene por defecto en **1x**, lo que deja la saturación del VCF a tasa base: es la misma deuda que la Fase 5 de `ANALOG_MODELING_RESEARCH_KR106.md`.
+> **Prioridad:** baja (método), salvo el punto 3, que hereda la prioridad alta de la Fase 5. Ver `REVISION_DSP_2026.md` §2.5 y §3 (P7).
+
 ---
 
 ## 1. Parámetros de Calibración por Categoría

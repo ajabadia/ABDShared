@@ -21,7 +21,12 @@ Este documento consolida la arquitectura canónica de la **Tríada de Control y 
 El principio rector inmutable de esta tríada es:
 > **«El motor compartido calcula la muestra y el suceso; la política de producto y el framework residen en el sintetizador consumidor.»**
 
-Para la metodología y flujo de trabajo para promover nuevos módulos DSP a `SynthCore`, consulta el [`Checklist Canónico de Promoción`](PROMOTION_WORKFLOW_CHECKLIST.md).
+Para la metodología y flujo de trabajo para promover nuevos módulos DSP a `SynthCore`, consulta el [`Checklist Canónico de Promoción`](../architecture/DSP_MODULE_PROMOTION_WORKFLOW.md).
+
+> **ℹ️ Nota de revisión (2026-11-07) — alcance del documento.**
+> Este documento cubre **`Arpeggiator`, `ModMatrixT` y `ControlSequencer`**. La crítica externa sobre osciladores, filtros y envolventes (`std::pow`/`std::sin` por muestra, Padé [3/3], SIMD) se refiere a **otro módulo** y no aplica aquí; nada de esta tríada se marca como obsoleto.
+> Lo único que sí merece un gate es el **slew exponencial** del secuenciador (`τ = s × 1 s`): si el `exp` se calcula por muestra en lugar de al cambiar τ, es coste real dentro del lazo de audio. **Verificación:** benchmark de `nextSample()` y comprobación de que el coeficiente se recalcula solo cuando cambia el parámetro.
+> Ver `REVISION_DSP_2026.md` §2.8. *(Corregido de paso el enlace del checklist, que apuntaba a un fichero inexistente en esta carpeta.)*
 
 ---
 

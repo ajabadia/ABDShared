@@ -6,6 +6,14 @@
 > Criterio: evidencia alcanzable en este árbol montado (CMakeLists, DspSources.cmake,
 > scripts de sync/generación, includes, paquete.json, docs de estado). Donde no hay
 > evidencia, figura como “por confirmar”.
+>
+> **ℹ️ Nota de revisión (2026-11-07).** Varias observaciones de la revisión externa sobre CZ-101
+> (coeficientes de filtros de distorsión de fase recalculados una vez por bloque,
+> `std::pow`/`std::sin` por muestra) **no se pueden contrastar aquí**: este texto es un
+> **inventario de consumo** —qué está en `ABDSharedCode`, qué es sustituible— y no describe
+> aritmética por muestra de ningún motor. Verificarlas exige leer `ABDCZ101/Source/DSP/*`,
+> no este documento. Por eso no se marca nada como obsoleto: marcar un inventario por algo
+> que no afirma sería ruido. Ver `REVISION_DSP_2026.md` §2.7.
 
 ---
 

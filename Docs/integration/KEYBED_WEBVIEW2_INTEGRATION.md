@@ -61,7 +61,7 @@ notas retrasando el `noteOff`; el motor no tiene pedal propio.
 > **Lo que no se adopta:** interceptar `Ctrl+H` / `Alt+R` «en la frontera nativa para que el DAW no los consuma».
 > Un plugin no puede arrebatarle atajos globales al host de forma fiable, y aquí `enableHold`/`enableRetrig` están en
 > `false` justamente porque sobre la CPU emulada dejan notas sonando. Documentarlos como no disponibles es correcto.
-> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.2.
+> **Prioridad:** media. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.2.
 
 **Contrato de altura**: `#piano-keyboard` lleva `height: 155px` en
 `WebUI/src/main.css`. WebView2 no resuelve `height: 100%` a través de cadenas

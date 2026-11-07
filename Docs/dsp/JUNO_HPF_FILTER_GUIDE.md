@@ -85,7 +85,7 @@ Modelado directamente a partir de la simulación de circuito analógico ngspice 
 
 > **🟢 Nota de revisión (2026-11-07) — aquí el bilineal DF2T es lo correcto.**
 > La crítica externa generaliza “bilineal + Direct Form = obsoleto”. No aplica a este biquad: es un **shelf de graves con coeficientes fijos**, donde el *cramping* del bilineal a 60–120 Hz es despreciable y DF2T es numéricamente estable. Lo que **sí** sería obsoleto es recalcular estos coeficientes por muestra o modular el `gain` a audio-rate sin rampa; si el Bass Boost pasa a ser modulable, migrar a TPT/SVF.
-> Ver `REVISION_DSP_2026.md` §2.3.
+> Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.3.
 
 ### 3.2. Curva Monótona Cúbica de Hermite (`getJuno6HPFFreqPCHIP`)
 El control continuo de corte del Juno-6 utiliza un potenciómetro analógico medido en 11 puntos:
@@ -200,7 +200,7 @@ struct JunoHPFContinuous
 > **🔴 Marca de revisión (2026-11-07) — el corte no se rampa.**
 > `setCutoff()` y `setContinuousPosition()` recalculan `hpG` con `std::tan` y **no suavizan**: si la automatización o un LFO mueven el corte cada bloque, el coeficiente salta y el estado TPT `hpState` no se reescala, lo que produce un click audible.
 > **Alternativa:** suavizar el corte en dominio logarítmico (`SmoothedValue`) y recalcular `g` por muestra con una aproximación de `tan` (o interpolar `g` entre bloques manteniendo `hpState` continuo). Para conmutación por posiciones (hardware) no hace falta: el salto ahí es intencionado.
-> **Prioridad:** alta si el HPF es modulable en la UI; media si solo conmuta por posiciones. Ver `REVISION_DSP_2026.md` §2.3 y §3 (P2).
+> **Prioridad:** alta si el HPF es modulable en la UI; media si solo conmuta por posiciones. Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.3 y §3 (P2).
 
 ---
 

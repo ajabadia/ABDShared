@@ -1,236 +1,149 @@
-# ABD JUNiO 601 — WASM DSP Build
+# Guía de Compilación WebAssembly y AudioWorklet — Suite ABDSynths
 
-## Overview
+> **Gobernanza:** Alineado con los estándares de paridad y arquitectura headless 2026. Ver [ADR-001](../decisions/ADR-001-2026-arquitectura-modernizacion.md) y [ADR-003](../decisions/ADR-003-2026-integration-puente-telemetria.md).
 
-The WASM build compiles the ABDJUNiO601 DSP engine (oscillators, filter, envelopes, LFO, chorus, tape echo) to WebAssembly, enabling headless audio synthesis in the browser. The generated output is consumed by the WebUI in place of the native JUCE plugin, or used standalone via the exported C API.
+---
 
-## Architecture
+## 1. Visión General
 
-```
-JavaScript (Web/Worker)
+El pipeline WebAssembly (WASM) compila los motores DSP de la suite **ABDSynths** (osciladores, filtros ZDF/TPT, generadores de envolvente, LFOs y matrices de efectos) a un binario `.wasm` ejecutable en un `AudioWorkletProcessor` del navegador, garantizando síntesis de audio headless sin depender de la UI de JUCE.
+
+### Principio de Paridad: `DspSources.cmake` como Única Fuente de Verdad
+
+Para evitar la deriva de código entre la versión nativa (VST3/Standalone) y la versión web (WASM):
+- **Prohibido duplicar listas de fuentes:** La lista de archivos C++ del motor DSP vive exclusivamente en `DspSources.cmake`.
+- Tanto el `CMakeLists.txt` nativo como el build de Emscripten consumen exactamente la misma lista de archivos:
+  ```cmake
+  # En wasm/CMakeLists.txt:
+  include(${CMAKE_CURRENT_SOURCE_DIR}/../DspSources.cmake)
+  add_executable(${WASM_TARGET_NAME} ${SYNTH_DSP_SOURCES} WasmBridge.cpp)
+  ```
+- **Prohibido copiar carpetas de JUCE:** En lugar de copiar directorios locales de JUCE (`juce_core`, `juce_dsp`), se utilizan stubs ligeros (`juce_shim/`) o enlaces limpios a la dependencia versionada de JUCE como submódulo.
+
+---
+
+## 2. Arquitectura del Sistema
+
+```text
+JavaScript (Web / AudioWorkletThread)
        │
-       │  createABDJUNiO601() ← ES module
-       │  .wasm (compiled)
+       │  createSynthDSP() ← ES Module / Base64 embedded
+       │  .wasm (Emscripten compiled)
        │
        ▼
-┌─────────────────────────────────────┐
-│  WasmBridge.cpp / .h                │  ← C-extern API (EMSCRIPTEN_KEEPALIVE)
-│  - wasm_init_engine()               │
-│  - wasm_set_parameter()             │
-│  - wasm_get_parameter()             │
-│  - wasm_process_audio()             │
-│  - wasm_note_on() / wasm_note_off() │
-│  - wasm_panic()                     │
-├─────────────────────────────────────┤
-│  JunoEngine.cpp                     │  ← Voice manager + polyphony
-│  JunoVoice.cpp                      │
-│  JunoDCO.cpp                        │
-│  JunoVCF.cpp                        │
-│  JunoADSR.cpp                       │
-│  JunoLFO.cpp                        │
-│  ChorusBBD.cpp                      │
-│  JunoTapeEcho.cpp                   │
-├─────────────────────────────────────┤
-│  juce_shim/                         │  ← Stubs replacing JUCE GUI/App classes
-│  juce_core/                         │  ← Copied from C:\JUCE (patched ThreadPriorities)
-│  juce_dsp/                          │  ← Copied from C:\JUCE
-│  juce_audio_basics/                 │  ← Copied from C:\JUCE
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  WasmBridge.cpp / .h (C-extern API con EMSCRIPTEN_KEEPALIVE)│
+│  - wasm_init_engine(sampleRate, blockSize, model)           │
+│  - wasm_set_parameter(key, value)                           │
+│  - wasm_get_parameter(key)                                 │
+│  - wasm_process_audio(outputPtr, numSamples)                │
+│  - wasm_note_on(channel, note, velocity)                    │
+│  - wasm_note_off(channel, note)                            │
+│  - wasm_panic()                                             │
+├─────────────────────────────────────────────────────────────┤
+│  SynthEngine / DspSources.cmake (C++20 Puro)                │
+│  - VoiceManager & SynthVoice                                │
+│  - PolyBLEP Oscillators                                     │
+│  - TPT / ZDF Filters & Integradores trapezoidales           │
+│  - ADSREnvelopes, LFOs, ModMatrix                           │
+├─────────────────────────────────────────────────────────────┤
+│  juce_shim/ (Stubs C++ sin dependencias de GUI ni SO)       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Key design decisions
+---
 
-| Decision | Rationale |
-|---|---|
-| **Standalone WASM** (no WebView2 bridge) | The existing `script.js` talks to Juce via `window.juce`. The WASM module is a drop-in replacement — `script.js` can be refactored to call `wasm_*` functions instead. |
-| **Modularize=1 + EXPORT_ES6=1** | The output is an ES module (`export default createABDJUNiO601`), loadable via `<script type="module">` or `import()`. |
-| **NO_EXIT_RUNTIME=1** | Keeps the WASM runtime alive indefinitely (state persists across calls). |
-| **ALLOW_MEMORY_GROWTH=1** | Allows dynamic heap growth up to `MAXIMUM_MEMORY=256MB`. |
-| **-fwasm-exceptions** | Compiles C++ exceptions to WASM exception handling (no `-sDISABLE_EXCEPTION_CATCHING`). |
-| **-msimd128** | Enables WebAssembly SIMD 128-bit instructions for vectorised DSP loops. |
-| **gParamMap string-keyed** | Parameters are set via string keys (`"vcfFreq"`, `"attack"`) mapped in `syncParamsFromMap()` → `SynthParams` struct. |
+## 3. Configuración Canónica de Emscripten (Flags del Enlazador)
 
-> **🔴 Marca de revisión (2026-11-07) — esta capa duplica fuentes en vez de compartirlas.**
-> Dos hechos del propio documento lo delatan: se **copian** `juce_core`, `juce_audio_basics` y `juce_dsp` desde
-> `C:\JUCE` (parcheando `juce_ThreadPriorities_native.h` en cada build) y la lista de `Juno*.cpp` se mantiene aquí,
-> no en el `DspSources.cmake` compartido. Eso es exactamente la deriva que el ecosistema prohíbe: dos listas de
-> fuentes que alguien tiene que recordar mantener sincronizadas, más una copia de JUCE dentro del árbol.
-> **Alternativa:** (1) mover la lista de fuentes de este target al `DspSources.cmake` común, consumido por nativo y
-> por Emscripten; (2) usar JUCE como submódulo/dependencia fijada en vez de copiar directorios, y aplicar el parche
-> de `ThreadPriorities` como *patch* versionado que falle en CI si ya no aplica; (3) dejar en `juce_shim/` solo los
-> stubs realmente necesarios, documentados uno a uno.
-> **Prioridad:** alta — es la deuda estructural más caras de este documento. Ver `REVISION_INTEGRATION_2026.md` §2.6.
+El archivo `wasm/CMakeLists.txt` debe configurar los flags esenciales de Emscripten para audio en tiempo real:
 
-## Prerequisites
+```cmake
+target_link_options(${WASM_TARGET_NAME} PRIVATE
+    "-sWASM=1"
+    "-sMODULARIZE=1"
+    "-sEXPORT_ES6=1"
+    "-sEXPORT_NAME=createSynthDSP"
+    "-sSINGLE_FILE=1"              # Embebe el .wasm en Base64 en el .js (evita bloqueos CORS)
+    "-sMALLOC=emmalloc"            # Asignador ultraligero de baja latencia para AudioWorklet
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sINITIAL_MEMORY=33554432"    # 32 MB fijos de inicio
+    "-sNO_EXIT_RUNTIME=1"          # Mantiene el runtime vivo entre bloques
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','HEAPF32']"
+    "-fwasm-exceptions"
+    "-msimd128"                    # SIMD 128-bit de WebAssembly para aceleración vectorial
+    "-O3"
+    "--strip-all"
+)
+```
 
-| Tool | Required version | Notes |
-|---|---|---|
-| **Emscripten SDK** | 3.1.x+ | Installed at `C:\emsdk\` |
-| **CMake** | 3.20+ | At `C:\Program Files\CMake\bin\` |
-| **Ninja** | any | Used as CMake generator |
-| **JUCE** | 8.x | Installed at `C:\JUCE\` |
+---
 
-## Build
+## 4. Prerrequisitos de Compilación
 
-Run from the repo root:
+| Herramienta | Versión Requerida | Ubicación Estándar / Notas |
+|---|:---:|---|
+| **Emscripten SDK** | 3.1.50+ | `C:\emsdk\` |
+| **CMake** | 3.22+ | En `PATH` del sistema |
+| **Ninja** | Cualquier versión reciente | Generador rápido recomendado |
+| **Python** | 3.10+ | Para scripts de servidor local y pruebas |
+
+---
+
+## 5. Procedimiento Canónico de Compilación
+
+Desde el directorio raíz del proyecto:
 
 ```batch
-wasm\build_wasm.bat
+:: Activar entorno Emscripten
+call C:\emsdk\emsdk_env.bat
+
+:: Configurar y compilar con Ninja
+cmake -B wasm/build -S wasm -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build wasm/build
 ```
 
-The script:
-1. Cleans and re-copies `juce_core`, `juce_audio_basics`, `juce_dsp` from `C:\JUCE`
-2. Patches `juce_ThreadPriorities_native.h` for Emscripten compatibility
-3. Activates Emscripten SDK (`emsdk_env.bat`)
-4. Runs `emcmake cmake` with Ninja generator in `wasm/build/`
-5. Builds via `cmake --build`
+**Artefactos Emitidos:**
+- `WebUI/wasm/<synth>_wasm.js`: Cargador ES6 con binario WASM embebido (`SINGLE_FILE=1`).
 
-**Output:**
+---
 
-| File | Description |
-|---|---|
-| `WebUI/wasm/abdjunio601_wasm.js` | ES module loader + JS glue (11.5 KB) |
-| `WebUI/wasm/abdjunio601_wasm.wasm` | Compiled WASM binary (147 KB) |
+## 6. Interfaz C Externa (`extern "C" EMSCRIPTEN_KEEPALIVE`)
 
-### Rebuild (fast path)
+Todas las funciones exportadas deben garantizar cero asignaciones dinámicas y tipos C primitivos:
 
-After the first successful build, incremental changes only need:
-
-```batch
-cmake --build wasm\build
-```
-
-(This skips the `juce_*` copy and CMake re-configuration.)
-
-## Exported C API
-
-All functions are `extern "C" EMSCRIPTEN_KEEPALIVE`. They are accessible via `Module.ccall()` or `Module.cwrap()`.
-
-| Function | Signature | Description |
+| Función | Firma | Propósito |
 |---|---|---|
-| `wasm_init_engine` | `(sampleRate: float, blockSize: int, model: int) → void` | Initialize engine. Call once. `model`: 0=SuperSix, 1=J106, 2=J60, 3=J6 |
-| `wasm_process_audio` | `(output: pointer, numSamples: int, lfoTrig: int) → void` | Render one block. Output is interleaved float stereo (`[L,R,L,R,…]`). |
-| `wasm_set_parameter` | `(key: string, value: float) → void` | Set a parameter by name (e.g. `"vcfFreq"`). Values are 0..1. |
-| `wasm_get_parameter` | `(key: string) → float` | Get current raw parameter value. |
-| `wasm_note_on` | `(channel: int, midiNote: int, velocity: float) → void` | Trigger note-on. |
-| `wasm_note_off` | `(channel: int, midiNote: int, velocity: float) → void` | Release note. |
-| `wasm_pitch_bend` | `(channel: int, value: int) → void` | Pitch bend (0–16383, center=8192). |
-| `wasm_set_portamento` | `(enabled: int) → void` | 0=off, 1=on |
-| `wasm_set_portamento_time` | `(time: float) → void` | Normalized 0..1 |
-| `wasm_set_bender_amount` | `(amount: float) → void` | Normalized 0..1 |
-| `wasm_panic` | `() → void` | Stop all notes immediately. |
-| `wasm_set_model` | `(model: int) → void` | Switch model at runtime. |
+| `wasm_init_engine` | `(sampleRate: float, blockSize: int, model: int) → void` | Inicializa el motor. Invocado una sola vez. |
+| `wasm_process_audio` | `(outputPtr: pointer, numSamples: int) → void` | Renderiza un bloque. Buffer estéreo entrelazado (`[L, R, L, R, …]`). |
+| `wasm_set_parameter` | `(key: string, value: float) → void` | Aplica un parámetro normalizado `[0.0, 1.0]` mapeado en `WasmBridge`. |
+| `wasm_get_parameter` | `(key: string) → float` | Retorna el valor actual del parámetro. |
+| `wasm_note_on` | `(channel: int, midiNote: int, velocity: float) → void` | Dispara Note On en el voice manager. |
+| `wasm_note_off` | `(channel: int, midiNote: int) → void` | Dispara Note Off. |
+| `wasm_pitch_bend` | `(channel: int, value: int) → void` | Pitch bend (0–16383, centro 8192). |
+| `wasm_panic` | `() → void` | Silencia todas las voces de forma inmediata. |
 
-### Parameter keys (for `wasm_set_parameter` / `wasm_get_parameter`)
+---
 
-| Key | Range | Maps to |
+## 7. Verificación y Paridad Numérica (Vectores Dorados)
+
+Tal como se estipula en [ADR-001](../decisions/ADR-001-2026-arquitectura-modernizacion.md) y [ADR-003](../decisions/ADR-003-2026-integration-puente-telemetria.md), la paridad entre el motor C++ nativo y WASM no es un acto de fe, sino una métrica contrastable:
+
+1. **Vectores Dorados (Golden Vectors):**
+   - Se alimenta una secuencia fija de notas y barridos de filtro tanto al ejecutable de test nativo como al harness de WASM.
+   - **Tolerancia:** 0 ULP en cálculo polinómico/racional puro; $\le 2$ ULP en funciones trascendentes de `libm` (`std::sin`, `std::exp`).
+2. **Pruebas de Fuzzing de Parámetros:**
+   - Envío aleatorio de secuencias de parámetros extremos para asegurar que ningún cálculo diverge a `NaN` o `Inf` en el entorno web.
+3. **Paridad de SysEx:**
+   - Comparación byte a byte de serialización/deserialización de programas entre C++ y JS/WASM.
+
+---
+
+## 8. Diagnóstico de Problemas Comunes
+
+| Síntoma | Causa Probable | Solución |
 |---|---|---|
-| `dcoRange` | 0..3 | `SynthParams.dcoRange` (16'/8'/4'/2') |
-| `pwmAmount` | 0..1 | Pulse-width modulation depth |
-| `sawOn` | 0/1 | Saw wave enable |
-| `pulseOn` | 0/1 | Pulse wave enable |
-| `subOscLevel` | 0..1 | Sub-oscillator level |
-| `noiseLevel` | 0..1 | Noise level |
-| `lfoToDCO` | 0..1 | LFO → DCO pitch modulation |
-| `vcfFreq` | 0..1 | Filter cutoff |
-| `resonance` | 0..1 | Filter resonance |
-| `envAmount` | 0..1 | Envelope → VCF modulation amount |
-| `vcfKeyTrack` | 0..1 | Keyboard tracking |
-| `lfoToVCF` | 0..1 | LFO → VCF modulation |
-| `attack` | 0..1 | Envelope attack time |
-| `decay` | 0..1 | Envelope decay time |
-| `sustain` | 0..1 | Envelope sustain level |
-| `release` | 0..1 | Envelope release time |
-| `masterVolume` | 0..1 | Master volume |
-| `vcaLevel` | 0..1 | VCA level |
-| `lfoRate` | 0..1 | LFO rate |
-| `chorus1` | 0..1 | Chorus I send |
-| `chorus2` | 0..1 | Chorus II send |
-| `chorusMode` | 0/1 | Chorus mode (I/II) |
-| `vcaMode` | 0/1 | Gate (0) or envelope (1) |
-| `polyMode` | 0/1 | Poly (0) or unison (1) |
-| `portamentoTime` | 0..1 | Portamento glide time |
-| `hpfCutoff` | 0..3 | HPF position |
-| `noiseFloor` | 0..1 | Analog noise floor level |
-| `thermalIntensity` | 0..1 | Thermal drift intensity |
-| `thermalInertia` | 0..1 | Thermal drift inertia |
-| `thermalMigration` | 0..1 | Thermal migration rate |
-| `detuningAmount` | 0..1 | Unison detune amount |
-
-## How to test
-
-### 1. Run the dedicated test harness
-
-Open `WebUI/wasm-test.html` in a browser (served via HTTP, not `file://`, because WASM requires `Cross-Origin-Opener-Policy` or a server):
-
-```bash
-# From the repo root, start a local server
-python -m http.server 8000 --directory WebUI
-
-# Then open: http://localhost:8000/wasm-test.html
-```
-
-The test harness:
-- Loads the WASM module dynamically
-- Initialises the engine at 44100 Hz
-- Sets typical Juno-106 defaults (saw wave, filter 50%, attack/decay/release)
-- Triggers a middle-C note
-- Processes 1 second of audio
-- Displays sample statistics (peak amplitude, RMS, DC offset)
-- Shows a waveform canvas
-
-### 2. Manual test via browser console
-
-```js
-// In any page that loads abdjunio601_wasm.js as a module:
-import createABDJUNiO601 from './wasm/abdjunio601_wasm.js';
-const Module = await createABDJUNiO601();
-
-Module.ccall('wasm_init_engine', null, ['number','number','number'], [44100, 256, 1]);
-Module.ccall('wasm_set_parameter', null, ['string','number'], ['vcfFreq', 0.5]);
-Module.ccall('wasm_note_on', null, ['number','number','number'], [0, 60, 0.8]);
-
-// Allocate output buffer
-const samples = 256;
-const bufPtr = Module._malloc(samples * 2 * 4); // float32 × 2 channels
-Module.ccall('wasm_process_audio', null, ['number','number','number'], [bufPtr, samples, 0]);
-
-// Read back
-const buf = Module.HEAPF32.subarray(bufPtr / 4, bufPtr / 4 + samples * 2);
-console.log('Peak L:', Math.max(...buf.filter((_,i)=>i%2===0).map(Math.abs)));
-console.log('Peak R:', Math.max(...buf.filter((_,i)=>i%2===1).map(Math.abs)));
-
-Module._free(bufPtr);
-```
-
-### 3. Integration in WebUI (future)
-
-The existing `WebUI/script.js` currently communicates with the native JUCE plugin via `window.juce`. To switch to WASM:
-
-1. Load the WASM module at startup (before the UI renders).
-2. Replace `window.juce.*` calls with `Module.ccall('wasm_*', ...)` equivalents.
-3. The `wasm_process_audio` call replaces the `onAudioBuffer` callback.
-
-This is the target architecture — currently only the native bridge path is active.
-
-> **🟠 Marca de revisión (2026-11-07) — «paridad» tiene que ser medible, no retórica.**
-> La crítica externa pide fuzzers que garanticen volcados SysEx **idénticos bit a bit** entre WASM y nativo. La
-> intención es correcta y la promesa, tal cual, también es falsa: en cuanto haya `std::sin`/`std::pow` del `libm`
-> de Emscripten o contracción FMA distinta, los bits no coinciden (ver la §6 de
-> `../architecture/PATRON_DUAL_ENGINE_SANCTUARY.md`).
-> **Alternativa medible:** (1) **vectores dorados** — un bloque fijo de entrada renderizado en nativo y en WASM, con
-> tolerancia declarada (0 ULP en el camino polinómico, ≤ 2 ULP donde quede `libm`) y fallo con índice de la primera
-> muestra divergente; (2) **fuzz de parámetros** contra el motor WASM buscando NaN/Inf y desbordes de rango, que es
-> donde un fuzzer sí encuentra bugs reales; (3) comparación de **SysEx** (bytes) que sí puede ser exacta, porque es
-> aritmética entera.
-> **Prioridad:** alta (es el gate que hoy no existe). Ver `REVISION_INTEGRATION_2026.md` §2.6 y §3.
-
-## Troubleshooting
-
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `TypeError: WebAssembly.instantiate(): Import #0 module="wasi_snapshot_preview1"` | Missing WASI polyfill or Emscripten version mismatch | Ensure `ENVIRONMENT=web` and no WASI flags in linker |
-| `_wasm_init_engine is not a function` | Wrong export name | Check `EXPORTED_FUNCTIONS` in CMakeLists; Emscripten prepends `_` |
-| `.wasm` not loading (404) | Wrong path in JS glue | The generated JS looks for `.wasm` relative to itself. Ensure both files are in the same directory |
-| No audio output | `wasm_process_audio` not called, or parameter defaults producing silence | Check `wasm_set_parameter('masterVolume', 1.0)` and `wasm_set_parameter('vcaLevel', 1.0)` |
-| Build error: `fatal error: 'emscripten/emscripten.h' file not found` | Emscripten SDK not activated | Run `call C:\emsdk\emsdk_env.bat` first, or use `build_wasm.bat` |
+| `TypeError: WebAssembly.instantiate(): Import #0 module="wasi_snapshot_preview1"` | Módulo WASI incluido por error | Asegurar `ENVIRONMENT=web` y sin flags `-lwasi` |
+| `_wasm_init_engine is not a function` | Función no exportada por el linker | Verificar que la función tenga `EMSCRIPTEN_KEEPALIVE` y esté en `EXPORTED_FUNCTIONS` con `_` |
+| `.wasm not loading (404 / CORS)` | Carga asíncrona de `.wasm` bloqueada por política web | Usar `-s SINGLE_FILE=1` para embeber el binario en Base64 |
+| `libc++abi: terminating` o `RuntimeError: unreachable` | Llamada a `juce::Random()` sin semilla explícita | Reemplazar por `juce::Random(12345)` o un LCG determinista inline |
+| Caídas de audio periódicas (clicks/pops) | Creación de `new Float32Array(...)` en el bucle `process()` | Cachear la vista `HEAPF32.subarray()` durante la inicialización |

@@ -2,7 +2,7 @@
 
 > 🟢 **Marcado 2026-11-07 — el LCD ya es DOM/vectorial, no filmstrips.** La crítica de «fuentes matriciales en PNG» no describe este diseño: son `lcdMachine.js` (máquina pura) + `lcdScreen.js` (DOM) + `lcdPanel.js`, con `SevenSegmentDisplay.js` y `Assets/fonts/SevenSegment.ttf`, y `createLcdMachine` ya se exporta por el barrel. Lo que falta aquí es **fijar la fuente y `font-variant-numeric: tabular-nums`**: sin eso el ancho de la rejilla depende de la fuente que resuelva el sistema y se rompe en HiDPI.
 > **Alternativa:** añadir una sección de tipografía del LCD con la webfont canónica y su fallback medido.
-> **Prioridad:** baja. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
 
 > Un solo mecanismo para toda la suite: NEURONiK (8.3), CZ101, MS2000 y
 > ABDEep comparten la MECÁNICA; cada synth aporta sus DATOS (árbol de menú,

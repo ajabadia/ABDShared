@@ -17,7 +17,7 @@ Está conectado de forma nativa con **`ABDShared::AutoUpdater`** (C++), permitie
 
 > 🟢 **Marcado 2026-11-07 — el updater ya es asíncrono.** No hay diálogo síncrono bloqueante: `ABDShared::AutoUpdater` hereda de `juce::Thread` (`AutoUpdater.h`), expone `checkForUpdates(bool silent)` y compara versiones con `isNewerVersion`, y este diálogo sólo refleja estados. El hueco real es de contrato: no se documenta el **timeout** ni qué muestra sin red, y es el único caso en que el estado se queda en `Checking...`.
 > **Alternativa:** declarar timeout y estado de error/offline explícitos.
-> **Prioridad:** baja. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
 
 1. **Ficha de Identidad del Instrumento:**
    * Nombre oficial del sintetizador, versión SemVer, build number y fecha de compilación.

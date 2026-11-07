@@ -16,7 +16,7 @@
 | # | Documento | Veredicto | Qué dicta la evidencia |
 |---|-----------|-----------|------------------------|
 | 1 | `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` | 🟠 Parcial | La premisa (enrutado por strings en tiempo real) es **falsa** para el host: el registro es numérico. Pero §4.4 promete carpetas de automatización en el DAW y **no hay ni un `AudioProcessorParameterGroup`**. |
-| 2 | `WIRE_DOMAIN_TRANSLATION.md` | 🔴 Obsoleto | Es v1.0, anterior al estándar CDD v2.0 (`SymBipolar`, `wireZeroCenter`, `Lut`). El defecto bipolar que denuncia la auditoría **es real y está vivo** en `DspEngineFacade.cpp`. Además: secciones duplicadas y CRLF. |
+| 2 | `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` | 🔴 Obsoleto | Es v1.0, anterior al estándar CDD v2.0 (`SymBipolar`, `wireZeroCenter`, `Lut`). El defecto bipolar que denuncia la auditoría **es real y está vivo** en `DspEngineFacade.cpp`. Además: secciones duplicadas y CRLF. |
 | 3 | `ABDSYNTHS_SYSEX_SPEC.md` | 🟡 Parcial | El codec real asigna en un `std::vector&`, pero se ejecuta en el hilo MIDI, no en el de audio: la crítica «buffers en el hilo de audio» **no aplica hoy**. Falta el gate de fuzzing que la auditoría pide. |
 | 4 | `hardware/JUNO-106_SYSEX_SPEC.md` | 🟠 Confusión de documento | Es un documento de **layout de bytes**, no de transporte: no puede saturar un puerto porque no define envío. Sí hay defectos propios: título que no coincide con el fichero y 30 restos `[file:22]`. |
 | 5 | `hardware/PRO-800_SYSEX_SPEC.md` | 🟠 Hueco real | Es una referencia de formato, no un validador; y el consumidor real (`Pro800Midi.cpp`) **no tiene ni un `clamp` ni un `isfinite`**. La mejora de sanitización se acepta. |
@@ -43,7 +43,7 @@ parámetros. La promesa es hoy falsa.
 **Se acepta como mejora:** `static_assert(std::is_trivially_copyable_v<ParamDescriptor>)` y una regla
 explícita de que ningún `findByParamId`/lookup por nombre corre en el hilo de audio.
 
-### 2.2 `WIRE_DOMAIN_TRANSLATION.md` — 🔴 obsoleto
+### 2.2 `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` — 🔴 obsoleto
 **Confirmado con código:** `ABDAxionikVS/Source/DSP/DspEngineFacade.cpp` normaliza hoy con
 `(raw + 64.0f) / 127.0f` (líneas ~731 y siguientes) y con `raw / 127.0f` (filtro, resonancia, slicer,
 blender). Consecuencias medidas sobre la fórmula vigente: el centro físico de un bipolar cae en
@@ -124,8 +124,8 @@ Añadir esa obligación (y descartar la trama si no cuadra) antes de tocar el mo
 
 - No se ha modificado ninguna afirmación del texto original: cada nota se ha insertado **después** del
   epígrafe correspondiente, de modo que el contenido vigente sigue legible tal cual estaba.
-- Los enlaces a este acta usan rutas relativas (`REVISION_SPECS_2026.md` en `specs/`,
-  `../REVISION_SPECS_2026.md` en `specs/hardware/`).
+- Los enlaces a este acta usan rutas relativas (`ADR-004-2026-specs-cdd-wire-bipolar.md` en `specs/`,
+  `../ADR-004-2026-specs-cdd-wire-bipolar.md` en `specs/hardware/`).
 - `Docs/specs.zip` empaqueta los mismos seis documentos con fecha 2026-11-02/06: **no se ha regenerado**,
   así que queda desfasado respecto a estas marcas. Regenerarlo es una acción aparte.
 - Fuera de alcance: `Docs/hw-sysex-contract.md` (vive en la raíz de `Docs/`, no en `specs/`) tiene una fila

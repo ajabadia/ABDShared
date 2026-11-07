@@ -227,7 +227,7 @@ document.getElementById('btn-open-bank-manager')?.addEventListener('click', () =
 > acota navegación, selector, búsqueda **y el desplegable de MIDI** al modelo del host y sus `compatibleModels`, y un
 > `modelId` desconocido deja el catálogo vacío en vez de mostrar 22 modelos. Un array de ids permitidos sería una
 > versión más pobre de lo ya implementado.
-> **Prioridad:** media (iframe), ninguna (filtrado). Ver `REVISION_INTEGRATION_2026.md` §2.4.
+> **Prioridad:** media (iframe), ninguna (filtrado). Ver `ADR-003-2026-integration-puente-telemetria.md` §2.4.
 
 ---
 
@@ -514,7 +514,7 @@ target_link_libraries(\ PRIVATE ABDBankManager::ABDBankManagerCore)
 > invertidas ante identificadores, heredado de un pegado que perdió el formato: los bloques de código y las tablas
 > de este apartado salen como texto plano. No se toca aquí porque el contenido técnico es correcto; se marca para
 > reformatear el apartado en la próxima pasada editorial (tarea mecánica, sin cambio de contenido).
-> **Prioridad:** baja. Ver `REVISION_INTEGRATION_2026.md` §2.4.
+> **Prioridad:** baja. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.4.
 
 Reemplaza la lógica custom de extracción/inserción de patches por la API unificada:
 

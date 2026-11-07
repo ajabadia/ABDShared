@@ -13,7 +13,7 @@
 > **Dependencias:** Ninguna (100% C++ puro estándar, `<cmath>`, `<algorithm>`, libre de JUCE)  
 > **Garantía de Tiempo Real:** Zero-alloc en lazo de audio, noexcept/RT-safe, precisión `double` en estados integradores, modelado no lineal de saturación analógica.
 
-> **Estado de revisión (2026-11-07).** Los cuatro filtros de este documento **ya son ZDF/TPT**: la crítica que pedía “migrar de bilineal Direct Form a Zero-Delay Feedback” describe un estado del que este módulo ya salió. Las marcas de esta revisión señalan los tres puntos donde la implementación **sí** simplifica el circuito. Plan y prioridades: [`REVISION_DSP_2026.md`](./REVISION_DSP_2026.md) §2.1. Nada de lo marcado se ha borrado: el texto sigue describiendo lo que el código hace hoy.
+> **Estado de revisión (2026-11-07).** Los cuatro filtros de este documento **ya son ZDF/TPT**: la crítica que pedía “migrar de bilineal Direct Form a Zero-Delay Feedback” describe un estado del que este módulo ya salió. Las marcas de esta revisión señalan los tres puntos donde la implementación **sí** simplifica el circuito. Plan y prioridades: [`ADR-002-2026-dsp-filtros-oversampling.md`](../decisions/ADR-002-2026-dsp-filtros-oversampling.md) §2.1. Nada de lo marcado se ha borrado: el texto sigue describiendo lo que el código hace hoy.
 
 ---
 
@@ -95,7 +95,7 @@ graph TD
 > **🔵 Marca de revisión (2026-11-07) — resolución implícita de 1 paso.**
 > El solucionador Newton-Raphson de **un solo paso** es suficiente mientras el residuo sea pequeño, pero con `res → 1` (cerca de la auto-oscilación) y `g` alto el error de la solución implícita crece y el timbre se separa del circuito.
 > **Alternativa:** segunda iteración **condicional** (`if (|f| > tol) y -= f/deriv`) o paso adaptativo; el coste en régimen normal es cero, porque el segundo paso casi nunca se ejecuta. Medir con benchmark antes de fijar `tol`.
-> **Prioridad:** media. Ver `REVISION_DSP_2026.md` §2.1 y el plan §3.
+> **Prioridad:** media. Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.1 y el plan §3.
 
 ---
 
@@ -140,7 +140,7 @@ Basado en la transformada conservadora de topología (*Topology-Preserving Trans
 > **🟠 Marca de revisión (2026-11-07) — saturación en un solo punto.**
 > La saturación se aplica **solo en la entrada** (`tanh(sample)`) y la compensación de graves es un escalar `1/(1+k)`. La escalera real satura en **cada par diferencial**, y esa diferencia es audible a resonancia alta: el timbre se endurece antes que en el hardware.
 > **Alternativa:** `tanh` polinómico (Padé [3/3], el mismo de `JunoVCF_ZDF`) **por etapa** dentro del bucle ZDF, o resolución implícita por etapa si se quiere el comportamiento de auto-oscilación exacto. Empezar por la versión polinómica: 4 multiplicaciones por muestra en lugar de 4 `std::tanh`.
-> **Prioridad:** media (cambia timbre, no estabilidad). Ver `REVISION_DSP_2026.md` §2.1 y §4.
+> **Prioridad:** media (cambia timbre, no estabilidad). Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.1 y §4.
 
 ---
 
@@ -164,7 +164,7 @@ Basado en la transformada conservadora de topología (*Topology-Preserving Trans
 > **🔴 Marca de revisión (2026-11-07) — lazo resonante con retardo de una muestra.**
 > En K35 LP y HP la realimentación se aplica de forma **explícita**: `x = sample + tanh(k · lp2)` usa la salida de la muestra anterior, así que el lazo resonante no se resuelve, se aproxima. Con `k` alto y corte cercano a Nyquist el comportamiento deja de ser físico (oscilación no senoidal, dependencia del sample rate); el clipper de diodos mantiene el valor acotado (≤ 10) pero **no** corrige el lazo.
 > **Alternativa:** Newton sobre el mismo `tanh` (1–2 iteraciones) o evaluar la realimentación en el dominio sobremuestreado, que es lo que hace el circuito real al no tener retardo.
-> **Prioridad:** alta — es el único filtro del módulo con realimentación no resuelta. Ver `REVISION_DSP_2026.md` §3 (P1).
+> **Prioridad:** alta — es el único filtro del módulo con realimentación no resuelta. Ver `ADR-002-2026-dsp-filtros-oversampling.md` §3 (P1).
 
 ---
 

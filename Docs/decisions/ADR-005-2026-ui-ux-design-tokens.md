@@ -7,7 +7,7 @@
 > **Nota de alcance:** la petición citaba `Docs/integration`, pero los siete documentos auditados
 > (`DESIGN_SYSTEM_GUIDE`, `LCD_GUIDE`, `LIVE_SYSEX_INSPECTOR`, `STYLES_GUIDE`, `SYNTH_NAVBAR`, `ICONS_GUIDE`,
 > `ABOUT_DIALOG`) viven en `Docs/ui-ux`. `Docs/integration` ya tiene su propia acta
-> (`REVISION_INTEGRATION_2026.md`, commit `0d7ee2d`) y no se ha vuelto a tocar.
+> (`ADR-003-2026-integration-puente-telemetria.md`, commit `0d7ee2d`) y no se ha vuelto a tocar.
 
 ---
 
@@ -124,4 +124,4 @@ timeout, que es el único caso en que un updater asíncrono se queda «Checking�
   Se han normalizado a LF y sin BOM, sin tocar el contenido, para que el diff de las notas sea legible.
 - `Docs/ui-ux.zip` empaqueta las versiones anteriores: **no se ha regenerado**, así que queda desfasado.
 - Fuera de alcance: los `.mdux` que cita la auditoría no existen en el repositorio; los ficheros reales son
-  `.md`. Tampoco se ha auditado `Docs/specs`, que ya tiene su acta `REVISION_SPECS_2026.md`.
+  `.md`. Tampoco se ha auditado `Docs/specs`, que ya tiene su acta `ADR-004-2026-specs-cdd-wire-bipolar.md`.

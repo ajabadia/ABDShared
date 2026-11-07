@@ -197,4 +197,4 @@ Todos los **56 algoritmos de efectos** han sido extraídos a motores C++20 puros
 > **🟠 Marca de revisión (2026-11-07) — este cierre contradice la tabla de arriba.**
 > La frase afirma que los 56 están extraídos, pero el catálogo sigue marcando decenas como **🔒 Local en ABDEep** (tipos 8, 10, 11, 13–15, 18–21, 29–36, 40–49 y 54–56) y la **Fase 1** (“foco inmediato”) no está cerrada; las fases 2–6 sí. No se borra nada: se marca para reconciliar, que es distinto de reescribir a ojo.
 > **Alternativa:** regenerar la columna «Estado Actual» desde el código (buscar `: public abd::dsp::` en `ABDEep/Source/DSP/FX/`) y sustituir esta frase por el porcentaje real medido. **Gate:** un test de conteo que exija `migrados + locales == 56` y falle si tabla y cierre divergen.
-> **Prioridad:** media (documental, pero es el documento que se usa para decidir qué falta). Ver `REVISION_DSP_2026.md` §2.6 y §3 (P4).
+> **Prioridad:** media (documental, pero es el documento que se usa para decidir qué falta). Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.6 y §3 (P4).

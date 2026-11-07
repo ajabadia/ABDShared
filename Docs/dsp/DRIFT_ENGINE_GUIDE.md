@@ -75,7 +75,7 @@ Para cumplir la estricta garantía de tiempo real sin contención de hilos y con
 > **Lo que sí falta:** `resetForNote(voiceIndex)` solo cambia la semilla, de modo que las 16 voces derivan de forma **independiente**. El hardware tiene una deriva **común** (reloj, temperatura de placa) más una por voz; sin la parte común suena a coro desafinado, no a instrumento.
 > **Alternativa:** `drift_i(t) = w · shared(t) + (1 − w) · perVoice_i(t)` con `w` configurable (0 = independiente, 1 = totalmente correlado). Dos componentes y un peso bastan; la matriz de covarianza que propone la crítica no hace falta para el comportamiento audible.
 > **Coste a vigilar:** hay `tanh` por muestra en 5 derivas × N voces; sustituirlo por Padé [3/3] lo reduce ~5× sin cambio audible y unifica con `DspMath`.
-> **Prioridad:** media. Ver `REVISION_DSP_2026.md` §2.4 y §4.
+> **Prioridad:** media. Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.4 y §4.
 
 ---
 

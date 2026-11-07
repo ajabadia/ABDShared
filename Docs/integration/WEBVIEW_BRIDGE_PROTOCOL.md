@@ -111,7 +111,7 @@ informativos y solo viajan nativo -> JS.
 > de `requestState` y el `pageLoaded` que cierra gestos.
 > **La telemetría no va por aquí:** el osciloscopio tiene su propio canal SPSC (`SCOPE_INTEGRATION_GUIDE.md`);
 > meter muestras de audio en este bus sería el antipatrón que la crítica describe, y no ocurre.
-> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.1.
+> **Prioridad:** media. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.1.
 
 ## Política de versiones
 

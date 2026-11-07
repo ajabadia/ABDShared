@@ -30,7 +30,7 @@ All wrappers live in `src/components/shared/` and are exported from `src/compone
 > elemento; (2) coalescer `pointermove` con `requestAnimationFrame` (un envío por frame, no por evento), que es el
 > patrón que evita el «miles de actualizaciones» que la crítica teme; (3) `pan/multi-touch` documentado o declarado
 > fuera de alcance.
-> **Prioridad:** alta — es corrección funcional de cara al host, no cosmética. Ver `REVISION_INTEGRATION_2026.md` §2.3.
+> **Prioridad:** alta — es corrección funcional de cara al host, no cosmética. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.3.
 
 ---
 

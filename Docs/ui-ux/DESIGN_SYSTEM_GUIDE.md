@@ -81,7 +81,7 @@ Toda aplicación de la suite debe soportar **conmutación en caliente entre tema
 
 > 🟠 **Marcado 2026-11-07 — el contenedor de escalado no aparece.** No hay en este documento ninguna prescripción de tamaño fijo (`1024`/`768`) ni de mutar CSS global desde JS: lo que impone es la cascada de tokens de §2.1. El hueco real es el inverso: `mountFitStage` (`ABDShared/Components/fitStage.js`, con tests) **no se menciona ni una vez**, así que un proyecto que siga sólo esta guía no sabe que debe montar el lienzo proporcional.
 > **Alternativa:** declararlo contenedor raíz obligatorio y fijar sus cotas (720p, 4K, Retina) sin scroll.
-> **Prioridad:** media. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+> **Prioridad:** media. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
 
 A diferencia de un software de metrología que opera como un asistente secuencial (wizard de pasos), un **sintetizador o instrumento musical** (`ABDMCS48SE`, `ABDMS2000`, `ABDEep`) debe organizar su espacio en cuatro áreas funcionales canónicas:
 

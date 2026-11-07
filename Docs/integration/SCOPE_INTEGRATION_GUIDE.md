@@ -117,7 +117,7 @@ La comunicación entre el backend C++ y el frontend WebUI embebido se realiza me
 > parseo de números) y, solo para volúmenes altos, `PostSharedBufferToScript` de WebView2. **Ojo:** `SharedArrayBuffer`
 > exige aislamiento de origen (COOP/COEP) y no es intercambiable con el mensaje nativo habitual; no se adopta de
 > entrada.
-> **Prioridad:** baja hasta tener medida de CPU del WebView con 4 carriles abiertos. Ver `REVISION_INTEGRATION_2026.md` §2.5.
+> **Prioridad:** baja hasta tener medida de CPU del WebView con 4 carriles abiertos. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.5.
 
 ---
 

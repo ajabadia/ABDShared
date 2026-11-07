@@ -176,7 +176,7 @@ Cortar las notas en `processBlockBypassed()` no es suficiente. Las líneas de De
 - `[x]` ✅ **Sincronización bidireccional Host → UI (Automatización en vivo):** Cuando el DAW reproduce una curva de automatización, la UI se actualiza sin bucles de retroalimentación.
 
 ### 5.2. Capa de Abstracción y Traducción de 3 Dominios (`Wire` ↔ `Normalized/UI` ↔ `Physical DSP Domain`)
-> **Especificación canónica:** [`ABDShared/Docs/specs/WIRE_DOMAIN_TRANSLATION.md`](file:///D:/desarrollos/ABDSynths/ABDShared/Docs/specs/WIRE_DOMAIN_TRANSLATION.md) y [`ABDShared/Contracts/MidiTranslationEngine.ts`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/MidiTranslationEngine.ts).
+> **Especificación canónica:** [`ABDShared/Docs/specs/COMMON_DATA_DICTIONARY_AND_INTEGRATION.md`](file:///D:/desarrollos/ABDSynths/ABDShared/Docs/specs/COMMON_DATA_DICTIONARY_AND_INTEGRATION.md y [`ABDShared/Contracts/MidiTranslationEngine.ts`](file:///D:/desarrollos/ABDSynths/ABDShared/Contracts/MidiTranslationEngine.ts).
 
 Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquitectónica estricta entre **tres dominios de representación** conectados por funciones puras `noexcept` generadas por contrato (`Conversion.gen.h` / `ParameterConversion.gen.h`):
 
@@ -397,7 +397,7 @@ Además de los estándares VST3 universales, el ecosistema **`ABDSynths`** cuent
 4. **`@abdsynths/shared/styles` ([`ABDShared/Assets/styles`](file:///d:/desarrollos/ABDSynths/ABDShared/Assets/styles)):** Cascada CSS de 3 niveles (`tokens.css` / `shared-cascade.css`, temas `[data-theme]`, hojas de componente, adaptadores `scope.css` y `keyboard.css`, y texturas `backgrounds.css` con tile lossless `bg_tile512.webp`).
 5. **`@abdsynths/shared/contracts` ([`ABDShared/Contracts`](file:///d:/desarrollos/ABDSynths/ABDShared/Contracts)):**
    - Contratos de modelos hardware (`models/*.contract.js` + `ALL_CONTRACTS` en [`Contracts/index.js`](file:///d:/desarrollos/ABDSynths/ABDShared/Contracts/index.js)) que definen `modelId`, `brand`, `name`, `bankSize`, `patchSize`, marcadores SysEx e imágenes para el filtrado por contrato en `BankManager`.
-   - Motor y especificación de traducción de 3 dominios ([`MidiTranslationEngine.ts`](file:///d:/desarrollos/ABDSynths/ABDShared/Contracts/MidiTranslationEngine.ts) y [`WIRE_DOMAIN_TRANSLATION.md`](file:///d:/desarrollos/ABDSynths/ABDShared/Docs/specs/WIRE_DOMAIN_TRANSLATION.md)).
+   - Motor y especificación de traducción de 3 dominios ([`MidiTranslationEngine.ts`](file:///d:/desarrollos/ABDSynths/ABDShared/Contracts/MidiTranslationEngine.ts) y [`COMMON_DATA_DICTIONARY_AND_INTEGRATION.md`](file:///d:/desarrollos/ABDSynths/ABDShared/Docs/specs/COMMON_DATA_DICTIONARY_AND_INTEGRATION.md).
    - Catálogo canónico de más de 35 efectos ([`fx-effects.json`](file:///d:/desarrollos/ABDSynths/ABDShared/Contracts/fx-effects.json)) y plantillas de contrato de sintetizador (`synth-contract.template.json`).
 6. **`@abdsynths/shared/utils` ([`ABDShared/Utils`](file:///d:/desarrollos/ABDSynths/ABDShared/Utils)):**
    - `OverlayFocus.js` (gestión de pila de modales, cierre ordenado con `Escape` y bloqueo de atajos QWERTY musicales cuando un `<input>` o modal tiene el foco), `MenuBuilder.js`, `EventBus.js`, `Formatters.js`, `ParamTooltips.js`.

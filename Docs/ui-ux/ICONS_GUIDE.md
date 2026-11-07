@@ -8,7 +8,7 @@
 
 > 🟢 **Marcado 2026-11-07 — ya es SVG puro con `currentColor`.** La crítica de «iconografía rasterizada PNG/GIF» es el estado contrario a esta guía: §2 exige `viewBox="0 0 24 24"`, `stroke="currentColor"` y `fill="none"`, y §1 prohíbe los emojis. Lo que fallaba era editorial: el fichero llevaba **BOM** y el paso 4 de §5 quedó fusionado con el 3 (`fill="none"`.4. Guardar…`).
 > **Alternativa:** reparar la lista numerada al añadir el próximo icono.
-> **Prioridad:** baja. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
 
 - **Prohibición Total:** NUNCA utilizar emojis Unicode (`📷`, `⚙️`, `🔴`, `❌`, `🎛️`) para botones, controles, estados o telemetría.
 - **Razón Técnica:** Los emojis se renderizan de forma inconsistente y con colores impredecibles según el sistema operativo (Windows, macOS, Linux, Android), no se pueden tintar con CSS y se pixelan en monitores HiDPI.

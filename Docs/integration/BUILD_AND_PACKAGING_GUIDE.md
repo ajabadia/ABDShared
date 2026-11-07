@@ -77,7 +77,7 @@ xcrun stapler staple ABDMS2000_Setup_Mac.pkg
 > (`xcrun notarytool store-credentials "ABD-notary" --apple-id … --team-id … --password …`) y luego
 > `xcrun notarytool submit … --keychain-profile "ABD-notary" --wait`; en CI, clave de API
 > (`--key`, `--key-id`, `--issuer`) desde secretos. Mismo resultado, sin secreto en el comando.
-> **Prioridad:** alta (seguridad, coste cero). Ver `REVISION_INTEGRATION_2026.md` §2.8.
+> **Prioridad:** alta (seguridad, coste cero). Ver `ADR-003-2026-integration-puente-telemetria.md` §2.8.
 
 ---
 
@@ -98,7 +98,7 @@ cmake --build . --config Release --parallel
 > Además, el pipeline de macOS de este documento **no produce binario universal**: sin
 > `-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"` el artefacto sale solo para la arquitectura del runner, que es
 > precisamente lo que el criterio 15 de calidad exige evitar.
-> **Prioridad:** media (rompe builds y distribución). Ver `REVISION_INTEGRATION_2026.md` §2.8.
+> **Prioridad:** media (rompe builds y distribución). Ver `ADR-003-2026-integration-puente-telemetria.md` §2.8.
 
 ### Paso 2: Crear el instalador ejecutable (.msi) usando WiX Toolset
 Script de instalación para el directorio universal de VST3 (`C:\Program Files\Common Files\VST3`):
@@ -141,7 +141,7 @@ light.exe Bundle.wixobj -out ABDMS2000_Setup_Win.msi
 > `http://wixtoolset.org/schemas/v4/wxs`, con `MajorUpgrade` y `Scope="perMachine"` explícitos.
 > **Alternativa:** migrar el `.wxs` a v4 y ejecutar `wix build`; el `UpgradeCode` debe conservarse **tal cual** para
 > que las actualizaciones reconozcan la instalación anterior.
-> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.8.
+> **Prioridad:** media. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.8.
 
 ---
 

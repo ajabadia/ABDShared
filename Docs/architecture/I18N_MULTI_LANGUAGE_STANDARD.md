@@ -199,5 +199,5 @@ Las traducciones no pesan: pesa la **tipografía**. Una fuente CJK completa (Not
 4. **`font-display: block`.** Un FOUT sobre una carátula que imita hardware es un defecto visible; es preferible un frame sin texto.
 5. **Test de tamaño y de cobertura:** (a) ninguna clave usa un glifo fuera del subconjunto declarado para su locale; (b) el bundle de la WebUI no supera el presupuesto acordado.
 
-> **IDs numéricos:** se descartan. Las claves de texto las verifica el compilador (el tipo `Translations` deriva de `en`), se buscan con `grep` y se leen en el diff. El razonamiento completo está en [`MODERNIZACION_PROPUESTAS_2026.md`](./MODERNIZACION_PROPUESTAS_2026.md) §3.2.
+> **IDs numéricos:** se descartan. Las claves de texto las verifica el compilador (el tipo `Translations` deriva de `en`), se buscan con `grep` y se leen en el diff. El razonamiento completo está en [`ADR-001-2026-arquitectura-modernizacion.md`](../decisions/ADR-001-2026-arquitectura-modernizacion.md) §3.2.
 ```

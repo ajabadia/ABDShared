@@ -123,7 +123,7 @@ El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo herman
 > además de dos rutas distintas para los contratos (`contracts/hardware_profile.schema.json` y
 > `contracts/hardware/<id>.json`) que conviven sin decir cuál manda. Nada de esto es deuda técnica: es un pegado
 > incompleto que hay que reformatear y renumerar.
-> **Prioridad:** media (legibilidad); la reubicación de la crítica, ninguna. Ver `REVISION_INTEGRATION_2026.md` §2.7.
+> **Prioridad:** media (legibilidad); la reubicación de la crítica, ninguna. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.7.
 
 ## 2. Nivel 1: Contratos JSON Compartidos (`ABDSharedAssets`)
 

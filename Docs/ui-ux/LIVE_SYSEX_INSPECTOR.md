@@ -19,7 +19,7 @@ A diferencia de un visor estático de bancos (`BankManager`), este componente es
 
 > 🟠 **Marcado 2026-11-07 — el inspector es de sólo lectura.** `createLiveSysExInspector` ya es el único visor de la suite (no hay copias locales que unificar) y ofrece `getBuffer()`, diff A/B y export `.syx`. Pero **no existen `getByteMeta` ni `onByteEdited`**: `LiveSysExInspector.js` no expone ninguna API de edición. La edición byte a byte es trabajo nuevo, no una corrección de este documento.
 > **Alternativa:** definir ambas funciones junto a la validación del byte (ver `specs/hardware/PRO-800_SYSEX_SPEC.md`) antes de documentarlas.
-> **Prioridad:** media. Ver [acta 2026](./REVISION_UI_UX_2026.md).
+> **Prioridad:** media. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
 
 ```typescript
 interface LiveSysExInspectorOptions {

@@ -520,7 +520,7 @@ La siguiente hoja de ruta estructura la integración de todos estos algoritmos e
 > La tabla de §9 sigue registrando `Oversampling = 1x` y esta fase está sin marcar, así que la saturación OTA del VCF corre a la frecuencia del DAW. El resultado no es inestabilidad, es **aliasing armónico**: ningún test de estabilidad lo detecta porque no hay NaN, solo suciedad espectral que crece con la nota.
 > **Alternativa:** reutilizar el sobremuestreo polifásico IIR (Laurent de Soras) que ya existe en `DspJunoVCF.h`, en 2x o 4x según el parámetro `oversampling` (hoy por defecto en 1x).
 > **Matiz a la receta externa:** un half-band de 2–4 etapas da ~90–100 dB de rechazo con 2–4 muestras de latencia; ">100 dB con latencia despreciable" no es alcanzable — más atenuación exige más polos y más retardo, y ese retardo debe compensarse con `setLatencySamples`, no ignorarse.
-> **Prioridad:** alta (es la diferencia audible más grande que queda en el VCF). Ver `REVISION_DSP_2026.md` §2.2 y §3 (P3).
+> **Prioridad:** alta (es la diferencia audible más grande que queda en el VCF). Ver `ADR-002-2026-dsp-filtros-oversampling.md` §2.2 y §3 (P3).
 - [ ] **HPF Bass Boost:** Implementar el biquad activo exacto de KR-106 con la ganancia estante (low-shelf) de $+10.5 dB$ y los cortes del resto de posiciones.
 
 ### [x] FASE 6: Chorus BBD - *COMPLETADA*

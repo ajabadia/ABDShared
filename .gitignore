@@ -16,6 +16,7 @@ dist/
 *.exe
 *.dll
 *.wasm
+*.zip
 
 # IDE & OS
 .vscode/

@@ -144,3 +144,10 @@ Al cambiar de modelo en la WebUI, `BridgeActions` despacha el evento atómico `s
      - Razón de impedancias y respuesta de compensación de graves en filtro OTA.
 3. **Prohibición de Números Mágicos Huérfanos:**
    - Todo número flotante no evidente (ej. `0.02341f`, `1.4142f`) debe declararse como constante con nombre auto-explicativo (ej. `kOtaLinearCompensationFactor`, `kResonanceClippingKnee`).
+4. **Subsistema de Calibración Analógica en Caliente (Patrón Axionik):**
+   - Cuando se modelan filtros o circuitos analógicos complejos derivados de hardware original (ladder, SVF, diodos, curvas no lineales), el motor debe estructurar sus coeficientes en una clase de configuración (ej. `AxionikCalibrationConfig`), exponiendo:
+     - Cutoff mínimo base (Hz) y ratio exponencial de barrido.
+     - Techo de seguridad de resonancia contra auto-oscilación descontrolada.
+     - Coeficiente polinómico de realimentación y ganancia de polos en cascada.
+   - Estos valores deben poder calibrarse dinámicamente desde endpoints del WebUI (`CALIBRATION_SET`, `CALIBRATION_SYNC`, `CALIBRATION_RESET`) durante las fases de medición auditiva y pruebas de escucha antes de quedar fijados como valores canónicos.
+

@@ -148,6 +148,25 @@ medida, pasar a `ArrayBuffer` o a `PostSharedBufferToScript` es optimización es
 
 ## 5. Cómo se ha verificado
 
+Auditoría contra los plugins de referencia (`ABDJUNiO601`, `ABDAxionikVS`, `ABDMS2000`) y verificación de paridad de fuentes en los scripts de scaffolding.
+
+---
+
+## Apéndice A: Patrones Avanzados de Integración Híbrida (Auditoría 2026-11)
+
+### A.1 Detección Dinámica de Vite Dev Server (`isDevServerReachable`)
+Para eliminar la fricción entre desarrollo web y compilación nativa en C++, el `PluginEditor` debe realizar un sondeo ligero por HTTP `HEAD` (timeout 200 ms) al puerto de desarrollo de Vite (ej. 5173 o 5320):
+- **Si el servidor está activo:** El plugin se enlaza directamente a la URL local activando Hot Module Replacement (HMR) instantáneo sin necesidad de recompilar el binario ni reiniciar el DAW.
+- **Si el servidor está inactivo:** Recurre automáticamente al proveedor de recursos nativo (`WebUI/dist`) garantizando funcionamiento offline y en despliegues finales de producción.
+
+### A.2 Aislamiento Obligatorio de `UserDataFolder` (UDF) por PID de Proceso
+Para evitar colisiones de bloqueo de ficheros (`EBWebView`) o cierres inesperados al abrir múltiples instancias del sintetizador en diferentes pistas de un DAW:
+- El UDF de WebView2 debe aislarse jerárquicamente utilizando el PID del proceso anfitrión (`GetCurrentProcessId()` en Windows o contador de tiempo de alta resolución en POSIX).
+- Se debe soportar la variable de entorno `WEBVIEW2_USER_DATA_FOLDER` para entornos de testing automatizado o integración continua (CI headless).
+
+### A.3 Sanitización Numérica Estricta en la Frontera Nativa
+Todo valor flotante recibido por el puente IPC desde JavaScript debe ser validado con `std::isfinite(val)` antes de tocar el `AudioProcessorValueTreeState` (APVTS) o los parámetros del DSP, y acotado explícitamente mediante `juce::jlimit` para evitar envenenamiento por `NaN` o `Infinity`.
+
 - Lectura íntegra de los 10 documentos (2.510 líneas en total).
 - Búsqueda de cobertura sobre el bloque para cada afirmación externa: `beginChangeGesture`, `allowedModels`,
   `DspSources`, `ArrayBuffer`, `SharedArrayBuffer`, `latencySamples`, `fuzz`, `3 dominios`, `bankwebui://`.

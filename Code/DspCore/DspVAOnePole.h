@@ -97,6 +97,18 @@ public:
         return static_cast<float>(z1 * 0.5);
     }
 
+    //==========================================================================
+    // Las tres constantes que hacen de esta etapa una funcion afin de su entrada:
+    //
+    //     lp(x) = alpha * (x + feedback) + (1 - alpha) * z1
+    //
+    // Un filtro que resuelve su lazo de realimentacion (KorgMS20VCF) necesita
+    // esa forma cerrada para plantear la ecuacion implicita sin avanzar el estado
+    // varias veces. Exponerlas no cambia lo que hace `process`.
+    [[nodiscard]] double getAlpha() const noexcept { return alpha; }
+    [[nodiscard]] double getState() const noexcept { return z1; }
+    [[nodiscard]] double getFeedback() const noexcept { return feedback; }
+
 private:
     double alpha    = 0.0; // feedforward coefficient [0..1]
     double feedback = 0.0; // feedback amount

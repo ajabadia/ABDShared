@@ -466,3 +466,51 @@ if(NOT EMSCRIPTEN)
     endif()
 endif()
 
+
+# ==============================================================================
+# 13. AudioSecurity Module (SafeSampleLoader, DoS Bomb Defense, C++20)
+# ==============================================================================
+add_library(ABDShared_AudioSecurity INTERFACE)
+add_library(ABDShared::AudioSecurity ALIAS ABDShared_AudioSecurity)
+add_library(abd_audio_security ALIAS ABDShared_AudioSecurity)
+
+target_include_directories(ABDShared_AudioSecurity INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_compile_features(ABDShared_AudioSecurity INTERFACE cxx_std_20)
+
+if(TARGET juce::juce_audio_formats)
+    target_link_libraries(ABDShared_AudioSecurity INTERFACE
+        juce::juce_audio_formats
+        juce::juce_audio_basics
+        juce::juce_core
+    )
+elseif(TARGET juce_audio_formats)
+    target_link_libraries(ABDShared_AudioSecurity INTERFACE
+        juce_audio_formats
+        juce_audio_basics
+        juce_core
+    )
+endif()
+
+option(ABDSHARED_BUILD_AUDIOSECURITY_TESTS "Build AudioSecurity standalone tests" OFF)
+if(ABDSHARED_BUILD_AUDIOSECURITY_TESTS)
+    add_executable(ABDShared_AudioSecurity_Tests
+        AudioSecurity/SafeSampleLoaderTests.cpp
+    )
+    target_link_libraries(ABDShared_AudioSecurity_Tests PRIVATE ABDShared::AudioSecurity)
+    target_compile_features(ABDShared_AudioSecurity_Tests PRIVATE cxx_std_20)
+    if(TARGET juce::juce_audio_formats)
+        target_link_libraries(ABDShared_AudioSecurity_Tests PRIVATE
+            juce::juce_audio_formats
+            juce::juce_audio_basics
+            juce::juce_core
+        )
+    elseif(TARGET juce_audio_formats)
+        target_link_libraries(ABDShared_AudioSecurity_Tests PRIVATE
+            juce_audio_formats
+            juce_audio_basics
+            juce_core
+        )
+    endif()
+endif()

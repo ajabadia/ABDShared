@@ -2054,6 +2054,139 @@ void testAnalogModeledFilters()
         korg.setSubMode(1);
         check(std::isfinite(korg.process(0.5f)), "KorgMS20VCF K35 HP genera salida finita");
     }
+
+    // 3b. Barrido de k (resonancia 0..1 => k 0.1..6.1) x corte (20 Hz..19 kHz) sobre
+    //     un impulso. El lazo resonante se resuelve con Newton (sin el retardo de una
+    //     muestra de la version explicita) y su camino de realimentacion va acoplado
+    //     por condensador (paso alto en el corte). Los invariantes se miden sobre las
+    //     dos ultimas ventanas de OCHO PERIODOS de corte, tras dejar asentar el
+    //     transitorio 200 periodos (a 20 Hz son 200k muestras: con ventanas fijas de
+    //     1000 muestras un solo semiciclo parece un sesgo de continua, y un ataque
+    //     lento de auto-oscilacion parece crecimiento no fisico). La ventana tiene que
+    //     contener ciclos ENTEROS de la oscilacion real (que no cae exacto en fc): con
+    //     dos periodos el RMS baila +-7% segun la fase y el sesgo medido es un artefacto.
+    //
+    //       - salida finita y acotada por el clipper de diodos (<= 10)
+    //       - cola estacionaria: un lazo estable sostiene o decae, nunca gana energia
+    //       - sin resonancia el impulso se apaga
+    //       - la auto-oscilacion es simetrica: no queda componente de continua
+    {
+        const float cutoffs[] = {20.0f, 60.0f, 250.0f, 1000.0f, 4000.0f, 12000.0f, 19000.0f};
+
+        bool allFinite    = true;
+        bool allBounded   = true;
+        bool tailSteady   = true;
+        bool zeroResDecay = true;
+        bool noDcOffset   = true;
+
+        float  worstPeak      = 0.0f;
+        float  worstPeakFc    = 0.0f;
+        float  worstPeakRes   = 0.0f;
+        double worstTailRatio = 0.0;
+        float  worstTailFc    = 0.0f;
+        float  worstTailRes   = 0.0f;
+        double worstDcRatio   = 0.0;
+        float  worstDcFc      = 0.0f;
+        float  worstDcRes     = 0.0f;
+
+        for (float fc : cutoffs)
+        {
+            const double period = static_cast<double>(sr) / static_cast<double>(fc);
+            const int    winLen = std::max(2048, static_cast<int>(8.0 * period));
+            const int    settle = std::min(200000, std::max(6000, static_cast<int>(200.0 * period)));
+            const int    total  = settle + 2 * winLen;
+
+            for (int step = 0; step <= 20; ++step)
+            {
+                const float res = static_cast<float>(step) / 20.0f;
+
+                abd::dsp::KorgMS20VCF sweep;
+                sweep.prepare(sr);
+                sweep.setCutoff(fc);
+                sweep.setResonance(res);
+                sweep.setPoleMode(0);
+                sweep.setSubMode(0);
+
+                double rmsPrev = 0.0;
+                double rmsTail = 0.0;
+                double sumTail = 0.0;
+                float  peak    = 0.0f;
+
+                for (int i = 0; i < total; ++i)
+                {
+                    const float in = (i == 0) ? 1.0f : 0.0f;
+                    const float y  = sweep.process(in);
+
+                    if (!std::isfinite(y))
+                        allFinite = false;
+
+                    peak = std::max(peak, std::abs(y));
+
+                    if (i >= settle && i < settle + winLen)
+                        rmsPrev += static_cast<double>(y) * y;
+                    else if (i >= settle + winLen)
+                    {
+                        rmsTail += static_cast<double>(y) * y;
+                        sumTail += y;
+                    }
+                }
+
+                rmsPrev = std::sqrt(rmsPrev / winLen);
+                rmsTail = std::sqrt(rmsTail / winLen);
+
+                const double meanTail  = sumTail / winLen;
+                const double tailRatio = (rmsPrev > 1.0e-9) ? rmsTail / rmsPrev : 0.0;
+                const double dcRatio   = (rmsTail > 1.0e-9) ? std::abs(meanTail) / rmsTail : 0.0;
+
+                if (peak > worstPeak)
+                {
+                    worstPeak    = peak;
+                    worstPeakFc  = fc;
+                    worstPeakRes = res;
+                }
+
+                if (tailRatio > worstTailRatio)
+                {
+                    worstTailRatio = tailRatio;
+                    worstTailFc    = fc;
+                    worstTailRes   = res;
+                }
+
+                if (dcRatio > worstDcRatio)
+                {
+                    worstDcRatio = dcRatio;
+                    worstDcFc    = fc;
+                    worstDcRes   = res;
+                }
+
+                if (peak > 10.0f)
+                    allBounded = false;
+
+                if (rmsTail > rmsPrev * 1.05 + 1.0e-6)
+                    tailSteady = false;
+
+                if (res == 0.0f && rmsTail > 1.0e-3)
+                    zeroResDecay = false;
+
+                // El clipper de diodos rectifica un poco y deja una asimetria real
+                // (medido: 0.10 del RMS), pero un enganche de continua da ~1.0.
+                if (std::abs(meanTail) > 0.15 * rmsTail + 1.0e-3)
+                    noDcOffset = false;
+            }
+        }
+
+        std::printf("K35 sweep: pico=%.3f (fc=%.0f res=%.2f) | cola/previa=%.3f (fc=%.0f res=%.2f)"
+                    " | |dc|/rms=%.3f (fc=%.0f res=%.2f)\n",
+                    worstPeak, worstPeakFc, worstPeakRes,
+                    worstTailRatio, worstTailFc, worstTailRes,
+                    worstDcRatio, worstDcFc, worstDcRes);
+
+        check(allFinite,    "KorgMS20VCF barrido k/corte: todas las salidas son finitas");
+        check(allBounded,   "KorgMS20VCF barrido k/corte: pico acotado <= 10.0");
+        check(tailSteady,   "KorgMS20VCF barrido k/corte: cola estacionaria, sin crecimiento");
+        check(zeroResDecay, "KorgMS20VCF barrido k/corte: a res=0 el impulso se apaga");
+        check(noDcOffset,   "KorgMS20VCF barrido k/corte: auto-oscilacion sin sesgo de continua");
+    }
 }
 
 void testJunoVCF()

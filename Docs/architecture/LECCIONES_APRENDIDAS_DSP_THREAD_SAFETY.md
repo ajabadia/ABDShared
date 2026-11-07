@@ -328,4 +328,46 @@ CMake, y `LabResourcePaths` necesitó dos API nuevas para poder usarse en produc
 - Toda operación exponencial o potenciativa en el motor DSP debe aplicar clamping estricto (`std::clamp`) sobre el exponente y validar que la frecuencia resultante esté acotada dentro del rango audible seguro: `[0.1f, sampleRate * 0.49f]`.
 - Garantizar que los factores de modulación externos estén validados antes de alimentar ecuaciones exponenciales.
 
+---
+
+## 21. Publicar presets y bancos sin locks: el swap es lo fácil, la recuperación no
+
+**El problema:** un preset completo, una calibración o un banco de 128 parches no caben en un flag atómico. Copiarlos mientras el hilo de audio los lee es un data race; protegerlos con un mutex es un *dropout*. La tentación es `std::atomic<std::shared_ptr<PresetState>>`, y ahí aparece el segundo problema: el *swap* es atómico, pero **la liberación del estado anterior** puede caer en el hilo de audio y tomar un lock interno o ejecutar un `delete` en tiempo real.
+
+**Patrón (RCU manual):**
+
+```cpp
+// Escritor (hilo de mensaje): construye completo, publica una vez
+const auto* fresh = new PresetState{ /* ... */ };
+published.store(fresh, std::memory_order_release);
+
+// Audio: lee un puntero inmutable, no libera nunca
+const PresetState* s = published.load(std::memory_order_acquire);
+```
+
+**Reglas:**
+
+- El estado publicado es **inmutable** y `const`; modificar un campo publicado reintroduce el race.
+- La recuperación de la memoria vieja necesita política explícita: *pool* de N ranuras con contador de generación que el audio publica al cerrar bloque, o retención hasta el siguiente cambio con drenaje desde el hilo de mensaje.
+- `std::atomic<std::shared_ptr<T>>` solo si `is_lock_free()` es cierto **y** la destrucción se difiere fuera de audio.
+- Un solo escritor, o serialización en el lado del escritor (un `std::mutex` del hilo de mensaje no molesta a nadie).
+
+**Detalle completo:** `CALIDAD_Y_ESTANDARES_VST3.md` §1.2.3.
+
+---
+
+## 22. Los payloads de una cola SPSC son datos, no objetos
+
+**El problema:** `juce::AbstractFifo` mueve bytes con `memcpy`. Si el payload contiene un `juce::String`, un `std::vector` o un `juce::MidiMessage` con SysEx largo, lo que cruza la cola es el **puntero al heap**: el productor puede liberar esa memoria mientras el consumidor todavía la lee. El síntoma es un crash intermitente que solo aparece con ráfagas de SysEx o automatización densa, nunca en el test manual.
+
+**Reglas:**
+
+- Todo payload de cola lock-free es `std::is_trivially_copyable`, con `static_assert` en el sitio de la declaración.
+- Los buffers van **inline** (`uint8_t data[256]`), dimensionados por el caso real máximo, y el tamaño se valida al escribir.
+- Si el mensaje no cabe, se parte en trozos con un byte de continuación o se descarta con contador; nunca se guarda un puntero.
+
+**Detalle completo:** `CALIDAD_Y_ESTANDARES_VST3.md` §1.2.1 y `GUIA_CREACION_SINTETIZADORES.md` §5.2.1.
+
+---
+
 

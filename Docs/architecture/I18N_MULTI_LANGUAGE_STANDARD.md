@@ -186,3 +186,18 @@ it('mantiene 100% de paridad de claves entre EN y ES', () => {
   expect(collectLocaleKeys(en)).toEqual(collectLocaleKeys(es));
 });
 ```
+
+---
+
+## 6. Tipografía, glifos y coste de arranque (2026-11-07)
+
+Las traducciones no pesan: pesa la **tipografía**. Una fuente CJK completa (Noto Sans JP/SC) ronda 5–16 MB, y empaquetarla entera por si algún día se usa japonés es el error clásico en un plugin que imita hardware.
+
+1. **Subconjunto por glifos realmente usados.** El conjunto de cadenas de la UI es finito y conocido en build: un subconjunto (`pyftsubset`, unión del `ja`/`zh` de las claves del diccionario) baja de megabytes a decenas de KB.
+2. **Carga bajo demanda, nunca en el arranque.** El subconjunto de una locale se registra con `FontFace` + `document.fonts.add()` al seleccionar ese idioma, y se espera `document.fonts.ready` antes de repintar. La locale por defecto (EN/ES) no registra nada extra.
+3. **Sin red.** Un plugin no descarga fuentes: el subconjunto viaja embebido (asset del bundle o recurso propio). Si falta un glifo, se usa el fallback Latin y se registra qué clave lo pedía, en lugar de dejar un hueco silencioso.
+4. **`font-display: block`.** Un FOUT sobre una carátula que imita hardware es un defecto visible; es preferible un frame sin texto.
+5. **Test de tamaño y de cobertura:** (a) ninguna clave usa un glifo fuera del subconjunto declarado para su locale; (b) el bundle de la WebUI no supera el presupuesto acordado.
+
+> **IDs numéricos:** se descartan. Las claves de texto las verifica el compilador (el tipo `Translations` deriva de `en`), se buscan con `grep` y se leen en el diff. El razonamiento completo está en [`MODERNIZACION_PROPUESTAS_2026.md`](./MODERNIZACION_PROPUESTAS_2026.md) §3.2.
+```

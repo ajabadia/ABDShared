@@ -156,3 +156,17 @@ Antes de dar por cerrado el módulo, documentar cómo consumirá cada miembro de
     - `feat(SynthCore): promote <Componente> to shared C++20 engine`
     - `refactor(DSP): convert <Componente> to shim over abd::synth::<Componente>`
     - `docs(SynthCore): add integration guide for <Componente>`
+
+---
+
+## Fase 7: Promoción automatizada (propuesta, 2026-11-07)
+
+El checklist anterior es manual y por eso se salta. Lo automatizable hoy, sin inventar infraestructura:
+
+1. **Gate mecánico de las reglas de extracción.** Job de CI sobre todo PR que toque `ABDShared/Code/SynthCore/**`:
+   - `grep` de prohibidos en los ficheros añadidos: `JuceHeader.h`, `juce::`, `std::string`, `std::vector`, `new `.
+   - `static_assert(std::is_trivially_copyable_v<...>)` obligatorio si el módulo expone un payload de cola.
+   - Compilación del target con `/W4` y `-Wall -Wextra -Werror`.
+2. **Suite compartida más las suites de los consumidores afectados.** `ctest -R ABDShared_SynthCore_Tests` y, para cada consumidor que enlace el módulo, su suite nativa en la matriz de CI. Un cambio de `SynthCore` que rompe `ABDMS2000` debe fallar en el PR de `ABDShared`, no tres semanas después.
+3. **Comparación de sonido, no de binario.** La build no es reproducible byte a byte, así que se renderiza un bloque de referencia con el donante antes y después del shim y se comparan muestras con tolerancia 0 ULP. Es el test de equivalencia de la Fase 5, ejecutado automáticamente en cada PR.
+4. **PR generado (segunda etapa).** Solo cuando 1–3 estén estables: un script extrae el módulo del donante a una rama, aplica el shim y abre el PR con el resultado de los gates adjunto. La revisión humana sigue siendo obligatoria: el script no decide si el timbre cambió.

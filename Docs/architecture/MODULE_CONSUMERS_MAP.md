@@ -646,6 +646,30 @@ Si quieres, puedo:
 
 ---
 
+## 7. Grafo de dependencias y consumidores afectados (2026-11-07)
+
+La tabla de §4 se mantiene a mano: responde "quién dice consumir" y no "qué se rompe si toco esto". Lo segundo se obtiene del build.
+
+### 7.1. Grafo real de CMake
+
+```bash
+cmake -S . -B build --graphviz=build/deps.dot
+dot -Tsvg build/deps.dot -o build/deps.svg     # requiere graphviz
+```
+
+Exporta los targets (`ABDShared::DspCore`, `ABDShared::SynthCore`, …) y sus aristas de `target_link_libraries`. Un módulo sin aristas entrantes es candidato a `_Deprecados/`; uno con muchas es un contrato de facto y su cambio exige aviso.
+
+### 7.2. Consumidores afectados por un cambio
+
+Script `Scripts/affected_consumers.js` que, a partir de los ficheros tocados en un PR (`git diff --name-only`), resuelve la carpeta de módulo y devuelve los proyectos de §4 que lo enlazan. El CI compila y ejecuta esos, no los siete.
+
+### 7.3. Lo que no se promete
+
+- **No se bloquea un PR por diferencia de binario.** La build de MSVC no es reproducible byte a byte entre máquinas: comparar `.dll` da falsos positivos y acabará ignorándose. El gate defendible es "el consumidor compila y sus tests pasan".
+- **No se bloquea por rendimiento sin presupuesto previo.** Se puede medir CPU con los `*_Benchmarks` del consumidor, pero el umbral se fija antes del cambio, no después de ver el resultado.
+
+---
+
 ## A. Catálogo fino de `DspEffects/` vs `ABDEep/Source/DSP/FX/` (sesión actual)
 
 Esta sección es un **catálogo de lo que apareció en el árbol ahora**, no una lista definitiva de todo lo que existe ni una declaración de que el catálogo está completo. No se verificó un `DspEffects/CMakeLists.txt` a ese nivel ni la publicación del target `ABDShared::DspEffects`; por encima, lo que se registró es lo siguiente.

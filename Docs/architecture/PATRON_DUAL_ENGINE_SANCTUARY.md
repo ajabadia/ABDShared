@@ -56,20 +56,6 @@ Tras completar la migración de componentes críticos a `ABDSharedCode`, el proy
 
 ---
 
-### Pilar 5: Ecosistema WebUI, Estilos y Batería de Pruebas
-
-#### Diagnóstico del Problema
-Falta de uniformidad visual, uso de scripts no estandarizados y riesgo de regresiones silenciosas en la interfaz.
-
-#### Solución Estandarizada
-1. **Vanilla CSS Estricto:**
-   - Prohibido el uso de frameworks pesados (Tailwind, Bootstrap). Toda la interfaz se estiliza mediante CSS nativo y tokens declarados en variables CSS de la suite (`--accent-color`, `--bg-surface`, etc.).
-2. **Batería de Pruebas Automatizadas (CI/CD Local):**
-   - **Tests C++:** Verificación de roundtrip APVTS (`Cz101ParamsTests.cpp`), garantizando ratio de conversión 1.0 en todo el rango.
-   - **Tests JS / Vitest:** Ejecución de `npm run test` validando contratos de esquemas, exportación, normalización de datos y teclado interactivo.
-
----
-
 ## 4. Hoja de Ruta de Ejecución Detallada para ABDCZ101
 
 Para implementar esta estandarización en ABDCZ101 de forma ordenada y sin romper el build en ningún momento, se debe seguir la siguiente secuencia:
@@ -133,5 +119,40 @@ Una vez estandarizado ABDCZ101, la integración de **`ABDNeural`** (sintetizador
 
 6. BATERÍA CI/CD:
    Suite de pruebas C++ (inferencia/DSP) y Vitest (WebUI/contratos) automatizadas.
+```
 
 Siguiendo este blueprint, cualquier nuevo instrumento añadido a la suite heredará de forma inmediata la robustez, seguridad en tiempo real y calidad de ingeniería que definen a **ABDMS2000** y **ABDEep**.
+
+---
+
+## 6. Paridad numérica nativa ↔ WASM y SIMD (2026-11-07)
+
+### 6.1. El problema no es el código, es el resultado
+
+`DspSources.cmake` garantiza que nativo y `wasm/` compilan **las mismas fuentes**. No garantiza que produzcan **las mismas muestras**, y esa diferencia no la detecta ningún test de compilación:
+
+| Fuente de divergencia | Efecto |
+|---|---|
+| `std::sin` / `std::cos` / `std::pow` / `std::exp` de `libm` | Implementaciones distintas en MSVC, libc++ y Emscripten: 1–2 ULP de diferencia |
+| Contracción FMA (`-ffp-contract`) | Clang/Emscripten fusionan `a*b+c` por defecto; MSVC no: cambia el redondeo intermedio |
+| `-ffast-math` / `-ffinite-math-only` | Reordena y asume ausencia de NaN/Inf: resultados distintos, no solo imprecisos |
+| Denormales | x64 los apaga con `ScopedNoDenormals` (FTZ/DAZ); **WASM no tiene FTZ** |
+
+Reglas:
+
+1. **Las trascendentes del camino crítico se implementan una vez.** `tanh` de saturación, `exp2` de envolventes y `pow` de curvas viven en `ABDShared::DspCore` como aproximaciones polinómicas (`fastTanh`, `fastExp2`, …). Una tabla y un polinomio dan el mismo bit en todas las plataformas; `libm` no.
+2. **Flags alineados entre nativo y WASM.** Sin `-ffast-math` y con el mismo `-ffp-contract`: si nativo usa FMA, WASM también; si no, ninguno.
+3. **Denormales explícitos en el algoritmo** (`if (std::abs(x) < 1e-30f) x = 0.0f;`), porque el flush de la FPU no existe en WASM.
+4. **Vectores dorados en CI.** Un bloque fijo de entrada (sweep, ruido con semilla, ráfaga de notas) se renderiza en nativo y en `wasm/`; tolerancia declarada — **0 ULP** en el camino polinómico, ≤ 2 ULP donde quede `libm` — y el test falla indicando el índice de la primera muestra divergente.
+5. **Promesa honesta:** paridad *bit a bit* en todo el motor no es realista mientras haya `std::` trascendentes en el camino. Lo defendible es mismo timbre medible con divergencia acotada y testeada.
+
+### 6.2. SIMD: referencia escalar primero
+
+Unificar x64/NEON/WASM128 con una capa propia no es gratis, y adoptarla antes de tener un perfil que lo justifique cambia el sonido sin que nadie lo note. Orden de trabajo:
+
+1. **La implementación escalar es la verdad.** Todo camino vectorizado se compara contra ella.
+2. SIMD solo donde el perfil lo pida (osciladores, etapas de filtro, el `LutEvaluatorSimd` que ya existe).
+3. Si llega el momento de abstraer, la opción realista es **Google Highway** (SSE/AVX/NEON/WASM tras una API común). `SSE2NEON` no es eso: traduce intrínsecos NEON a SSE para compilar código ARM en x86, no unifica plataformas.
+4. **Cada ruta SIMD lleva su test de equivalencia** contra la escalar con la tolerancia del §6.1. Una ruta SIMD sin ese test es un cambio de sonido silencioso.
+
+---

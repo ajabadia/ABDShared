@@ -53,3 +53,33 @@ export function legacyUiHelper() {
 | **`ABDSharedCode`** | `d:/desarrollos/ABDSynths/ABDSharedCode` | `ABDShared/Code/` | 🟢 **Migración completada en la suite.** Consumido canónicamente por `ABDAudioLab`, `ABDEep`, `ABDCZ101`, `ABDMS2000`, `ABDNeural` y `ABDJUNiO601`. Listo para archivar en `_Deprecados/`. |
 | **`ABDSharedAssets`** | `d:/desarrollos/ABDSynths/ABDSharedAssets` | `ABDShared/Assets/` y `ABDShared/Contracts/` | 🟢 **Migración completada en la suite.** Consumido canónicamente por `ABDAudioLab`, `ABDEep`, `ABDCZ101`, `ABDMS2000`, `ABDNeural` y `ABDJUNiO601`. Listo para archivar en `_Deprecados/`. |
 | **`convertSysExToCutoffHz`** | Global | `conversion::normToCutoffHz` | 🔴 Retirado |
+
+---
+
+## 5. Compatibilidad de estado en el DAW: parámetros retirados y capa de alias
+
+Eliminar un parámetro del APVTS no es un cambio interno: **rompe el *recall* de las canciones ya guardadas**. El DAW escribe el estado con los IDs de la versión con la que se guardó y lo relee con la versión instalada. Esto cubre lo que el ciclo de §3 no alcanza.
+
+### 5.1. Reglas
+
+1. **Un ID retirado no se reutiliza jamás con otro significado.** Reciclar `filter.cutoff` para `filter.drive` convierte cada proyecto antiguo en otro sonido sin ningún error visible.
+2. **Todo ID retirado deja una entrada de alias** (`oldId → newId`, o `oldId → valor por defecto`) en una tabla versionada del proyecto.
+3. **`setStateInformation` migra antes de aplicar.** Se lee `schemaVersion` del XML; si es anterior, se aplica la tabla de alias y se escriben los IDs nuevos antes de `state.replaceState()`. Si es más nuevo que el plugin, se ignoran las claves desconocidas y se registra un aviso, sin fallar.
+4. **La tabla de alias es código, no documentación.** Vive junto al registro de parámetros (`ParameterAliases.gen.h` o equivalente) y tiene su propio test; una tabla en un `.md` no se ejecuta.
+
+```cpp
+// Orden correcto en setStateInformation()
+auto xml = juce::parseXML(static_cast<const char*>(data), sizeInBytes);
+if (xml == nullptr) return;                          // estado corrupto: mantener el actual
+const int version = xml->getIntAttribute("schemaVersion", 1);
+if (version < kCurrentSchemaVersion)
+    migrateStateXml(*xml, version);                  // aplica alias y defaults
+state.replaceState(juce::ValueTree::fromXml(*xml));  // ya con IDs actuales
+```
+
+### 5.2. Verificación obligatoria
+
+- **Corpus de estados reales:** `tests/state/v<schemaVersion>/*.xml`, con al menos un estado por versión publicada. El test carga cada uno y compara los valores esperados de los parámetros que sobrevivieron.
+- **Test de parámetro retirado:** un estado con un ID eliminado carga sin excepción, con el valor por defecto declarado y con una entrada de log estructurada.
+- **Test de estado más nuevo:** un XML con `schemaVersion` superior no debe corromper el estado actual.
+- **Gate de PR:** retirar un parámetro sin entrada de alias rompe el test del corpus; es el único mecanismo que impide que el olvido llegue al usuario.

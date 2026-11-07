@@ -120,7 +120,7 @@ mkdir build && cd build && cmake .. && cmake --build .
 
 ## Credits
 - DSP architecture based on <hardware name>
-- Built with JUCE 8 + C++20
+- Built with JUCE 8.0.12 + C++20
 ```
 
 ### 0.3 Template: CHANGELOG.md
@@ -217,7 +217,7 @@ npm run generate && build.bat
 
 ## Phase 0: Infrastructure
 - [x] Create directory structure
-- [x] Configure CMake + JUCE 8
+- [x] Configure CMake + JUCE 8.0.12
 - [x] Parameter registry generator
 - [ ] CI pipeline
 
@@ -437,7 +437,7 @@ Every ABD synthesizer plugin fulfills up to four functional roles:
 │  │  LCD)    │ │          │ │          │ │                   │  │
 │  └──────────┘ └──────────┘ └──────────┘ └───────────────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
-│               C++ Plugin Layer (JUCE 8)                         │
+│               C++ Plugin Layer (JUCE 8.0.12)                         │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │ PluginEditor (WebView host)  │  BridgeActions (IPC ↔ JS)  │ │
 │  ├────────────────────────────────────────────────────────────┤ │
@@ -467,7 +467,7 @@ Every ABD synthesizer plugin fulfills up to four functional roles:
 
 ### 1.4 Technology Stack
 
-- **C++ Engine:** JUCE 8, C++20 (Single Source of Truth for all modes)
+- **C++ Engine:** JUCE 8.0.12, C++20 (Single Source of Truth for all modes)
 - **UI:** WebView2/WKWebView (Vanilla HTML/CSS/JS with CSS Token Theming)
 - **Build:** CMake (no Projucer)
 - **WASM:** Emscripten → AudioWorklet with optimized HEAP
@@ -487,7 +487,7 @@ ABD<SYNTH_NAME>/
 ├── .gitignore
 │
 ├── GITS/
-│   └── JUCE/                          # JUCE 8 as submodule
+│   └── JUCE/                          # JUCE 8.0.12 as submodule
 │
 ├── DOCS/                              # Project documentation
 │   ├── <synth>_Research_Notes.md      # Technical analysis
@@ -662,7 +662,7 @@ git submodule add https://github.com/juce-framework/JUCE.git GITS/JUCE
 git submodule update --init --recursive
 ```
 
-CMake fallback chain: `GITS/JUCE/` → `C:/JUCE/` → `find_package(JUCE 8)`.
+CMake fallback chain: `GITS/JUCE/` → `C:/JUCE/` → `find_package(JUCE 8.0.12)`.
 
 ---
 
@@ -835,6 +835,50 @@ Audio → UI:  Triple-buffered snapshot (VisTripleBuffer) or atomic pointer swap
 Parameters:  std::atomic<float> per parameter (read in audio, write from UI)
 ```
 
+#### 5.2.1 Payloads in SPSC Queues Must Be Trivially Copyable
+
+`juce::AbstractFifo` only moves bytes: the payload is copied with `memcpy`. If it embeds a `juce::MidiMessage`, a `juce::String` or a `std::vector`, only the heap pointer is copied, and the producer may free it while the consumer is still reading. Large SysEx payloads are the usual trigger, because `juce::MidiMessage` itself may allocate.
+
+```cpp
+// GOOD: POD payload with inline capacity, no hidden heap pointer
+struct QueuedMidiPacket {
+    uint8_t  data[256];   // inline bytes: trivially copyable
+    int32_t  numBytes;
+    double   timestamp;
+};
+static_assert(std::is_trivially_copyable_v<QueuedMidiPacket>);
+
+// BAD: copying this through the FIFO copies a heap pointer, not the payload
+struct QueuedMidiPacketBad { juce::MidiMessage message; };
+```
+
+Rule: every struct that crosses a lock-free queue must be `std::is_trivially_copyable` (asserted with `static_assert`) and must size its buffers inline (`uint8_t data[N]`), never with owning pointers.
+
+#### 5.2.2 UI → Audio Goes One Way: Atomic Flags, Never Locks
+
+A `SpinLock` shared between the UI and the audio thread is a priority inversion waiting to happen: the message thread can be descheduled while holding it, and the audio thread spins until the block deadline is already missed.
+
+- UI → audio: a single `std::atomic<uint32_t>` of flags (`panicRequested`, `allNotesOff`, `presetLoadBatch`), read once per block. No lock is taken on the audio side.
+- Audio → UI: triple buffer or atomic snapshot; never a lock held by the audio thread.
+- If a critical section is truly unavoidable in the audio thread, it must be `SpinLock::ScopedTryLockType`, and a failed try must skip the work instead of blocking.
+
+```cpp
+// Audio thread: never blocks, never yields
+void panic() {
+    const juce::SpinLock::ScopedTryLockType lock(stateLock);
+    if (!lock.isLocked()) return;   // skip this block; retried on the next one
+    ...
+}
+```
+
+#### 5.2.3 Bypass Must Keep the Tails Alive
+
+Cutting notes in `processBlockBypassed()` is not enough. Delay and reverb lines keep their content while bypassed; if processing stops, re-enabling bypass replays a "ghost echo" from the past.
+
+- Keep the FX chains running with silent input while bypassed (feed zeros) so the tails decay naturally.
+- Or freeze the buffers and reset them on bypass exit: never leave stale energy in the lines.
+- `getTailLengthSeconds()` must describe the real tail so the host knows how long to render after bypass.
+
 ### 5.3 Parameter Smoothing
 
 Every parameter that controls frequency, amplitude, or filter coefficient MUST use temporal smoothing:
@@ -852,6 +896,16 @@ Or use `juce::LinearSmoothedValue<float>` with ~1ms ramp time.
 - Fade-out active voice over ~5ms before reassignment
 - Reset all voice states on noteOn (envelopes, LFO phases)
 - Priority: Re-trigger > Sustain held > Last note > FIFO
+- **Clear or interpolate the filter state, not only the VCA.** Fading the gain to zero does not remove the energy stored in ZDF/TPT integrators, ladder capacitors or BBD lines. Stealing a voice with a hot filter produces a low-frequency thump even with the VCA at 0. Reset the filter memories on steal, or cross-fade old and new states inside the same ~5 ms ramp.
+- **Reset modulation state too:** LFO phases, envelope stages and every smoothed parameter of the stolen voice start from a defined value, never from the previous note.
+
+### 5.5 Bipolar Curves Without a Knee at Zero
+
+Exact symmetry at the physical centre (MIDI 64, normalized 0.5, raw 0) is not enough for bipolar parameters driven by exponential or logarithmic transfer functions. A piecewise mapping — one curve for the negative half, another for the positive half, joined at the centre — is continuous in value but discontinuous in slope: the "mathematical knee" is audible as a jump in modulation depth every time the control crosses zero.
+
+- Use a single transfer function that is C1-continuous at the centre: odd-symmetric shapes (`x·|x|`, `sinh`, `tanh`) or `sign(x)·f(|x|)` with `f(0) = 0` and `f'(0)` finite.
+- Keep the `SymBipolar` exact-zero-at-0.5 mapping as the baseline; slope continuity is the additional requirement.
+- Verify with a sweep test: modulate slowly from -1 to +1 and assert the first difference has no step at the centre.
 
 ---
 

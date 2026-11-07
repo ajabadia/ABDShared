@@ -112,3 +112,20 @@ Para atomizar un nuevo módulo (ejemplo: `@abdsynths/<nombre>`):
 Scope posee una estructura desacoplada en dos capas:
 1. **C++ Real-Time Core (`ABDShared::ScopeCore` / `ScopeCoreHeaders`):** Motor lock-free en C++20 que reside en `Code/Scope/` y se enlaza mediante CMake a los sintetizadores JUCE para capturar el buffer de audio en el audio thread sin bloqueos ni asignaciones dinámicas.
 2. **Frontend WebUI (`@abdsynths/scope`):** Paquete ESM autónomo publicado desde `Code/Scope/WebUI/` que renderiza las señales en Canvas 2D/WebGL en el browser o en la WebView de JUCE. Puede consumirse directamente en cualquier aplicación web o herramienta de análisis sin necesidad del backend C++.
+
+---
+
+## 6. Límites explícitos de esta norma (2026-11-07)
+
+### 6.1. Lo que NO se adopta: micro-frontends y *Module Federation*
+
+Se ha propuesto cargar componentes compartidos de la WebUI desde una caché de módulos en tiempo de ejecución. Se rechaza para la UI de un plugin:
+
+- **El plugin debe funcionar sin red.** La UI se sirve desde el binario (`juce_add_binary_data` sobre `WebUI/dist`); un módulo remoto o cacheado añade un modo de fallo que el usuario percibe como "el plugin arranca en blanco".
+- **Contenido determinista.** Dos builds del mismo tag deben producir el mismo bundle. Un módulo compartido versionado aparte rompe esa garantía y hace irreproducible cualquier bug reportado.
+- **Superficie de ataque.** La WebView2 ya ejecuta contenido privilegiado que habla con el puente nativo; añadir carga dinámica de código amplía el *supply chain* sin ganancia funcional.
+- **La alternativa ya existe:** subpaquetes npm versionados (`@abdsynths/*`) resueltos en build. El peso se reparte con `exports` y `files`, no en runtime.
+
+### 6.2. `OBJECT` libraries de CMake: fuera de alcance
+
+Fragmentar los targets C++ en librerías de objetos por familia pertenece a la capa **CMake** (`ABDShared/Code/CMakeLists.txt`), no a los subpaquetes npm que regula este documento. Se anota como candidata a medir —tiempo de compilación incremental y tamaño de artefacto— antes de tocarla: los targets ya están separados por familia (`DspCore`, `SynthCore`, `DspEffects`, `LutDSP`) y hoy no hay medida que demuestre que `OBJECT` libraries mejoren el ciclo.

@@ -60,6 +60,7 @@ Los sintetizadores de la suite (`ABDCZ101`, `ABDMS2000`, `ABDEep`, `ABDJUNiO601`
   - Núcleo C++ (`ABDBankManagerCore.h/.cpp`) y adaptador para WebView (`BankManagerWebViewAdapter.h/.cpp`).
   - Manejo de volcados SysEx completos de bancos (128 parches), presets individuales y comunicación hardware bidireccional (`HardwareMidiPipe.h`).
   - `ABDBankManager` en la raíz se mantiene como aplicación standalone consumidora de esta librería.
+  - **Índice y búsqueda (propuesta 2026-11-07):** para bibliotecas de miles de presets, indexar en **SQLite** con `journal_mode=WAL`, `synchronous=NORMAL` y una tabla `presets(bank, program, name, category, tags)` con índices por las columnas de filtrado. Precisión importante: WAL **no es lock-free** — permite lectores concurrentes mientras hay un escritor, pero las escrituras se serializan. La regla que sí importa es que el acceso a disco ocurre en el hilo de mensaje o en un worker, nunca en `processBlock()`; la UI lee un snapshot en memoria, no el fichero.
 
 ### 2.4 Teclado y Ruedas de Expresión: `MidiKeyboard`
 * **Ubicación:** `@abdsynths/midi-keyb`.

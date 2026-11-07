@@ -1,9 +1,9 @@
 # 🏆 Guía Maestra de Calidad VST3 y Estándares de Ingeniería `ABDSynths`
 
-> **Propósito:** Este documento sirve como **estándar de referencia y guía de auditoría transversal** para toda la familia de sintetizadores **`ABDSynths`** (`ABDEep`, `ABDMS2000`, `ABDCZ101`, `ABDNeural`, `ABDJUNiO601` y futuros desarrollos).
+> **Propósito:** Este documento sirve como **estándar de referencia y guía de auditoría transversal** para toda la familia de sintetizadores **`ABDSynths`** (`ABDEep`, `ABDMS2000`, `ABDCZ101`, `ABDNeural`, `ABDJUNiO601`, `ABDAxionikVS` y futuros desarrollos).
 >
 > Se estructura en **dos grandes bloques**:
-> - **PARTE I — Estándares Profesionales VST3 de Alta Gama:** Criterios exigidos por el SDK de Steinberg VST3, `pluginval` (strictness 5–10) y sintetizadores comerciales de referencia (*Surge XT*, *Vital*, *u-he*), con el desglose detallado de **qué cumple hoy `ABDEep` (100% de los criterios críticos y altos)** y una **matriz comparativa real** entre los 5 sintetizadores de la suite.
+> - **PARTE I — Estándares Profesionales VST3 de Alta Gama:** Criterios exigidos por el SDK de Steinberg VST3, `pluginval` (strictness 5–10) y sintetizadores comerciales de referencia (*Surge XT*, *Vital*, *u-he*), con el desglose detallado de **qué cumple hoy `ABDEep` (100% de los criterios críticos y altos)** y una **matriz comparativa real** entre los sintetizadores de la suite (5 auditados en detalle + el estado verificado de `ABDAxionikVS`, incorporado después).
 > - **PARTE II — Estándares Propios de `ABDSynths`, Adopción de `ABDShared` y Prácticas de Ingeniería:** Catálogo de módulos compartidos (`ABDShared` / `ABDBankManager`), matriz de adopción real por proyecto (Zero Allocation Benchmark, `Scope`, `BankManager`, `MidiKeyboard`, `SynthCore`, `DspCore`, `DspEffects`), y clasificación de **Buenas Prácticas (`✅`), Prácticas Mejorables (`⚠️`) y Malas Prácticas / Anti-Patrones (`❌`)** detectadas en los 5 repositorios.
 
 ---
@@ -38,6 +38,64 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 - `[x]` ✅ **Captura de forma de onda lock-free con `ABDShared::ScopeCore::ScopeTap` + `std::atomic<int>`:** Los taps SPSC (`masterScopeTap`, `preFxScopeTap`) y `audioCaptureBuffer` en [`SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine.cpp#L447-L515) escriben muestras en tiempo real sin ningún lock.
 - `[x]` ✅ **Cambio de programa / banco diferido de forma atómica (`PatchController`):** [`PatchController::offerMidi()`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/Plugin/PatchController.cpp) detecta mensajes MIDI `Bank Select` (CC#0/CC#32) y `Program Change` en el hilo de audio sin hacer I/O ni tocar la UI: marca `pendingBank`/`pendingProgram` atómicos y un `juce::Timer` a 60 Hz en el hilo de mensaje aplica el patch a la APVTS.
 
+#### 1.2.1. Los Payloads de las Colas SPSC Deben Ser *Trivially Copyable*
+
+`juce::AbstractFifo` solo mueve bytes: el payload se copia con `memcpy`. Si contiene un `juce::MidiMessage`, un `juce::String` o un `std::vector`, lo que se copia es el puntero al heap, no los datos, y el productor puede liberarlos mientras el consumidor aún los lee. Los SysEx grandes son el caso típico, porque `juce::MidiMessage` puede asignar memoria para payloads largos.
+
+```cpp
+// BIEN: payload POD con capacidad inline, sin punteros ocultos
+struct QueuedMidiPacket {
+    uint8_t data[256];   // bytes inline: trivially copyable
+    int32_t numBytes;
+    double  timestamp;
+};
+static_assert(std::is_trivially_copyable_v<QueuedMidiPacket>);
+
+// MAL: copiar esto por el FIFO copia un puntero al heap, no el mensaje
+struct QueuedMidiPacketBad { juce::MidiMessage message; };
+```
+
+Regla: toda estructura que cruce una cola lock-free debe ser `std::is_trivially_copyable` (verificado con `static_assert`) y dimensionar sus buffers inline (`uint8_t data[N]`), nunca con punteros propietarios.
+
+#### 1.2.2. UI → Audio Va en Un Solo Sentido: Flags Atómicos, Nunca Locks
+
+Un `SpinLock` compartido entre la UI y el hilo de audio es una inversión de prioridades en potencia: el hilo de mensajes puede ser desplanificado mientras lo posee y el hilo de audio gira hasta perder el deadline del bloque.
+
+- **UI → Audio:** un único `std::atomic<uint32_t>` de flags (`panicRequested`, `allNotesOff`, `presetLoadBatch`) que el hilo de audio lee una vez por bloque. El hilo de audio nunca toma el lock.
+- **Audio → UI:** triple buffer o snapshot atómico; nunca un lock retenido por el audio.
+- Si un lock es realmente inevitable en el hilo de audio, debe ser `SpinLock::ScopedTryLockType` y un intento fallido debe omitir el trabajo, no bloquear. `panic()` es el caso canónico.
+
+```cpp
+// Hilo de audio: nunca bloquea, nunca cede
+void panic() {
+    const juce::SpinLock::ScopedTryLockType lock(stateLock);
+    if (!lock.isLocked()) return;   // se reintenta en el siguiente bloque
+    ...
+}
+```
+
+#### 1.2.3. Publicar Estructuras Grandes sin Locks: Swap Atómico y Política de Recuperación (RCU)
+
+Un preset completo, una calibración o un banco no caben en un `uint32_t` de flags, y copiarlos desde el hilo de mensaje mientras el de audio los lee es un data race. El patrón de la suite es **publicar un puntero a un estado inmutable** y no liberar nada desde el hilo de audio:
+
+```cpp
+// Escritor (hilo de mensaje): construye el estado nuevo completo y lo publica
+const auto* fresh = new PresetState{ /* ... */ };
+liveState.store(fresh, std::memory_order_release);
+
+// Lector (hilo de audio): nunca bloquea, nunca libera
+const PresetState* s = liveState.load(std::memory_order_acquire);
+if (s != nullptr) renderWith(*s);
+```
+
+Reglas que hacen que esto sea correcto y no una fuga ni un use-after-free:
+
+1. **El hilo de audio no destruye.** Si la última referencia muere dentro de `processBlock()`, el `delete` corre en tiempo real, y `std::atomic<std::shared_ptr<T>>` puede tomar su lock interno en la liberación. Solo es aceptable si `is_lock_free()` es cierto **y** la destrucción se difiere al hilo de mensaje (ver `HEADLESS_CORE_ARCHITECTURE.md`, «Firmware Package y ciclo de vida»).
+2. **La memoria vieja se recupera con un periodo de gracia explícito.** Dos opciones admitidas: (a) *pool* fijo de N ranuras más un contador de generación que el hilo de audio publica al cerrar el bloque (`std::atomic<uint32_t> consumedGeneration`), de modo que el escritor libera solo lo anterior a esa generación; (b) el estado antiguo se retiene hasta el siguiente cambio, acumulado en una lista que el hilo de mensaje drena con un `juce::Timer`.
+3. **El estado publicado es `const`.** Cualquier modificación crea un estado nuevo; un campo mutable dentro del estado publicado reintroduce el race que este patrón elimina.
+4. **Un solo escritor.** Varios hilos publicando exigen serialización en el lado del escritor (`std::mutex` en el hilo de mensaje es correcto y gratis: nadie lo toma desde audio).
+5. **Fallo de asignación = se mantiene el estado anterior.** Si no hay memoria, el swap no ocurre y el motor sigue con el preset vigente; nunca se publica un estado a medio construir.
+
 ### 1.3. Prohibición de Llamadas al Sistema o I/O en el Hilo de Audio
 - `[x]` ✅ **Sin lectura/escritura de archivos ni sockets en `processBlock()`:** La lectura de bancos `.syx` y archivos de calibración XML se realiza exclusivamente en el hilo de mensaje.
 - `[x]` ✅ **Serialización XML fuera del hilo de audio:** En [`SynthEngine_Snapshot.cpp`](file:///d:/desarrollos/ABDSynths/ABDEep/Source/DSP/SynthEngine_Snapshot.cpp#L59-L70), `updateVoiceSnapshot()` solo copia structs numéricos planos; la conversión `activeCalibration.toXml()` solo se ejecuta en `getDiagnosticSnapshot()` cuando lo solicita el hilo de control.
@@ -71,6 +129,13 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 
 ---
 
+### 2.7. Voice Stealing: Limpiar el Estado del Filtro, No Solo el VCA
+
+Atenuar la ganancia a cero no elimina la energía almacenada en los integradores ZDF/TPT, en las capacidades del ladder o en las líneas BBD. Robar una voz con el filtro caliente produce un *thump* de baja frecuencia aunque el VCA esté a 0.
+
+- Reiniciar las memorias del filtro (`z1`/`z2`, estados del ladder) al reasignar la voz, o interpolar suavemente entre el estado antiguo y el nuevo dentro de la misma rampa de ~5 ms.
+- Reiniciar también la modulación de la voz robada: fases de LFO, etapa de los envelopes y valores de los `SmoothedValue`.
+
 ## 3. Ciclo de Vida del `AudioProcessor`, Buses y Latencia
 
 - `[x]` ✅ **Configuración explícita de buses (`isBusesLayoutSupported`):** Soporta dinámicamente salida Mono y Stereo más bus de entrada Stereo habilitado para el modulador del Vocoder / `AudioIn` y el comparador de hardware ([`ABDMS2000/Source/Plugin/PluginProcessor.cpp:22-24,134-141`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L22-L24)).
@@ -81,9 +146,17 @@ El callback `processBlock()` se ejecuta en un hilo de prioridad de tiempo real d
 
 ---
 
+### 3.1. Bypass del Host: las Colas de Delay y Reverb Siguen Vivas
+
+Cortar las notas en `processBlockBypassed()` no es suficiente. Las líneas de Delay/Reverb conservan su contenido: si se deja de procesarlas, al desactivar el bypass se reproduce un «eco fantasma» de audio del pasado.
+
+- Mantener las cadenas de FX procesando con entrada de silencio durante el bypass, para que las colas decaigan de forma natural.
+- O congelar los buffers y vaciarlos al salir del bypass: nunca dejar energía obsoleta en las líneas.
+- `getTailLengthSeconds()` debe describir la cola real para que el host sepa cuánto renderizar tras el bypass (ver §3.3.5 y la implementación de `ABDAxionikVS`).
+
 ## 4. Sincronización Total del Reloj del Host (`juce::AudioPlayHead`)
 
-- `[x]` ✅ **Uso de la API moderna de JUCE 8 (`getPlayHead()->getPosition()`):** En `processBlock()`, el procesador consulta `playHead->getPosition()` en tiempo real para obtener:
+- `[x]` ✅ **Uso de la API moderna de JUCE 8+ (`getPlayHead()->getPosition()`, vigente en JUCE 9):** En `processBlock()`, el procesador consulta `playHead->getPosition()` en tiempo real para obtener:
   - **`pos->getBpm()`:** Sincroniza automáticamente el **Arpegiador**, el **Modulation/Control Sequencer** y los **LFOs con Tempo Sync** (corcheas, semicorcheas, tresillos, puntillos) al tempo exacto del proyecto DAW.
   - **`pos->getIsPlaying()` y `pos->getPpqPosition()`:** Detecta el flanco de arranque del transporte del DAW (`!wasHostPlaying_ && isPlaying`) para alinear y reiniciar limpiamente la fase del secuenciador/arpegiador al compás del proyecto cuando el usuario pulsa *Play* en el DAW ([`ABDMS2000/Source/Core/SynthEngine.cpp`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/SynthEngine.cpp#L719-L748)).
 
@@ -130,6 +203,14 @@ Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquit
 - `[x]` ✅ **Soporte de curvas analíticas (`Linear`, `Exp`, `Pow`, `Log`) y tablas LUT de ROM hardware (`CurveType::Lut`):** Cuando el hardware original utiliza tablas no lineales en ROM (como [`MS2000FirmwareTables.h`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Core/MS2000FirmwareTables.h) extraída del firmware `x811v107.sys` para incrementos `Q23` de envolventes `1 ms..3,80 s`, `LFO1 0,046..36,61 Hz`, `LFO2` audio-rate hasta `194,90 Hz` y `Delay 0,04..1365,29 ms`, o las curvas de calibración de `ABDEep`), la capa de traducción interpola directamente sobre la LUT oficial.
 - `[x]` ✅ **Formateo de unidades físicas unificado para UI y LCD (`displayFormatter` / `LCDMenuFormatter`):** Los tooltips de los controles y la pantalla LCD muestran siempre la unidad física traducida (`Hz`, `kHz`, `ms`, `s`, `dB`, `st`, `BPM`) coherente con el motor DSP.
 - `[x]` ✅ **Verificación por Tests Unitarios de Inversión (`ParamConversionUnitTests` / `DSPCoreTests_Transfer`):** Prueba automatizada de que para todo parámetro del registro se cumple el round-trip `domainToWire(wireToDomain(w)) == w` en los extremos (`0`, `127`/`255`), el centro (`64`/`128`) y barrido completo.
+
+#### 5.2.1. Curvas Bipolares Sin Codo en el Centro
+
+La simetría exacta en el centro físico (MIDI 64, `0.5` normalizado, `0` raw) no basta cuando el parámetro bipolar usa funciones exponenciales o logarítmicas. Un mapeo por tramos —una curva para la mitad negativa y otra para la positiva, unidas en el centro— es continuo en valor pero discontinuo en pendiente: el «codo» matemático se oye como un salto de profundidad de modulación cada vez que el control cruza el cero.
+
+- Usar una única función de transferencia C1-continua en el centro: formas impar-simétricas (`x·|x|`, `sinh`, `tanh`) o `sign(x)·f(|x|)` con `f(0) = 0` y `f'(0)` finita.
+- Mantener `SymBipolar` con cero exacto en `0.5` como base; la continuidad de pendiente es el requisito adicional.
+- Verificarlo con un test de barrido: modular de −1 a +1 y comprobar que la primera diferencia no tiene escalón en el centro.
 
 ### 5.3. Requisitos de Arquitectura DSP para Síntesis Sustractiva y Síntesis Granular / Basada en Muestras
 130: 1. **Síntesis Sustractiva / Virtual Analog (`ABDEep`, `ABDMS2000`, `ABDJUNiO601`):**
@@ -231,16 +312,16 @@ Todo sintetizador de la familia `ABDSynths` debe mantener una separación arquit
 
 ## 10. Validación Automatizada (`pluginval`, Unit Tests, Benchmarks y Fuzzing)
 
-- `[x]` ✅ **Workflow CI de `pluginval` (strictness level 5–10):** Configurado en `.github/workflows/pluginval.yml`.
+- `[x]` ✅ **Workflow CI de `pluginval` (strictness level 5–10):** Configurado en `.github/workflows/pluginval.yml`, en cada push a `master` y en cada pull request, y **verificado en verde en GitHub Actions** ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632): job de 8 min, `SUCCESS`, exit code `0`).
 - `[x]` ✅ **Suite de Tests Unitarios C++:** Cubre voces, deriva analógica, pitch, VCF, especificación de calibración, pánico/bypass, funciones de transferencia, barridos rápidos de parámetros, timing MIDI sample-accurate, aftertouch, sync de BPM de host, arpegiador/secuenciador, matriz de modulación y round-trip SysEx.
 - `[x]` ✅ **Benchmark Headless de Tiempo Real y Cero Allocaciones (`*_Benchmarks`):** Audita presupuesto de CPU ($< 50\%$) y 0 asignaciones de heap en `processBlock`.
 - `[x]` ✅ **Suite de Tests WebUI y Contratos (`Vitest`):** Verifica esquemas JSON, paridad de dumps SysEx, fuzzing de ida y vuelta (*round-trip*), UI y puentes.
 
 ---
 
-## 📊 Matriz Comparativa VST3 entre los 5 Sintetizadores de la Suite `ABDSynths`
+## 📊 Matriz Comparativa VST3 de la Suite `ABDSynths` (5 auditados + `ABDAxionikVS`)
 
-Esta tabla refleja el estado real auditado en el código fuente de los 5 repositorios hermanos en `d:\desarrollos\ABDSynths\` (incluyendo todas las mejoras aplicadas en `ABDMS2000`):
+Esta tabla refleja el estado real auditado en el código fuente de los 5 repositorios hermanos en `d:\desarrollos\ABDSynths\` (incluyendo todas las mejoras aplicadas en `ABDMS2000`). `ABDAxionikVS` se añadió a la suite con posterioridad a esta matriz: su estado verificado va aparte, en la sección «Estado auditado de `ABDAxionikVS`», justo debajo:
 
 | Criterio VST3 / Tiempo Real | `ABDEep` (DeepMind 12) | `ABDMS2000` (MS2000) | `ABDCZ101` (CZ-101) | `ABDNeural` (NEURONiK) | `ABDJUNiO601` (Juno-106/60) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -260,6 +341,23 @@ Esta tabla refleja el estado real auditado en el código fuente de los 5 reposit
 | **14. `CC#64` (Sustain) + Aftertouch (`ChannelPressure` / `Aftertouch`)** | ✅ Sí (CC#64 + Aftertouch polifónico por voz + Channel Pressure) | ✅ Sí (CC#64 en `VoiceManager` + `ChannelPressure`/`Aftertouch` en `SynthEngine`) | ⚠️ Solo monofónico | ⚠️ Global (no por voz) | ⚠️ Solo Channel Aftertouch global |
 | **15. Multi-Arquitectura Nativa (`x64`/`ARM64` + macOS Universal `x86_64;arm64`)** | ✅ Sí (`CMAKE_OSX_ARCHITECTURES "x86_64;arm64"` + `x64`/`ARM64`) | ✅ Sí (`CMAKE_OSX_ARCHITECTURES "x86_64;arm64"` + `x64`/`ARM64`) | ⚠️ Solo host arch | ⚠️ Solo host arch | ⚠️ Solo host arch |
 | **16. `pluginval` automatizado en CI** | ✅ Sí (`.github/workflows/pluginval.yml`, strictness 5+) | ✅ Sí (`pluginval.yml`, strictness 5) | ✅ Sí (`pluginval.yml`, strictness 5) | ✅ Sí (`pluginval.yml`, strictness 5) | ❌ Sin workflow CI activo |
+
+### Estado auditado de `ABDAxionikVS` (6.º sintetizador, auditoría 2026-11-07)
+
+`ABDAxionikVS` (Hartmann Neuron / NeuronVS) entró en la suite después de redactarse esta matriz, de ahí que las tablas de las secciones 2 y 3 sigan describiendo 5 proyectos. Su estado se verificó sobre el código del repositorio y no sobre estimaciones:
+
+| Criterio | Estado en `ABDAxionikVS` |
+| :--- | :--- |
+| `ScopedNoDenormals` en `processBlock` | ✅ `Source/PluginProcessor.cpp:388` |
+| Codegen del registro de parámetros | ✅ `Scripts/registry_generator.js --check` → `ParameterRegistry.gen.h` (445 params) |
+| `DspSources.cmake` anti-deriva nativo ↔ WASM | ✅ Compartido con `wasm/` |
+| Tests WebUI (Vitest) | ✅ En verde (p. ej. 33/33 en `tests/bank_category_parity.test.ts`) |
+| `getTailLengthSeconds()` | ✅ Cola calculada del Master FX (`[430..444]`): repeticiones a −60 dB del Delay maestro y RT60 del FDN 8×8 de la Reverb, ponderado por mezcla wet (`Source/PluginProcessor.cpp`) |
+| `setLatencySamples()` | ✅ `setLatencySamples(0)` explícito en `prepareToPlay()` |
+| `getPlayHead()` (`BPM` / `isPlaying` / `ppqPosition`) | ✅ Capturado en cada bloque; el flanco de arranque del transporte (Play o loop/seek) realinea la fase del LFO global y del Master Mod FX (`DspEngineFacade::resetModulationPhase()`) |
+| `pluginval` automatizado en CI | ✅ `.github/workflows/pluginval.yml` (`--strictness-level 5 --skip-gui-tests`), además de `.github/workflows/ci.yml` (`tsc + vitest` + guard del puente). En verde en GitHub Actions ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632), `SUCCESS` y exit code `0`). El workflow instala el SDK de WebView2 por NuGet (JUCE lo exige para `NEEDS_WEBVIEW2`) y lanza `pluginval.exe` con `Start-Process -Wait`, porque al ser un ejecutable de subsistema GUI PowerShell no bloquea con `&` y `$LASTEXITCODE` queda vacío |
+
+Criterios auditados: **todos cerrados**. Verificado en local con compilación limpia del VST3, 18/18 tests de `DspEngineFacadeTests` y pluginval 1.0.4 con strictness 5 (`SUCCESS`; el validador reporta latencia `0` y cola `0,93 s`, coherentes con `setLatencySamples(0)` y `getTailLengthSeconds()`), y en GitHub Actions con el workflow `pluginval` en verde ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632)).
 
 ---
 ---
@@ -347,7 +445,9 @@ Todo sintetizador de la suite `ABDSynths` debe cumplir estos **6 contratos de in
 
 ---
 
-## 2. Matriz de Adopción de Estándares Propios y `ABDShared` entre los 5 Sintetizadores
+## 2. Matriz de Adopción de Estándares Propios y `ABDShared` entre los 5 Sintetizadores Auditados
+
+> `ABDAxionikVS` aún no tiene columna propia en esta matriz: los 20 criterios no se han auditado uno a uno. Lo verificado hasta ahora está en la sección «Estado auditado de `ABDAxionikVS`» (calidad VST3) y en el protocolo de verificación (§4).
 
 | Estándar Propio / Módulo `ABDShared` | `ABDEep` | `ABDMS2000` | `ABDCZ101` | `ABDNeural` | `ABDJUNiO601` |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -452,7 +552,15 @@ Estos anti-patrones **ya han sido eliminados en `ABDEep` y en `ABDMS2000`**, per
 
 ## 🧪 4. Protocolo de Verificación Estándar (Checklist para Pasar a cualquier Sintetizador `ABDSynths`)
 
-Para certificar que cualquiera de los sintetizadores (`ABDEep`, `ABDMS2000`, `ABDCZ101`, `ABDNeural`, `ABDJUNiO601`) está **100% listo para producción**, ejecuta siempre estos 6 pasos:
+Para certificar que cualquiera de los sintetizadores (`ABDEep`, `ABDMS2000`, `ABDCZ101`, `ABDNeural`, `ABDJUNiO601`, `ABDAxionikVS`) está **100% listo para producción**, ejecuta siempre estos 6 pasos. Los comandos de ejemplo usan el nombre de artefacto de `ABDEep`: sustitúyelo por el del proyecto auditado (en `ABDAxionikVS`, `build.bat nopause` y `build\ABDAxionikVS_artefacts\Release\...`):
+
+> **Gates añadidos (revisión 2026-11):**
+> - [ ] Las estructuras de los ring buffers SPSC son 100 % trivially copyable, con `static_assert` presente y sin punteros ocultos al heap.
+> - [ ] Los eventos globales UI → audio viajan como flags atómicos; ningún `SpinLock` pesado compartido con el hilo de audio.
+> - [ ] El robo de voz limpia o interpola el estado del filtro, no solo el VCA.
+> - [ ] El bypass mantiene vivas las colas de Delay/Reverb (sin eco fantasma al reactivar).
+> - [ ] Las curvas bipolares no lineales son continuas en pendiente en el centro.
+> - [ ] Los gestos de automatización de la WebUI son individuales por transacción de ratón, pero quedan bajo un *batch flag* durante la carga de presets para no inundar al host.
 
 1. **Verificación de Contratos y Registros Generados:**
    ```bash

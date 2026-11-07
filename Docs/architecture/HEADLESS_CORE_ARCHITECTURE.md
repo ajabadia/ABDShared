@@ -119,6 +119,8 @@ JUCE Editor / AudioProcessor
 - **Comandos discretos:** notes, latch writes, reset y triggers llevan timestamp/offset si el contrato temporal lo necesita. Se transportan en cola de capacidad acotada, con política explícita al llenarse.
 - **Estado:** el core/processor publica un snapshot seguro. El editor lo consulta a frecuencia moderada y emite eventos a la página ya cargada y visible.
 - **Visualización:** forma de onda/espectro se reduce/precalcula en host/core; nunca se envían muestras de audio crudas una por una a JavaScript.
+- **Telemetría sin lector:** el tap de visualización no debe costar nada cuando no hay editor. Si el índice de consumo no avanza durante N bloques, el productor deja de escribir (bandera atómica `telemetryEnabled`, que el editor pone a `false` antes de destruirse) y el primer lector nuevo reanuda el flujo. Un buffer lleno sin consumidor **descarta lo más antiguo y sigue**: esperar en el productor es esperar en el hilo de audio.
+- **Bajada de ciclo del editor:** al destruirse el `AudioProcessorEditor`, el puente invalida sus funciones nativas y espera confirmación de la página antes de soltar el `WebBrowserComponent`. Un callback de JS que llega a un objeto ya destruido no rompe al arrancar: rompe al cerrar el proyecto del usuario, que es mucho peor de diagnosticar.
 - **Archivos:** el diálogo y lectura/hash de ROM se realizan fuera del audio thread. La UI no proporciona rutas arbitrarias como autoridad de acceso; el host elige y valida el archivo.
 
 El hilo de audio no realiza operaciones de filesystem, bloqueos, logging, allocations no acotadas ni llamadas a WebView/GUI. La estrategia concreta de cola, snapshot, buffers y desbordamiento debe probarse y documentarse antes de declararse lock-free o thread-safe.

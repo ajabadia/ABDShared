@@ -61,6 +61,7 @@
 - [ ] **S6.2** Zip-Slip: rechazar entradas con `..`, ruta absoluta o que tras normalizar escapen de su capa. Mantener filtro `__MACOSX/.DS_Store/._*`.
 - [ ] **S6.3** `manifest.json`/`provenance.json` del ZIP se validan por `magic`/`schemaVersion`; el resto se ignora si no casa.
 - [ ] **S6.4** `cover.webp` se revalida (cabecera RIFF/WEBP + dimensiones), nunca se confía en la meta del ZIP.
+- [ ] **S6.5** Ratio de descompresión acotado, además del tamaño absoluto: bytes expandidos ≤ K × bytes en disco (referencia: 20 para ZIP de bancos, 50 para SF2/SFZ con samples comprimidos) y tope absoluto por entrada. Un contenedor que declara samples enormes con datos muy comprimidos agota la memoria antes de que el cap de tamaño de fichero lo detecte.
 
 ## 7. Service Worker / build
 
@@ -77,6 +78,35 @@ Todo PR que toque IO externo debe marcar:
 - [ ] Nueva ruta bridge → auth + test traversal `../../`.
 - [ ] Nuevo `innerHTML` → escape + test XSS ampliado.
 
+- [ ] El código nativo del puente revalida tipo, rango y longitud de cada payload antes de mapearlo a parámetros o al estado persistido.
+- [ ] El cargador de samples dimensiona sus buffers por el tamaño real del fichero, nunca por los metadatos del header.
+
 ## 9. Tests de regresión mínimos
 
 WAV truncado, SF2 con `subSize` absurdo (<2 s), ZIP bomba (caps), SFZ oversize + tope regiones, escape neutraliza `\"><img onerror>`, SSRF (`http://169.254.169.254/` rechazado), `webpDataUrl` gigante rechazado, `rel_path=../../evil` rechazado.
+
+---
+
+## 10. Puente nativo C++ ↔ WebView2 (la frontera real)
+
+Sanitizar solo en el frontend no protege nada: con las DevTools de WebView2 abiertas, cualquiera puede llamar a `window.chrome.webview.postMessage()` con un JSON arbitrario y saltarse por completo §2. El puente nativo es la frontera de confianza.
+
+- [ ] **S10.1** El handler nativo (`BridgeActions` / `WebView2Bridge`) valida estructuralmente antes de parsear: objeto, claves en allowlist, tipo por campo, rango numérico contra el `ParameterRegistry`, longitud máxima de strings y tamaño máximo del mensaje.
+- [ ] **S10.2** Un valor fuera de rango se recorta o se descarta; nunca llega a `setValueNotifyingHost()` ni al XML de persistencia.
+- [ ] **S10.3** Los mensajes desconocidos se ignoran en silencio y se registran sin volcar el payload (S2.5 / S5.5).
+- [ ] **S10.4** Un XSS en la UI puede no romper el DSP, pero sí corromper el estado que el DAW guarda y relee: la validación nativa no es opcional.
+
+## 11. Filesystem local: enlaces simbólicos y memoria
+
+- [ ] **S11.1 (corrige S5.3)** `commonpath` sobre `abspath` no protege frente a symlinks: un enlace dentro de la librería que apunta a `/etc/passwd` resuelve como si estuviera dentro. Resolver con `pathlib.Path.resolve(strict=True)` **antes** de validar la pertenencia, y rechazar lo que escape.
+- [ ] **S11.2** En C++ la equivalencia es resolver el enlace (`juce::File::getLinkedTarget()`) sobre `getFullPathName()` y comparar con el prefijo canónico de la librería; rechazar también rutas que no existan en disco.
+- [ ] **S11.3** Las reservas de memoria para buffers de samples se dimensionan con el tamaño real del fichero (`os.path.getsize()` / `juce::File::getSize()`), nunca con lo declarado en el header: un WAV que declara 4 GB y ocupa 2 KB provoca un OOM DoS si se hace `resize()` antes de leer.
+- [ ] **S11.4** El header se valida además por coherencia: nº de canales acotado (≤ 8), `bitsPerSample` en allowlist, chunk `data` que quepa en el fichero real y duración declarada acotada.
+
+## 12. Checklist rápida de PR (adiciones 2026-11)
+
+- [ ] El puente C++ descarta y sanitiza cualquier parámetro fuera de rango enviado desde WebView2 (no se confía en la validación de JS).
+- [ ] Las rutas del companion se resuelven con `Path.resolve(strict=True)` antes de `commonpath`.
+- [ ] El cargador de samples no reserva memoria a partir de los metadatos del header.
+- [ ] Los payloads que cruzan un ring buffer SPSC son trivially copyable.
+- [ ] Los contenedores (ZIP/SF2/SFZ/WAV) rechazan ratios de descompresión anómalos, no solo tamaños absolutos grandes (S6.5).

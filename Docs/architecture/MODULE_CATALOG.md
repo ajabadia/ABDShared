@@ -654,3 +654,16 @@ Criterio general: **estandarizar INTERFAZ POR FAMILIA, con el algoritmo/hardware
 - Interfaz unificada de filtro/oscilador/VCA/noise/mixer. **(De esa lista, el oscilador ya la tiene desde el 2026-10-06: ver §6.4.)**
 - Componente compartido de panel/knobs/switches.
 - El modelo de circuito del ca-72 (solo existe en el recurso externo).
+
+---
+
+## 10. Catálogo generado desde el código (propuesta, 2026-11-07)
+
+El inventario de §3 se escribió leyendo headers a mano, así que cualquier cambio de firma lo invalida sin que nadie lo note (es la lección 16 de `LECCIONES_APRENDIDAS_DSP_THREAD_SAFETY.md`).
+
+**Alcance realista:** generar solo el **inventario de firmas** (§3). La prosa de §1–§2 y las decisiones de §8 son criterio humano y no se generan.
+
+1. **Script de extracción:** `Scripts/catalog_generator.js` (o Python) recorre `Code/<Familia>/*.h`, extrae `namespace`, clase y métodos públicos, y escribe `MODULE_CATALOG.gen.md` entre marcadores (`<!-- gen:start -->` / `<!-- gen:end -->`) dentro de este documento. La prosa queda fuera de los marcadores y nunca se toca.
+2. **Flag `--check`:** compara lo generado con lo versionado y devuelve código distinto de cero si hay deriva. Mismo patrón que `registry_generator.js --check` del registro de parámetros.
+3. **Gate en CI:** el job falla si el catálogo no coincide con el código; el PR incluye la regeneración o no pasa.
+4. **Introspección completa (más adelante):** `libclang`/Doxygen dan firmas y tipos exactos, pero añaden toolchain a la imagen de CI. Se adopta el día en que el extractor ligero se quede corto con plantillas, sobrecargas o alias de tipos.

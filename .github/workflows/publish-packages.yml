@@ -34,19 +34,19 @@ jobs:
       - name: Run I18n tests
         working-directory: Components/I18n
         run: |
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
           npm test
 
       - name: Run Contracts tests
         working-directory: Contracts
         run: |
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
           npm test
 
       - name: Run Scope WebUI tests
         working-directory: Code/Scope/WebUI
         run: |
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
           npm test
 
       - name: Publish @abdsynths/i18n

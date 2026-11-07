@@ -169,6 +169,17 @@ Eso da un nivel 1 completo sin tocar el lazo de audio ni crear nuevo módulo.
 - [x] **Revisión Synth Profile & Paridad microKORG vs MS2000:**
   - [x] **Sincronización Bidireccional Tema <-> Perfil:** Vinculado el `ThemeSwitcher` del navbar con `synthMode` del store y el bridge de forma bidireccional (cambiar tema visual conmuta el perfil del motor y viceversa, verificado con `synthProfileSync.test.js`).
   - [x] **Impacto Real en DSP / WASM:** `WasmBridge.cpp` ahora soporta y despacha `synthMode` (4 voces vs 32 expandidas), `voiceMode`, `unisonDetune` y `unisonSpread` a `VoiceManager`.
+
+> **🟡 Marca de revisión (2026-11-07) — la paridad de modelos ya es funcional; falta la tabla que lo demuestra.**
+> La crítica externa pide que el selector de la barra superior «gobierne de verdad» la polifonía, el vocoder y el
+> catálogo en lugar de cambiar solo el skin. Este apartado documenta exactamente eso: `synthMode` despacha a
+> `VoiceManager` (4 vs 32 voces), el vocoder pasa de 8 a 16 bandas, el Mod Sequencer queda inhibido y los slots de
+> modulación cambian de 8 a 4. La premisa («solo cosmético») es incorrecta.
+> **Hueco real:** no existe una **tabla única skin → consecuencias** (polifonía, bandas de vocoder, slots, efectos y
+> filtrado de catálogo). Hoy esa información está repartida entre este apartado, `WASM_DSP_BUILD_GUIDE.md` y
+> `BANK_MANAGER_INTEGRATION.md`, así que nadie puede verificar de un vistazo que las tres capas coinciden. Añadirla
+> como contrato de aceptación es lo único que falta para poder afirmar «paridad funcional» con evidencia.
+> **Prioridad:** baja (documentación); el motor ya cumple. Ver `REVISION_INTEGRATION_2026.md` §2.9.
   - [x] **Vocoder (8 canales microKORG vs 16 bandas MS2000):** Actualización dinámica de card `#card-vocoder` (`8-CHANNEL VOCODER` / `8 CHANNELS` / `ON (8 Channels Active)` vs `16-BAND VOCODER` / `16 BANDS` / `ON (16 Bands Active)`) y consola gráfica del drawer de vocoder adaptada dinámicamente según el perfil activo (muestra 8 faders duales `CH 1`..`CH 8` sincronizando pares de bandas [1,2]..[15,16] en microKORG, y 16 bandas discretas `B1`..`B16` en MS2000/Advanced, con refresco reactivo al cambiar de perfil).
   - [x] **Desactivación del Mod Sequencer en microKORG:** En perfil microKORG, el Mod Sequencer queda completamente inhibido en DSP nativo (`SynthEngine.cpp`) y WASM (`WasmBridge.cpp`). En WebUI, la tarjeta muestra badge `ARPEGGIATOR`, el botón `MOD SEQ` queda atenuado como no disponible, el resumen indica `N/A (microKORG)` y el drawer muestra panel informativo con conmutador directo a MS2000.
   - [x] **Matriz de Modulación Virtual:**

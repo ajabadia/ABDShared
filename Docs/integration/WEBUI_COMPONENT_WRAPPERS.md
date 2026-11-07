@@ -17,6 +17,21 @@ All wrappers live in `src/components/shared/` and are exported from `src/compone
 | onChange | User edits only | Fires with real 0..127 value + paramId |
 | setValue() | Silent (no onChange) | Silent by default, `notify=true` fires onChange |
 
+> **🟠 Marca de revisión (2026-11-07) — falta el gesto de automatización, no la introspección de DOM.**
+> La crítica externa supone que los wrappers leen texto del DOM para sincronizarse con C++ y que emiten una
+> actualización reactiva por pixel de ratón. Este documento describe lo contrario: el valor vive en `paramStore`,
+> viaja como **número 0..127** a `bridge.setParam(paramId, val)` y `setValue()` es silencioso por defecto — no hay
+> lectura de texto ni escritura especular en el DOM.
+> **Hueco real:** `onDragStart` / `onDragEnd` existen pero el documento **no los conecta a `beginChangeGesture()` /
+> `endChangeGesture()`** de `RangedAudioParameter`. Sin eso, el host no agrupa el arrastre en un solo gesto de
+> automatización: el DAW graba un punto por cada paso y el «undo» no revierte el movimiento completo. Es un
+> contrato de una línea por wrapper y afecta a `ABDKnob`, `ABDSlider`, `ABDFilmstripFader` y `ABDSegmented`.
+> **Mejoras de la misma pasada:** (1) `setPointerCapture` en `pointerdown` para que el arrastre sobreviva a salir del
+> elemento; (2) coalescer `pointermove` con `requestAnimationFrame` (un envío por frame, no por evento), que es el
+> patrón que evita el «miles de actualizaciones» que la crítica teme; (3) `pan/multi-touch` documentado o declarado
+> fuera de alcance.
+> **Prioridad:** alta — es corrección funcional de cara al host, no cosmética. Ver `REVISION_INTEGRATION_2026.md` §2.3.
+
 ---
 
 ## ABDKnob

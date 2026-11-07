@@ -50,6 +50,19 @@ Sin ids de ruedas, el componente no monta pitch/mod (el motor no las tiene).
 Sí genera sus botones **ALL OFF** (→ `allNotesOff`) y **SUSTAIN**, que sostiene
 notas retrasando el `noteOff`; el motor no tiene pedal propio.
 
+> **🟡 Marca de revisión (2026-11-07) — la autoridad ya está en C++, falta cerrar la pérdida de foco.**
+> La crítica externa supone que la máquina de estados MIDI vive solo en JS. No es el caso: este documento fija
+> «C++ sigue siendo la autoridad de la nota; el keybed no guarda estado musical propio» y el componente ya expone
+> `onPanic` → `allNotesOff`. Eso cubre el caso normal.
+> **Hueco real:** qué pasa si el `pointerup` ocurre **fuera** del elemento o la ventana pierde el foco. Hay que
+> escuchar `pointercancel`, `blur` y `visibilitychange` y emitir `noteOff` de las notas activas; además, un
+> **watchdog nativo** (si no llega ningún `noteOff` en N ms y no hay teclas pulsadas, `panic()`) convierte un fallo
+> de la UI en un silencio, no en una nota colgada.
+> **Lo que no se adopta:** interceptar `Ctrl+H` / `Alt+R` «en la frontera nativa para que el DAW no los consuma».
+> Un plugin no puede arrebatarle atajos globales al host de forma fiable, y aquí `enableHold`/`enableRetrig` están en
+> `false` justamente porque sobre la CPU emulada dejan notas sonando. Documentarlos como no disponibles es correcto.
+> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.2.
+
 **Contrato de altura**: `#piano-keyboard` lleva `height: 155px` en
 `WebUI/src/main.css`. WebView2 no resuelve `height: 100%` a través de cadenas
 flex y las teclas colapsan a una fracción de píxel si falta. La franja es

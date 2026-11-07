@@ -28,7 +28,7 @@ Este documento vivía en `WebPilot/BRIDGE_PROTOCOL.md` y se mudó a `DOCS/` con 
 commit de retirada del piloto (ticket 8.4, 2026-09-19): describe un componente **vivo**, y su
 dueño pasó a ser la WebUI.
 
-## Canal y direcciones (JUCE 8)
+## Canal y direcciones (JUCE 8/9)
 
 Hay dos canales con direcciones opuestas. Confundirlos es el fallo silencioso que ya
 costó una depuración larga en ABDMS2000 (el guard `NEURONiK_WebViewBridgeDirection`
@@ -97,6 +97,21 @@ informativos y solo viajan nativo -> JS.
 - **Clamping**: los valores JS fuera de 0..1 se acotan antes de entrar al APVTS.
 - **Modo local**: sin `window.__JUCE__.backend`, todos los envíos son no-ops y la
   página funciona con estado propio (navegador normal, `next dev` aislado).
+
+> **🟡 Marca de revisión (2026-11-07) — tipado del contrato y acuse de recibo.**
+> El contrato versionado con tests anti-drift ya resuelve lo que la crítica externa echa en falta (mensajes planos sin
+> contrato): hay JSON versionado, literales a ambos lados y dos tests que fallan si divergen. Lo que **sí** falta:
+> (1) **tipos TypeScript derivados del contrato** — hoy los literales viven tres veces (JSON, `ParameterBridge.h`,
+> `bridgeCore.js`) y una unión discriminada escrita a mano sería una cuarta copia; lo correcto es **generar**
+> `bridge-protocol.d.ts` desde el JSON y que el test anti-drift lo cubra; (2) **acuse explícito en mutaciones**
+> (un `parameterApplied { id, value }` nativo→JS), porque hoy el eco se resuelve marcando el valor como conocido y
+> un `setValueNotifyingHost` rechazado por el host no se distingue de uno aceptado.
+> **Lo que no se adopta:** un *handshake* de petición/respuesta por mensaje. A 60 Hz de arrastre añade latencia sin
+> arreglar nada: el orden ya lo garantiza el canal y el problema real es la pérdida, que se cubre con el snapshot
+> de `requestState` y el `pageLoaded` que cierra gestos.
+> **La telemetría no va por aquí:** el osciloscopio tiene su propio canal SPSC (`SCOPE_INTEGRATION_GUIDE.md`);
+> meter muestras de audio en este bus sería el antipatrón que la crítica describe, y no ocurre.
+> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.1.
 
 ## Política de versiones
 

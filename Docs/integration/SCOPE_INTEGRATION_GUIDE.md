@@ -105,6 +105,20 @@ La comunicación entre el backend C++ y el frontend WebUI embebido se realiza me
 * **`timeDataL` / `timeDataR`**: Muestras normalizadas en el rango `[-1.0, 1.0]`.
 * **`detectedFreq` / `detectedNoteName`**: Estimación producida por `TriggerDetector` con histéresis adaptativa al pico.
 
+> **🟡 Marca de revisión (2026-11-07) — el transporte ya es el correcto; falta el techo del frame.**
+> La crítica externa pide mover la captura a un ring SPSC y a un hilo de telemetría a ~30 Hz. Eso es exactamente lo
+> que este documento describe: `ScopeTap::writeStereo()` lock-free en el hilo de audio, `ScopeDataCollector` fuera
+> de él y tramas a 30–60 Hz. La premisa («callbacks síncronos con muestras crudas») no aplica.
+> **Hueco real:** el esquema JSON no fija **tamaño máximo de trama** ni **decimación**. `numSamples: 256` a dos canales
+> en JSON con decimales ronda 6–10 KB por trama; a 60 Hz son ~600 KB/s de texto que el WebView parsea en el hilo de
+> UI. Reglas que faltan: `numSamples` acotado (≤ 2048), decimación declarada para ventanas largas y presupuesto de
+> ancho de banda por tap.
+> **Alternativa si la medición lo justifica:** enviar las muestras en un `ArrayBuffer` (una sola lectura tipada, sin
+> parseo de números) y, solo para volúmenes altos, `PostSharedBufferToScript` de WebView2. **Ojo:** `SharedArrayBuffer`
+> exige aislamiento de origen (COOP/COEP) y no es intercambiable con el mensaje nativo habitual; no se adopta de
+> entrada.
+> **Prioridad:** baja hasta tener medida de CPU del WebView con 4 carriles abiertos. Ver `REVISION_INTEGRATION_2026.md` §2.5.
+
 ---
 
 ## 6. Frontend WebUI, Temas y Assets

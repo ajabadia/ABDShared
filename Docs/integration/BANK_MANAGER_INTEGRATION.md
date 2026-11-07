@@ -216,6 +216,19 @@ document.getElementById('btn-open-bank-manager')?.addEventListener('click', () =
 });
 ```
 
+> **🟠 Marca de revisión (2026-11-07) — `iframe` y filtrado de modelos.**
+> Dos matices frente a la crítica externa. (1) **No hay `file://`**: el `src` del iframe es una ruta servida por el
+> `ResourceProvider` de JUCE/WebView2, así que el diagnóstico de CORS es incorrecto para este diseño. Lo que sí es
+> cierto es el coste: un iframe abre un contexto de navegación propio (otra sesión de JS, sin acceso directo al DOM
+> del host) y obliga a un puente entre marcos — `window.parent.__synthBridge` — que se rompe en cuanto cambia
+> cualquiera de los dos lados. La alternativa madura es montar la UI del Bank Manager como **módulo ES en el mismo
+> documento** cuando el host lo permita, dejando el iframe solo para el modo standalone.
+> (2) **El filtrado por contrato ya existe y es más estricto que `allowedModels`**: la acción `hostModel` (PASO 5.1)
+> acota navegación, selector, búsqueda **y el desplegable de MIDI** al modelo del host y sus `compatibleModels`, y un
+> `modelId` desconocido deja el catálogo vacío en vez de mostrar 22 modelos. Un array de ids permitidos sería una
+> versión más pobre de lo ya implementado.
+> **Prioridad:** media (iframe), ninguna (filtrado). Ver `REVISION_INTEGRATION_2026.md` §2.4.
+
 ---
 
 ### PASO 4: Theming por Variables CSS
@@ -390,7 +403,7 @@ Recomendaciones de integración:
    (`{ listening, device }`) y `hardware.error` (texto). Sin dispositivos, contestar el motivo es lo que
    evita que el usuario espere 128 timeouts de 5 s: el Bank Manager corta el fetch y lo explica.
    Referencia: `ABDMS2000/Source/Plugin/HardwareMidiTransport.h` + `BridgeActions::handleJsEvent()`.
-9. **Dirección del canal nativo → JS (JUCE 8):** el mensaje sale con
+9. **Dirección del canal nativo → JS (JUCE 8/9):** el mensaje sale con
    `WebBrowserComponent::emitEventIfBrowserIsVisible(eventId, object)`, que es lo que dispara los
    `window.__JUCE__.backend.addEventListener(eventId, …)` del WebUI. El
    `window.__JUCE__.backend.emitEvent(...)` **del JS** es la dirección contraria (JS → nativo,
@@ -495,6 +508,13 @@ target_link_libraries(\ PRIVATE ABDBankManager::ABDBankManagerCore)
 ---
 
 #### 6.2 BridgeActions.cpp — Uso de \ABD::BankManager::BankManagerCore\
+
+> **🔵 Marca de revisión (2026-11-07) — el PASO 6 no se renderiza.**
+> Desde este punto el documento tiene los delimitadores escapados (`\\`` en lugar de valla de código) y barras
+> invertidas ante identificadores, heredado de un pegado que perdió el formato: los bloques de código y las tablas
+> de este apartado salen como texto plano. No se toca aquí porque el contenido técnico es correcto; se marca para
+> reformatear el apartado en la próxima pasada editorial (tarea mecánica, sin cambio de contenido).
+> **Prioridad:** baja. Ver `REVISION_INTEGRATION_2026.md` §2.4.
 
 Reemplaza la lógica custom de extracción/inserción de patches por la API unificada:
 

@@ -71,6 +71,14 @@ xcrun notarytool submit ABDMS2000_Setup_Mac.pkg \
 xcrun stapler staple ABDMS2000_Setup_Mac.pkg
 ```
 
+> **🔴 Marca de revisión (2026-11-07) — credenciales de notarización en la línea de comandos.**
+> `--apple-id` + `--password` en el comando deja la contraseña específica de app en el historial del shell y en los
+> logs del runner. **Alternativa:** un perfil de llavero creado una vez
+> (`xcrun notarytool store-credentials "ABD-notary" --apple-id … --team-id … --password …`) y luego
+> `xcrun notarytool submit … --keychain-profile "ABD-notary" --wait`; en CI, clave de API
+> (`--key`, `--key-id`, `--issuer`) desde secretos. Mismo resultado, sin secreto en el comando.
+> **Prioridad:** alta (seguridad, coste cero). Ver `REVISION_INTEGRATION_2026.md` §2.8.
+
 ---
 
 ## 3. Pipeline de Compilación en Windows (VST3 / Standalone)
@@ -82,6 +90,15 @@ cd build
 cmake -G "Visual Studio 17 2022" -A x64 ..
 cmake --build . --config Release --parallel
 ```
+
+> **🟠 Marca de revisión (2026-11-07) — generador fijado y binario no universal.**
+> `-G "Visual Studio 17 2022"` fija una versión concreta: en un runner con VS 18 2026 o con solo Build Tools
+> instalados, el configure falla. **Alternativa:** dejar que CMake elija el generador por defecto (`cmake -B build
+> -A x64` sin `-G`), que es lo que ya hace el CI de `ABDAxionikVS`.
+> Además, el pipeline de macOS de este documento **no produce binario universal**: sin
+> `-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"` el artefacto sale solo para la arquitectura del runner, que es
+> precisamente lo que el criterio 15 de calidad exige evitar.
+> **Prioridad:** media (rompe builds y distribución). Ver `REVISION_INTEGRATION_2026.md` §2.8.
 
 ### Paso 2: Crear el instalador ejecutable (.msi) usando WiX Toolset
 Script de instalación para el directorio universal de VST3 (`C:\Program Files\Common Files\VST3`):
@@ -117,6 +134,14 @@ Compilar el `.msi`:
 candle.exe Bundle.wxs
 light.exe Bundle.wixobj -out ABDMS2000_Setup_Win.msi
 ```
+
+> **🟠 Marca de revisión (2026-11-07) — WiX 3 está al final de su vida.**
+> El esquema del `.wxs` (`xmlns=.../2006/wi`) y la pareja `candle` + `light` son **WiX 3**, que ya no recibe
+> mantenimiento; los instaladores modernos se construyen con **WiX 4/5** (`wix build Bundle.wxs -o …`) y esquema
+> `http://wixtoolset.org/schemas/v4/wxs`, con `MajorUpgrade` y `Scope="perMachine"` explícitos.
+> **Alternativa:** migrar el `.wxs` a v4 y ejecutar `wix build`; el `UpgradeCode` debe conservarse **tal cual** para
+> que las actualizaciones reconozcan la instalación anterior.
+> **Prioridad:** media. Ver `REVISION_INTEGRATION_2026.md` §2.8.
 
 ---
 

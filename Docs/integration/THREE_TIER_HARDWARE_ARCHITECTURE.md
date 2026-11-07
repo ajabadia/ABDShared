@@ -89,6 +89,8 @@ El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo herman
   }
 }
 ```
+
+```text
                                 │
 │                                      ▼                                       │
 │  ┌────────────────────────────────────────────────────────────────────────┐  │
@@ -107,6 +109,21 @@ El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo herman
 ```
 
 ---
+
+> **🟠 Marca de revisión (2026-11-07) — este documento no es el de los «3 dominios», y tiene un corte de pegado.**
+> La crítica externa pide aquí «mapear las 6 funciones canónicas de conversión desde `ParameterMeta` para que el DSP
+> solo opere en Hz/ms/dB». Eso corresponde a la capa de traducción de parámetros
+> (`../architecture/PATRON_DUAL_ENGINE_SANCTUARY.md` y el esquema `ParameterMeta`), **no** a este documento, que
+> describe los tres **niveles de hardware** (contratos JSON → drivers compartidos → fachadas de aplicación) del
+> ecosistema ABDAudioLab. Son tres niveles de responsabilidad, no tres dominios de unidades: la confusión de la
+> crítica es de nombres, y adoptarla aquí duplicaría la capa donde ya vive.
+> **Defecto real que sí hay que corregir:** el apartado «Nivel 0» termina con un fragmento de diagrama huérfano
+> (le falta la valla de apertura y buena parte del dibujo; se ha encerrado en valla `text` en esta revisión para que
+> no se trague el resto del documento) y hay **dos apartados numerados «2»** («Nivel 0» y «Nivel 1»),
+> además de dos rutas distintas para los contratos (`contracts/hardware_profile.schema.json` y
+> `contracts/hardware/<id>.json`) que conviven sin decir cuál manda. Nada de esto es deuda técnica: es un pegado
+> incompleto que hay que reformatear y renumerar.
+> **Prioridad:** media (legibilidad); la reubicación de la crítica, ninguna. Ver `REVISION_INTEGRATION_2026.md` §2.7.
 
 ## 2. Nivel 1: Contratos JSON Compartidos (`ABDSharedAssets`)
 

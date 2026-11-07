@@ -50,6 +50,17 @@ JavaScript (Web/Worker)
 | **-msimd128** | Enables WebAssembly SIMD 128-bit instructions for vectorised DSP loops. |
 | **gParamMap string-keyed** | Parameters are set via string keys (`"vcfFreq"`, `"attack"`) mapped in `syncParamsFromMap()` → `SynthParams` struct. |
 
+> **🔴 Marca de revisión (2026-11-07) — esta capa duplica fuentes en vez de compartirlas.**
+> Dos hechos del propio documento lo delatan: se **copian** `juce_core`, `juce_audio_basics` y `juce_dsp` desde
+> `C:\JUCE` (parcheando `juce_ThreadPriorities_native.h` en cada build) y la lista de `Juno*.cpp` se mantiene aquí,
+> no en el `DspSources.cmake` compartido. Eso es exactamente la deriva que el ecosistema prohíbe: dos listas de
+> fuentes que alguien tiene que recordar mantener sincronizadas, más una copia de JUCE dentro del árbol.
+> **Alternativa:** (1) mover la lista de fuentes de este target al `DspSources.cmake` común, consumido por nativo y
+> por Emscripten; (2) usar JUCE como submódulo/dependencia fijada en vez de copiar directorios, y aplicar el parche
+> de `ThreadPriorities` como *patch* versionado que falle en CI si ya no aplica; (3) dejar en `juce_shim/` solo los
+> stubs realmente necesarios, documentados uno a uno.
+> **Prioridad:** alta — es la deuda estructural más caras de este documento. Ver `REVISION_INTEGRATION_2026.md` §2.6.
+
 ## Prerequisites
 
 | Tool | Required version | Notes |
@@ -201,6 +212,18 @@ The existing `WebUI/script.js` currently communicates with the native JUCE plugi
 3. The `wasm_process_audio` call replaces the `onAudioBuffer` callback.
 
 This is the target architecture — currently only the native bridge path is active.
+
+> **🟠 Marca de revisión (2026-11-07) — «paridad» tiene que ser medible, no retórica.**
+> La crítica externa pide fuzzers que garanticen volcados SysEx **idénticos bit a bit** entre WASM y nativo. La
+> intención es correcta y la promesa, tal cual, también es falsa: en cuanto haya `std::sin`/`std::pow` del `libm`
+> de Emscripten o contracción FMA distinta, los bits no coinciden (ver la §6 de
+> `../architecture/PATRON_DUAL_ENGINE_SANCTUARY.md`).
+> **Alternativa medible:** (1) **vectores dorados** — un bloque fijo de entrada renderizado en nativo y en WASM, con
+> tolerancia declarada (0 ULP en el camino polinómico, ≤ 2 ULP donde quede `libm`) y fallo con índice de la primera
+> muestra divergente; (2) **fuzz de parámetros** contra el motor WASM buscando NaN/Inf y desbordes de rango, que es
+> donde un fuzzer sí encuentra bugs reales; (3) comparación de **SysEx** (bytes) que sí puede ser exacta, porque es
+> aritmética entera.
+> **Prioridad:** alta (es el gate que hoy no existe). Ver `REVISION_INTEGRATION_2026.md` §2.6 y §3.
 
 ## Troubleshooting
 

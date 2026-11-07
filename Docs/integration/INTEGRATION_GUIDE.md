@@ -1,6 +1,12 @@
 # 🔌 Guía Maestra de Integración — ABDShared
 
 > **Propósito:** Esta guía documenta el procedimiento oficial paso a paso para conectar o migrar cualquier sintetizador de la suite (`ABDCZ101`, `ABDMS2000`, `ABDEep`, `ABDJUNiO601`, `ABDNeural`, etc.) a la biblioteca transversal **`ABDShared`**.
+>
+> **Estado de revisión (2026-11-07):** los procedimientos de esta guía siguen vigentes. Las observaciones sobre los
+demás documentos del bloque, con sus alternativas y prioridades, están en
+> [`REVISION_INTEGRATION_2026.md`](REVISION_INTEGRATION_2026.md); las de los bloques hermanos, en
+> [`../architecture/MODERNIZACION_PROPUESTAS_2026.md`](../architecture/MODERNIZACION_PROPUESTAS_2026.md) y
+> [`../dsp/REVISION_DSP_2026.md`](../dsp/REVISION_DSP_2026.md).
 
 ---
 

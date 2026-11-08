@@ -85,11 +85,31 @@ public:
         // Analog transistor input soft-clipping
         const double x = std::tanh(static_cast<double>(sample));
 
-        // Feedback tap from last stage
-        const double fb = k * inputGain * static_cast<double>(stages[3].getLP());
+        // Lazo de la escalera resuelto sin retardo (ZDF). Las cuatro etapas son
+        // y_i = a*x_i + (1 - a)*z_i con el mismo a, asi que con u = 0 la salida
+        // de la cuarta es S = (1 - a)*(a^3*z1 + a^2*z2 + a*z3 + z4) y su ganancia
+        // es G = a^4. Cerrar el lazo u = inputGain*x - k*y4 da
+        //     y4 = (G*inputGain*x + S) / (1 + k*G)
+        //
+        // Antes este punto tenia tres defectos, todos medidos:
+        //  - la realimentacion se sumaba con signo + y escalada por inputGain,
+        //    o sea en oposicion de fase en el corte: subir la resonancia BAJABA
+        //    el pico (medido a 1 kHz: 0.20 rms con res=0 y 0.04 con res=1);
+        //  - se usaba la salida de la muestra anterior (z1*0.5, que ademas solo
+        //    coincide con el lp en regimen), lo que desafinaba el corte alto;
+        //  - updateCoefficients() inyectaba un sesgo constante en cada etapa y
+        //    dejaba la salida clavada en continua (0.697 para res=0.05).
+        const double a  = stages[0].getAlpha();
+        const double z1 = stages[0].getState();
+        const double z2 = stages[1].getState();
+        const double z3 = stages[2].getState();
+        const double z4 = stages[3].getState();
 
-        // Input summing junction
-        const double in = inputGain * (x + fb);
+        const double G = a * a * a * a;
+        const double S = (1.0 - a) * (a * a * a * z1 + a * a * z2 + a * z3 + z4);
+
+        const double y4  = (G * inputGain * x + S) / (1.0 + k * G);
+        const double in  = inputGain * x - k * y4;
 
         // Cascade through 4 one-pole LP stages
         const float lp1 = stages[0].process(static_cast<float>(in));
@@ -129,12 +149,15 @@ private:
         for (auto& s : stages)
             s.setCutoff(cutoffHz, sampleRate);
 
-        const double k         = 3.88 * static_cast<double>(resonance);
-        const double inputGain = 1.0 / (1.0 + k);
-        const double fb        = k * inputGain;
-
+        // El lazo de realimentacion del ladder se cierra en process(), con la
+        // salida de la cuarta etapa como tap. VAOnePoleFilter::setFeedback() NO
+        // es ese tap: suma una constante al sumador de cada etapa, o sea un
+        // escalon de continua que el filtro no puede quitar (medido: salida
+        // clavada en 0.697 con res=0.05, dc/rms = 1.000, independiente del
+        // corte). Se deja explicito en cero para que la constante no vuelva a
+        // colarse; el mismo criterio que ya usa KorgMS20VCF.
         for (auto& s : stages)
-            s.setFeedback(fb);
+            s.setFeedback(0.0);
     }
 };
 } // namespace abd::dsp

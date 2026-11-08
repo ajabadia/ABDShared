@@ -37,6 +37,8 @@ Resumen: de **12 afirmaciones sustantivas**, 5 son falsas o no aplican al docume
 
 Los cuatro filtros documentados son **ZDF/TPT**: `VAOnePoleFilter` (integrador trapezoidal), `JunoVCF_ZDF` (cascada de 4 etapas con Padé [3/3] y Newton), `MoogLadderVCF` (4 polos en cascada) y `KorgMS20VCF` (Sallen-Key K35). También hay sobremuestreo polifásico IIR 2x/4x. Es decir: la crítica pide exactamente lo que el documento describe.
 
+> **Actualizado 2026-11-08 — matiz a la frase anterior:** la cascada del Moog era ZDF por etapas, pero el **lazo** no estaba resuelto (realimentaba la muestra anterior, con signo invertido y con un sesgo constante por etapa), y el Juno tampoco resolvía bien la respuesta a entrada nula de su ladder. Ambos quedan corregidos y medidos en **§5**; el K35 no cambia, su barrido ya pasaba.
+
 Lo que **sí** queda como riesgo real, y es lo que se ha marcado:
 
 1. **Korg K35 — realimentación explícita (prioridad alta).** `x = sample + tanh(k · lp2)` usa `lp2` de la muestra anterior: el lazo resonante no se resuelve, se aproxima con un retardo. A `k` alto y corte cerca de Nyquist puede oscilar de forma no física; el clipper de diodos mantiene el valor acotado pero no corrige el comportamiento. Alternativa: Newton sobre el mismo `tanh`, o evaluar la realimentación en el dominio sobremuestreado.
@@ -106,6 +108,40 @@ Criterio de prioridad: primero lo que produce un defecto **audible para el usuar
 4. **Gate de conteo** en el catálogo de efectos para impedir que tabla y cierre diverjan otra vez.
 5. **Newton condicional** en el VCF del Juno-106: coste cero en régimen normal, segunda iteración solo cerca de la auto-oscilación.
 6. **Aviso de latencia**: todo sobremuestreo añade retardo y debe compensarse con `setLatencySamples`, no declararse "despreciable".
+
+
+---
+
+## 5. Revisión 2026-11-08 — barrido de resonancia sobre los filtros no lineales
+
+> **Qué se hizo:** aplicar a `MoogLadderVCF`, `JunoVCF_ZDF` y `FilterEquation` el mismo invariante que ya se medía sobre el K35 (`testAnalogModeledFilters`, §3b): impulso, transitorio asentado, dos ventanas de 8 periodos de corte, y cuatro cotas — salida finita y acotada, cola estacionaria (nunca gana energía), a `res=0` el impulso se apaga, y sin componente de continua. El banco vive en `DspCoreTests.cpp` (`sweepNonlinearFilter` / `reportNonlinearSweep` / `testNonlinearFilterSweeps`).
+>
+> Se eligieron solo los filtros con realimentación y saturación. `FilterTpt`, `VAOnePoleFilter` y `ResonantFilterStage` son lineales y no aplican; las cabeceras declarativas sueltas (`MoogLadderVCF.h`, `JunoVCF_ZDF.h`, `MultiModeFilter.h` de la raíz de `DspCore`) siguen sin definiciones y no se tocan.
+
+### 5.1. Dos ajustes del banco, con su motivo
+
+1. **Suelo propio de ruido.** `JunoVCF_ZDF` inyecta ruido blanco adaptativo a propósito (`VcfCalibration::kNoiseLevelBase`, para enmascarar el zipper de coeficientes), así que la cola nunca llega a cero: se queda fluctuando en ~1e-4. Comparar esa cola con la ventana anterior marcaba "crecimiento" en todas partes. El banco mide ahora una **pasada en silencio** con la misma preparación y longitud, y las cotas de cola llevan `3×` ese suelo de tolerancia. No es relajar el criterio: por debajo del ruido propio no hay señal que juzgar.
+2. **Asentamiento de 800 periodos de corte (antes 200, con tope de 200k muestras).** Un lazo de Q alto a 20 Hz tarda decenas de segundos en llegar a su ciclo límite: medido, `FilterEquation` con `res=0.9` tarda ~25 s en estabilizarse en 0.158, y `JunoVCF_ZDF` con `res=0.9` ~9 s. Con 200 periodos se estaba midiendo el *ring-up* y llamándolo desbordamiento. Con 800 periodos los dos dan `cola/previa ≈ 1.00` y no hay falso positivo.
+
+### 5.2. Defectos encontrados y corregidos
+
+| Filtro | Síntoma medido | Causa | Corrección |
+|---|---|---|---|
+| `MoogLadderVCF` | Salida clavada en continua: 0.697 con `res=0.05`, `dc/rms = 1.000`, idéntica a 20 Hz y a 19 kHz, y creciendo con la resonancia (3.46 con `res=1`). El pico **bajaba** al subir resonancia: 0.20 rms con `res=0` → 0.04 con `res=1` a 1 kHz. | `updateCoefficients()` empujaba `k/(1+k)` como `setFeedback()` de cada etapa, que en `VAOnePoleFilter` suma una **constante** al sumador (escalón de continua). Además el lazo se cerraba con `+k·inputGain·lp(anterior)`: signo contrario y con un retardo de muestra. | Lazo ZDF resuelto sin retardo: `y4 = (G·x + S)/(1+kG)` con `G=a⁴` y `S=(1-a)(a³z₁+a²z₂+a·z₃+z₄)`, y tap **negativo** `u = inputGain·x − k·y4`. Las etapas quedan con `setFeedback(0)`. |
+| `JunoVCF_ZDF` | Con sobremuestreo 1x y **sin entrada**, silbaba a la frecuencia de corte: rms 0.77 a 12 kHz con `res=0.4`, 0.10 a 4 kHz con `res=0.7`. El onset real caía en `k=3.12` cuando la curva de resonancia lo sitúa en `k=4.04` (`res=0.86`). | La respuesta a entrada nula del ladder TPT se calculaba como `S = Σ s_i·g1^(n−i)`, sin el factor `(1−g1)` que sale de `y_i = g1·x_i + (1−g1)·s_i`. La realimentación entraba `1/(1−g1)` más fuerte de lo que suponía el propio denominador `(1+kG)`. | `S = (1−g1)·Σ s_i·g1^(n−i)`. Predicción `4.04·(1−g1) = 3.13` frente a los 3.12 medidos. Verificado: en silencio vuelve a ~3e-4 y la auto-oscilación sigue apareciendo exactamente en `res=0.86` a 250/1000/4000 Hz. |
+| `FilterEquation` | Crecimiento aparente del 17 % entre ventanas a 20 Hz con `res=0.9`. | No es defecto: es el *ring-up* del ciclo límite. | Ninguna al código; se corrigió el banco (5.1.2). |
+
+`VAOnePoleFilter::setFeedback()` se mantiene (no se quita) pero queda marcado `@deprecated` en la cabecera con las alternativas: cerrar el lazo en la clase que contiene la escalera con la salida de la última etapa como tap (lo que hacen Moog y Korg, ambos con `setFeedback(0.0)`), o envolver la etapa en un lazo externo. También se documentó que `getLP()` es una estimación (`z1·0.5`), exacta solo en régimen.
+
+### 5.3. Invariante nuevo del banco
+
+`en silencio no inventa señal (res ≤ 0.8)`: con entrada nula, la salida no puede superar `1e-2` de rms por debajo del umbral de auto-oscilación. Es la comprobación que habría cazado el silbido del Juno por sí sola, sin depender de que el ruido no tapase las demás. Por encima de `res=0.8` no se juzga: ahí la auto-oscilación es la función, no el defecto.
+
+### 5.4. Verificación
+
+- `ABDShared_DspCore_Tests` (Release): `[OK] DspCore: 4443 comprobaciones`, exit 0, con los cuatro barridos en verde y `suelo` del Juno en 9.8e-4.
+- `ABDAxionikVS_VST3` reconstruido (exit 0); ningún target de producción instancia estos tres filtros hoy (solo los ejercitan los tests), así que el cambio no altera audio publicado.
+- No verificado: escucha subjetiva del Moog corregido (el pico a `res=1` pasa de 0.04 a 1.39 rms a 1 kHz, con el `1/(1+k)` de compensación que ya tenía); si el timbre resultante no gusta, el ajuste es la curva de `resonance`, no la topología.
 
 
 ---

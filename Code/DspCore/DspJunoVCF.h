@@ -434,15 +434,28 @@ private:
         float G = 0.0f;
         float S = 0.0f;
 
+        // Respuesta a entrada nula del ladder TPT. Cada etapa es
+        //     y_i = g1 * x_i + (1 - g1) * s_i ;  s_i <- 2*y_i - s_i
+        // asi que, propagando las cuatro etapas con u = 0, queda
+        //     S = (1 - g1) * (s0*g1^3 + s1*g1^2 + s2*g1 + s3)
+        // y el denominador del lazo es (1 + k*G) con G = g1^4.
+        //
+        // Faltaba el factor (1 - g1): la realimentacion entraba 1/(1 - g1)
+        // mas fuerte de lo que el denominador suponia, y el lazo oscilaba antes
+        // del umbral de calibracion. Medido a 44.1 kHz con corte en 4 kHz: el
+        // onset real cae en k=3.12, cuando la curva de resonancia lo pone en
+        // k=4.04 (res=0.86); 4.04 * (1 - g1) = 3.13, que es lo medido.
+        // Sintoma: a 1x y sin entrada el filtro silbaba a 4-12 kHz desde
+        // res~0.4 (rms hasta 0.77 en silencio).
         if (mPoleMode == PoleMode::TwoPole)
         {
             G = g1 * g1;
-            S = s[0] * g1 + s[1];
+            S = (1.0f - g1) * (s[0] * g1 + s[1]);
         }
         else
         {
             G = g1 * g1 * g1 * g1;
-            S = s[0] * g1 * g1 * g1 + s[1] * g1 * g1 + s[2] * g1 + s[3];
+            S = (1.0f - g1) * (s[0] * g1 * g1 * g1 + s[1] * g1 * g1 + s[2] * g1 + s[3]);
         }
 
         float kFbScale = 4.20f * std::clamp((k - 2.5f) * 1.0f, 0.3f, 1.0f);

@@ -61,6 +61,7 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -98,6 +99,203 @@ void check(bool ok, const char* what)
         std::printf("[FAIL] %s\n", what);
         ++gFailures;
     }
+}
+
+//==============================================================================
+/**
+ * Barrido de resonancia x corte para un filtro no lineal con realimentacion.
+ *
+ * Es el mismo invariante que se mide sobre el K35 en testAnalogModeledFilters():
+ * un impulso, transitorio asentado y dos ventanas de OCHO periodos de corte.
+ *   - salida finita y acotada por el limitador del propio filtro
+ *   - cola estacionaria: un lazo estable sostiene o decae, nunca gana energia
+ *   - sin resonancia el impulso se apaga
+ *   - simetria: la auto-oscilacion no deja componente de continua
+ *
+ * Dos cosas que este banco necesita y el del K35 no, porque el K35 es un modelo
+ * de circuito sin ruido inyectado:
+ *
+ *   1. Suelo propio. Algunos de estos filtros suman ruido analogico deliberado
+ *      (JunoVCF_ZDF mete ruido blanco adaptativo para enmascarar el zipper de
+ *      los coeficientes). Su cola no tiende a cero: se queda fluctuando en ese
+ *      suelo. Por eso se mide una pasada en silencio, con la misma preparacion
+ *      y la misma longitud, y las cotas de la cola llevan 3x ese suelo de
+ *      tolerancia: por debajo del ruido del propio filtro no hay senal que
+ *      juzgar. Sin esta tolerancia el ruido se confunde con inestabilidad.
+ *
+ *   2. Asentamiento largo. Un lazo de Q alto a 20 Hz tarda decenas de segundos
+ *      en llegar a su ciclo limite (medido: FilterEquation res=0.9 ~25 s,
+ *      JunoVCF_ZDF res=0.9 ~9 s). Se esperan 800 periodos de corte en vez de
+ *      200 para no medir el ring-up y llamarlo desbordamiento. A 20 Hz son 40 s
+ *      de audio; en los cortes altos el minimo de 6000 muestras manda.
+ *
+ * `prepare(fc, res)` deja el filtro listo para ese punto del barrido;
+ * `process(x)` devuelve una muestra.
+ */
+struct NonlinearSweepReport
+{
+    bool allFinite    = true;
+    bool allBounded   = true;
+    bool tailSteady   = true;
+    bool zeroResDecay = true;
+    bool noDcOffset   = true;
+    bool quietFloor   = true;
+
+    float  worstPeak      = 0.0f;
+    float  worstPeakFc    = 0.0f;
+    float  worstPeakRes   = 0.0f;
+    double worstTailRatio = 0.0;
+    float  worstTailFc    = 0.0f;
+    float  worstTailRes   = 0.0f;
+    double worstDcRatio   = 0.0;
+    float  worstDcFc      = 0.0f;
+    float  worstDcRes     = 0.0f;
+    double worstFloorRms  = 0.0;
+    float  worstFloorFc   = 0.0f;
+    float  worstFloorRes  = 0.0f;
+};
+
+template <typename PrepareFn, typename ProcessFn>
+NonlinearSweepReport sweepNonlinearFilter(float peakBound, double sr,
+                                          PrepareFn prepare, ProcessFn process,
+                                          float quietResMax = 0.8f)
+{
+    const float cutoffs[] = {20.0f, 60.0f, 250.0f, 1000.0f, 4000.0f, 12000.0f, 19000.0f};
+
+    NonlinearSweepReport rep;
+
+    for (float fc : cutoffs)
+    {
+        const double period = sr / static_cast<double>(fc);
+        const int    winLen = std::max(2048, static_cast<int>(8.0 * period));
+        const int    settle = std::max(6000, static_cast<int>(800.0 * period));
+        const int    total  = settle + 2 * winLen;
+
+        for (int step = 0; step <= 20; ++step)
+        {
+            const float res = static_cast<float>(step) / 20.0f;
+
+            // Suelo propio del filtro: misma preparacion, entrada nula.
+            prepare(fc, res);
+
+            double floorSq = 0.0;
+
+            for (int i = 0; i < total; ++i)
+            {
+                const double y = process(0.0);
+
+                if (!std::isfinite(y))
+                    rep.allFinite = false;
+
+                if (i >= settle + winLen)
+                    floorSq += y * y;
+            }
+
+            const double floorRms   = std::sqrt(floorSq / winLen);
+            const double noiseSlack = 3.0 * floorRms;
+
+            // Sin entrada no hay nada que amplificar: solo puede salir el ruido
+            // propio (del orden de 1e-4) o una auto-oscilacion deseada cerca del
+            // umbral. Un filtro que silba solo se delata aqui aunque su suelo de
+            // ruido tape las demas comprobaciones.
+            if (res <= quietResMax && floorRms > 1.0e-2)
+                rep.quietFloor = false;
+
+            prepare(fc, res);
+
+            double rmsPrev = 0.0;
+            double rmsTail = 0.0;
+            double sumTail = 0.0;
+            float  peak    = 0.0f;
+
+            for (int i = 0; i < total; ++i)
+            {
+                const double y = process(i == 0 ? 1.0 : 0.0);
+
+                if (!std::isfinite(y))
+                    rep.allFinite = false;
+
+                peak = std::max(peak, static_cast<float>(std::abs(y)));
+
+                if (i >= settle && i < settle + winLen)
+                    rmsPrev += y * y;
+                else if (i >= settle + winLen)
+                {
+                    rmsTail += y * y;
+                    sumTail += y;
+                }
+            }
+
+            rmsPrev = std::sqrt(rmsPrev / winLen);
+            rmsTail = std::sqrt(rmsTail / winLen);
+
+            const double meanTail  = sumTail / winLen;
+            const double tailRatio = (rmsPrev > 1.0e-9) ? rmsTail / rmsPrev : 0.0;
+            const double dcRatio   = (rmsTail > 1.0e-9) ? std::abs(meanTail) / rmsTail : 0.0;
+
+            if (peak > rep.worstPeak)
+            {
+                rep.worstPeak    = peak;
+                rep.worstPeakFc  = fc;
+                rep.worstPeakRes = res;
+            }
+
+            if (tailRatio > rep.worstTailRatio)
+            {
+                rep.worstTailRatio = tailRatio;
+                rep.worstTailFc    = fc;
+                rep.worstTailRes   = res;
+            }
+
+            if (dcRatio > rep.worstDcRatio)
+            {
+                rep.worstDcRatio = dcRatio;
+                rep.worstDcFc    = fc;
+                rep.worstDcRes   = res;
+            }
+
+            if (res <= quietResMax && floorRms > rep.worstFloorRms)
+            {
+                rep.worstFloorRms = floorRms;
+                rep.worstFloorFc  = fc;
+                rep.worstFloorRes = res;
+            }
+
+            if (peak > peakBound)
+                rep.allBounded = false;
+
+            if (rmsTail > rmsPrev * 1.05 + 1.0e-6 + noiseSlack)
+                rep.tailSteady = false;
+
+            if (res == 0.0f && rmsTail > 1.0e-3 + noiseSlack)
+                rep.zeroResDecay = false;
+
+            if (std::abs(meanTail) > 0.15 * rmsTail + 1.0e-3 + noiseSlack)
+                rep.noDcOffset = false;
+        }
+    }
+
+    return rep;
+}
+
+void reportNonlinearSweep(const char* name, const NonlinearSweepReport& rep, float peakBound)
+{
+    std::printf("%s sweep: pico=%.3f (fc=%.0f res=%.2f) | cola/previa=%.3f (fc=%.0f res=%.2f)"
+                " | |dc|/rms=%.3f (fc=%.0f res=%.2f) | suelo=%.1e (fc=%.0f res=%.2f)\n",
+                name,
+                rep.worstPeak, rep.worstPeakFc, rep.worstPeakRes,
+                rep.worstTailRatio, rep.worstTailFc, rep.worstTailRes,
+                rep.worstDcRatio, rep.worstDcFc, rep.worstDcRes,
+                rep.worstFloorRms, rep.worstFloorFc, rep.worstFloorRes);
+
+    const std::string prefix = std::string(name) + " barrido res/corte: ";
+
+    check(rep.allFinite,    (prefix + "todas las salidas son finitas").c_str());
+    check(rep.allBounded,   (prefix + "pico acotado <= " + std::to_string(peakBound)).c_str());
+    check(rep.tailSteady,   (prefix + "cola estacionaria, sin crecimiento").c_str());
+    check(rep.zeroResDecay, (prefix + "a res=0 el impulso se apaga").c_str());
+    check(rep.noDcOffset,   (prefix + "auto-oscilacion sin sesgo de continua").c_str());
+    check(rep.quietFloor,   (prefix + "en silencio no inventa senal (res<=0.8)").c_str());
 }
 
 //==============================================================================
@@ -2189,6 +2387,73 @@ void testAnalogModeledFilters()
     }
 }
 
+//==============================================================================
+/**
+ * El mismo barrido del K35 sobre el resto de filtros con realimentacion no
+ * lineal: MoogLadderVCF (tanh en la entrada), JunoVCF_ZDF (OTA con k limitada)
+ * y FilterEquation (escalera resuelta con Newton y tanh en el lazo).
+ */
+void testNonlinearFilterSweeps()
+{
+    constexpr double sr = 44100.0;
+
+    {
+        abd::dsp::MoogLadderVCF filter;
+
+        const auto rep = sweepNonlinearFilter(4.0f, sr,
+            [&filter](float fc, float res)
+            {
+                filter.prepare(sr);
+                filter.setPoleMode(0);
+                filter.setSubMode(0);
+                filter.setCutoff(fc);
+                filter.setResonance(res);
+            },
+            [&filter](double x) { return static_cast<double>(filter.process(static_cast<float>(x))); });
+
+        reportNonlinearSweep("MoogLadderVCF", rep, 4.0f);
+    }
+
+    {
+        abd::dsp::JunoVCF_ZDF filter;
+        float frqNorm = 0.01f;
+        float resNow  = 0.0f;
+
+        const auto rep = sweepNonlinearFilter(10.0f, sr,
+            [&filter, &frqNorm, &resNow](float fc, float res)
+            {
+                frqNorm = fc / static_cast<float>(sr * 0.5);
+                resNow  = res;
+                filter.prepare(sr);
+                filter.setMode(abd::dsp::JunoVCF_ZDF::Mode::DeepMind);
+                filter.setPoleMode(abd::dsp::JunoVCF_ZDF::PoleMode::FourPole);
+                filter.setOversample(1);
+            },
+            [&filter, &frqNorm, &resNow](double x)
+            {
+                return static_cast<double>(filter.process(static_cast<float>(x), frqNorm, resNow));
+            });
+
+        reportNonlinearSweep("JunoVCF_ZDF", rep, 10.0f);
+    }
+
+    {
+        FilterEquation filter;
+
+        const auto rep = sweepNonlinearFilter(10.0f, sr,
+            [&filter](float fc, float res)
+            {
+                filter.prepare(sr);
+                filter.setCutoff(static_cast<double>(fc));
+                filter.setResonance(static_cast<double>(res));
+                filter.reset();
+            },
+            [&filter](double x) { return filter.processSample(x); });
+
+        reportNonlinearSweep("FilterEquation", rep, 10.0f);
+    }
+}
+
 void testJunoVCF()
 {
     const double sr = 44100.0;
@@ -2287,6 +2552,7 @@ int main()
     testFilterFamilyBlockProcessing();
     testJunoHPF();
     testAnalogModeledFilters();
+    testNonlinearFilterSweeps();
     testJunoVCF();
 
     if (gFailures == 0)

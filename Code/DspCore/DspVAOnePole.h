@@ -44,7 +44,20 @@ public:
     }
 
     /**
-     * Set feedback amount (used by ladder and Sallen-Key topologies for resonance).
+     * Suma un SESGO CONSTANTE al sumador de la etapa (no es un tap de senal).
+     *
+     * @deprecated Para resonancia de ladder no sirve: una constante en el lazo
+     *             no produce pico, produce un escalon de continua que el propio
+     *             filtro no puede eliminar (MoogLadderVCF lo alimentaba con
+     *             k/(1+k) y su salida se quedaba clavada en 0.697 con dc/rms =
+     *             1.000). Alternativas: (a) cerrar el lazo en la clase que
+     *             contiene el ladder, con la salida de la ultima etapa como tap
+     *             (lo que hacen MoogLadderVCF y KorgMS20VCF, ambos con
+     *             setFeedback(0.0)); (b) si se necesita una etapa resonante
+     *             suelta, usar FilterTpt o VAOnePoleFilter con un lazo externo
+     *             de una muestra. Se mantiene porque algun llamador externo
+     *             podria usarla como polarizacion deliberada, pero ningun
+     *             filtro del repo la usa con valor distinto de cero.
      */
     void setFeedback(double fb) noexcept
     {
@@ -91,7 +104,15 @@ public:
         hp = static_cast<float>(x - lpOut);
     }
 
-    /** Get current lowpass estimate from state without advancing time. */
+    /**
+     * Get current lowpass estimate from state without advancing time.
+     *
+     * Es una ESTIMACION: z1*0.5 solo coincide con el lp real en regimen
+     * estacionario (en transitorio el lp vale vn + z1_prev, o sea
+     * (z1 + z1_prev)/2). Sirve para un tap de realimentacion laxo, no para
+     * medir la salida exacta de la etapa; para eso esta el valor que devuelve
+     * process().
+     */
     [[nodiscard]] float getLP() const noexcept
     {
         return static_cast<float>(z1 * 0.5);

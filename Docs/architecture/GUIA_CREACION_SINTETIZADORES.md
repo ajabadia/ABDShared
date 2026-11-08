@@ -340,7 +340,7 @@ WebUI/tests/                     # JavaScript tests (Vitest)
 | **Phase 1** | Oscillator output (NaN/Inf check), filter response, envelope curves | — |
 | **Phase 2** | SysEx roundtrip (encode→decode=identical), CC mapping, NRPN parsing | — |
 | **Phase 3** | — | `registry_generator.test.js` (offsets, duplicates, types) |
-| **Phase 4** | pluginval (strictness ≥ 5), allocation audit | `bridgeWasm.test.js` (param roundtrip) |
+| **Phase 4** | pluginval (strictness 10), allocation audit | `bridgeWasm.test.js` (param roundtrip) |
 | **Phase 5** | Sample rate resilience, buffer size variance | Full test suite regression |
 
 #### Reglas para Tests
@@ -1318,7 +1318,7 @@ struct AudioThreadSnapshot {
 ```
         ┌────────────────────┐
         │   pluginval         │  ← Industry standard validation
-        │   (strictness ≥ 5)  │
+        │   (strictness 10)   │
         ├────────────────────┤
         │   C++ Unit Tests    │  ← DSP correctness, SysEx roundtrip
         │   (JUCE TestRunner) │     boundary values, NaN/Inf checks
@@ -1344,13 +1344,13 @@ struct AudioThreadSnapshot {
 | **Sample Rate Resilience** | Correct behavior at 44.1k, 48k, 88.2k, 96k, 192k |
 | **Buffer Size Variance** | Works with buffers of 32, 64, 128, 256, 512, 1024, 2048, 4096 |
 | **Multi-Instance** | 8+ simultaneous instances don't share static state |
-| **Plugin Validation** | pluginval strictness ≥ 5 passes ALL TESTS PASSED |
+| **Plugin Validation** | pluginval strictness 10 passes ALL TESTS PASSED |
 
 ### 10.3 pluginval Integration
 
 ```bash
 # Must pass before any release
-pluginval --strictness-level 5 --seed 42 --validate "YourSynth.vst3"
+pluginval --strictness-level 10 --skip-gui-tests --timeout-ms 120000 --validate "YourSynth.vst3"
 ```
 
 ### 10.4 Modo de Diagnóstico y Aislamiento DSP (Diagnostic Test Mode & Bypass)
@@ -1463,7 +1463,7 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
 | `vitest` | ubuntu | WebUI test suite |
 | `cpp-unit-tests` | windows | C++ test execution |
 | `wasm-build` | ubuntu | WASM compilation verification |
-| `pluginval` | windows | Plugin validation (strictness 5) |
+| `pluginval` | windows | Plugin validation (strictness 10) |
 | `allocation-audit` | windows | 0 allocs in RT audio |
 | `security-scan` | ubuntu | XSS & DOM injection audit |
 
@@ -1475,7 +1475,7 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
 
 - [ ] All C++ tests pass (0 failures)
 - [ ] All WebUI tests pass (0 failures)
-- [ ] `pluginval --strictness-level 5` passes
+- [ ] `pluginval --strictness-level 10 --skip-gui-tests --timeout-ms 120000` passes
 - [ ] 0 heap allocations in processBlock (allocation audit)
 - [ ] SysEx roundtrip test passes (byte-identical)
 - [ ] State save/restore verified in DAW
@@ -2075,7 +2075,7 @@ git push origin main
 - [ ] `README.md` — update Platforms table with test results
 
 **🧪 Tests required at Phase 4:**
-- [ ] `pluginval --strictness-level 5` passes ALL TESTS PASSED
+- [ ] `pluginval --strictness-level 10` passes ALL TESTS PASSED
 - [ ] Allocation audit: 0 heap allocations in processBlock (idle, poly12, max voices)
 - [ ] Sample rate resilience: 44.1k, 48k, 88.2k, 96k, 192k all produce valid audio
 - [ ] Buffer size variance: 32, 64, 128, 256, 512, 1024, 2048, 4096 all work

@@ -40,7 +40,7 @@ F0 41 10 00 00 00 [ModelID] 12 aa bb cc dd [Data...] [Checksum] F7
 
 > 🟡 **Marcado 2026-11-07 — validación de checksum no exigida.** Se da la fórmula `(128 - (sum % 128)) & 0x7F` para RQ1/DT1, pero el documento no obliga a verificarla en recepción. Descartar una trama con checksum inválido antes de tocar el motor debería ser normativo, no opcional.
 > **Alternativa:** exigir la verificación en RX y documentar el comportamiento ante fallo.
-> **Prioridad:** media. Ver [acta 2026](../ADR-004-2026-specs-cdd-wire-bipolar.md.
+> **Prioridad:** media. Ver [acta 2026](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
 
 | Dirección Hex | Descripción | Rango / Valores |
 |---|---|---|
@@ -84,7 +84,7 @@ Para sintetizadores y procesadores de efectos externos con control MIDI:
 
 > 🔴 **Marcado 2026-11-07 — espera activa en el hilo de audio.** «El motor de audio se detiene en estado de espera activa» describe un busy-wait: CPU girando sin deadline y hilo bloqueado. No es aceptable para el operador manual ni para una prueba automatizada.
 > **Alternativa:** espera bloqueante con timeout sobre una condición observable, y estado «esperando operador» publicado en telemetría.
-> **Prioridad:** alta. Ver [acta 2026](../ADR-004-2026-specs-cdd-wire-bipolar.md.
+> **Prioridad:** alta. Ver [acta 2026](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
 
 Para circuitos sin interfaz digital (módulos analógicos Doepfer, Moog, pedales vintage):
 1. El secuenciador posiciona el caso de prueba y llama a `ManualAnalogueController::setParameter`.
@@ -100,7 +100,7 @@ Para circuitos sin interfaz digital (módulos analógicos Doepfer, Moog, pedales
 
 > 🔴 **Marcado 2026-11-07 — FSK generada en el hilo de audio.** Sintetizar la portadora bit a bit dentro del hilo de audio no tiene deadline garantizado y bloquea `processBlock`. La crítica de «matriz de conexiones monolítica» **no aplica** a este documento, que es un mapa de protocolo y no una estructura de datos del motor: aquí no hay ruteo que reconfigurar en caliente.
 > **Alternativa:** pre-renderizar la trama fuera del hilo de audio y reproducirla desde un búfer de capacidad fija; si se adopta `std::array<ModSlot, 32>`, que sea inmutable y sin reservas en caliente.
-> **Prioridad:** alta. Ver [acta 2026](../ADR-004-2026-specs-cdd-wire-bipolar.md.
+> **Prioridad:** alta. Ver [acta 2026](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
 
 Para transferencia de parches por audio analógico a través del conector `REMOTE IN` de 3.5 mm:
 * **Portadoras audibles**: Conmutación continua de fase entre $f_0$ (bit 0) y $f_1$ (bit 1).

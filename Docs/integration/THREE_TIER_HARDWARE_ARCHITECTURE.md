@@ -7,6 +7,9 @@
 > - `ABDSharedCode::HardwareDrivers` / `HardwareMidiDetect` (Nivel 1: Capa Compartida de Drivers y Detección)
 > - `abdaudiolab::core::HardwareManager` & `ABDBankManager::ContractRegistry` (Nivel 2: Fachadas de Aplicación)
 
+> 🟠 **Marcado 2026-11-08 — tres enlaces apuntaban a un árbol de código que no está aquí.** Las rutas `../src/hardware/HardwareController.h` (§3), `../src/gui/OperatorStepModalDialog.h` (§3.4) y `../src/core/HardwareManager.cpp` (§6) son del proyecto de aplicación ABDAudioLab (namespace `abdaudiolab::…`), no de este repositorio: no existe ningún `Docs/src/`. Se citan como código, sin enlace, para no ofrecer un destino falso.
+> **Alternativas:** (a) cuando esos ficheros aterricen en `ABDSharedCode::HardwareDrivers`, moverlos aquí y restaurar los enlaces relativos; (b) si el código sigue en su repositorio, citar el repositorio en lugar de una ruta relativa; (c) mantener las rutas como referencia nominal, que es lo que hace este documento ahora.
+
 ---
 
 ## 1. Arquitectura en Tres Niveles (Three-Tier Hardware Architecture)
@@ -201,7 +204,7 @@ Si el hardware no responde a SysEx (como algunos convertidores USB-CV o sintetiz
 
 ## 3. Nivel 2: Implementación de Controladores (`IHardwareController`)
 
-Toda interacción física o simulada implementa la interfaz pura [`IHardwareController`](../src/hardware/HardwareController.h):
+Toda interacción física o simulada implementa la interfaz pura `IHardwareController` (`ABDAudioLab/Source/hardware/HardwareController.h`):
 
 ```cpp
 namespace abdaudiolab::hardware
@@ -259,7 +262,7 @@ Protege el hardware de configuraciones ilegales antes de enviar comandos:
 ### 3.4 Controlador para Operador Humano (`ManualAnalogueController`)
 Diseñado para sintetizadores puramente analógicos o módulos Eurorack sin MIDI:
 - `isAutomatic()` retorna `false`.
-- Emite un callback `PromptCallback` que despliega el diálogo modal interactivo [`OperatorStepModalDialog`](../src/gui/OperatorStepModalDialog.h).
+- Emite un callback `PromptCallback` que despliega el diálogo modal interactivo `OperatorStepModalDialog` (`ABDAudioLab/Source/gui/OperatorStepModalDialog.h`).
 - Proporciona guía gráfica vectorial (Knob, Slider, Jack) y metrónomo visual/sonoro de 10 segundos para barridos continuos uniformes.
 
 ### 3.5 Codec Universal SysEx 7-to-8 Bit (`SysExCodec`) y Receptor NRPN (`NRPNParser`)
@@ -291,7 +294,7 @@ Para incorporar un nuevo sintetizador o módulo de hardware al ecosistema:
    - Si el dispositivo utiliza un protocolo SysEx propietario no estándar, añadir su parser en `MidiIdentityDetector::parseIdentityReply()`.
 
 3. **Registrar en la Fachada (`HardwareManager`):**
-   - [`HardwareManager::selectHardware()`](../src/core/HardwareManager.cpp) instancia automáticamente el controlador apropiado (`MidiCcController`, `AiraSysExController`, `ManualAnalogueController` o `MockHardwareController`).
+   - `HardwareManager::selectHardware()` (`ABDAudioLab/Source/core/HardwareManager.cpp`) instancia automáticamente el controlador apropiado (`MidiCcController`, `AiraSysExController`, `ManualAnalogueController` o `MockHardwareController`).
 
 4. **Ejecutar Ensayo de Calibración:**
    - Iniciar ABDAudioLab.

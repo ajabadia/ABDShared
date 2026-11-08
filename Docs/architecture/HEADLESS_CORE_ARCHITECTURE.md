@@ -1,6 +1,9 @@
 # BDMCS48SE — Arquitectura del proyecto
 
-> Documento de dirección y diseño en evolución; no es una implementación ni congela las decisiones abiertas del [roadmap](../ROADMAP.md).
+> Documento de dirección y diseño en evolución; no es una implementación ni congela las decisiones abiertas del roadmap.
+
+> 🟠 **Marcado 2026-11-08 — tres enlaces apuntaban fuera de este repositorio.** `../ROADMAP.md` (cabecera y §Criterios de aceptación) y `FIRMWARE_PACKAGE.md` son documentos del proyecto BDMCS48SE: en `ABDShared/Docs` no existe ningún `ROADMAP.md` ni `FIRMWARE_PACKAGE.md`, así que los enlaces estaban rotos. Se dejan como texto, sin enlace, para no ofrecer un destino falso.
+> **Alternativas:** (a) si se quiere un roadmap dentro de la suite, el vigente para módulos transversales es `Docs/architecture/ROADMAP_COMPONENTES_TRANSVERSALES.md` (no es el de este core); (b) si los documentos se traen aquí, colocarlos en `Docs/architecture/` y restaurar los enlaces; (c) mantenerlos en el repositorio de origen y citarlo explícitamente.
 
 ## Propósito
 
@@ -57,7 +60,7 @@ La frontera importante es por responsabilidad y dependencia, no por el nombre de
 
 El firmware se considera un paquete validado (manifest + imagen(es) + perfil + metadatos), no una ruta suelta que el core deba interpretar. El loader valida fuera del audio thread; la fábrica construye y mapea una máquina candidata, la inicializa y solo después se puede activar. Un error al cargar un candidato no tiene por qué interrumpir la máquina que ya está activa.
 
-El formato, los estados de carga, las capacidades de bancos y el detalle de hot swap siguen provisionales. El documento [Firmware Package](FIRMWARE_PACKAGE.md) recoge la propuesta, reglas de validación, estados, límites VST3 y fuentes técnicas. Es importante no asumir que `std::atomic<std::shared_ptr<T>>` es automáticamente lock-free o apropiado para destrucción del objeto desde el audio thread.
+El formato, los estados de carga, las capacidades de bancos y el detalle de hot swap siguen provisionales. El documento `Firmware Package` recoge la propuesta, reglas de validación, estados, límites VST3 y fuentes técnicas. Es importante no asumir que `std::atomic<std::shared_ptr<T>>` es automáticamente lock-free o apropiado para destrucción del objeto desde el audio thread.
 
 ## Machine Profile
 
@@ -238,7 +241,7 @@ La arquitectura debe permitir verificar sin plugin:
 - ROM/perfil ausente, corrupto, tamaño inválido y hash incorrecto se reportan sin crash.
 - Tasa/bloque variables, desbordamiento de cola, reset durante ejecución y actualización de estado.
 
-Los criterios concretos y métricas pendientes están en [ROADMAP.md](../ROADMAP.md).
+Los criterios concretos y métricas pendientes están en `ROADMAP.md`.
 
 ## Preguntas abiertas
 

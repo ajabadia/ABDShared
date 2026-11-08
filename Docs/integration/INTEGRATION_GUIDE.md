@@ -5,8 +5,8 @@
 > **Estado de revisión (2026-11-07):** los procedimientos de esta guía siguen vigentes. Las observaciones sobre los
 demás documentos del bloque, con sus alternativas y prioridades, están en
 > [`ADR-003-2026-integration-puente-telemetria.md`](../decisions/ADR-003-2026-integration-puente-telemetria.md); las de los bloques hermanos, en
-> [`../architecture/ADR-001-2026-arquitectura-modernizacion.md`](../architecture/ADR-001-2026-arquitectura-modernizacion.md y
-> [`../dsp/ADR-002-2026-dsp-filtros-oversampling.md`](../dsp/ADR-002-2026-dsp-filtros-oversampling.md.
+> [`ADR-001-2026-arquitectura-modernizacion.md`](../decisions/ADR-001-2026-arquitectura-modernizacion.md) y
+> [`ADR-002-2026-dsp-filtros-oversampling.md`](../decisions/ADR-002-2026-dsp-filtros-oversampling.md).
 
 ---
 

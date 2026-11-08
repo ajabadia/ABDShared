@@ -116,7 +116,9 @@ mkdir build && cd build && cmake .. && cmake --build .
 | WASM | ⏸ |
 
 ## Screenshots
-![UI](docs/screenshot.png)
+
+> 🟠 **Marcado 2026-11-08 — la captura no existe en el repositorio.** `docs/screenshot.png` no está en ninguna ruta del proyecto (ni en `Docs/architecture/docs/`, ni en la raíz, ni en `Docs/`), así que la imagen se mostraba rota. Se retira el bloque de imagen para no dejar un hueco roto en la plantilla.
+> **Alternativa:** guardar la captura en `Docs/architecture/assets/screenshot.png` y volver a enlazarla con `assets/screenshot.png`, o eliminar esta sección de la plantilla si no se van a mantener capturas.
 
 ## Credits
 - DSP architecture based on <hardware name>

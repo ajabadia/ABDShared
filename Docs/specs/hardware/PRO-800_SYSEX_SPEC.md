@@ -544,7 +544,7 @@ Conflictos / bugs (firmware 1.4.6, Defros):
 
 > 🟠 **Marcado 2026-11-07 — falta validación normativa de los valores decodificados.** Este documento describe el formato, pero no impone ninguna; y el consumidor real `ABDShared/Code/BankManager/Pro800Midi.cpp` no contiene `clamp`, `std::min/max` ni `isfinite` sobre lo que desempaca. La mejora de sanear tras decodificar es correcta, siempre en la frontera `decode → motor` y no dentro del parser, porque los rangos ya viven en el registro.
 > **Alternativa:** sección normativa con rango por parámetro, rechazo de `NaN`/`Inf` y reset al default si el byte cae fuera de cota.
-> **Prioridad:** media. Ver [acta 2026](../ADR-004-2026-specs-cdd-wire-bipolar.md.
+> **Prioridad:** media. Ver [acta 2026](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
 
 1. **Identificación**: `F0 00 20 32 00 01 24 00` + `0x78` + `F7`. Diferencia con el **DeepMind 12** (`0x0E` en byte 4, formato distinto de 242 bytes).
 2. **Parser**: datos desde byte 11, desempaquetar 7→8, usar offsets decodificados `d` de la §5.

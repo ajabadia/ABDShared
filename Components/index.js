@@ -109,6 +109,8 @@ export {
   createLiveSysExInspector,
   toHexByte,
   decodeSysExHeader,
+  validateSysExByte,
+  SYSEX_MAX_DATA_BYTE,
 } from './liveSysExInspector.js';
 
 // Diálogo "About..." universal y reactivo con AutoUpdater C++ / GitHub Releases

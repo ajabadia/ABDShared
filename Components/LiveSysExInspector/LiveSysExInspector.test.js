@@ -10,6 +10,8 @@ import {
   createLiveSysExInspector,
   decodeSysExHeader,
   toHexByte,
+  validateSysExByte,
+  SYSEX_MAX_DATA_BYTE,
 } from './LiveSysExInspector.js';
 
 describe('LiveSysExInspector - Helpers', () => {
@@ -347,4 +349,145 @@ describe('LiveSysExInspector - DOM & Reactividad', () => {
   });
 });
 
+describe('LiveSysExInspector - Edicion byte a byte', () => {
+  let slot;
 
+  const frame = () => new Uint8Array([0xf0, 0x44, 0x01, 0x00, 0x70, 0x00, 0xf7]);
+
+  beforeEach(() => {
+    slot = document.createElement('div');
+    document.body.appendChild(slot);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('validacion previa: rechaza SOF, EOX, indice fuera de rango y bytes que no son de 7 bits', () => {
+    const buf = frame();
+
+    expect(validateSysExByte(buf, 0, 0x00)).toMatchObject({ ok: false, reason: 'reserved-sof' });
+    expect(validateSysExByte(buf, buf.length - 1, 0x00)).toMatchObject({ ok: false, reason: 'reserved-eox' });
+    expect(validateSysExByte(buf, 99, 0x01)).toMatchObject({ ok: false, reason: 'out-of-range' });
+    expect(validateSysExByte(buf, 3, 0x80)).toMatchObject({ ok: false, reason: 'not-7bit' });
+    expect(validateSysExByte(buf, 3, 1.5)).toMatchObject({ ok: false, reason: 'not-integer' });
+    expect(validateSysExByte(new Uint8Array(0), 0, 0x00)).toMatchObject({ ok: false, reason: 'empty-buffer' });
+
+    expect(validateSysExByte(buf, 3, 0x7f)).toMatchObject({ ok: true, index: 3, value: 0x7f, previous: 0x00 });
+    expect(SYSEX_MAX_DATA_BYTE).toBe(0x7f);
+  });
+
+  it('getByteMeta distingue estructurales de datos editables', () => {
+    const inspector = new LiveSysExInspector({ container: slot, initialBuffer: frame() });
+
+    expect(inspector.getByteMeta(0)).toMatchObject({ role: 'sof', editable: false });
+    expect(inspector.getByteMeta(6)).toMatchObject({ role: 'eox', editable: false });
+    expect(inspector.getByteMeta(3)).toMatchObject({ role: 'data', editable: true, value: 0x00, max: 0x7f });
+    expect(inspector.getByteMeta(42).editable).toBe(false);
+
+    inspector.destroy();
+  });
+
+  it('setByte aplica el byte, emite el evento y permite darse de baja', () => {
+    const events = [];
+    const inspector = new LiveSysExInspector({
+      container: slot,
+      initialBuffer: frame(),
+      onByteEdited: (payload) => events.push(payload),
+    });
+
+    const result = inspector.setByte(5, 0x7f);
+    expect(result).toMatchObject({ ok: true, changed: true, previous: 0x00, value: 0x7f });
+    expect(inspector.getBuffer()[5]).toBe(0x7f);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ index: 5, previous: 0x00, value: 0x7f });
+
+    const extra = vi.fn();
+    const off = inspector.onByteEdited(extra);
+    inspector.setByte(4, 0x01);
+    expect(extra).toHaveBeenCalledTimes(1);
+    off();
+    inspector.setByte(4, 0x02);
+    expect(extra).toHaveBeenCalledTimes(1);
+
+    // Escribir el mismo valor no cuenta como cambio ni emite
+    const same = inspector.setByte(5, 0x7f);
+    expect(same).toMatchObject({ ok: true, changed: false });
+    expect(events).toHaveLength(3); // 5->7F, 4->01, 4->02; el mismo valor no emite
+
+    inspector.destroy();
+  });
+
+  it('setByte rechaza sin tocar el bufer ni emitir', () => {
+    const onByteEdited = vi.fn();
+    const inspector = new LiveSysExInspector({ container: slot, initialBuffer: frame(), onByteEdited });
+
+    expect(inspector.setByte(0, 0x00).ok).toBe(false);
+    expect(inspector.setByte(6, 0x00).ok).toBe(false);
+    expect(inspector.setByte(3, 0x80).ok).toBe(false);
+
+    expect(inspector.getBuffer()[0]).toBe(0xf0);
+    expect(inspector.getBuffer()[3]).toBe(0x00);
+    expect(inspector.getBuffer()[6]).toBe(0xf7);
+    expect(onByteEdited).not.toHaveBeenCalled();
+
+    inspector.destroy();
+  });
+
+  it('la rejilla abre el editor, aplica con Enter y cancela con Escape', () => {
+    const inspector = new LiveSysExInspector({ container: slot, initialBuffer: frame() });
+
+    const cell = slot.querySelector('.sysex-byte[data-offset="5"]');
+    expect(cell.classList.contains('sysex-byte--editable')).toBe(true);
+    cell.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const input = cell.querySelector('.sysex-byte__editor');
+    expect(input).not.toBeNull();
+    input.value = '7f';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(inspector.getBuffer()[5]).toBe(0x7f);
+    expect(slot.querySelector('.sysex-byte[data-offset="5"]').textContent).toBe('7F');
+
+    const cell2 = slot.querySelector('.sysex-byte[data-offset="4"]');
+    cell2.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const input2 = cell2.querySelector('.sysex-byte__editor');
+    input2.value = '55';
+    input2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(inspector.getBuffer()[4]).toBe(0x70);
+    expect(cell2.querySelector('.sysex-byte__editor')).toBeNull();
+    expect(cell2.textContent).toBe('70');
+    // Escape mientras se edita cancela la edicion, no cierra la ventana
+    expect(inspector.isOpen()).toBe(true);
+
+    inspector.destroy();
+  });
+
+  it('un valor fuera de 0x7F no se aplica y deja el editor marcado', () => {
+    const inspector = new LiveSysExInspector({ container: slot, initialBuffer: frame() });
+    const cell = slot.querySelector('.sysex-byte[data-offset="5"]');
+
+    cell.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const input = cell.querySelector('.sysex-byte__editor');
+    input.value = 'FF';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(inspector.getBuffer()[5]).toBe(0x00);
+    expect(input.classList.contains('sysex-byte__editor--invalid')).toBe(true);
+    expect(slot.querySelector('.sysex-inspector__feedback').textContent).toContain('rechazado');
+
+    inspector.destroy();
+  });
+
+  it('los bytes estructurales quedan bloqueados y no abren editor', () => {
+    const inspector = new LiveSysExInspector({ container: slot, initialBuffer: frame() });
+    const sof = slot.querySelector('.sysex-byte[data-offset="0"]');
+
+    expect(sof.classList.contains('sysex-byte--locked')).toBe(true);
+    sof.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(slot.querySelector('.sysex-byte__editor')).toBeNull();
+
+    inspector.destroy();
+  });
+});

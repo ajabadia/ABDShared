@@ -8,6 +8,7 @@
 > **Procedencia:** la auditoría externa cita nombres `.mdux` que **no existen en el repositorio** (son los
 > nombres de la suite empaquetada); los ficheros reales son `.md`. Cada punto se ha comprobado contra el texto
 > y contra el código de `ABDShared` y `ABDAxionikVS`.
+> **Actualizado 2026-11-08:** P3 (carpetas de automatización VST3 del §4.4 del diccionario) queda **implementado** y cubierto por test; sigue pendiente verlo en Cubase/Bitwig.
 
 ---
 
@@ -15,7 +16,7 @@
 
 | # | Documento | Veredicto | Qué dicta la evidencia |
 |---|-----------|-----------|------------------------|
-| 1 | `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` | 🟠 Parcial | La premisa (enrutado por strings en tiempo real) es **falsa** para el host: el registro es numérico. Pero §4.4 promete carpetas de automatización en el DAW y **no hay ni un `AudioProcessorParameterGroup`**. |
+| 1 | `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` | 🟠 Parcial | La premisa (enrutado por strings en tiempo real) es **falsa** para el host: el registro es numérico. Pero §4.4 promete carpetas de automatización en el DAW y **no había ni un `AudioProcessorParameterGroup`** (✅ resuelto el 2026-11-08: ver §2.1 y P3). |
 | 2 | `COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` | 🔴 Obsoleto | Es v1.0, anterior al estándar CDD v2.0 (`SymBipolar`, `wireZeroCenter`, `Lut`). El defecto bipolar que denuncia la auditoría **es real y está vivo** en `DspEngineFacade.cpp`. Además: secciones duplicadas y CRLF. |
 | 3 | `ABDSYNTHS_SYSEX_SPEC.md` | 🟡 Parcial | El codec real asigna en un `std::vector&`, pero se ejecuta en el hilo MIDI, no en el de audio: la crítica «buffers en el hilo de audio» **no aplica hoy**. Falta el gate de fuzzing que la auditoría pide. |
 | 4 | `hardware/JUNO-106_SYSEX_SPEC.md` | 🟠 Confusión de documento | Es un documento de **layout de bytes**, no de transporte: no puede saturar un puerto porque no define envío. Sí hay defectos propios: título que no coincide con el fichero y 30 restos `[file:22]`. |
@@ -39,7 +40,17 @@ porque no hay strings en el camino.
 **Hueco real que la auditoría no vio:** §4.4 afirma que el DAW organiza los parámetros en carpetas
 semánticas «usando los atributos de categoría de JUCE derivados del diccionario». Verificado: **no existe
 ningún `AudioProcessorParameterGroup`** en `Source/`, así que Cubase o Bitwig muestran una lista plana de 445
-parámetros. La promesa es hoy falsa.
+parámetros. La promesa era falsa en la fecha de esta auditoría.
+
+**Estado 2026-11-08 — implementado:** `AxionikProcessor::createParameterLayout()` ya publica un
+`juce::AudioProcessorParameterGroup` por categoría del diccionario (6 grupos: `SoundHeader` → *Global*,
+`SoundName` → *Name*, `Synth`, `R1` → *Resynator 1*, `R2` → *Resynator 2*, `SoundMFX` → *Master FX*), con
+id `grp_<categoría>` y separador ` / `. El registro está ordenado por índice y los grupos aparecen
+intercalados, así que `Source/DSP/ParamGrouping.h` los reagrupa en cubos contiguos
+(`buildParamGroupBuckets()`), manteniendo dentro de cada grupo el orden del registro. Test 19 de
+`tests/DspEngineFacadeTests.cpp` comprueba la cobertura completa: **6 grupos, 445 parámetros, sin
+duplicados** (`[PASS]`, 2026-11-08). Lo que sigue sin verificar es lo que no se puede asegurar desde el
+código: que Cubase 14 y Bitwig lo presenten como carpetas. Eso requiere abrir el plugin en un anfitrión real.
 **Se acepta como mejora:** `static_assert(std::is_trivially_copyable_v<ParamDescriptor>)` y una regla
 explícita de que ningún `findByParamId`/lookup por nombre corre en el hilo de audio.
 
@@ -114,7 +125,7 @@ Añadir esa obligación (y descartar la trama si no cuadra) antes de tocar el mo
 |---|--------|-----------|-----------|
 | P1 | Sustituir la matemática v1.0 por las referencias a CDD §4 y mover la normalización de `DspEngineFacade` a `Conversion.gen.h` | WIRE | 🔴 alta |
 | P2 | Sacar la emisión FSK del hilo de audio y cambiar el busy-wait del operador manual por espera con timeout | AIRA §3–§4 | 🔴 alta |
-| P3 | Implementar `AudioProcessorParameterGroup` generado desde `category` y verificarlo en Cubase/Bitwig | CDD §4.4 | 🟠 media |
+| P3 | **Hecho 2026-11-08:** `AudioProcessorParameterGroup` por categoría del diccionario, 6 grupos y 445 parámetros con Test 19 en verde. Falta la comprobación visual en Cubase/Bitwig | CDD §4.4 | ✅ implementado |
 | P4 | Añadir sobrecarga sin asignación al codec SysEx + gate de fuzzing round-trip en CI | SYSEX_SPEC | 🟠 media |
 | P5 | Sección normativa de sanitización post-decode y aplicarla en `Pro800Midi.cpp` | PRO-800 | 🟠 media |
 | P6 | Sección de transmisión (coalescer 60 Hz), arreglar el título y retirar las marcas `[file:22]` | JUNO | 🟡 baja |

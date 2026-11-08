@@ -93,9 +93,10 @@ Esto garantiza que el centro físico del hardware (`64` en MIDI CC/SysEx o `0` e
 
 ### 4.4 Mapeo de Controladores Semánticos, Automatización DAW y Beneficios de Integración
 
-> 🔴 **Marcado 2026-11-07 — carpetas de automatización del DAW.** El texto promete que el DAW agrupa los parámetros en carpetas semánticas «usando los atributos de categoría de JUCE derivados del diccionario». Verificado en `ABDAxionikVS`: no existe ningún `AudioProcessorParameterGroup` en `Source/`, así que el host muestra una lista plana de 445 parámetros. La ventaja descrita **no está implementada**.
-> **Alternativa:** generar `addParameterGroup(...)` desde la `category` del diccionario y verificar la jerarquía en Cubase 14 y Bitwig.
-> **Prioridad:** alta (es una promesa del documento que hoy es falsa). Ver [acta 2026](../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
+> ✅ **Resuelto 2026-11-08 — carpetas de automatización del DAW.** El 2026-11-07 esta nota marcaba el hueco: el texto promete que el DAW agrupa los parámetros en carpetas semánticas «usando los atributos de categoría de JUCE derivados del diccionario» y entonces **no existía ningún `AudioProcessorParameterGroup`** en `Source/`, así que el host mostraba una lista plana de 445 parámetros. **Ya está implementado:** `AxionikProcessor::createParameterLayout()` (`Source/PluginProcessor.cpp`) publica un `juce::AudioProcessorParameterGroup` por categoría del diccionario — `SoundHeader` → *Global*, `SoundName` → *Name*, `Synth`, `R1` → *Resynator 1*, `R2` → *Resynator 2*, `SoundMFX` → *Master FX* — con id `grp_<categoría>` y separador ` / `, y todos los parámetros cuelgan de su grupo.
+> **Cómo:** `Source/DSP/ParamGrouping.h` convierte el registro en cubos contiguos (`buildParamGroupBuckets()`), porque el árbol de JUCE solo muestra una carpeta si los hijos del grupo son consecutivos y en el registro los grupos están intercalados. Dentro de cada grupo se conserva el orden del registro; una categoría nueva en la spec entra sin tocar código, con su id como etiqueta.
+> **Verificado:** Test 19 de `tests/DspEngineFacadeTests.cpp` — 6 grupos cubren los 445 parámetros sin duplicados (`[PASS]`, 2026-11-08).
+> **Pendiente:** que el host los muestre como carpetas en Cubase 14 y Bitwig no se ha comprobado en un anfitrión real; la alternativa que proponía esta nota el 2026-11-07 es justo lo implementado. Ver [acta 2026](../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
 Al implementar la especificación de parámetros canónica v2.0 (`parameter_dictionary.schema.json`) con `semanticRole` y `SymBipolar`, los sintetizadores y samplers de la suite adquieren tres ventajas directas:
 
 1. **En el DAW (Cubase, Ableton, Logic, Reaper, Bitwig, Pro Tools)**:

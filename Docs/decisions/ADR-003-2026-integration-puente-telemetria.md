@@ -22,7 +22,7 @@
 | 6 | `WASM_DSP_BUILD_GUIDE.md` | 🔴 Obsoleto | Copia JUCE dentro del árbol y mantiene su propia lista de `Juno*.cpp` fuera de `DspSources.cmake`: es la deriva que el ecosistema prohíbe. Sin gate de paridad. |
 | 7 | `THREE_TIER_HARDWARE_ARCHITECTURE.md` | 🟠 Confusión de documento | No es la capa de traducción de unidades (`ParameterMeta`), es la de drivers por niveles. Sí tiene un pegado incompleto y numeración duplicada. |
 | 8 | `BUILD_AND_PACKAGING_GUIDE.md` | 🟠 Obsoleto en partes | Credenciales de notarización en la CLI (secreto en historial), WiX 3 sin mantenimiento, generador fijado a VS 2022 y ausencia de binario universal en macOS. |
-| 9 | `HOJA_RUTA_ABDMS2000.md` | 🟢 Ya cubierto | `synthMode` despacha a `VoiceManager`, vocoder 8/16 bandas, Mod Seq inhibido: la paridad es funcional, no cosmética. Falta la tabla resumen que lo demuestre. |
+| 9 | `HOJA_RUTA_ABDMS2000.md` (archivada en `_Deprecados/Docs/`) | 🟢 Ya cubierto | `synthMode` despacha a `VoiceManager`, vocoder 8/16 bandas, Mod Seq inhibido: la paridad es funcional, no cosmética. Falta la tabla resumen que lo demuestre. |
 | — | `INTEGRATION_GUIDE.md` | 🟢 Índice | Solo enlaza; se le añade el puntero a esta acta. |
 
 **Resumen cuantitativo:** 5 puntos son parcialmente válidos, 1 es válido y urgente (WASM), 2 confunden
@@ -113,7 +113,8 @@ criterios de calidad y el CI existente, no por el empaquetador.
 El §9 documenta paridad **funcional**: 4 voces vs 32, vocoder 8 vs 16 bandas, Mod Sequencer inhibido, slots 8→4,
 despachados desde `synthMode` en `WasmBridge.cpp` a `VoiceManager`. La premisa «solo cambia el skin» es falsa.
 Falta una tabla única skin → consecuencias (polifonía, bandas, slots, efectos, catálogo) como contrato de
-aceptación verificable; hoy esa información está repartida entre tres documentos.
+aceptación verificable; hoy esa información está repartida entre tres documentos. La hoja quedó archivada en
+`_Deprecados/Docs/HOJA_RUTA_ABDMS2000.md`.
 
 ---
 
@@ -173,5 +174,6 @@ Todo valor flotante recibido por el puente IPC desde JavaScript debe ser validad
   Los seis primeros dan **cero coincidencias**, lo que confirma los huecos §2.1, §2.3 y §2.6; `hostModel`,
   `ScopeTap` y `allNotesOff` sí aparecen, lo que refuta los puntos 2, 4 y 5.
 - Comprobación de enlaces relativos citados (`../architecture/…`, `../src/…`).
-- Normalización a LF de los ficheros con CRLF (`HOJA_RUTA_ABDMS2000.md`, `INTEGRATION_GUIDE.md`) y verificación
+- Normalización a LF de los ficheros con CRLF (`HOJA_RUTA_ABDMS2000.md`, hoy archivada en `_Deprecados/Docs/`;
+  `INTEGRATION_GUIDE.md`) y verificación
   `CR=0` + vallas de código pares en todo el bloque tras las ediciones.

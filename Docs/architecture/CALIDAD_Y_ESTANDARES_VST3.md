@@ -3,7 +3,7 @@
 > **Propósito:** Este documento sirve como **estándar de referencia y guía de auditoría transversal** para toda la familia de sintetizadores **`ABDSynths`** (`ABDEep`, `ABDMS2000`, `ABDCZ101`, `ABDNeural`, `ABDJUNiO601`, `ABDAxionikVS` y futuros desarrollos).
 >
 > Se estructura en **dos grandes bloques**:
-> - **PARTE I — Estándares Profesionales VST3 de Alta Gama:** Criterios exigidos por el SDK de Steinberg VST3, `pluginval` (strictness 5–10) y sintetizadores comerciales de referencia (*Surge XT*, *Vital*, *u-he*), con el desglose detallado de **qué cumple hoy `ABDEep` (100% de los criterios críticos y altos)** y una **matriz comparativa real** entre los sintetizadores de la suite (5 auditados en detalle + el estado verificado de `ABDAxionikVS`, incorporado después).
+> - **PARTE I — Estándares Profesionales VST3 de Alta Gama:** Criterios exigidos por el SDK de Steinberg VST3, `pluginval` (strictness 10, §10.1) y sintetizadores comerciales de referencia (*Surge XT*, *Vital*, *u-he*), con el desglose detallado de **qué cumple hoy `ABDEep` (100% de los criterios críticos y altos)** y una **matriz comparativa real** entre los sintetizadores de la suite (5 auditados en detalle + el estado verificado de `ABDAxionikVS`, incorporado después).
 > - **PARTE II — Estándares Propios de `ABDSynths`, Adopción de `ABDShared` y Prácticas de Ingeniería:** Catálogo de módulos compartidos (`ABDShared` / `ABDBankManager`), matriz de adopción real por proyecto (Zero Allocation Benchmark, `Scope`, `BankManager`, `MidiKeyboard`, `SynthCore`, `DspCore`, `DspEffects`), y clasificación de **Buenas Prácticas (`✅`), Prácticas Mejorables (`⚠️`) y Malas Prácticas / Anti-Patrones (`❌`)** detectadas en los 5 repositorios.
 
 ---
@@ -312,10 +312,26 @@ La simetría exacta en el centro físico (MIDI 64, `0.5` normalizado, `0` raw) n
 
 ## 10. Validación Automatizada (`pluginval`, Unit Tests, Benchmarks y Fuzzing)
 
-- `[x]` ✅ **Workflow CI de `pluginval` (strictness level 5–10):** Configurado en `.github/workflows/pluginval.yml`, en cada push a `master` y en cada pull request, y **verificado en verde en GitHub Actions** ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632): job de 8 min, `SUCCESS`, exit code `0`).
+- `[x]` ✅ **Workflow CI de `pluginval` (strictness level 10):** Configurado en `.github/workflows/pluginval.yml`, en cada push a `master` y en cada pull request, y **verificado en verde en GitHub Actions** ([run `42424775480`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42424775480): `SUCCESS`). El nivel 5 se usó hasta 2026-11-07 y queda como histórico; el criterio vigente y sus parámetros están en §10.1.
 - `[x]` ✅ **Suite de Tests Unitarios C++:** Cubre voces, deriva analógica, pitch, VCF, especificación de calibración, pánico/bypass, funciones de transferencia, barridos rápidos de parámetros, timing MIDI sample-accurate, aftertouch, sync de BPM de host, arpegiador/secuenciador, matriz de modulación y round-trip SysEx.
 - `[x]` ✅ **Benchmark Headless de Tiempo Real y Cero Allocaciones (`*_Benchmarks`):** Audita presupuesto de CPU ($< 50\%$) y 0 asignaciones de heap en `processBlock`.
 - `[x]` ✅ **Suite de Tests WebUI y Contratos (`Vitest`):** Verifica esquemas JSON, paridad de dumps SysEx, fuzzing de ida y vuelta (*round-trip*), UI y puentes.
+
+### 10.1. Criterio vigente: `pluginval` a strictness 10 con timeout de 120 s
+
+Un VST3 de la suite no se considera validado (**criterio 16** de la matriz comparativa) si no pasa `pluginval` en el **nivel máximo (10)**. Hasta 2026-11-07 se aceptaba strictness 5; ese nivel queda como histórico y no es criterio de aceptación.
+
+La invocación obligatoria es:
+
+```powershell
+pluginval.exe --strictness-level 10 --skip-gui-tests --timeout-ms 120000 --output-dir reports --validate "<ruta>.vst3"
+```
+
+- **`--strictness-level 10`**: conjunto completo de pruebas del SDK de Steinberg (estado de parámetros, hilos, automatización, guardado/restauración y estrés). Un nivel inferior deja fuera pruebas que sí detectan defectos reales de tiempo real, así que no acredita el criterio.
+- **`--skip-gui-tests`**: descarta las pruebas de editor, que exigen una sesión gráfica interactiva y son la causa habitual de falsos negativos en CI.
+- **`--timeout-ms 120000`**: el límite por defecto (30 s por prueba) se queda corto a strictness 10. `Parameter thread safety` recorre los 367 programas del banco y cada carga de preset resincroniza los 445 parámetros, así que tarda más de 30 s. Los 120 s dan margen sin enmascarar un cuelgue real: el job entero sigue acotado por `timeout-minutes: 60`.
+- **`--output-dir reports` y compuerta sobre el informe**: el `.txt` que escribe `pluginval` es la única prueba de que la validación se ejecutó. El workflow falla si no aparece ningún `.txt` en `reports/` o si todos están vacíos, de modo que un `pluginval` que muera sin escribir informe no puede quedar en verde aunque su exit code sea `0`.
+- **`Start-Process -Wait` en PowerShell**: `pluginval.exe` es un ejecutable de subsistema GUI; con `&` la llamada vuelve antes de que termine y `$LASTEXITCODE` queda vacío (y `$null -ne 0` es cierto), así que la ejecución se espera explícitamente y se comprueba su `ExitCode`.
 
 ---
 
@@ -355,9 +371,9 @@ Esta tabla refleja el estado real auditado en el código fuente de los 5 reposit
 | `getTailLengthSeconds()` | ✅ Cola calculada del Master FX (`[430..444]`): repeticiones a −60 dB del Delay maestro y RT60 del FDN 8×8 de la Reverb, ponderado por mezcla wet (`Source/PluginProcessor.cpp`) |
 | `setLatencySamples()` | ✅ `setLatencySamples(0)` explícito en `prepareToPlay()` |
 | `getPlayHead()` (`BPM` / `isPlaying` / `ppqPosition`) | ✅ Capturado en cada bloque; el flanco de arranque del transporte (Play o loop/seek) realinea la fase del LFO global y del Master Mod FX (`DspEngineFacade::resetModulationPhase()`) |
-| `pluginval` automatizado en CI | ✅ `.github/workflows/pluginval.yml` (`--strictness-level 5 --skip-gui-tests`), además de `.github/workflows/ci.yml` (`tsc + vitest` + guard del puente). En verde en GitHub Actions ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632), `SUCCESS` y exit code `0`). El workflow instala el SDK de WebView2 por NuGet (JUCE lo exige para `NEEDS_WEBVIEW2`) y lanza `pluginval.exe` con `Start-Process -Wait`, porque al ser un ejecutable de subsistema GUI PowerShell no bloquea con `&` y `$LASTEXITCODE` queda vacío |
+| `pluginval` automatizado en CI | ✅ `.github/workflows/pluginval.yml` (`--strictness-level 10 --skip-gui-tests --timeout-ms 120000`, ver §10.1), además de `.github/workflows/ci.yml` (`tsc + vitest` + guard del puente). En verde en GitHub Actions ([run `42424775480`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42424775480), `SUCCESS`). El workflow instala el SDK de WebView2 por NuGet (JUCE lo exige para `NEEDS_WEBVIEW2`), lanza `pluginval.exe` con `Start-Process -Wait` porque al ser un ejecutable de subsistema GUI PowerShell no bloquea con `&`, y exige un informe `.txt` no vacío para no dar por buena una ejecución que no llegó a validar |
 
-Criterios auditados: **todos cerrados**. Verificado en local con compilación limpia del VST3, 18/18 tests de `DspEngineFacadeTests` y pluginval 1.0.4 con strictness 5 (`SUCCESS`; el validador reporta latencia `0` y cola `0,93 s`, coherentes con `setLatencySamples(0)` y `getTailLengthSeconds()`), y en GitHub Actions con el workflow `pluginval` en verde ([run `42410043632`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42410043632)).
+Criterios auditados: **todos cerrados**. Verificado en local con compilación limpia del VST3, 18/18 tests de `DspEngineFacadeTests` y pluginval 1.0.4 (entonces con strictness 5 — nivel histórico, hoy el criterio es strictness 10 con `--timeout-ms 120000`, ver §10.1; `SUCCESS`, con latencia `0` y cola `0,93 s`, coherentes con `setLatencySamples(0)` y `getTailLengthSeconds()`), y en GitHub Actions con el workflow `pluginval` en verde ([run `42424775480`](https://github.com/ajabadia/ABDAxionikVS/actions/runs/42424775480)).
 
 ---
 ---
@@ -583,7 +599,8 @@ Para certificar que cualquiera de los sintetizadores (`ABDEep`, `ABDMS2000`, `AB
    ```cmd
    build\ABDEep_Benchmarks_artefacts\Release\ABD Eep Benchmarks.exe
    ```
-6. **Validación Oficial VST3 con `pluginval` (Strictness Level 5–10):**
+6. **Validación Oficial VST3 con `pluginval` (Strictness Level 10):**
    ```cmd
-   pluginval.exe --strictness-level 5 --validate-in-process --random-seed 42 "build\ABDEep_Standalone_artefacts\Release\VST3\ABD Eep.vst3"
+   pluginval.exe --strictness-level 10 --skip-gui-tests --timeout-ms 120000 --validate-in-process --random-seed 42 "build\ABDEep_Standalone_artefacts\Release\VST3\ABD Eep.vst3"
    ```
+   Criterio completo, motivo del timeout de 120 s y compuerta del informe: §10.1.

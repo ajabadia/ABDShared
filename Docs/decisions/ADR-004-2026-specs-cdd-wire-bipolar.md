@@ -77,7 +77,8 @@ es el que se usa: el bucle pesado que describe la auditoría no existe.
 No hay «un SysEx por movimiento de slider» que saturar; eso pertenece al transporte, no al formato.
 **Hueco real que sí existe:** al no decir nada del envío, cada implementador decide, y la saturación que
 describe la auditoría es un riesgo cierto en el puente MIDI. Añadir sección normativa de transmisión
-(cola lock-free, coalescer a ~60 Hz, techo por bloque) o remitir a `Docs/hw-sysex-contract.md`.
+(cola lock-free, coalescer a ~60 Hz, techo por bloque) o remitir al contrato de hardware, archivado en
+`_Deprecados/Docs/hw-sysex-contract.md`.
 **Defectos propios (no de la auditoría):** el título dice «JUNiO 601» y el fichero se llama
 `JUNO-106_SYSEX_SPEC.md`; y hay ~30 marcas `[file:22]` que son restos de la extracción del PDF, no enlaces
 válidos: estorban la lectura y no aportan trazabilidad.
@@ -128,5 +129,6 @@ Añadir esa obligación (y descartar la trama si no cuadra) antes de tocar el mo
   `../ADR-004-2026-specs-cdd-wire-bipolar.md` en `specs/hardware/`).
 - `Docs/specs.zip` empaqueta los mismos seis documentos con fecha 2026-11-02/06: **no se ha regenerado**,
   así que queda desfasado respecto a estas marcas. Regenerarlo es una acción aparte.
-- Fuera de alcance: `Docs/hw-sysex-contract.md` (vive en la raíz de `Docs/`, no en `specs/`) tiene una fila
+- Fuera de alcance: el contrato de hardware (archivado en `_Deprecados/Docs/hw-sysex-contract.md`; ya no vive en
+  la raíz de `Docs/`) tiene una fila
   duplicada de `HARDWARE_PORT_STATUS` y describe el puerto nativo como stub; merece su propia revisión.

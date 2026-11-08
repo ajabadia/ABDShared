@@ -24,7 +24,7 @@
 | `HOJA_RUTA_MIGRACION_EFECTOS_FX.md` | "Quedan instancias locales divergentes" | ✅ **Cierto**, y peor: la tabla contradice el cierre del documento | 🟠 media |
 | `JUNO_HPF_FILTER_GUIDE.md` | "Bilineal DF2T obsoleto" | ❌ No aplica: shelf fijo de graves, coeficientes estáticos | 🟢 nota |
 | idem | "Coeficientes por bloque producen chasquidos" | ✅ **Cierto**: `setCutoff()` no rampa | 🔴 alta |
-| `PROFUNDIZACION_JUNIO_DEEP_CZ101.md` | "Filtros PD del CZ-101 por bloque" | ⚠️ **No verificable aquí**: el documento es un inventario | ℹ️ nota |
+| `PROFUNDIZACION_JUNIO_DEEP_CZ101.md` (archivado en `_Deprecados/Docs/`) | "Filtros PD del CZ-101 por bloque" | ⚠️ **No verificable aquí**: el documento es un inventario | ℹ️ nota |
 | `SYNTHCORE_TRIAD_GUIDE.md` | "`std::pow`/`std::exp` por muestra en osciladores" | ❌ **Documento equivocado**: la tríada es Arp/ModMatrix/Sequencer | ℹ️ nota |
 
 Resumen: de **12 afirmaciones sustantivas**, 5 son falsas o no aplican al documento citado, 3 son parcialmente ciertas y 4 son correctas. La proporción importa: adoptar el paquete completo habría reescrito filtros que ya están en el estado del arte.
@@ -74,7 +74,7 @@ El cierre afirma que los 56 algoritmos están extraídos, pero la tabla mantiene
 
 ### 2.7. `PROFUNDIZACION_JUNIO_DEEP_CZ101…` — no verificable aquí
 
-Es un inventario de consumo (qué está en `ABDSharedCode`, qué es sustituible). Las afirmaciones sobre coeficientes PD recalculados por bloque o `std::pow` por muestra exigen leer `ABDCZ101/Source/DSP/*`, no este documento. Queda anotado como "por verificar en código", sin marca de obsolescencia: marcar un inventario por algo que no describe sería ruido.
+Es un inventario de consumo (qué está en `ABDSharedCode`, qué es sustituible). Las afirmaciones sobre coeficientes PD recalculados por bloque o `std::pow` por muestra exigen leer `ABDCZ101/Source/DSP/*`, no este documento. Queda anotado como "por verificar en código", sin marca de obsolescencia: marcar un inventario por algo que no describe sería ruido. El documento vive archivado en `_Deprecados/Docs/PROFUNDIZACION_JUNIO_DEEP_CZ101.md`, fuera del árbol canónico y conservado para trazabilidad.
 
 ### 2.8. `SYNTHCORE_TRIAD_GUIDE…` — documento equivocado
 
@@ -112,7 +112,7 @@ Criterio de prioridad: primero lo que produce un defecto **audible para el usuar
 
 ## Apéndice A: Matriz Canónica de Conmutación Funcional de Modelos (Hardware vs. Expandido)
 
-> **Rescate de Especificación Crítica (ex-HOJA_RUTA_ABDMS2000 / ABDEep):**
+> **Rescate de Especificación Crítica (ex-`HOJA_RUTA_ABDMS2000.md`, archivada en `_Deprecados/Docs/`, y ABDEep):**
 > La conmutación de modelos (mediante `synthMode` en el store/bridge y reflejado en el `ThemeSwitcher`) **no es un cambio cosmético de skin**: es una conmutación funcional determinista sobre el motor C++ y WASM.
 
 | Característica / Subsistema | Modo microKORG (`model = 0`) | Modo MS2000 (`model = 1`) | Modo Expandido / Advanced (`model = 2`) |

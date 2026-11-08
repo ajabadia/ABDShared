@@ -60,6 +60,8 @@ export class TrajectoryStick2D {
       onLayerChange: null,
       onPositionChange: null,
       onChange: null,
+      onDragStart: null,
+      onDragEnd: null,
       onOpenExpanded: null,
       ...options,
     };
@@ -222,6 +224,9 @@ export class TrajectoryStick2D {
     this.handlePointerDown = (e) => {
       this.isDragging = true;
       this.stickAreaEl.setPointerCapture(e.pointerId);
+      // Un arrastre de stick emite un onChange por muestra: el host necesita
+      // una sola pareja begin/end para que el DAW lo trate como UN gesto.
+      this.options.onDragStart?.();
       this.handlePointerMove(e);
     };
 
@@ -241,6 +246,7 @@ export class TrajectoryStick2D {
           const ry = Number.isFinite(this.options.restY) ? this.options.restY : 0.5;
           this.setPosition(this.activeLayer, rx, ry, true);
         }
+        this.options.onDragEnd?.();
       }
     };
 

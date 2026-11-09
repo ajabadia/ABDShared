@@ -1,8 +1,6 @@
 # GUÍA DEL LCD UNIVERSAL — pantalla + máquina de menú + D-pad
 
-> 🟢 **Marcado 2026-11-07 — el LCD ya es DOM/vectorial, no filmstrips.** La crítica de «fuentes matriciales en PNG» no describe este diseño: son `lcdMachine.js` (máquina pura) + `lcdScreen.js` (DOM) + `lcdPanel.js`, con `SevenSegmentDisplay.js` y `Assets/fonts/SevenSegment.ttf`, y `createLcdMachine` ya se exporta por el barrel. Lo que falta aquí es **fijar la fuente y `font-variant-numeric: tabular-nums`**: sin eso el ancho de la rejilla depende de la fuente que resuelva el sistema y se rompe en HiDPI.
-> **Alternativa:** añadir una sección de tipografía del LCD con la webfont canónica y su fallback medido.
-> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
+> ✅ **Resuelto 2026-11-08 (ADR-005 P5).** Política de fuente y `tabular-nums` fijadas en §1.1.
 
 > Un solo mecanismo para toda la suite: NEURONiK (8.3), CZ101, MS2000 y
 > ABDEep comparten la MECÁNICA; cada synth aporta sus DATOS (árbol de menú,
@@ -68,6 +66,36 @@ const SYNTH_MENU = [
 - **OK**: entra en subnivel → edita `parameter`/`cc` → dispara `action` al momento.
 - **‹ ›**: ±1 (navegar/editar). **^ v**: ±5 (ajuste grueso).
 - Mantener pulsado repite (initial 400 ms, repeat 120 ms).
+
+---
+
+### 1.1 Tipografía del LCD (política fija)
+
+El LCD pinta **texto real**, no un filmstrip de píxeles: por eso se ve nítido en
+cualquier densidad (HiDPI/Retina) sin assets por escala. Para que la rejilla no se
+mueva, la política es cerrada:
+
+1. **Familia única y monoespaciada:** el texto del panel sale de `--font-lcd`
+   (`tokens.css`: `'Courier New', 'Roboto Mono', monospace`), que `.lcd-container`
+   aplica. Un tema puede redefinirlo, pero el valor debe seguir siendo
+   monoespaciado: con una proporcional, `0000:` y `0010:` ocupan anchos distintos y
+   la columna de offsets deja de alinear con la rejilla hex.
+2. **`font-variant-numeric: tabular-nums` obligatorio** en todo readout numérico
+   (frecuencia, nivel, contador de ciclos, offset). Sin él, un valor que cambia a
+   20 Hz —o un `1` que pasa a `8`— cambia el ancho del texto y el número "baila"
+   dentro de su celda. `.lcd-container` ya lo declara; un consumidor que monte su
+   propio contenedor debe copiarlo.
+3. **Siete segmentos:** `SevenSegmentDisplay.js` fija `fontFamily:
+   'SevenSegment, monospace'` en línea, y el `@font-face` que resuelve la familia
+   vive en `Assets/styles/components/widgets.css` (apunta a
+   `assets/junio/SevenSegment.ttf`, `font-display: swap`, con
+   `font-variant-numeric: tabular-nums` en `.abd-seven-seg`). Un host que sólo
+   cargue `lcd.css` **no** tiene esa fuente y cae a `monospace`: se ve un display
+   distinto sin que nada falle. Hay que cargar `widgets.css` o declarar el mismo
+   `@font-face`.
+4. **Nada de fuentes por bitmap** para caracteres: la nitidez la da el texto
+   vectorial y la webfont, no una textura por glifo (que además necesitaría una
+   versión por DPR).
 
 ---
 

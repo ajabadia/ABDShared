@@ -6,10 +6,6 @@
 
 ## 1. Regla de Oro: Cero Emojis (Zero Emojis Policy)
 
-> 🟢 **Marcado 2026-11-07 — ya es SVG puro con `currentColor`.** La crítica de «iconografía rasterizada PNG/GIF» es el estado contrario a esta guía: §2 exige `viewBox="0 0 24 24"`, `stroke="currentColor"` y `fill="none"`, y §1 prohíbe los emojis. Lo que fallaba era editorial: el fichero llevaba **BOM** y el paso 4 de §5 quedó fusionado con el 3 (`fill="none"`.4. Guardar…`).
-> **Alternativa:** reparar la lista numerada al añadir el próximo icono.
-> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
-
 - **Prohibición Total:** NUNCA utilizar emojis Unicode (`📷`, `⚙️`, `🔴`, `❌`, `🎛️`) para botones, controles, estados o telemetría.
 - **Razón Técnica:** Los emojis se renderizan de forma inconsistente y con colores impredecibles según el sistema operativo (Windows, macOS, Linux, Android), no se pueden tintar con CSS y se pixelan en monitores HiDPI.
 - **Solución Obligatoria:** Usar iconos vectoriales SVG monocromáticos que hereden `currentColor` y los tokens de diseño (`--color-accent`, `--scope-text-muted`).
@@ -101,5 +97,6 @@ El componente genera un pequeño módulo que incrusta el markup canónico de **l
 
 1. Diseñar o exportar el icono en una cuadrícula de **24x24 px**.
 2. Limpiar estilos embebidos (eliminar atributos `style="..."`, `class="..."`, colores fijos `#000` o `#fff`).
-3. Asegurar `stroke="currentColor"` y `fill="none"`.4. Guardar en `D:\desarrollos\ABDSynths\ABDSharedAssets\icons/[nombre-en-ingles].svg` en kebab-case.
+3. Asegurar `stroke="currentColor"` y `fill="none"`.
+4. Guardar en `D:\desarrollos\ABDSynths\ABDSharedAssets\icons/[nombre-en-ingles].svg` en kebab-case.
 5. Actualizar los módulos de iconos de los consumidores afectados (p. ej. `WebUI/src/icons.js` del scope) copiando el markup canónico, y mantener sus tests de paridad en verde.

@@ -79,9 +79,7 @@ Toda aplicación de la suite debe soportar **conmutación en caliente entre tema
 
 ## 4. Arquitectura Espacial Estándar para Instrumentos Musicales
 
-> 🟠 **Marcado 2026-11-07 — el contenedor de escalado no aparece.** No hay en este documento ninguna prescripción de tamaño fijo (`1024`/`768`) ni de mutar CSS global desde JS: lo que impone es la cascada de tokens de §2.1. El hueco real es el inverso: `mountFitStage` (`ABDShared/Components/fitStage.js`, con tests) **no se menciona ni una vez**, así que un proyecto que siga sólo esta guía no sabe que debe montar el lienzo proporcional.
-> **Alternativa:** declararlo contenedor raíz obligatorio y fijar sus cotas (720p, 4K, Retina) sin scroll.
-> **Prioridad:** media. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
+> ✅ **Resuelto 2026-11-08 (ADR-005 P1).** `mountFitStage` es el contenedor raíz **obligatorio** de todo instrumento, con sus cotas medidas en §4.0.
 
 A diferencia de un software de metrología que opera como un asistente secuencial (wizard de pasos), un **sintetizador o instrumento musical** (`ABDMCS48SE`, `ABDMS2000`, `ABDEep`) debe organizar su espacio en cuatro áreas funcionales canónicas:
 
@@ -101,6 +99,42 @@ A diferencia de un software de metrología que opera como un asistente secuencia
 | [ VIRTUAL KEYBOARD DRAWER - Teclado de Piano Desplegable con Ctrl+K ]                                   |
 +---------------------------------------------------------------------------------------------------------+
 ```
+
+### 4.0. Contenedor Raíz de Escalado Proporcional (`mountFitStage`)
+
+Todo instrumento **debe** montar su lienzo de diseño mediante `mountFitStage` (`ABDShared/Components/fitStage.js`). No es una utilidad opcional: es el contenedor raíz, y sin él la ventana del editor recorta el pie y la tira de teclado cuando el usuario la hace más baja que el diseño.
+
+```javascript
+import { mountFitStage } from '@abdsynths/shared/components';
+
+const stage = document.getElementById('app-stage');
+const cleanupFit = mountFitStage(stage, {
+  width: 1200,          // Ancho de diseño de referencia del sintetizador
+  height: 800,          // Alto de diseño de referencia
+  minScale: 0.5,        // Escala mínima para pantallas compactas
+  maxScale: 2.5,        // Escala máxima en monitores HiDPI
+});
+```
+
+- **Aceleración por GPU:** El escalado se delega al hardware mediante `transform: scale(N)`, eliminando el lag visual y el jitter de reflow durante el redimensionamiento de la ventana en el DAW.
+- **Transparencia en escala 1:1:** A escala `1.0` con margen `0`, `fitStage` elimina la propiedad `transform` para no atrapar elementos flotantes (`position: fixed`) en un bloque contenedor artificial.
+- **Requisito de chasis:** La etiqueta `<body>` debe mantener `overflow: hidden` para evitar barras de desplazamiento fantasma generadas por la caja CSS no escalada.
+- **Limpieza:** `mountFitStage` devuelve `() => void`; el consumidor debe llamarlo al desmontar para soltar el listener de `resize`.
+
+#### Cotas (720p – 4K / Retina)
+
+`computeFit` escala con `min(vw / dw, vh / dh)` y el resultado se **clampea** a `[minScale, maxScale]`; el eje que sobra se centra. Los topes son decisión del synth, no del paquete. Para un lienzo de referencia 1200×800 (los cuatro formatos caben enteros, sin scroll):
+
+| Viewport (px CSS) | Escala resultante |
+|---|---|
+| 1280×720 (720p) | 0.90 |
+| 1920×1080 | 1.35 |
+| 2560×1440 | 1.80 |
+| 3840×2160 (4K) | 2.70 |
+
+- Con los topes por defecto (`0.25 … 3`) ninguno de los cuatro se recorta. Con los del ejemplo anterior (`0.5 … 2.5`) el 4K se queda en 2.5: **no recorta**, sólo deja un 7 % de pantalla sin usar. El `minScale` sólo recorta si supera la escala natural del formato más pequeño: en 720p esa escala es 0.90, así que un tope inferior por encima de 0.9 sí corta el lienzo.
+- **Retina no necesita caso especial:** el cálculo se hace en px CSS, no en px físicos, así que un 1440×900 CSS a 2× da la misma escala (1.13) que un panel no Retina de igual tamaño CSS. Lo que sí exige Retina es que los activos sean vectoriales (iconos SVG, texto real) y que el LCD siga una webfont, no una rejilla de píxeles.
+- Un lienzo **fluido** (`onlyShrink: true`) no se amplía nunca: por encima del diseño queda a 1 y no centra, para que siga llenando el ancho; por debajo, encoge y centra.
 
 ### 4.1. Barra Superior Universal (`SynthNavBar`)
 - Provee paridad directa con los menús nativos del host (`File`, `Edit`, `View`, `Help`).

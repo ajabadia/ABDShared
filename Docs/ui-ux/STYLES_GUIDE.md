@@ -180,9 +180,7 @@ Dos cosas que el host tiene que respetar, y que se midieron:
 
 ## 4b. Fondo tintable por tema (backgrounds.css)
 
-> 🟢 **Marcado 2026-11-07 — la cascada y el tile ya están aquí.** La crítica de «texturas JPG/PNG de varios MB por skin» describe el estado anterior: esta guía ya documenta el tile neutro `bg_tile512.webp` (341 KB, WebP **lossless**, costura `repeat` = 0.000) y la reducción medida de **8,1 MB → 2,69 MB**. Lo que falta es prohibir explícitamente embeber `bg_neutral.png` (2,81 MB) o `bg_neutral.webp` (1,95 MB) en `BinaryData`.
-> **Alternativa:** regla dura «sólo el tile se embebe» y `--full` siempre como asset externo.
-> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
+> ✅ **Resuelto 2026-11-08 (ADR-005 P4).** Regla dura, sin excepciones: **sólo el tile se embebe**. Ver §4b.1.
 
 El fondo generico de la suite NO lleva el color encima: una textura de grano gris acromatico
 (media ~106, std ~24, R=G=B) modula el color que pone el tema. Un solo asset sirve para
@@ -229,6 +227,22 @@ completo** (suma de los `BinaryData*.cpp` generados en build-reference): los fue
 embebidos bajan de **8.1 MB a 2.69 MB (-5.4 MB, -67%)** con el tile como unico fondo del
 dist; la variante `--full` sigue disponible como asset externo, no embebido.
 
+### 4b.1 Regla de embeber (dura)
+
+1. Al `BinaryData` del plugin **solo** entra `bg_tile512.webp`.
+2. `bg_neutral.png` (master, 2,81 MB) y `bg_neutral.webp` (full-bleed, 1,95 MB)
+   **no se embeben nunca**, ni como `background-image` ni como reserva de la
+   variante `--full`. Si una skin quiere el full-bleed, lo carga como asset
+   externo y el fallback del fondo tintable sigue siendo el tile.
+3. El color no viaja en la textura: el tema aporta `--abd-bg-tint` y la textura
+   gris `soft-light` lo modula. Una skin que pinte el color dentro del PNG
+   vuelve a necesitar una textura por skin, que es justo el error medido arriba.
+4. `--abd-bg-image` se puede sobreescribir por tema (otra textura), pero el
+   asset que viaja en el binario sigue siendo uno solo.
+
+La regla se comprueba sobre los `BinaryData*.cpp` generados, no sobre el `dist`:
+el total embebido no puede volver a acercarse a los 8,1 MB.
+
 ---
 
 ## 5. Como Consumir los Estilos
@@ -251,11 +265,11 @@ dist; la variante `--full` sigue disponible como asset externo, no embebido.
 @import './shared/components/buttons.css';
 :root { --color-accent: #ff6600; --color-accent-dim: rgba(255,102,0,0.15); }
 
----## 6. Adaptadores de Componente (scope.css, keyboard.css)
+---
 
-> 🟡 **Marcado 2026-11-07 — encabezado roto y prefijo de tokens sin decidir.** Este título está pegado al separador (`---## 6.`), así que no se renderiza como encabezado. Además conviven `--color-*` (guía de diseño) y `--abd-bg-tint` (aquí): la auditoría propone migrar todo a `--abd-*`, lo que evita colisiones con tokens del host pero rompe a todos los consumidores si se hace por partes.
-> **Alternativa:** decidir el prefijo de una vez y migrar en un único commit con los adaptadores actualizados.
-> **Prioridad:** baja. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
+## 6. Adaptadores de Componente (scope.css, keyboard.css)
+
+> ✅ **Resuelto 2026-11-08 (ADR-005 P4/P5).** Encabezado reparado y prefijo decidido: ver §6.1.
 
 Cada modulo (ABDScope, MidiKeyboard) tiene su CSS canonico (layout + fallbacks) y un adaptador en `styles/components/` que mapea SU token set completo a los tokens del host con fallback:
 
@@ -268,6 +282,31 @@ Reglas del contrato:
 3. El adaptador se carga DESPUES del css del modulo (gana por orden de fuente en `:root`).
 4. Los hosts pueden overridear cualquier `--scope-*`/`--kbd-*` en su propia cascada.
 5. ABDSharedAssets solo aloja activos con >=2 consumidores.
+
+### 6.1 Prefijo de tokens (decisión)
+
+**No se migra a `--abd-*`.** La paleta de la suite sigue siendo `--color-*`, y el
+prefijo `--abd-` queda **reservado para tokens de componente** (familia
+`--abd-bg-*` de `backgrounds.css`, `--abd-keys-h` del teclado). Motivos:
+
+- Migrar las 152 declaraciones `--color-*` de `tokens.css` y todos sus consumidores no
+  aporta nada funcional: los tokens de la suite ya viven en su propio espacio y el
+  host puede sobreescribirlos por cascada, que es el mecanismo previsto.
+- Una migración "por partes" rompe a los consumidores vivos (synths, WebUI
+  empaquetadas, skins) sin una ganancia que lo compense.
+- El riesgo real de colisión es entre tokens de **componente** y del host; eso ya
+  lo resuelven los prefijos por componente (`--scope-*`, `--kbd-*`, `--abd-bg-*`).
+
+Regla, por tanto:
+
+| Familia | Prefijo | Ejemplo |
+|---|---|---|
+| Paleta, tipografía, escala y geometría de la suite | `--color-*`, `--font-*`, `--text-*`, `--space-*`, `--radius-*`, `--shadow-*`, `--z-*` | `--color-accent`, `--text-md` |
+| Token propio de un componente, no themable desde la paleta | `--<componente>-*` o `--abd-<componente>-*` | `--scope-trace`, `--kbd-key-mask`, `--abd-bg-tint` |
+
+Un token nuevo elige familia por **quién lo consume**: si lo pinta la paleta del
+tema es `--color-*`; si es un detalle interno del componente, lleva su prefijo y
+no entra en `tokens.css`.
 
 ---
 

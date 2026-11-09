@@ -117,7 +117,30 @@ timeout, que es el único caso en que un updater asíncrono se queda «Checking�
 
 ---
 
-## 4. Notas de método
+## 4. Estado de ejecución (2026-11-08)
+
+Las seis acciones están aplicadas sobre los documentos y sus marcas `Marcado 2026-11-07`
+retiradas: al quedar resuelto el hueco, la nota ya no describía el texto vigente y sólo
+quedaba como ruido. El registro de lo que decía cada marca sigue en §2 de esta acta.
+
+| # | Estado | Dónde |
+|---|--------|-------|
+| P1 | ✅ Aplicada | `DESIGN_SYSTEM_GUIDE.md` §4 y §4.0: `mountFitStage` obligatorio, limpieza del listener y tabla de cotas 720p/1080p/1440p/4K + Retina (escala en px CSS, sin caso especial) |
+| P2 | ✅ Ya estaba en código, documentada | `LIVE_SYSEX_INSPECTOR.md` §2 y §5: `getByteMeta`, `setByte`, `onByteEdited` y `validateSysExByte` (exportada por el barrel) |
+| P3 | ✅ Aplicada | `SYNTH_NAVBAR.md` §2 (ítems 6–9): canal MIDI global por `value` + `activeValues`, dispositivo de audio, toggle de 440 Hz y orden de `Escape`/`OverlayFocus` |
+| P4 | ✅ Aplicada | `STYLES_GUIDE.md` §4b.1 (sólo el tile se embebe; `bg_neutral.*` nunca) y §6.1 (prefijo decidido: `--color-*` para la suite, `--abd-*`/`--<componente>-*` para tokens de componente) |
+| P5 | ✅ Aplicada | `STYLES_GUIDE.md` §6 reparado el `---## 6`; `ICONS_GUIDE.md` §5 paso 4 desfusionado; `LCD_GUIDE.md` §1.1 con fuente y `tabular-nums` (y la declaración añadida a `.lcd-container`) |
+| P6 | ✅ Documentada, con deuda de código | `ABOUT_DIALOG.md` §2.1: timeout 10 s nativo, ausencia de timeout en la ruta web y la consecuencia de ambos fallos (afirman «latest version» sin red) |
+
+**Deuda que queda abierta (no es documental):** P6 apunta un defecto real de
+`aboutDialog.js` —sin `AbortController` y sin distinguir el fallo de red— y del payload del
+puente, que no lleva motivo de error. Hasta que se corrija, un equipo sin red lee «You are
+running the latest version». La decisión P4 de no migrar a `--abd-*` cierra el debate: no
+hay migración pendiente.
+
+---
+
+## 5. Notas de método
 
 - No se ha borrado ni reescrito ninguna afirmación: cada nota se inserta **después** del epígrafe afectado.
 - Los siete documentos estaban en **CRLF** (salvo `DESIGN_SYSTEM_GUIDE.md`) y `ICONS_GUIDE.md` llevaba BOM.

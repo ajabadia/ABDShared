@@ -13,10 +13,6 @@
 
 ## 2. Características
 
-> 🟠 **Marcado 2026-11-07 — faltan ranuras y gestión de foco.** Este documento no usa la palabra «Skin» ni describe botones que incrementen parámetros a ciegas: esa crítica no aplica. Lo que sí falta es normativo: **canal MIDI global (Ch 1..16)**, **dispositivo de audio**, **diagnóstico multipunto de 440 Hz** y la integración con `overlayFocus.js` para que `Escape` cierre en orden (la propia `ABOUT_DIALOG.md` ya la documenta).
-> **Alternativa:** añadir esas cuatro ranuras a §2 y declarar el foco como responsabilidad del navbar.
-> **Prioridad:** media. Ver [acta 2026](../decisions/ADR-005-2026-ui-ux-design-tokens.md).
-
 1. **Paridad de Comandos JUCE:**
    * Soporte declarativo para menús principales y submenús anidados en cascada (`▸`).
    * Elementos seleccionables con checkmarks reactivos (`✓`).
@@ -31,6 +27,50 @@
 5. **Botones de acción rápida (`rightSlot`):**
    * Botones de acceso directo a drawers y paneles: NUKE, Matrix, MIDI, SysEx, Effects, NeuronDB, Settings, Theme toggle.
    * El botón `SysEx` usa el icono compartido `SysExIcon` exportado desde `@abdsynths/shared/components` (`D:\desarrollos\ABDSynths\ABDShared\Components\SynthNavBar\index.js`).
+6. **Canal MIDI global (Ch 1..16):**
+   * Un submenú de 16 ítems con la **misma** `action` y distinto `value` (1..16); el canal activo se marca con `activeValues`, no con dieciséis acciones distintas.
+   * El navbar **no** habla MIDI: despacha el número de canal y el host lo aplica. `setActiveValues()` vuelve a pintar el desplegable abierto, así que la marca sigue al motor sin cerrar el menú.
+7. **Dispositivo de audio:**
+   * Ítem de menú que despacha `audioDevice...` para abrir el panel de audio del host (o el diálogo del sistema); el navbar no enumera dispositivos ni conoce `navigator.mediaDevices`.
+   * Su resumen (nombre del dispositivo, rate) va en `rightSlot` como píldora inyectada por el host: el navbar sólo le da el hueco.
+8. **Diagnóstico de 440 Hz:**
+   * Un **toggle** (`checked` en el ítem) que arranca y para el tono de referencia; el navbar no genera audio, sólo expone el comando y pinta su estado.
+   * Si el synth verifica varios puntos de la cadena, son ítems del mismo submenú con `value` distinto (`'engine' | 'host' | 'device'`) y **uno solo activo a la vez**: sin `value`, dos diagnósticos podrían sonar simultáneamente.
+   * La referencia es siempre **440,0 Hz** en toda la suite y en la misma calibración de nivel que use el medidor de entrada del instrumento; si cada synth usa su propio 440, el A/B entre instrumentos no mide nada.
+9. **Foco y `Escape` (contrato `OverlayFocus`):**
+   * El desplegable se cierra con `Escape` y con clic exterior; es responsabilidad del navbar, que ya lo cumple (`closeDropdown()`).
+   * Los overlays que abre (p. ej. `AboutDialog`) gestionan su propio `Escape` con `createOverlayFocus({ onEscape })`. **Una sola capa consume cada `Escape`**: primero el desplegable, después el overlay abierto; cuando el desplegable está cerrado el navbar **no** debe consumir la tecla ni hacer `preventDefault`.
+   * Los atajos globales (`enableGlobalShortcuts`) no disparan con el foco en `input`, `textarea`, `select` ni `contenteditable`, para no robarle las letras al DAW ni a un campo de texto.
+
+```javascript
+// Las cuatro ranuras, en un solo bloque
+const navBar = createSynthNavBar({
+  container: '#navbar-container',
+  brand: 'ABD CZ-101',
+  menus: [
+    { name: 'Mode', items: [
+      { label: 'MIDI Channel', submenu: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(ch => ({
+        label: `Channel ${ch}`, action: 'setMidiChannel', value: ch,
+      })) },
+      { label: 'Diagnostic 440 Hz', submenu: [
+        { label: 'Engine output', action: 'diagTone', value: 'engine' },
+        { label: 'Host output',   action: 'diagTone', value: 'host' },
+        { label: 'Audio device',  action: 'diagTone', value: 'device' },
+      ] },
+      { label: 'Audio Device Settings...', action: 'audioDeviceSettings' },
+    ] },
+  ],
+  // La marca ✓ sigue al motor: devuelve el valor actual de cada acción
+  activeValues: () => ({ setMidiChannel: state.midiChannel, diagTone: state.diagTone }),
+  actions: {
+    setMidiChannel: (ch) => host.setMidiChannel(ch),
+    diagTone: (point) => host.toggleDiagTone(point),
+    audioDeviceSettings: () => host.openAudioSettings(),
+  },
+});
+```
+
+`activeValues` admite también un objeto plano (`{ setMidiChannel: 3 }`); con función se consulta en cada apertura, que es lo que necesita el canal MIDI.
 
 ---
 

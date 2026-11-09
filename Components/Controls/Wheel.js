@@ -24,7 +24,7 @@
  * apuntando a nodos ya sustituidos: el contenedor es de uno.)
  */
 
-import { announceSettled, createContinuousNotices } from './continuousNotices.js';
+import { announceSettled, createContinuousNotices } from './ContinuousNotices.js';
 
 const FRAME_HEIGHT = 76;
 const FRAMES = 101;

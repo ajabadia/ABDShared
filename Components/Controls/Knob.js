@@ -21,7 +21,7 @@
 
 import { attachDrag } from './drag-core.js';
 import { applySkin, CONTROL_KIND } from './skins/index.js';
-import { announceSettled, createContinuousNotices } from './continuousNotices.js';
+import { announceSettled, createContinuousNotices } from './ContinuousNotices.js';
 import { clamp01 } from '../../Utils/number.js';
 
 const SWEEP_DEGREES = 270;   // classic knob sweep: -135..+135

@@ -91,12 +91,14 @@ El registro formal e inmutable de las auditorías y decisiones arquitectónicas 
   * **Integración de Osciloscopio en Tiempo Real:** Protocolo de sincronización de audio mediante colas lock-free SPSC (`ScopeTap`) y visualización multi-carril en Canvas/WebGL.
 * [WEBVIEW_BRIDGE_PROTOCOL.md](integration/WEBVIEW_BRIDGE_PROTOCOL.md)
   * **Protocolo de Comunicación WebUI/C++:** Especificación de mensajes bidireccionales, sincronización de estado, gestión de gestos y regla crítica de emisión nativa (`emitEventIfBrowserIsVisible`) en JUCE 8/9.
+* [PARAMETER_GESTURES.md](integration/PARAMETER_GESTURES.md)
+  * **Gestos de Automatización (toda la suite):** Un arrastre del usuario = un gesto del host. Callbacks `onDragStart`/`onDragEnd` de los controles compartidos, idempotencia y cierre de emergencia en el puente, y `beginParameterGestureByIndex`/`endParameterGestureByIndex` en el procesador, con las exclusiones, los tres niveles de prueba y el checklist por sintetizador.
 * [WASM_DSP_BUILD_GUIDE.md](integration/WASM_DSP_BUILD_GUIDE.md)
   * **Pipeline Universal de Compilación WebAssembly/AudioWorklet:** Guía canónica de compilación con Emscripten, paridad de código mediante `DspSources.cmake`, soporte `-msimd128` y exposición de APIs C con `EMSCRIPTEN_KEEPALIVE`.
 * [BANK_MANAGER_INTEGRATION.md](integration/BANK_MANAGER_INTEGRATION.md)
   * **Integración del Gestor de Bancos (`ABDBankManager`):** Especificación mediante contratos de modelo desacoplados (`ModelContract`) y sincronización zero-fork.
 * [WEBUI_COMPONENT_WRAPPERS.md](integration/WEBUI_COMPONENT_WRAPPERS.md)
-  * **Capa Adaptadora de Componentes de Interfaz:** Enlace de `ABDKnob` y `ABDSlider` con `beginChangeGesture`/`endChangeGesture` y mapeo a APVTS.
+  * **Capa Adaptadora de Componentes de Interfaz:** Conversión 0..127 ↔ 0..1, `paramStore` + `bridge` y reenvío de `onDragStart`/`onDragEnd` al gesto del host; el contrato de gestos es de suite ([PARAMETER_GESTURES.md](integration/PARAMETER_GESTURES.md)).
 * [BUILD_AND_PACKAGING_GUIDE.md](integration/BUILD_AND_PACKAGING_GUIDE.md)
   * **Compilación y Empaquetado Multiplataforma:** Pipeline con CMake, metadatos únicos de plugin, firmado de código con Apple Notarization (Gatekeeper) y creación de instaladores `.pkg` (macOS) e InnoSetup (Windows).
 * [INTEGRATION_GUIDE.md](integration/INTEGRATION_GUIDE.md)

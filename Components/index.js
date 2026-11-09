@@ -24,6 +24,10 @@ export { LedLadder } from './ledLadder.js';
 export { RotaryLedKnob } from './rotaryLedKnob.js';
 export { XYPad } from './xypad.js';
 export { TrajectoryStick2D } from './trajectoryStick2D.js';
+
+// Gesto de automatización de un control arrastrable, con el puente del host
+// inyectado: el mismo cableado para todos los sintetizadores.
+export { gestureFor, gestureForGroup, createParamGestures } from './paramGesture.js';
 export { ThemeSwitcher } from './themeSwitcher.js';
 export { computeFit, mountFitStage } from './fitStage.js';
 export { registerSkin, getSkin, applySkin, skinNames } from './skins/index.js';

@@ -1488,7 +1488,7 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
 - [ ] `getTailLengthSeconds()` returns realistic value
 - [ ] `getNumPrograms()` returns ≥ 1
 - [ ] `getProgramName()` returns actual preset name
-- [ ] `beginChangeGesture()` / `endChangeGesture()` on all UI interactions
+- [ ] `beginChangeGesture()` / `endChangeGesture()` on all UI interactions (contrato completo: [PARAMETER_GESTURES.md](../integration/PARAMETER_GESTURES.md))
 - [ ] `updateHostDisplay()` on program changes
 - [ ] No hardcoded development paths in production code
 - [ ] No `DBG()` or logging in audio thread

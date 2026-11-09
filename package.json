@@ -46,6 +46,10 @@
       "types": "./Components/I18n/index.d.ts",
       "default": "./Components/I18n/index.js"
     },
+    "./components/paramGesture.js": {
+      "types": "./Components/paramGesture.d.ts",
+      "default": "./Components/paramGesture.js"
+    },
     "./components/*": "./Components/*",
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",

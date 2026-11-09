@@ -17,20 +17,32 @@ All wrappers live in `src/components/shared/` and are exported from `src/compone
 | onChange | User edits only | Fires with real 0..127 value + paramId |
 | setValue() | Silent (no onChange) | Silent by default, `notify=true` fires onChange |
 
-> **🟠 Marca de revisión (2026-11-07) — falta el gesto de automatización, no la introspección de DOM.**
-> La crítica externa supone que los wrappers leen texto del DOM para sincronizarse con C++ y que emiten una
-> actualización reactiva por pixel de ratón. Este documento describe lo contrario: el valor vive en `paramStore`,
-> viaja como **número 0..127** a `bridge.setParam(paramId, val)` y `setValue()` es silencioso por defecto — no hay
-> lectura de texto ni escritura especular en el DOM.
-> **Hueco real:** `onDragStart` / `onDragEnd` existen pero el documento **no los conecta a `beginChangeGesture()` /
-> `endChangeGesture()`** de `RangedAudioParameter`. Sin eso, el host no agrupa el arrastre en un solo gesto de
-> automatización: el DAW graba un punto por cada paso y el «undo» no revierte el movimiento completo. Es un
-> contrato de una línea por wrapper y afecta a `ABDKnob`, `ABDSlider`, `ABDFilmstripFader` y `ABDSegmented`.
-> **Mejoras de la misma pasada:** (1) `setPointerCapture` en `pointerdown` para que el arrastre sobreviva a salir del
-> elemento; (2) coalescer `pointermove` con `requestAnimationFrame` (un envío por frame, no por evento), que es el
-> patrón que evita el «miles de actualizaciones» que la crítica teme; (3) `pan/multi-touch` documentado o declarado
-> fuera de alcance.
-> **Prioridad:** alta — es corrección funcional de cara al host, no cosmética. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.3.
+> ✅ **Resuelto 2026-11-08.** El gesto de automatización es un contrato de suite y vive en
+> [PARAMETER_GESTURES.md](PARAMETER_GESTURES.md). En esta capa el requisito es reenviar los dos callbacks del
+> control (`onDragStart` / `onDragEnd`, que el control compartido ya emite) al `beginGesture`/`endGesture` del
+> puente del synth; el detalle está en «Gesto de automatización», abajo.
+
+---
+
+## Gesto de automatización (obligatorio)
+
+Un wrapper no decide *si* hay gesto: lo reenvía. El contrato completo —qué abre gesto, qué no, y cómo se
+prueba en sus tres niveles— está en [PARAMETER_GESTURES.md](PARAMETER_GESTURES.md); aquí solo el cableado de
+esta capa, que es una línea por wrapper:
+
+```js
+new ABDKnob(container, {
+  paramId: 'filterCutoff',
+  onDragStart: () => bridge.beginGesture(indexOf('filterCutoff')),  // beginChangeGesture en el procesador
+  onDragEnd:   () => bridge.endGesture(indexOf('filterCutoff')),    // su pareja, siempre
+});
+```
+
+- Un arrastre abre **un** gesto por parámetro. Un wrapper que gobierna varios (el pad de una envolvente)
+  abre todos los que mueve y los cierra todos al soltar.
+- `setValue(val, notify=true)` **no** abre gesto: es el eco del host, no una edición del usuario.
+- Los wrappers sin arrastre (`ABDSelect`, `ABDToggle`, `ABDSegmented`) cambian el valor con un clic: si ese
+  clic cuenta como edición, el gesto se abre y se cierra en la misma llamada; nunca queda abierto.
 
 ---
 

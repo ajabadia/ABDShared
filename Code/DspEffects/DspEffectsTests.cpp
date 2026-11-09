@@ -6393,6 +6393,115 @@ int main()
         autoPan.process(inL, inR, outL, outR, 64);
         check(std::isfinite(outL[0]) && std::isfinite(outR[0]), "DspAutoPan produce muestras finitas");
 
+        // 5b. La cabecera prometia un desfase estereo entre canales que el codigo no
+        // tenia: `lfoR` se calculaba y no se usaba (C4189), y con el la envolvente del
+        // canal derecho. Ahora hay un solo LFO y lo que es independiente por canal es
+        // la profundidad, que sigue la envolvente de cada uno. Esto clava las dos
+        // propiedades que un "arreglo" del desfase podria romper.
+        {
+            constexpr int kLargo = 44100;
+            static float monoL[kLargo];
+            static float monoR[kLargo];
+            static float panL[kLargo];
+            static float panR[kLargo];
+
+            for (int i = 0; i < kLargo; ++i)
+                monoL[i] = monoR[i] = 1.0f;
+
+            abd::dsp::DspAutoPan sweep;
+            sweep.prepare(44100.0);
+            sweep.setSpeedNorm(1.0f); // 5 Hz: un ciclo completo en 8820 muestras
+            sweep.setWaveNorm(0.5f);  // seno
+            sweep.setDepthNorm(1.0f);
+            sweep.process(monoL, monoR, panL, panR, kLargo);
+
+            double peorPotencia = 0.0;
+            float minimo        = 1.0f;
+            float maximo        = 0.0f;
+
+            for (int i = 0; i < kLargo; ++i)
+            {
+                const double potencia = static_cast<double>(panL[i]) * panL[i]
+                                      + static_cast<double>(panR[i]) * panR[i];
+                const double error    = potencia > 1.0 ? potencia - 1.0 : 1.0 - potencia;
+
+                if (error > peorPotencia)
+                    peorPotencia = error;
+                if (panL[i] < minimo)
+                    minimo = panL[i];
+                if (panL[i] > maximo)
+                    maximo = panL[i];
+            }
+
+            check(peorPotencia < 1.0e-6, "DspAutoPan mantiene potencia constante en todo el barrido");
+            check(minimo < 0.01f && maximo > 0.99f, "y el barrido llega de extremo a extremo");
+        }
+
+        {
+            abd::dsp::DspAutoPan dry;
+            dry.prepare(44100.0);
+            dry.setDepthNorm(0.0f);
+
+            float mixL[64];
+            float mixR[64];
+            dry.process(inL, inR, mixL, mixR, 64);
+
+            bool intacto = true;
+
+            for (int i = 0; i < 64; ++i)
+                if (mixL[i] != inL[i] || mixR[i] != inR[i])
+                    intacto = false;
+
+            check(intacto, "profundidad 0 devuelve la entrada sin tocar");
+        }
+
+        // EnvDepth tiene que leer la envolvente del canal DERECHO para el canal
+        // derecho: con senal solo en el derecho, el izquierdo esta a cero, asi que si
+        // se usase la envolvente del izquierdo la modulacion seria MAS superficial en
+        // vez de mas profunda y este test lo dice.
+        {
+            constexpr int kLargo = 8192;
+            static float inLeft[kLargo];
+            static float inRight[kLargo];
+            static float outLeft[kLargo];
+            static float outRight[kLargo];
+
+            for (int i = 0; i < kLargo; ++i)
+            {
+                inLeft[i]  = 0.0f;
+                inRight[i] = 0.5f;
+            }
+
+            const auto excursion = [&](float envDepth) {
+                abd::dsp::DspAutoPan pan;
+                pan.prepare(44100.0);
+                pan.setSpeedNorm(1.0f);
+                pan.setWaveNorm(0.5f);
+                pan.setDepthNorm(0.5f);
+                pan.setEnvDepthNorm(envDepth);
+                pan.process(inLeft, inRight, outLeft, outRight, kLargo);
+
+                float minimo = outRight[kLargo - 1];
+                float maximo = outRight[kLargo - 1];
+
+                for (int i = kLargo / 2; i < kLargo; ++i)
+                {
+                    if (outRight[i] < minimo)
+                        minimo = outRight[i];
+                    if (outRight[i] > maximo)
+                        maximo = outRight[i];
+                }
+
+                return maximo > 0.0f ? minimo / maximo : 0.0f;
+            };
+
+            const float sinEnv = excursion(0.0f);
+            const float conEnv = excursion(1.0f);
+
+            check(sinEnv > 0.0f, "con EnvDepth 0 el canal derecho sigue sonando");
+            check(conEnv < sinEnv, "EnvDepth modula con la envolvente del canal derecho, no con la del otro");
+        }
+
         // 6. DspRotarySpeaker
         abd::dsp::DspRotarySpeaker rotary;
         rotary.prepare(44100.0);

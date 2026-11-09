@@ -13,7 +13,10 @@
       o modulación rítmica de amplitud.
       Características:
         - Tasa de LFO: 0.05 Hz a 5.0 Hz.
-        - Desfase estéreo entre canales: 0° a 180°.
+        - Un solo LFO para los dos canales. Lo que sí es independiente por canal
+          es la PROFUNDIDAD, que sigue la envolvente de cada uno (EnvDepth). No hay
+          desfase de fase del LFO entre canales: el efecto nunca lo tuvo y la
+          cabecera no lo promete desde que el aviso C4189 destapó el cálculo muerto.
         - Control continuo de forma de onda (Triangular -> Sinusoidal -> Cuadrada suave).
         - Seguidor de envolvente (Envelope Follower) interactivo:
           * La amplitud de la señal entrante puede acelerar o desacelerar el LFO (EnvSpd).
@@ -55,7 +58,6 @@ public:
     void reset() noexcept
     {
         lfoPhaseL_ = 0.0;
-        lfoPhaseR_ = 0.0;
         envStateL_ = 0.0f;
         envStateR_ = 0.0f;
     }
@@ -65,7 +67,6 @@ public:
         speed_ = std::clamp(norm, 0.0f, 1.0f);
         updateLFOIncrement();
     }
-    void setPhaseNorm(float norm) noexcept { phase_ = std::clamp(norm, 0.0f, 1.0f); }
     void setWaveNorm(float norm) noexcept { wave_ = std::clamp(norm, 0.0f, 1.0f); }
     void setDepthNorm(float norm) noexcept { depth_ = std::clamp(norm, 0.0f, 1.0f); }
     void setEnvSpdNorm(float norm) noexcept { envSpd_ = std::clamp(norm, 0.0f, 1.0f); }
@@ -105,45 +106,30 @@ public:
             const float envL = std::clamp(envStateL_ * 4.0f, 0.0f, 1.0f);
             const float envR = std::clamp(envStateR_ * 4.0f, 0.0f, 1.0f);
 
-            // 2. Modulación de velocidad LFO por envolvente
-            const float effectiveIncL = lfoInc_ * (1.0f + envSpd_ * envL);
-            const float effectiveIncR = lfoInc_ * (1.0f + envSpd_ * envR);
-
-            lfoPhaseL_ += effectiveIncL;
+            // 2. Modulación de velocidad del LFO por la envolvente de la entrada
+            lfoPhaseL_ += lfoInc_ * (1.0f + envSpd_ * envL);
             if (lfoPhaseL_ >= 1.0) lfoPhaseL_ -= 1.0;
 
-            const float phaseOffset = phase_ * 0.5f;
-            lfoPhaseR_              = lfoPhaseL_ + phaseOffset;
-            if (lfoPhaseR_ >= 1.0) lfoPhaseR_ -= 1.0;
+            // 3. Forma de onda del LFO: una sola, compartida por los dos canales
+            const float lfo = getLFOWave(lfoPhaseL_, wave_);
 
-            lfoPhaseR_ += (effectiveIncR - effectiveIncL);
-            if (lfoPhaseR_ >= 1.0) lfoPhaseR_ -= 1.0;
-            if (lfoPhaseR_ < 0.0) lfoPhaseR_ += 1.0;
+            // 4. Modulación de profundidad por envolvente, canal a canal: cada uno
+            //    sigue la suya. Con envDepth = 0 (el valor de partida) las dos
+            //    profundidades son iguales y el efecto hace exactamente lo de antes.
+            float depthL = depth_ * (1.0f + envDepth_ * (envL - 0.5f));
+            float depthR = depth_ * (1.0f + envDepth_ * (envR - 0.5f));
+            depthL       = std::clamp(depthL, 0.0f, 1.0f);
+            depthR       = std::clamp(depthR, 0.0f, 1.0f);
 
-            // 3. Forma de onda del LFO
-            const float lfoL = getLFOWave(lfoPhaseL_, wave_);
-            const float lfoR = getLFOWave(lfoPhaseR_, wave_);
+            // 5. Auto Pan: ley de potencia constante, una posición por canal
+            constexpr double kPiQuarter = 0.78539816339744830962;
+            const float panL            = lfo * depthL;
+            const float panR            = lfo * depthR;
+            const float gainL           = static_cast<float>(std::cos(kPiQuarter * (panL + 1.0f)));
+            const float gainR           = static_cast<float>(std::sin(kPiQuarter * (panR + 1.0f)));
 
-            // 4. Modulación de profundidad por envolvente
-            float effectiveDepth = depth_ * (1.0f + envDepth_ * (envL - 0.5f));
-            effectiveDepth       = std::clamp(effectiveDepth, 0.0f, 1.0f);
-
-            if (effectiveDepth < 0.01f)
-            {
-                outL[s] = inL[s];
-                outR[s] = inR[s];
-            }
-            else
-            {
-                // Auto Pan: equal power pan law
-                const float panPos          = lfoL * effectiveDepth;
-                constexpr double kPiQuarter = 0.78539816339744830962;
-                const float gainL           = static_cast<float>(std::cos(kPiQuarter * (panPos + 1.0f)));
-                const float gainR           = static_cast<float>(std::sin(kPiQuarter * (panPos + 1.0f)));
-
-                outL[s] = inL[s] * gainL;
-                outR[s] = inR[s] * gainR;
-            }
+            outL[s] = (depthL < 0.01f) ? inL[s] : inL[s] * gainL;
+            outR[s] = (depthR < 0.01f) ? inR[s] : inR[s] * gainR;
         }
     }
 
@@ -196,7 +182,6 @@ private:
 
     double sampleRate_  = 44100.0;
     float speed_        = 0.3f;
-    float phase_        = 0.0f;
     float wave_         = 0.5f;
     float depth_        = 0.5f;
     float envSpd_       = 0.0f;
@@ -211,7 +196,6 @@ private:
     float envRelease_ = 0.001f;
 
     double lfoPhaseL_ = 0.0;
-    double lfoPhaseR_ = 0.0;
     float lfoInc_     = 0.0f;
 };
 

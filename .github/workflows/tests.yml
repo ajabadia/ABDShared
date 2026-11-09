@@ -1,0 +1,81 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Suite JS (vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # El manifiesto declara @abdsynths/i18n y @abdsynths/scope como
+      # `workspace:*`, protocolo que npm rechaza fuera del monorepo padre
+      # (EUNSUPPORTEDPROTOCOL). Mientras eso siga así se instalan aquí solo las
+      # herramientas de test: vitest y jsdom, que vitest.config.js exige y
+      # package.json no declaraba.
+      - name: Herramientas de test
+        run: >-
+          npm install --no-save --no-package-lock --no-audit --no-fund
+          --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
+
+      - name: Suite
+        run: '"$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot'
+
+  dsp:
+    name: Tests C++ (MSVC)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Los tres targets de test son JUCE-free; JUCE_PATH apunta a una ruta
+      # inexistente en el runner para que no se cuele un JUCE del sistema.
+      - name: Configurar
+        run: >-
+          cmake -S . -B build_ci -G "Visual Studio 17 2022" -A x64
+          -DJUCE_PATH=ci-sin-juce
+          -DABDSHARED_BUILD_DSPCORE_TESTS=ON
+          -DABDSHARED_BUILD_SYNTHCORE_TESTS=ON
+          -DABDSHARED_BUILD_DSPEFFECTS_TESTS=ON
+          -DABDSHARED_BUILD_AUTOUPDATER=OFF
+          -DABDSHARED_BUILD_HARDWAREDRIVERS=OFF
+          -DABDSHARED_BUILD_AUDIOCOMPARATOR=OFF
+
+      - name: Compilar
+        run: >-
+          cmake --build build_ci --config Release
+          --target ABDShared_DspCore_Tests ABDShared_SynthCore_Tests ABDShared_DspEffects_Tests
+
+      - name: Ejecutar
+        shell: pwsh
+        run: |
+          $binaries = @(
+            'build_ci/Code/Release/ABDShared_DspCore_Tests.exe',
+            'build_ci/Code/Release/ABDShared_SynthCore_Tests.exe',
+            'build_ci/Code/Release/ABDShared_DspEffects_Tests.exe'
+          )
+          $failed = @()
+          foreach ($binary in $binaries) {
+            Write-Host "== $binary"
+            & $binary
+            if ($LASTEXITCODE -ne 0) { $failed += $binary }
+          }
+          if ($failed.Count -gt 0) {
+            throw "Fallaron: $($failed -join ', ')"
+          }

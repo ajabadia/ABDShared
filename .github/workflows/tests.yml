@@ -29,15 +29,15 @@ jobs:
       # herramientas de test: vitest y jsdom, que vitest.config.js exige y
       # package.json no declaraba.
       #
-      # El package.json mínimo no es decorativo: sin él, npm 10 instalando en un
-      # prefijo sin manifiesto acaba leyendo el del repositorio y revienta con
-      # "Cannot read properties of null (reading 'edgesOut')".
+      # --legacy-peer-deps no es un capricho: con npm 10 (el que trae Node 22 en
+      # el runner) el árbol de vitest 4.1.11 no resuelve y el install muere con
+      # "Cannot read properties of null (reading 'edgesOut')". Comprobado con
+      # npm 10.9 en local: sin el flag falla, con el flag instala y la suite pasa.
       - name: Herramientas de test
         run: |
           mkdir -p "$RUNNER_TEMP/deps"
-          echo '{"name":"ci-deps","private":true}' > "$RUNNER_TEMP/deps/package.json"
           npm install --no-save --no-package-lock --no-audit --no-fund \
-            --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
+            --legacy-peer-deps --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
 
       - name: Suite
         run: '"$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot'
@@ -59,7 +59,6 @@ jobs:
       - name: ESLint
         run: |
           mkdir -p "$RUNNER_TEMP/deps"
-          echo '{"name":"ci-deps","private":true}' > "$RUNNER_TEMP/deps/package.json"
           npm install --no-save --no-package-lock --no-audit --no-fund \
             --prefix "$RUNNER_TEMP/deps" eslint@10
 

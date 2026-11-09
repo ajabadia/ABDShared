@@ -40,6 +40,17 @@ if(ABDSHARED_BUILD_DSPCORE_TESTS)
     target_compile_features(ABDShared_DspCore_Tests PRIVATE cxx_std_17)
 endif()
 
+# Audicion offline (WAV) del MoogLadderVCF: barrido de corte y resonancia para
+# decidir si la curva de resonancia necesita ajuste. No entra en el build normal.
+option(ABDSHARED_BUILD_MOOG_AUDITION "Build offline WAV audition tool for MoogLadderVCF" OFF)
+if(ABDSHARED_BUILD_MOOG_AUDITION)
+    add_executable(ABDShared_MoogAudition
+        DspCore/Tools/MoogAudition.cpp
+    )
+    target_link_libraries(ABDShared_MoogAudition PRIVATE ABDShared_DspCore)
+    target_compile_features(ABDShared_MoogAudition PRIVATE cxx_std_17)
+endif()
+
 # ==============================================================================
 # 2. SynthCore Module (JUCE-free Synthesis Primitives, C++20, Static Library)
 # ==============================================================================

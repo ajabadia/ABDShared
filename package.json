@@ -51,6 +51,12 @@
       "default": "./Components/paramGesture.js"
     },
     "./components/*": "./Components/*",
+    "./components/controls/stepMatrix.js": {
+      "default": "./Components/Controls/stepMatrix.js"
+    },
+    "./components/scope/miniWaveScope.js": {
+      "default": "./Components/Scope/miniWaveScope.js"
+    },
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",
     "./utils": "./Utils/index.js",

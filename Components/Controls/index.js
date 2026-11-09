@@ -19,6 +19,7 @@ export { SilverFilmstripKnob } from './silverFilmstripKnob.js';
 export { EffectLEDButton } from './effectLEDButton.js';
 export { PeakLED } from './peakLED.js';
 export { TapeEchoVisual } from './tapeEchoVisual.js';
+export { StepMatrix, midiNoteToName } from './stepMatrix.js';
 export { sameControlValue, transitioned, announceTransition } from './transitionNotices.js';
 export { announceMovement, announceSettled, createContinuousNotices } from './continuousNotices.js';
 export { registerSkin, getSkin, applySkin, skinNames } from './skins/index.js';

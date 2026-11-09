@@ -54,6 +54,11 @@ export { createDrawer } from './drawer.js';
 // escribe valores. Es una VISTA de las rutas, y por eso vive aqui y no en
 // la familia de controles (ver la cabecera de modMatrix.js).
 export { ModMatrix } from './modMatrix.js';
+// La matriz de pasos tampoco es un control con parametro propio: es una VISTA
+// de la secuencia (que pasos, con que nota, con que probabilidad), y el host
+// decide que significa cada destino. El CSS vive en
+// styles/components/step-matrix.css.
+export { StepMatrix, midiNoteToName } from './Controls/stepMatrix.js';
 export { createOverlayFocus, focusableWithin } from './overlayFocus.js';
 export { createLcdMachine, formatValue } from './lcdMachine.js';
 export { createLcdScreen } from './lcdScreen.js';
@@ -136,6 +141,10 @@ export {
 // Medición de señal VU y analizador espectral logarítmico (ABDAudioLab / ABDScope)
 export { VuMeter } from './vuMeter.js';
 export { SpectrumPlotter } from './spectrumPlotter.js';
+// Visor de onda pequeno (unas pocas decenas de pixeles): pinta las muestras
+// que le da el host o, si no hay, una onda cuadrada sintetica de idle. El
+// scope completo es '@abdsynths/shared/scope'; el analisis espectral, arriba.
+export { MiniWaveScope } from './Scope/miniWaveScope.js';
 export { HardwareRoutingDiagram } from './hardwareRoutingDiagram.js';
 export { StudioTopology } from './studioTopology.js';
 

@@ -604,3 +604,6 @@ Para certificar que cualquiera de los sintetizadores (`ABDEep`, `ABDMS2000`, `AB
    pluginval.exe --strictness-level 10 --skip-gui-tests --timeout-ms 120000 --validate-in-process --random-seed 42 "build\ABDEep_Standalone_artefacts\Release\VST3\ABD Eep.vst3"
    ```
    Criterio completo, motivo del timeout de 120 s y compuerta del informe: §10.1.
+
+7. **Compatibilidad con Hosts Legacy y Hardware Embebido (VST 2.4 / Win32 / V-Machine):**
+   Para proyectos que requieran distribución de 32 bits y VST 2.4 (como `ABDMCS48SE`), consultar [COMPATIBILIDAD_LEGACY_VST2_VMACHINE.md](COMPATIBILIDAD_LEGACY_VST2_VMACHINE.md) para las directrices de compilación con `/arch:IA32` (sin SSE2), política de exclusión legal del SDK en `.gitignore` y staging dual en `dist/x64/` y `dist/x86/`.

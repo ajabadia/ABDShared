@@ -18,10 +18,12 @@ import { domainToRawValue, init as initLookup, lookupRawValue } from '../Code/Mi
 const LFO1 = 'ms2000_lfo1_hz';
 const LFO2 = 'ms2000_lfo2_hz';
 
-// Extremos exactos de las tablas ROM: inc * 48000 / 2^24.
-const LFO_MIN_HZ = 0.0457763671875; // 16 incrementos
-const LFO1_MAX_HZ = 36.609649658203125; // 12796 incrementos
-const LFO2_MAX_HZ = 194.90432739257812; // 68124 incrementos
+// Extremos exactos de las tablas ROM: inc * 48000 / 2^24. Se dejan como
+// fórmula y no como literal (68124 incidencias, 194,904327392578125 Hz) para
+// que el valor se pueda volver a derivar de la trama que lo documenta.
+const LFO_MIN_HZ = (16 * 48000) / 2 ** 24; // 0,0457763671875
+const LFO1_MAX_HZ = (12796 * 48000) / 2 ** 24; // 36,609649658203125
+const LFO2_MAX_HZ = (68124 * 48000) / 2 ** 24; // 194,904327392578125
 
 const MS2000_SPEC = getContract('korg_ms2000_parameter_spec');
 const lutParams = [];

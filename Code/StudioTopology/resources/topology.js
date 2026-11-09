@@ -32,6 +32,11 @@ let topologyData = {
 const nodePositions = new Map(); // id -> { x, y }
 let activeDrag = null; // { id, startX, startY, origNodeX, origNodeY }
 
+// Clave de la disposición arrastrada por el usuario. Vive en el ámbito de módulo
+// porque la escriben dos sitios: renderStudio() al cargar y el arrastre de
+// renderNode() al soltar el nodo.
+const STORAGE_KEY = 'abd_studio_topology_positions_v1';
+
 /**
  * Cálculo de separación lateral de cables paralelos en mazo (de ABDOmegaUnified)
  */
@@ -109,8 +114,6 @@ function renderStudio() {
     const centerX = width / 2;
     const centerY = height / 2 + 10;
 
-    // Storage key for user-dragged node layout
-    const STORAGE_KEY = 'abd_studio_topology_positions_v1';
     let savedPositions = {};
     try {
         const raw = localStorage.getItem(STORAGE_KEY);

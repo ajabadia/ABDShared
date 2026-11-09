@@ -1,1 +1,22 @@
-/**\n * ABDScope Theme Module\n * ======================\n * Host-driven theme cascade adapted to the WebUI standalone embed.\n * \"Import\" here is schematic: in the real embed the generated CSS is a static\n * file (WebUI/src/theme.generated.css) produced at development time from\n * ABDSharedAssets/styles/themes/*.css plus the component adapter\n * ABDSharedAssets/styles/components/scope.css, and committed alongside the\n * module. The module itself does not read from disk at runtime.\n *\n * Kept in sync by the parity test in WebUI/tests/theme.test.js, which compares\n * the generated file against the canonical sources after BOM/CRLF normalization\n * and auto-skips when ABDSharedAssets is not present.\n */\n\nexport const THEME_NAMES = [\n  'ms2000',\n  'cz101',\n  'deepmind',\n  'audiolab',\n  'audiolab-light'\n];\n",
+/**
+ * ABDScope Theme Module
+ * ======================
+ * Host-driven theme cascade adapted to the WebUI standalone embed.
+ * "Import" here is schematic: in the real embed the generated CSS is a static
+ * file (WebUI/src/theme.generated.css) produced at development time from
+ * ABDSharedAssets/styles/themes/*.css plus the component adapter
+ * ABDSharedAssets/styles/components/scope.css, and committed alongside the
+ * module. The module itself does not read from disk at runtime.
+ *
+ * Kept in sync by the parity test in WebUI/tests/theme.test.js, which compares
+ * the generated file against the canonical sources after BOM/CRLF normalization
+ * and auto-skips when ABDSharedAssets is not present.
+ */
+
+export const THEME_NAMES = [
+  'ms2000',
+  'cz101',
+  'deepmind',
+  'audiolab',
+  'audiolab-light'
+];

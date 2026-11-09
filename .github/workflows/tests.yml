@@ -16,10 +16,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -28,10 +28,16 @@ jobs:
       # (EUNSUPPORTEDPROTOCOL). Mientras eso siga así se instalan aquí solo las
       # herramientas de test: vitest y jsdom, que vitest.config.js exige y
       # package.json no declaraba.
+      #
+      # El package.json mínimo no es decorativo: sin él, npm 10 instalando en un
+      # prefijo sin manifiesto acaba leyendo el del repositorio y revienta con
+      # "Cannot read properties of null (reading 'edgesOut')".
       - name: Herramientas de test
-        run: >-
-          npm install --no-save --no-package-lock --no-audit --no-fund
-          --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
+        run: |
+          mkdir -p "$RUNNER_TEMP/deps"
+          echo '{"name":"ci-deps","private":true}' > "$RUNNER_TEMP/deps/package.json"
+          npm install --no-save --no-package-lock --no-audit --no-fund \
+            --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
 
       - name: Suite
         run: '"$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot'
@@ -42,18 +48,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
       # Mismo motivo que en el job web: eslint no es dependencia del manifiesto.
       - name: ESLint
-        run: >-
-          npm install --no-save --no-package-lock --no-audit --no-fund
-          --prefix "$RUNNER_TEMP/deps" eslint@10
+        run: |
+          mkdir -p "$RUNNER_TEMP/deps"
+          echo '{"name":"ci-deps","private":true}' > "$RUNNER_TEMP/deps/package.json"
+          npm install --no-save --no-package-lock --no-audit --no-fund \
+            --prefix "$RUNNER_TEMP/deps" eslint@10
 
       # Falla solo con errores; los avisos son deuda declarada (catch vacíos y
       # variables sin usar en los ficheros duplicados que Q2 va a eliminar).
@@ -66,13 +74,17 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Los tres targets de test son JUCE-free; JUCE_PATH apunta a una ruta
       # inexistente en el runner para que no se cuele un JUCE del sistema.
+      #
+      # Sin -G a propósito: la imagen de Windows ya no trae Visual Studio 2022,
+      # así que fijar el generador rompe el job cada vez que GitHub actualiza la
+      # versión de VS instalada. CMake elige el más reciente que encuentre.
       - name: Configurar
         run: >-
-          cmake -S . -B build_ci -G "Visual Studio 17 2022" -A x64
+          cmake -S . -B build_ci
           -DJUCE_PATH=ci-sin-juce
           -DABDSHARED_BUILD_DSPCORE_TESTS=ON
           -DABDSHARED_BUILD_SYNTHCORE_TESTS=ON

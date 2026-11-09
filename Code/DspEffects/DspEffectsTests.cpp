@@ -6112,6 +6112,27 @@ void testModDelayRevReverbLevel()
     check(first >= 0
               && std::fabs(outL[static_cast<size_t>(first)] / 0.25f - 0.45f) < 1e-6f,
           "DspModDelayRev: despejado, 0,1125 / 0,25 = 0,45, el coeficiente de la reverb");
+
+    // Las dos hipotesis, lado a lado: el 0,45 que hay y el 0,3 que habia. Si el
+    // test solo dijera "mide 0,1125" quedaria la duda de por que ese numero y no
+    // otro; aqui se ve cuanto se aleja cada coeficiente de lo medido.
+    // Indice seguro: si no hubiera retorno, `first` es -1 y no queremos restar
+    // uno a un size_t en mitad de un test.
+    const size_t muestraMedida = (first >= 0) ? static_cast<size_t>(first) : 0u;
+    const float medido         = outL[muestraMedida];
+    const float kGananciaComb = 0.25f;                  // (1 + 0 + 0 + 0) / 4
+    const float kPrediccion45 = kGananciaComb * 0.45f;  // 0,1125
+    const float kPrediccion30 = kGananciaComb * 0.30f;  // 0,075
+    const float error45       = std::fabs(medido - kPrediccion45);
+    const float error30       = std::fabs(medido - kPrediccion30);
+
+    check(error45 < 1e-6f,
+          "DspModDelayRev: con 0,45 la prediccion (0,1125) es la medida, error < 1e-6");
+    check(error30 > 1e-3f,
+          "DspModDelayRev: con 0,3 la prediccion (0,075) se queda 0,0375 corta, no es el coeficiente");
+    check(std::fabs(medido / kGananciaComb - 0.45f) < 1e-6f
+              && std::fabs(medido / kGananciaComb - 0.30f) > 0.14f,
+          "DspModDelayRev: el coeficiente medido es 0,45 y esta a 0,15 del 0,3");
     check(first >= 0 && std::fabs(outR[static_cast<size_t>(first)]) < 1e-7f,
           "DspModDelayRev: con balance 100% reverb, el impulso de L no se cuela en R");
 
@@ -6134,10 +6155,13 @@ void testModDelayRevReverbLevel()
           "DspModDelayRev: y el impulso de R no se cuela en L");
 
     std::printf("  [moddelayrev] primer retorno de reverb: L=%.6f  R=%.6f  en la muestra %d "
-                "(0,25 x 0,45 = 0,1125; con el 0,3 anterior daba 0,075)\n",
+                "(ganancia de un comb de cuatro = 0,25)\n"
+                "  hipotesis 0,45 -> 0,1125 (error %.7f)   hipotesis 0,30 -> 0,0750 (error %.7f, 33%% menos)\n",
                 first >= 0 ? static_cast<double>(outL[static_cast<size_t>(first)]) : 0.0,
                 first >= 0 ? static_cast<double>(derechaR[static_cast<size_t>(first)]) : 0.0,
-                first);
+                first,
+                static_cast<double>(error45),
+                static_cast<double>(error30));
 }
 
 int main()

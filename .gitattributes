@@ -1,0 +1,3 @@
+# Finales de línea del repositorio: se guarda y se sirve LF, sin depender de
+# core.autocrlf de cada máquina ni de cómo se copió el fichero la última vez.
+* text=auto eol=lf

@@ -6047,6 +6047,99 @@ void testCascadeShelfEq()
                 "16 combinaciones de tabla, estabilidad, determinismo y 0 dB identidad\n");
 }
 
+/**
+    EL 0,45 DEL CAMINO DE REVERB, MEDIDO Y NO SUPUESTO.
+
+    `DspModDelayRev` mezcla tres senales: el dry, el delay modulado y una reverb
+    Schroeder simplificada. El camino de reverb vale `revL * 0.45f` (y luego el
+    `* mix_` de la mezcla final). Ese 0,45 sustituyo a un 0,3 que era una
+    eleccion a ojo, asi que aqui queda la cifra que lo justifica.
+
+    Con balance a tope (parametro 10 = 1) el termino del delay se anula, porque
+    va multiplicado por (1 - |bal|) = 0. El impulso entra en los cuatro combs y
+    el primero en volver (0,0297 s = muestra 1309) devuelve 1,0; los otros tres
+    siguen en vuelo, asi que `revL = (1 + 0 + 0 + 0) / 4 = 0,25`. Los tres
+    allpass no tocan la senal en su primera pasada (estado a cero: `apL = revL +
+    0,5 * 0`), de modo que `revL` sigue siendo 0,25. Con mix = 1 la salida es
+    `0,25 * 0,45 = 0,1125`, y despejando: 0,1125 / 0,25 = 0,45 exacto.
+
+    Antes del cambio el mismo retorno medía 0,075 (0,25 * 0,3): esa es la cifra
+    que se sustituye, y las comprobaciones de abajo la clavan.
+*/
+void testModDelayRevReverbLevel()
+{
+    constexpr double kSampleRate    = 44100.0;
+    constexpr int    kBlock         = 4096;
+    constexpr int    kFirstCombBack = 1309;   // int(44100 * 0.0297)
+
+    auto render = [&](bool impulseRight, float decay, float mix,
+                      std::vector<float>& outL, std::vector<float>& outR)
+    {
+        abd::dsp::DspModDelayRev fx;
+        fx.prepare(kSampleRate);
+        fx.setParameter(10, 1.0f);   // balance: 100% reverb
+        fx.setParameter(11, mix);    // mezcla final
+        fx.setParameter(8, decay);   // decay de la reverb
+
+        std::vector<float> inL(static_cast<size_t>(kBlock), 0.0f);
+        std::vector<float> inR(static_cast<size_t>(kBlock), 0.0f);
+        if (impulseRight) inR[0] = 1.0f;
+        else              inL[0] = 1.0f;
+
+        outL.assign(static_cast<size_t>(kBlock), 0.0f);
+        outR.assign(static_cast<size_t>(kBlock), 0.0f);
+        fx.process(inL.data(), inR.data(), outL.data(), outR.data(), kBlock);
+    };
+
+    auto firstNonZero = [](const std::vector<float>& x) -> int
+    {
+        for (int i = 0; i < static_cast<int>(x.size()); ++i)
+            if (std::fabs(x[static_cast<size_t>(i)]) > 1e-7f) return i;
+        return -1;
+    };
+
+    check(kFirstCombBack == static_cast<int>(kSampleRate * 0.0297),
+          "DspModDelayRev: el primer comb vuelve en la muestra 1309");
+
+    std::vector<float> outL, outR;
+    render(false, 0.6f, 1.0f, outL, outR);
+
+    const int first = firstNonZero(outL);
+    check(first == kFirstCombBack,
+          "DspModDelayRev: la primera salida de la reverb es el retorno del comb 0");
+    check(first >= 0 && std::fabs(outL[static_cast<size_t>(first)] - 0.1125f) < 1e-6f,
+          "DspModDelayRev: el primer retorno mide 0,1125 = 0,25 (un comb de cuatro) x 0,45");
+    check(first >= 0
+              && std::fabs(outL[static_cast<size_t>(first)] / 0.25f - 0.45f) < 1e-6f,
+          "DspModDelayRev: despejado, 0,1125 / 0,25 = 0,45, el coeficiente de la reverb");
+    check(first >= 0 && std::fabs(outR[static_cast<size_t>(first)]) < 1e-7f,
+          "DspModDelayRev: con balance 100% reverb, el impulso de L no se cuela en R");
+
+    // El mismo retorno con otro decay: si el 0,45 escala `revL` y no la cola, la
+    // cifra no se mueve. Demuestra que lo medido es el coeficiente y no el decay.
+    std::vector<float> decayBajoL, decayBajoR;
+    render(false, 0.05f, 1.0f, decayBajoL, decayBajoR);
+    check(first >= 0
+              && std::fabs(outL[static_cast<size_t>(first)] - decayBajoL[static_cast<size_t>(first)]) < 1e-7f,
+          "DspModDelayRev: el primer retorno no depende del decay");
+
+    // Canal derecho: el arreglo de esta misma entrega. Antes, `wetR` se construia
+    // con `revL`, asi que un impulso en R no producia NADA de reverb.
+    std::vector<float> derechaL, derechaR;
+    render(true, 0.6f, 1.0f, derechaL, derechaR);
+    check(first >= 0
+              && std::fabs(derechaR[static_cast<size_t>(first)] - 0.1125f) < 1e-6f,
+          "DspModDelayRev: el canal derecho tiene su propia reverb (0,1125 con el impulso en R)");
+    check(first >= 0 && std::fabs(derechaL[static_cast<size_t>(first)]) < 1e-7f,
+          "DspModDelayRev: y el impulso de R no se cuela en L");
+
+    std::printf("  [moddelayrev] primer retorno de reverb: L=%.6f  R=%.6f  en la muestra %d "
+                "(0,25 x 0,45 = 0,1125; con el 0,3 anterior daba 0,075)\n",
+                first >= 0 ? static_cast<double>(outL[static_cast<size_t>(first)]) : 0.0,
+                first >= 0 ? static_cast<double>(derechaR[static_cast<size_t>(first)]) : 0.0,
+                first);
+}
+
 int main()
 {
     checkStageContract<abd::dsp::NullStage>("NullStage");
@@ -6070,6 +6163,7 @@ int main()
     testEchoRightChannelLevelMatchesLeft();
     testDspDelay();
     testDspDelayReadWrapStaysInRange();
+    testModDelayRevReverbLevel();
     testDspChorus();
     testDspSaturation();
     testDspReverb();

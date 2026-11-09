@@ -17,6 +17,11 @@ struct AutoUpdaterConfig
     bool checkOnStartup    = true;
     bool allowPrerelease   = false;
 
+    // Reintento por chequeo: 1 = sin reintento. Se hace con un juce::Timer,
+    // sin dormir al llamante (checkForUpdates se sirve en el hilo de mensajes).
+    int fetchAttempts = 3;
+    int retryDelayMs  = 500;
+
     juce::String appName;
     juce::String userAgent;
 

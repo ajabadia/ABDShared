@@ -8,7 +8,8 @@ namespace ABDShared
 {
 
 class AutoUpdater final : private juce::Thread,
-                          private juce::AsyncUpdater
+                          private juce::AsyncUpdater,
+                          private juce::Timer
 {
 public:
     struct UpdateInfo
@@ -20,6 +21,12 @@ public:
         juce::String sha256;
         juce::String releaseDate;
         bool isPrerelease = false;
+
+        /// true si la consulta no llego a completarse (red, timeout o JSON roto).
+        /// Un chequeo fallido NO es "al dia": el consumidor debe mirar esto
+        /// antes que isUpdateAvailable, que en ese caso vale false.
+        bool checkFailed = false;
+        juce::String errorMessage;
     };
 
     explicit AutoUpdater(const AutoUpdaterConfig& config);
@@ -39,9 +46,10 @@ public:
 private:
     void run() override;
     void handleAsyncUpdate() override;
+    void timerCallback() override;
 
     void performCheck();
-    bool fetchLatestRelease(UpdateInfo& outInfo);
+    bool fetchLatestRelease(UpdateInfo& outInfo, juce::String& errorMessage);
     void parseReleaseJson(const juce::String& json, UpdateInfo& outInfo);
     juce::String getPlatformAssetName() const;
     bool isNewerVersion(const juce::String& remote, const juce::String& local) const;
@@ -57,6 +65,8 @@ private:
     bool updateAvailable    = false;
     bool enabled            = true;
     bool manualCheckPending = false;
+    bool retryPending      = false;
+    int fetchAttempt       = 0;
     juce::Time lastCheckTime;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AutoUpdater)

@@ -63,4 +63,64 @@ describe('AboutDialog Component (ABDShared)', () => {
 
     dialog.destroy();
   });
+
+  it('muestra error con reintento cuando la consulta no tiene red', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+    const dialog = new AboutDialog({ appName: 'TestSynth', version: '1.0.0' });
+
+    dialog.checkForUpdates();
+    await vi.waitFor(() => expect(dialog.statusEl.className).toContain('error'));
+
+    expect(dialog.statusEl.textContent).not.toContain('latest version');
+    expect(dialog.retryBtn.hidden).toBe(false);
+    expect(dialog.actionEl.hidden).toBe(false);
+
+    globalThis.fetch = originalFetch;
+    dialog.destroy();
+  });
+
+  it('trata el timeout como error, no como estar al dia', async () => {
+    vi.useFakeTimers();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn((_url, opts) => new Promise((_resolve, reject) => {
+      opts.signal.addEventListener('abort', () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        reject(err);
+      });
+    }));
+    const dialog = new AboutDialog({ appName: 'TestSynth', version: '1.0.0' });
+
+    dialog.checkForUpdates();
+    await vi.advanceTimersByTimeAsync(10000);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(dialog.statusEl.className).toContain('error');
+    expect(dialog.statusEl.textContent).toContain('timed out');
+    expect(dialog.retryBtn.hidden).toBe(false);
+
+    globalThis.fetch = originalFetch;
+    vi.useRealTimers();
+    dialog.destroy();
+  });
+
+  it('trata un checkFailed del backend como error, no como estar al dia', () => {
+    const dialog = new AboutDialog({ appName: 'TestSynth', version: '1.0.0' });
+
+    dialog.renderUpdateResult({
+      currentVersion: '1.0.0',
+      latestVersion: '1.0.0',
+      isUpdateAvailable: false,
+      checkFailed: true,
+      errorMessage: 'Failed to connect to GitHub API',
+    });
+
+    expect(dialog.statusEl.className).toContain('error');
+    expect(dialog.statusEl.textContent).toBe('Failed to connect to GitHub API');
+    expect(dialog.retryBtn.hidden).toBe(false);
+
+    dialog.destroy();
+  });
 });

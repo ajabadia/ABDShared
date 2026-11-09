@@ -17,6 +17,7 @@ AutoUpdater::AutoUpdater(const AutoUpdaterConfig& cfg)
 
 AutoUpdater::~AutoUpdater()
 {
+    stopTimer();
     stopThread(5000);
 }
 
@@ -64,20 +65,31 @@ void AutoUpdater::run()
 
 void AutoUpdater::handleAsyncUpdate()
 {
-    if (manualCheckPending ||
+    if (retryPending || manualCheckPending ||
         (enabled && (juce::Time::getCurrentTime() - lastCheckTime).inHours() >= config.checkIntervalHours))
     {
+        retryPending = false;
         performCheck();
-        manualCheckPending = false;
     }
+}
+
+/** Reintento programado: vuelve a intentar sin bloquear el hilo de mensajes. */
+void AutoUpdater::timerCallback()
+{
+    stopTimer();
+    retryPending = true;
+    triggerAsyncUpdate();
 }
 
 void AutoUpdater::performCheck()
 {
-    bool wasManual = manualCheckPending;
+    const bool wasManual = manualCheckPending;
     UpdateInfo info;
-    if (fetchLatestRelease(info))
+    juce::String errorMessage;
+
+    if (fetchLatestRelease(info, errorMessage))
     {
+        fetchAttempt   = 0;
         lastUpdateInfo = info;
         lastCheckTime  = juce::Time::getCurrentTime();
         saveLastCheckTime();
@@ -95,17 +107,41 @@ void AutoUpdater::performCheck()
                 notifyUpdateAvailable(info, true);
             }
         }
+
+        manualCheckPending = false;
+        return;
     }
-    else if (wasManual)
+
+    // Fallo: reintento programado (sin dormir al llamante) mientras queden intentos.
+    ++fetchAttempt;
+
+    if (fetchAttempt < juce::jmax(1, config.fetchAttempts) && !threadShouldExit())
     {
-        info.version    = config.currentVersion;
-        updateAvailable = false;
-        notifyUpdateAvailable(info, true);
+        log("[AutoUpdater] Check failed (" + errorMessage + "), retry "
+            + juce::String(fetchAttempt) + "/" + juce::String(config.fetchAttempts));
+        startTimer(config.retryDelayMs);
+        return; // manualCheckPending se conserva: el reintento tambien avisa
     }
+
+    fetchAttempt = 0;
     manualCheckPending = false;
+    updateAvailable    = false;
+
+    // Un chequeo que no se pudo completar NO es "al dia": se notifica el fallo
+    // con checkFailed/errorMessage para que la UI pida reintentar en vez de
+    // afirmar que la version instalada es la ultima.
+    info.version      = config.currentVersion;
+    info.checkFailed  = true;
+    info.errorMessage = errorMessage;
+
+    if (wasManual)
+        notifyUpdateAvailable(info, true);
+    else
+        log("[AutoUpdater] Update check failed: " + errorMessage);
 }
 
-bool AutoUpdater::fetchLatestRelease(UpdateInfo& outInfo)
+/** Un intento. Devuelve false y deja el motivo en errorMessage. */
+bool AutoUpdater::fetchLatestRelease(UpdateInfo& outInfo, juce::String& errorMessage)
 {
     juce::URL apiUrl(config.apiUrl + config.repoOwner + "/" + config.repoName + "/releases/latest");
 
@@ -116,7 +152,8 @@ bool AutoUpdater::fetchLatestRelease(UpdateInfo& outInfo)
 
     if (!stream)
     {
-        log("[AutoUpdater] Failed to connect to GitHub API");
+        errorMessage = "Failed to connect to GitHub API";
+        log("[AutoUpdater] " + errorMessage);
         return false;
     }
 
@@ -124,18 +161,21 @@ bool AutoUpdater::fetchLatestRelease(UpdateInfo& outInfo)
 
     if (json.isEmpty())
     {
-        log("[AutoUpdater] Empty response from GitHub API");
+        errorMessage = "Empty response from GitHub API";
+        log("[AutoUpdater] " + errorMessage);
         return false;
     }
 
     try
     {
         parseReleaseJson(json, outInfo);
+        errorMessage.clear();
         return true;
     }
     catch (const std::exception& e)
     {
-        log("[AutoUpdater] JSON parse error: " + juce::String(e.what()));
+        errorMessage = "JSON parse error: " + juce::String(e.what());
+        log("[AutoUpdater] " + errorMessage);
         return false;
     }
 }
@@ -223,7 +263,10 @@ void AutoUpdater::notifyUpdateAvailable(const UpdateInfo& info, bool isManualChe
     }
     else
     {
-        log("[AutoUpdater] Update available: " + info.version + " (current: " + config.currentVersion + ")");
+        if (info.checkFailed)
+            log("[AutoUpdater] Update check failed: " + info.errorMessage);
+        else
+            log("[AutoUpdater] Update available: " + info.version + " (current: " + config.currentVersion + ")");
     }
 }
 

@@ -449,8 +449,11 @@ const PerformTrim* findTrim(const char* code) noexcept
 
     @returns  el offset en dieciseiseavos de semitono, signed.
 */
-constexpr int zonePitchOffset(const PatchField& fine, int fineValue,
-                              const PatchField& transpose, int transposeValue) noexcept
+// Los dos PatchField son de la firma, no del calculo: la funcion empaqueta el byte
+// alto y el bajo de la altura y no necesita leer los campos (C4100). Se marcan en
+// vez de quitarlos para que la llamada siga diciendo de que campo viene cada valor.
+constexpr int zonePitchOffset([[maybe_unused]] const PatchField& fine, int fineValue,
+                              [[maybe_unused]] const PatchField& transpose, int transposeValue) noexcept
 {
     return (transposeValue << 8) | (fineValue & 0xFF);
 }

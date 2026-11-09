@@ -73,7 +73,10 @@ public:
             envelope = 0.0f;
         }
 
-        void update(double sampleRate) noexcept
+        // Sin parametro: las constantes de ataque y release se recalculan por
+        // muestra en processSample(), que si recibe la frecuencia de muestreo.
+        // La firma anterior lo pedia y no lo miraba (C4100).
+        void update() noexcept
         {
             const int tc = 1 + static_cast<int>(timeConstantNorm * 5.0f);
             switch (tc)
@@ -165,8 +168,8 @@ public:
     void prepare(double sampleRate) noexcept
     {
         sampleRate_ = (sampleRate > 1000.0) ? sampleRate : 44100.0;
-        chanLM_.update(sampleRate_);
-        chanRS_.update(sampleRate_);
+        chanLM_.update();
+        chanRS_.update();
         reset();
     }
 
@@ -174,8 +177,8 @@ public:
     {
         chanLM_.reset();
         chanRS_.reset();
-        chanLM_.update(sampleRate_);
-        chanRS_.update(sampleRate_);
+        chanLM_.update();
+        chanRS_.update();
     }
 
     void setMode(int modeIdx) noexcept
@@ -198,13 +201,13 @@ public:
     void setTimeConstantLM(float norm) noexcept
     {
         chanLM_.timeConstantNorm = std::clamp(norm, 0.0f, 1.0f);
-        chanLM_.update(sampleRate_);
+        chanLM_.update();
     }
 
     void setDcBiasLM(float norm) noexcept
     {
         chanLM_.dcBiasNorm = std::clamp(norm, 0.0f, 1.0f);
-        chanLM_.update(sampleRate_);
+        chanLM_.update();
     }
 
     void setOutputGainLM(float norm) noexcept
@@ -230,13 +233,13 @@ public:
     void setTimeConstantRS(float norm) noexcept
     {
         chanRS_.timeConstantNorm = std::clamp(norm, 0.0f, 1.0f);
-        chanRS_.update(sampleRate_);
+        chanRS_.update();
     }
 
     void setDcBiasRS(float norm) noexcept
     {
         chanRS_.dcBiasNorm = std::clamp(norm, 0.0f, 1.0f);
-        chanRS_.update(sampleRate_);
+        chanRS_.update();
     }
 
     void setOutputGainRS(float norm) noexcept
@@ -266,7 +269,7 @@ public:
             chanRS_.timeConstantNorm = chanLM_.timeConstantNorm;
             chanRS_.dcBiasNorm       = chanLM_.dcBiasNorm;
             chanRS_.outputGainNorm   = chanLM_.outputGainNorm;
-            chanRS_.update(sampleRate_);
+            chanRS_.update();
         }
 
         for (int s = 0; s < numSamples; ++s)

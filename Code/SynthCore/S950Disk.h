@@ -361,7 +361,10 @@ public:
 
         Sin la cabecera de 60 bytes de los samples: un programa empieza con sus
         38. Ver el aviso de `keygroupCount`. */
-    static std::size_t fileOffsetOf(const DiskEntry& program, int keygroup, int offset) noexcept
+    // El DiskEntry no entra en el calculo: la disposicion del programa es fija y es
+    // fileByteAt() quien lo usa para saber en que bloque empieza. Se queda en la
+    // firma porque el llamador lee mejor de que programa habla (C4100).
+    static std::size_t fileOffsetOf([[maybe_unused]] const DiskEntry& program, int keygroup, int offset) noexcept
     {
         return static_cast<std::size_t>(programHeaderSize) + static_cast<std::size_t>(keygroup) * static_cast<std::size_t>(keygroupRecordSize) + static_cast<std::size_t>(offset);
     }

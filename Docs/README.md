@@ -41,6 +41,8 @@ El registro formal e inmutable de las auditorías y decisiones arquitectónicas 
   * **Guía Maestra y Blueprint:** Proceso paso a paso para la concepción, estructura, registro de parámetros, arquitectura DSP y validación de nuevos sintetizadores en la familia ABDSynths.
 * [CALIDAD_Y_ESTANDARES_VST3.md](architecture/CALIDAD_Y_ESTANDARES_VST3.md)
   * **Estándar de Calidad Comercial:** Criterios de alta gama VST3/JUCE: verificación estricta de *Zero-Allocation* en hilo de audio, colas *lock-free* SPSC, protección contra denormales (`ScopedNoDenormals`), suspensión en reposo (*Idle CPU Suspension*) y suavizado anti-zipper.
+* [PLUGINVAL_Y_CONVENCIONES_CI.md](architecture/PLUGINVAL_Y_CONVENCIONES_CI.md)
+  * **Criterio `pluginval` y merge del CI:** strictness 10 con `--skip-gui-tests` y `--timeout-ms 120000`, compuerta sobre el informe para que una ejecución que no validó no quede en verde, y convenciones con las que un cambio de CI entra en `master` (historial lineal, un commit `ci(...)` por cambio, rama de respaldo y sus comprobaciones).
 * [DSP_MODULE_PROMOTION_WORKFLOW.md](architecture/DSP_MODULE_PROMOTION_WORKFLOW.md)
   * **Checklist Canónico de Promoción a `SynthCore`:** Protocolo formal en 6 fases para desacoplar y promover algoritmos DSP desde sintetizadores donantes a la librería compartida `abd::synth` sin dependencias de JUCE, GUI ni SO.
 * [LECCIONES_APRENDIDAS_DSP_THREAD_SAFETY.md](architecture/LECCIONES_APRENDIDAS_DSP_THREAD_SAFETY.md)

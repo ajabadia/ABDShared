@@ -39,8 +39,15 @@ jobs:
           npm install --no-save --no-package-lock --no-audit --no-fund \
             --legacy-peer-deps --prefix "$RUNNER_TEMP/deps" vitest@4.1.11 jsdom@24
 
+      # vite resuelve los imports del config (`vitest/config`) desde el proyecto,
+      # no desde el binario que lo ejecuta. En un checkout limpio no hay
+      # node_modules, así que sin este enlace el arranque muere con
+      # ERR_MODULE_NOT_FOUND; en local no se nota porque el workspace padre lo
+      # hoistea.
       - name: Suite
-        run: '"$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot'
+        run: |
+          [ -e node_modules ] || ln -s "$RUNNER_TEMP/deps/node_modules" node_modules
+          "$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot
 
   lint:
     name: ESLint

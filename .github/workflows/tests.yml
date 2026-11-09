@@ -36,6 +36,30 @@ jobs:
       - name: Suite
         run: '"$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot'
 
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Mismo motivo que en el job web: eslint no es dependencia del manifiesto.
+      - name: ESLint
+        run: >-
+          npm install --no-save --no-package-lock --no-audit --no-fund
+          --prefix "$RUNNER_TEMP/deps" eslint@10
+
+      # Falla solo con errores; los avisos son deuda declarada (catch vacíos y
+      # variables sin usar en los ficheros duplicados que Q2 va a eliminar).
+      - name: Lint
+        run: '"$RUNNER_TEMP/deps/node_modules/.bin/eslint" .'
+
   dsp:
     name: Tests C++ (MSVC)
     runs-on: windows-latest

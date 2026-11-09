@@ -50,3 +50,40 @@ ABDShared/
     ├── ui-ux/
     └── specs/
 ```
+
+---
+
+## 🧪 Tests y lint
+
+La suite JS, el linter y los tests C++ se pueden lanzar en local; el workflow
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) ejecuta los tres en
+cada push y pull request.
+
+Ni `vitest`/`jsdom` ni `eslint` se instalan con `npm install` en la raíz: el
+manifiesto declara `@abdsynths/i18n` y `@abdsynths/scope` como `workspace:*`, un
+protocolo que npm rechaza fuera del monorepo padre (`EUNSUPPORTEDPROTOCOL`). Las
+herramientas se instalan aparte, en un directorio que no forma parte del repo:
+
+```bash
+npm install --no-save --no-package-lock --prefix ../abdshared-deps vitest@4.1.11 jsdom@24 eslint@10
+
+../abdshared-deps/node_modules/.bin/eslint .                    # correctitud, no estilo
+../abdshared-deps/node_modules/.bin/vitest run --reporter=dot
+```
+
+`eslint.config.js` activa reglas que delatan bugs (identificadores no definidos o
+duplicados, ramas inalcanzables, `catch` vacíos) y deja como aviso lo que suele
+ser deuda pendiente. Los tests C++ son targets CMake apagados por defecto y no
+necesitan JUCE:
+
+```bash
+cmake -S . -B build_tests -G "Visual Studio 17 2022" -A x64 ^
+  -DJUCE_PATH=ci-sin-juce ^
+  -DABDSHARED_BUILD_DSPCORE_TESTS=ON ^
+  -DABDSHARED_BUILD_SYNTHCORE_TESTS=ON ^
+  -DABDSHARED_BUILD_DSPEFFECTS_TESTS=ON
+cmake --build build_tests --config Release --target ABDShared_DspCore_Tests ABDShared_SynthCore_Tests ABDShared_DspEffects_Tests
+```
+
+En Git Bash o Linux, cambia `^` por `\` y usa `-G "Visual Studio 17 2022"` solo
+en Windows (en el resto, el generador por defecto sirve).

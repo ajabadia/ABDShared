@@ -70,6 +70,7 @@
 #include "DspCore/DspCore.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace abd::dsp
 {
@@ -253,6 +254,28 @@ public:
     /** Niega solo el canal izquierdo. Es lo que hace la variante "Reverse". */
     void setInvertLeft(bool invert) noexcept { invertLeft_ = invert; }
 
+    /**
+        Activa la descorrelación espacial estéreo (+23 muestras en combs R,
+        +5 muestras en allpass R) y la curva de realimentación RT60 calibrada
+        contra el hardware DeepMind 12 (M3000/Lexicon). Por defecto es `false`,
+        que es el comportamiento de siempre, y así lo vigilan los tests de
+        paridad de `DspEffectsTests`.
+
+        HOY NADIE LO ENCIENDE. `FXSlot_Factory` vive en el repositorio del
+        plugin, no aquí, y todavía no llama a este método: el modo solo se
+        activa a mano. Cuando esa fábrica monte slots de FX, que llame a
+        `setHardwareCalibratedMode(true)` y ajuste aquí la nota.
+    */
+    void setHardwareCalibratedMode(bool enabled) noexcept
+    {
+        if (hardwareCalibratedMode_ != enabled)
+        {
+            hardwareCalibratedMode_ = enabled;
+            rebuild();
+        }
+    }
+    bool isHardwareCalibratedMode() const noexcept { return hardwareCalibratedMode_; }
+
     /** Pre-retardo efectivo, en muestras. OJO: incluye el factor 0.2 del original. */
     int getPreDelaySamples() const noexcept { return preDelaySamples_; }
 
@@ -386,7 +409,9 @@ public:
     /** Coeficientes de los conbs y los allpass. NO toca los buffers. */
     void updateCombParams() noexcept
     {
-        const float feedback = decay_ < 0.0f ? 0.3f : decay_ * 0.9f;
+        const float feedback = hardwareCalibratedMode_
+            ? (decay_ < 0.0f ? 0.65f : std::min(0.955f, std::pow(std::max(0.0f, decay_), 0.45f) * 0.88f + 0.075f))
+            : (decay_ < 0.0f ? 0.3f : decay_ * 0.9f);
 
         // LA AMORTIGUACION EN SU EXTREMO. `damp1 = damping, damp2 = 1 - damping`
         // es un pasabajos de un polo cuya ganancia en continua es 1 para CUALQUIER
@@ -483,9 +508,14 @@ public:
             combLen[i] = length;
         }
 
-        int combTotal = 0;
+        const int stereoCombSpread = hardwareCalibratedMode_ ? 23 : 0;
+        int combTotalL = 0;
+        int combTotalR = 0;
         for (int i = 0; i < kNumCombs; ++i)
-            combTotal += combLen[i];
+        {
+            combTotalL += combLen[i];
+            combTotalR += combLen[i] + stereoCombSpread;
+        }
 
         // Un buffer POR CANAL, no uno compartido. Es tentador ahorrar la
         // memoria punteando los dos canales al mismo sitio, y esta es
@@ -494,29 +524,36 @@ public:
         // separados y `testSchroederReverb` lo vigila con el caso "misma
         // entrada, L y R deben coincidir", que es el que se delata si alguien
         // vuelve a compartir.
-        combBufferL.setSize(1, combTotal, false, false, true);
+        combBufferL.setSize(1, combTotalL, false, false, true);
         combBufferL.clear();
-        combBufferR.setSize(1, combTotal, false, false, true);
+        combBufferR.setSize(1, combTotalR, false, false, true);
         combBufferR.clear();
 
-        int offset = 0;
+        int offsetL = 0;
+        int offsetR = 0;
         for (int i = 0; i < kNumCombs; ++i)
         {
-            combsL_[i].buffer      = combBufferL.getWritePointer(0) + offset;
-            combsL_[i].bufferSize  = combLen[i];
+            const int lenL = combLen[i];
+            const int lenR = combLen[i] + stereoCombSpread;
+
+            combsL_[i].buffer      = combBufferL.getWritePointer(0) + offsetL;
+            combsL_[i].bufferSize  = lenL;
             combsL_[i].writePos    = 0;
             combsL_[i].filterState = 0.0f;
 
-            combsR_[i].buffer      = combBufferR.getWritePointer(0) + offset;
-            combsR_[i].bufferSize  = combLen[i];
+            combsR_[i].buffer      = combBufferR.getWritePointer(0) + offsetR;
+            combsR_[i].bufferSize  = lenR;
             combsR_[i].writePos    = 0;
             combsR_[i].filterState = 0.0f;
 
-            offset += combLen[i];
+            offsetL += lenL;
+            offsetR += lenR;
         }
 
+        const int stereoApSpread = hardwareCalibratedMode_ ? 5 : 0;
         int apLen[kNumAllPass];
-        int apTotal = 0;
+        int apTotalL = 0;
+        int apTotalR = 0;
 
         for (int i = 0; i < kNumAllPass; ++i)
         {
@@ -524,26 +561,32 @@ public:
                 {0.0051, 0.0068, 0.0083};
 
             apLen[i] = jmax(1, static_cast<int>(sampleRate_ * kAllPassSeconds[i] * sizeScale));
-            apTotal += apLen[i];
+            apTotalL += apLen[i];
+            apTotalR += apLen[i] + stereoApSpread;
         }
 
-        allpassBufferL.setSize(1, apTotal, false, false, true);
+        allpassBufferL.setSize(1, apTotalL, false, false, true);
         allpassBufferL.clear();
-        allpassBufferR.setSize(1, apTotal, false, false, true);
+        allpassBufferR.setSize(1, apTotalR, false, false, true);
         allpassBufferR.clear();
 
-        offset = 0;
+        offsetL = 0;
+        offsetR = 0;
         for (int i = 0; i < kNumAllPass; ++i)
         {
-            allpassL_[i].buffer     = allpassBufferL.getWritePointer(0) + offset;
-            allpassL_[i].bufferSize = apLen[i];
+            const int lenL = apLen[i];
+            const int lenR = apLen[i] + stereoApSpread;
+
+            allpassL_[i].buffer     = allpassBufferL.getWritePointer(0) + offsetL;
+            allpassL_[i].bufferSize = lenL;
             allpassL_[i].writePos   = 0;
 
-            allpassR_[i].buffer     = allpassBufferR.getWritePointer(0) + offset;
-            allpassR_[i].bufferSize = apLen[i];
+            allpassR_[i].buffer     = allpassBufferR.getWritePointer(0) + offsetR;
+            allpassR_[i].bufferSize = lenR;
             allpassR_[i].writePos   = 0;
 
-            offset += apLen[i];
+            offsetL += lenL;
+            offsetR += lenR;
         }
 
         // OJO CON EL 0.2. El retardo real es `segundos * sampleRate * 0.2`, NO
@@ -585,6 +628,7 @@ public:
     float roomSize_        = 0.5f;
     float preDelaySeconds_ = 0.0f;
     bool invertLeft_       = false;
+    bool hardwareCalibratedMode_ = false;
 };
 
 } // namespace abd::dsp

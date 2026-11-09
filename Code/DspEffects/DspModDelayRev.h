@@ -185,7 +185,6 @@ public:
             writePosL_        = (writePosL_ + 1) % maxDelaySamples;
             writePosR_        = (writePosR_ + 1) % maxDelaySamples;
 
-            const float delayOutL = dL;
 
             // --- Reverb (Schroeder simplificado) ---
             const float revInL    = dryL + dL * std::max(0.0f, bal);
@@ -221,10 +220,12 @@ public:
             }
 
             // Balance delay/reverb
-            const float mixDelay = delayOutL * (1.0f - std::abs(bal)) * mix_;
-            const float mixRev   = revL * 0.3f * mix_;
-            const float wetL     = mixDelay + mixRev;
-            const float wetR     = mixDelay + mixRev; // mono reverb
+            const float mixDelayL = dL * (1.0f - std::abs(bal)) * mix_;
+            const float mixDelayR = dR * (1.0f - std::abs(bal)) * mix_;
+            const float mixRevL   = revL * 0.45f * mix_;
+            const float mixRevR   = revR * 0.45f * mix_;
+            const float wetL      = mixDelayL + mixRevL;
+            const float wetR      = mixDelayR + mixRevR;
 
             // Mix con dry
             outL[s] = dryL * (1.0f - mix_) + wetL * mix_;

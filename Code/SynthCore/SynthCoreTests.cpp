@@ -286,14 +286,21 @@ static void testEnvelope()
     // ── noteOff en pleno ataque: solo baja, y acaba en Idle ──
     ADSREnvelope na;
     na.prepare(44100.0);
-    na.setAttack(1.0f); // 5 s: a los 0,1 s va por ~0,18
+    na.setAttack(1.0f); // 5 s: el nivel cruza 1,0 justo a los 5 s
     na.setDecay(0.0f);
     na.setSustain(1.0f);
     na.setRelease(0.0f);
     na.noteOn(1.0f);
     for (int i = 0; i < 4410; ++i) na.getNextSample();
     const float picoDelCorte = na.getCurrentLevel();
-    check(picoDelCorte > 0.05f && picoDelCorte < 0.5f, "ataque lento: a los 0,1 s el nivel va por el camino (medido)");
+    // Ley implementada: tasa 1 - exp(-1/(T*fs)) sobre un objetivo de 1,5819767,
+    // de modo que el nivel cruza 1,0 exactamente en el tiempo de ataque. A 0,1 s
+    // de 5 s eso da 1,5819767 * (1 - e^-0,02) = 0,0313. El "~0,18" que decia el
+    // comentario anterior correspondia a un factor 6x del ataque que se quito al
+    // alinear el codigo con esa ley; el test no se actualizo porque nunca corria.
+    const double esperadoEnCorte = 1.5819767068693265 * (1.0 - std::exp(-0.1 / 5.0));
+    check(std::abs(static_cast<double>(picoDelCorte) - esperadoEnCorte) < 0.001,
+          "ataque lento: a los 0,1 s el nivel sigue la ley exponencial documentada");
     na.noteOff();
     check(na.getStage() == EnvelopeStage::Release, "noteOff en pleno ataque entra en Release");
     float maxTrasCorte = 0.0f;
@@ -304,6 +311,25 @@ static void testEnvelope()
     }
     check(maxTrasCorte <= picoDelCorte + 1.0e-6f, "y el release solo BAJA: nunca supera el nivel del corte");
     check(na.isIdle(), "con el release mínimo (5 ms) ya está en Idle en 2000 muestras");
+
+    // ── Contrato del ataque: dura el tiempo pedido, no una fraccion ──
+    {
+        ADSREnvelope ta;
+        ta.prepare(44100.0);
+        ta.setAttack(1.0f); // 5 s
+        ta.setDecay(0.0f);
+        ta.setSustain(1.0f);
+        ta.setRelease(0.0f);
+        ta.noteOn(1.0f);
+        int muestras = 0;
+        while (ta.getStage() == EnvelopeStage::Attack && muestras < 44100 * 6)
+        {
+            ta.getNextSample();
+            ++muestras;
+        }
+        check(std::abs(muestras - 44100 * 5) <= 220,
+              "el ataque cruza el pico en el tiempo pedido (5 s, +-5 ms)");
+    }
 
     // ── noteOff sin nota: no-op ──
     ADSREnvelope ni;

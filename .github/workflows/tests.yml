@@ -47,6 +47,12 @@ jobs:
       - name: Suite
         run: |
           [ -e node_modules ] || ln -s "$RUNNER_TEMP/deps/node_modules" node_modules
+          # Varios subpaquetes (Code/MidiKeyboard, Contracts...) importan
+          # `@abdsynths/shared/...`, que es este mismo repo. Sin el workspace
+          # padre, vite lo busca en node_modules y no lo encuentra; este enlace
+          # es lo que pnpm hace con `workspace:*`.
+          mkdir -p node_modules/@abdsynths
+          ln -sfn "$GITHUB_WORKSPACE" node_modules/@abdsynths/shared
           "$RUNNER_TEMP/deps/node_modules/.bin/vitest" run --reporter=dot
 
   lint:

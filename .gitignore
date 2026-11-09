@@ -25,3 +25,6 @@ dist/
 Thumbs.db
 *.swp
 *~
+
+# Third-party SDKs (licencia de Steinberg: no se redistribuyen)
+SDKs/

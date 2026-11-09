@@ -148,6 +148,47 @@ public:
     }
 
     //==========================================================================
+    /** La muestra que dibuja una forma en una fase dada, SIN tocar el estado de la
+        pieza.
+
+        Va aparte de processSample() para que el mapeo se pueda probar con un valor
+        que caiga fuera del enumerador (un cast de un entero que venga de otro
+        modulo o de otra version del producto). Antes ese caso devolvia una variable
+        sin inicializar, y esta pieza acaba sumada en el buffer del host: basura, no
+        silencio.
+
+        Triangulo y rectangulo todavia no estan dibujados: devuelven lo que tendria
+        el diente de sierra en esa fase, y supportsWaveform() es quien dice que este
+        miembro no las tiene. */
+    static double shapeAt(OscWaveform waveform, double phase01) noexcept
+    {
+        switch (waveform)
+        {
+            case OscWaveform::Sine:
+                // El seno es continuo: no hay salto que corregir.
+                return std::sin(twoPi * phase01);
+
+            case OscWaveform::Sawtooth:
+                // Sube de -1 a +1 y cae de golpe en la fase 0 (un salto de -2).
+                // Este prototipo no hace correccion polyBLEP todavia: a 1x y hasta
+                // el tope de este miembro la imagen de la rampa alcanza Nyquist
+                // (45% de Nyquist, ver maxFrequencyFractionOfNyquist), y por encima
+                // el ruido que se mezcla es la razon por la que un miembro real
+                // escribe la correccion.
+                return (2.0 * phase01) - 1.0;
+
+            case OscWaveform::Triangle:
+            case OscWaveform::Rectangle:
+                // Le faltan: el prototipo no dibuja una aproximacion.
+                return (2.0 * phase01) - 1.0;
+        }
+
+        // Fuera del enumerador (un cast de un entero que venga de fuera):
+        // silencio. Un 0.0 explicito, no un valor inerte cualquiera.
+        return 0.0;
+    }
+
+    //==========================================================================
     /** Una muestra. Devuelve la forma que este puesta.
 
         Un incremento que no se puede dibujar (dt <= 0 o dt >= 1) no se convierte
@@ -160,35 +201,8 @@ public:
         if (!(dt > 0.0) || !(dt < 1.0))
             return 0.0;
 
-        const auto t = phase;
-        double out;
-
-        switch (currentWaveform)
-        {
-            case OscWaveform::Sine:
-                // El seno es continuo: no hay salto que corregir.
-                out = std::sin(twoPi * t);
-                break;
-
-            case OscWaveform::Sawtooth:
-                // Sube de -1 a +1 y cae de golpe en la fase 0 (un salto de -2).
-                // Este prototipo no hace correccion polyBLEP todavia: a 1x y hasta
-                // el tope de este miembro la imagen de la rampa alcanza Nyquist
-                // (45% de Nyquist, ver maxFrequencyFractionOfNyquist), y por encima
-                // el ruido que se mezcla es la razon por la que un miembro real
-                // escribe la correccion.
-                out = (2.0 * t) - 1.0;
-                break;
-
-            case OscWaveform::Triangle:
-            case OscWaveform::Rectangle:
-                // Le faltan: el prototipo no dibuja una aproximacion.
-                // Devuelve lo que tendria el diente de sierra en esta fase, para no
-                // dejar el buffer colgado con un NaN o un valor inerte; el test lo
-                // comprueba al pedir ese waveform y ver que el miembro no lo hizo.
-                out = (2.0 * t) - 1.0;
-                break;
-        }
+        const auto t   = phase;
+        const auto out = shapeAt(currentWaveform, t);
 
         phase += dt;
 

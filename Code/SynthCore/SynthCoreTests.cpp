@@ -878,6 +878,7 @@ int main()
     abd::synth::tests::testOscReferenceContract();
     abd::synth::tests::testOscReferenceLanguage();
     abd::synth::tests::testOscReferenceResetAndProcessBlock();
+    abd::synth::tests::testOscReferenceUnknownWaveform();
 
     abd::synth::tests::testArpeggiatorModes();
     abd::synth::tests::testArpeggiatorNotesAndOctaves();

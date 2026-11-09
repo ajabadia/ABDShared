@@ -218,4 +218,53 @@ static void testOscReferenceResetAndProcessBlock()
     }
 }
 
+//==============================================================================
+static void testOscReferenceUnknownWaveform()
+{
+    printf("=== OscReference: waveform fuera de rango ===\n");
+
+    OscReference osc;
+    osc.prepare(44100.0);
+
+    // Un valor que no es ninguno de los enumeradores no se puede poner por la
+    // puerta buena: el miembro dice que no y no cambia nada.
+    const OscWaveform before = osc.getWaveform();
+    check(!osc.setWaveform(static_cast<OscWaveform>(99)) && osc.getWaveform() == before,
+          "a waveform outside the enum is refused and changes nothing");
+
+    // Pero el mapeo se puede pedir con ese valor, y antes devolvia una variable sin
+    // inicializar (C4701). Esta pieza acaba sumada en el buffer del host: tiene que
+    // ser silencio, no basura.
+    check(OscReference::shapeAt(static_cast<OscWaveform>(99), 0.3) == 0.0,
+          "a waveform outside the enum draws exact silence, not garbage");
+    check(std::isfinite(OscReference::shapeAt(static_cast<OscWaveform>(-1), 0.75)),
+          "and with a negative value, without NaN");
+
+    // Las formas del enumerador siguen dibujando lo que dicen los comentarios.
+    check(std::abs(OscReference::shapeAt(OscWaveform::Sine, 0.25) - 1.0) < 1.0e-12,
+          "sine at 0.25 is +1");
+    check(std::abs(OscReference::shapeAt(OscWaveform::Sawtooth, 0.0) + 1.0) < 1.0e-12,
+          "sawtooth at 0 is -1");
+    check(std::abs(OscReference::shapeAt(OscWaveform::Sawtooth, 0.75) - 0.5) < 1.0e-12,
+          "sawtooth at 0.75 is +0.5");
+    check(OscReference::shapeAt(OscWaveform::Triangle, 0.75)
+              == OscReference::shapeAt(OscWaveform::Sawtooth, 0.75),
+          "triangle (not drawn yet) returns the ramp, as supportsWaveform says");
+    check(OscReference::shapeAt(OscWaveform::Rectangle, 0.75)
+              == OscReference::shapeAt(OscWaveform::Sawtooth, 0.75),
+          "rectangle (not drawn yet) also returns the ramp");
+
+    // Y el camino normal sigue dando muestras finitas.
+    osc.setWaveform(OscWaveform::Sine);
+    osc.reset();
+
+    bool finito = true;
+
+    for (int i = 0; i < 1000; ++i)
+        if (!std::isfinite(osc.processSample()))
+            finito = false;
+
+    check(finito, "processSample keeps producing finite samples");
+}
+
 } // namespace abd::synth::tests

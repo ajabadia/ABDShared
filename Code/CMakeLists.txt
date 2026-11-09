@@ -6,6 +6,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ==============================================================================
+# Avisos estrictos para el codigo propio
+# ------------------------------------------------------------------------------
+# Ahora mismo solo Code/Scope los activaba, asi que DspCore, SynthCore,
+# DspEffects y BankManager nunca se compilaban con mas de /W3 y los avisos que
+# delatan bugs reales (variable sin inicializar, calculo sin usar) no salian.
+#
+# Se aplican por ambito de directorio: valen para los targets creados aqui y en
+# los subdirectorios, no para los targets del consumidor (ABDAxionikVS crea los
+# suyos en su propio CMakeLists). Sin /WX a proposito: los avisos conocidos no
+# rompen el build mientras se van cerrando uno a uno.
+# ==============================================================================
+if(MSVC)
+    add_compile_options(/W4 /wd4324 /permissive- /Zc:__cplusplus /Zc:inline)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# ==============================================================================
 # nlohmann_json — Detección opcional compartida para HardwareDrivers / MIDI
 # ==============================================================================
 if(NOT TARGET nlohmann_json::nlohmann_json AND NOT TARGET nlohmann_json)

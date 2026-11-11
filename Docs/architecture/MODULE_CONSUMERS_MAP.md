@@ -1,27 +1,28 @@
-# Mapa de funcionalidades y archivos — ABDSharedCode
+# Mapa de funcionalidades y archivos — ABDShared
 
-> Raíz: `D:\desarrollos\ABDSynths\ABDSharedCode`
+> Raíz: `D:\desarrollos\ABDSynths\ABDShared`
+> **Nota de nombres (2026-11-10):** el barrido original se hizo sobre el repositorio anterior (`ABDSharedCode`), hoy fusionado en `ABDShared`. Las rutas están reescritas sobre el árbol actual (`Code/`, `Assets/`, `Contracts/`, `Components/`); si un producto todavía declara el nombre antiguo en su CMake, es deuda de ese producto.
 > Propósito del directorio: código compartido (C++ y JS) usado por varios proyectos ABDSynths.
 > Cómo leer este fichero:
 > - Cada sección dice qué hace la carpeta/módulo, qué proyecto lo consume, y su estado.
 > - Estado: `activo`, `parcial`, `legacy`, `huérfano`, `deprecado`.
-> - Donde habla el documento, la evidencia es: CMake de los proyectos, pnpm workspace/lock, y docs de ABDSharedCode.
+> - Donde habla el documento, la evidencia es: CMake de los proyectos, pnpm workspace/lock, y docs de ABDShared.
 
 ---
 
 ## 1. Raíz del directorio
 
-**`ABDSharedCode/`** es el repositorio raíz del código compartido. No es un producto por sí mismo: vive aquí y se consume desde otros repos.
+**`ABDShared/`** es el repositorio raíz del código compartido. No es un producto por sí mismo: vive aquí y se consume desde otros repos.
 
 Qué hay en la raíz y a quién sirve:
 
 | Elemento | Qué es | Quién lo usa | Estado |
 |---|---|---|---|
-| `CMakeLists.txt` | Orquestador de los targets C++ del repo (crear librerías/alias/tests) | Todos los proyectos que consumen ABDSharedCode por CMake | activo |
+| `CMakeLists.txt` | Orquestador de los targets C++ del repo (crear librerías/alias/tests) | Todos los proyectos que consumen ABDShared por CMake | activo |
 | `INTEGRATION_GUIDE.md` | Guía de integración del repo | Proyectos consumidores (C++ y JS) | activo |
-| `package.json` (raíz) |penas raíz del workspace pnpm de este repo; sirve para que `MidiKeyboard` pueda resolver su dependencia `workspace:*` a `@abdsynths/shared`, que vive en otro repo | `ABDSharedCode/MidiKeyboard` y los proyectos que consumen ese paquete | activo (como soporte de workspace, no como producto) |
-| `pnpm-workspace.yaml` | Miembros del workspace local de este repo | Instalación dentro de ABDSharedCode | activo |
-| `pnpm-lock.yaml` | Lock del workspace local | Instalación dentro de ABDSharedCode | activo |
+| `package.json` (raíz) |penas raíz del workspace pnpm de este repo; sirve para que `MidiKeyboard` pueda resolver su dependencia `workspace:*` a `@abdsynths/shared`, que vive en otro repo | `Code/MidiKeyboard` y los proyectos que consumen ese paquete | activo (como soporte de workspace, no como producto) |
+| `pnpm-workspace.yaml` | Miembros del workspace local de este repo | Instalación dentro de ABDShared | activo |
+| `pnpm-lock.yaml` | Lock del workspace local | Instalación dentro de ABDShared | activo |
 | `node_modules/` | Dependencias del workspace local | Mismo razonamiento que package.json | activo (artefacto, no funcionalidad) |
 | `build/` | Build artifacts de MSVC/CMake | Resultado del build del repo | artefacto |
 | `.github/` | CI del repo | `shared-code-ci.yml` y acciones reutilizadas | activo |
@@ -38,8 +39,8 @@ Qué hay en la raíz y a quién sirve:
 Estos son los que la guía de integración documenta como integrables desde otros proyectos.
 
 **Convención de este documento sobre verificación:**
-- “verificado en este árbol” = apareció como carpeta/archivo/target visible en `ABDSharedCode` en el barrido de esta sesión.
-- “documentado/consolidado” = aparece citado en CMake de los consumidores, en la guía, o en docs del propio `ABDSharedCode`, pero **no se confirmó como carpeta o target presente** en el árbol montado ahora.
+- “verificado en este árbol” = apareció como carpeta/archivo/target visible en `ABDShared` en el barrido de esta sesión.
+- “documentado/consolidado” = aparece citado en CMake de los consumidores, en la guía, o en docs del propio `ABDShared`, pero **no se confirmó como carpeta o target presente** en el árbol montado ahora.
 - Cuando una sección mezcla ambos, se explicita; cuando un nombre de archivo salga solo de docs y no de un recuento directo, se señala.
 - Esto es relevante sobre todo para `DspEffects`/filtros y para módulos que los documentos mencionan como futuros o en transición.
 
@@ -52,7 +53,7 @@ Estos son los que la guía de integración documenta como integrables desde otro
 - `ABDMS2000`
 - `ABDJUNiO601`
 - `ABDNeural`
-- `ABDAudioLab` (vía integración de ABDSharedCode)
+- `ABDAudioLab` (vía integración de ABDShared)
 
 **Estado:** activo.
 
@@ -119,7 +120,7 @@ para facilitar su ajuste sin recompilar.
 - `DspCore/DspProphetEnvelope.h`, `DspCore/DspProphetEnvelope.cpp`
 - `DspCore/DspProphetOscillator.h`, `DspCore/DspProphetOscillator.cpp`
 - `DspCore` parece activo y con archivos visibles (`DspJunoHPF.h` incluido en varios CMake consumidores).
-- `DspEffects/` ahora aparece como carpeta presente en `ABDSharedCode`, con arquitectura visible de contenedor/catálogo/política (`FxEngine.h`, `FxSlot.h`, `FxRegistry.h`, `FxDefaultCatalogue.h`, `EffectPolicy.h`) más varios efectos concretos, subcarpetas `adapters/`, `characters/`, `profiles/`, y `DspEffectsTests.cpp`. Este barrido **no verificó un `DspEffects/CMakeLists.txt` a ese nivel ni confirmó la publicación del target** `ABDShared::DspEffects`; por encima, lo que sí tiene es una carpeta con contenido real y tests propia, no un módulo “solo nuclear” ni un catálogo completo equivalente al de `ABDEep/Source/DSP/FX/`.
+- `DspEffects/` ahora aparece como carpeta presente en `ABDShared`, con arquitectura visible de contenedor/catálogo/política (`FxEngine.h`, `FxSlot.h`, `FxRegistry.h`, `FxDefaultCatalogue.h`, `EffectPolicy.h`) más varios efectos concretos, subcarpetas `adapters/`, `characters/`, `profiles/`, y `DspEffectsTests.cpp`. Este barrido **no verificó un `DspEffects/CMakeLists.txt` a ese nivel ni confirmó la publicación del target** `ABDShared::DspEffects`; por encima, lo que sí tiene es una carpeta con contenido real y tests propia, no un módulo “solo nuclear” ni un catálogo completo equivalente al de `ABDEep/Source/DSP/FX/`.
 
 **Proyectos que los consumen (según CMake y docs):**
 - `ABDEep` (incluye `DspJunoHPF.h` unificado vía shim en `Source/DSP/JunoHPF.h`, y referencia `SynthCore`/`DspCore`/`DspEffects` en CMake)
@@ -249,7 +250,7 @@ para facilitar su ajuste sin recompilar.
 - `ABDMS2000` — depende de `@abdsynths/midi-keyb`
 - `ABDCZ101` — depende de `@abdsynths/midi-keyb`
 - `ABDNeural/WebUI` — depende de `@abdsynths/midi-keyb`
-- (El propio paquete vive en `ABDSharedCode/MidiKeyboard`)
+- (El propio paquete vive en `Code/MidiKeyboard`)
 
 **Estado:** activo como paquete JS compartido.
 
@@ -260,7 +261,7 @@ para facilitar su ajuste sin recompilar.
 - `MidiKeyboard/tests/`
 - `MidiKeyboard/demo/` (usa puppeteer para grabar demo)
 
-**Obs:** Este es el paquete del workspace raíz de ABDSynths, NO es código que se compile con CMake. La referencia cliente es `workspace:*` desde `ABDSharedCode/MidiKeyboard`.
+**Obs:** Este es el paquete del workspace raíz de ABDSynths, NO es código que se compile con CMake. La referencia cliente es `workspace:*` desde `Code/MidiKeyboard`.
 
 ---
 
@@ -342,25 +343,25 @@ para facilitar su ajuste sin recompilar.
 
 ---
 
-### 2.13 `Scope/` (como subtree dentro de ABDSharedCode)
+### 2.13 `Scope/` (como subtree dentro de ABDShared)
 
 **Qué hace:** Osciloscopio/analyzers embebido en WebView2: recolector lock-free, taps por bloque, snapshot a 60 fps, serialización y WebUI embebida.
 
 **Proyectos que lo consumen:**
 - `ABDShared::ScopeCore` es el target que consumen los plugins que integran Scope.
-- `ABDAudioLab` consume Scope vía `ABDSharedCode/Scope` (según CMake y la nota de integración de ABDAudioLab).
-- `ABDMS2000` también documenta que Scope vive en `ABDSharedCode/Scope` desde v0.4.0.
+- `ABDAudioLab` consume Scope vía `Code/Scope` (según CMake y la nota de integración de ABDAudioLab).
+- `ABDMS2000` también documenta que Scope vive en `Code/Scope` desde v0.4.0.
 
-**Estado:** activo como módulo dentro de ABDSharedCode.
+**Estado:** activo como módulo dentro de ABDShared.
 
-**Archivos notables (canónicos dentro de ABDSharedCode):**
+**Archivos notables (canónicos dentro de ABDShared):**
 - `Scope/Source/Core/` → `ScopeTap.h`, `ScopeDataCollector.h`, `ScopeTapType.h`, `TapId.h`, `SpscRingBuffer.h`, `TriggerDetector.h`, `ScopeFrameSerializer.h`
 - `Scope/Source/JUCE/` → `JuceWebScopeComponent.h`, `JuceScopeComponent.h`, `ScopeResourceProvider.*`
 - `Scope/WebUI/` → paquete JS `@abdsynths/scope`
 - `Scope/build/`, `Scope/docs/`, `Scope/tools/`
 - `Scope/package.json` y `Scope/WebUI/package.json` (ambos `@abdsynths/scope`)
 
-**Obs:** Hay gemelo histórico fuera: el repo `ABDScope/` también tiene su propio `Source/` y `WebUI/`. De hecho, el repo `ABDScope` tiene `package.json` propio con nombre `@abdsynths/scope`. Esto puede ser fuente de confusión; lo que probablemente ocurra es que el repo `ABDScope` es la vía antigua/standalone y `ABDSharedCode/Scope` es la nueva fuente canónica dentro del workspace compartido.
+**Obs:** Hay gemelo histórico fuera: el repo `ABDScope/` también tiene su propio `Source/` y `WebUI/`. De hecho, el repo `ABDScope` tiene `package.json` propio con nombre `@abdsynths/scope`. Esto puede ser fuente de confusión; lo que probablemente ocurra es que el repo `ABDScope` es la vía antigua/standalone y `Code/Scope` es la nueva fuente canónica dentro del workspace compartido.
 
 ---
 
@@ -385,12 +386,12 @@ para facilitar su ajuste sin recompilar.
 **Qué hace:** Asignación/pólítica de voces compartida dentro del núcleo de síntesis.
 
 **Ubicación verificada en este árbol:**
-- `ABDSharedCode/SynthCore/VoiceAllocator.h`
+- `Code/SynthCore/VoiceAllocator.h`
 
 **Proyectos que lo consumen (según CMake/docs):**
 - aparece citado en `ABDEep`, `ABDAudioLab`, y en el contexto de migraciones/unificaciones de asignación de voz.
 
-**Estado:** activo como archivo dentro de `SynthCore`; no aparece como carpeta `VoiceAllocator/` en `ABDSharedCode` en este barrido. Cualquier afirmación que hable de “`VoiceAllocator` del compartido” debe entenderse como referencia a `SynthCore/VoiceAllocator.h`, no a un módulo independiente con esa ruta.
+**Estado:** activo como archivo dentro de `SynthCore`; no aparece como carpeta `VoiceAllocator/` en `ABDShared` en este barrido. Cualquier afirmación que hable de “`VoiceAllocator` del compartido” debe entenderse como referencia a `SynthCore/VoiceAllocator.h`, no a un módulo independiente con esa ruta.
 
 ---
 
@@ -456,17 +457,17 @@ para facilitar su ajuste sin recompilar.
 
 ---
 
-## 4. Proyectos del ecosistema que consumen ABDSharedCode
+## 4. Proyectos del ecosistema que consumen ABDShared
 
-Esto son los que he podido confirmar con evidencia en este directorio. No es una lista de todos los repos de la suite, sino de los que el árbol actual muestra relaciones medibles hacia `ABDSharedCode`.
+Esto son los que he podido confirmar con evidencia en este directorio. No es una lista de todos los repos de la suite, sino de los que el árbol actual muestra relaciones medibles hacia `ABDShared`.
 
 ### 4.1 `ABDAudioLab`
 
 **Qué parece ser:** Plugin de desarrollo/laboratorio de audio (nombre sugiere "audio lab").
 
-**Cómo consume ABDSharedCode:**
-- CMake: `add_subdirectory(ABDSharedCode)` desde local, con fallback FetchContent.
-- Compila desde `ABDSharedCode/`: HardwareDrivers, AudioComparator, HardwareMidiDetect, WebView2Bridge, MidiKeyboard (parte nativa), StudioTopology, AutoUpdater, Scope (vía el subtree dentro de ABDSharedCode), y sus tests/targets asociados.
+**Cómo consume ABDShared:**
+- CMake: `add_subdirectory(ABDShared)` desde local, con fallback FetchContent.
+- Compila desde `ABDShared/`: HardwareDrivers, AudioComparator, HardwareMidiDetect, WebView2Bridge, MidiKeyboard (parte nativa), StudioTopology, AutoUpdater, Scope (vía el subtree dentro de ABDShared), y sus tests/targets asociados.
 - Además referencia `Scope/Source/` y `HardwareMidiDetect/WebUI/*` embebido.
 
 **Estado del consumo:** activo y amplio.
@@ -475,8 +476,8 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.2 `ABDEep`
 
-**Cómo consume ABDSharedCode:**
-- CMake: integración local/FetchContent de `ABDSharedCode`.
+**Cómo consume ABDShared:**
+- CMake: integración local/FetchContent de `ABDShared`.
 - JS workspace: depende de `@abdsynths/midi-keyb` y `@abdsynths/shared`.
 - Consumo activo de `SynthCore` (`VoiceAllocator`, `DriftEngine`, `EnvelopeAnalog`, `LfoAnalog`, `Arpeggiator`, `ControlSequencer`, `PolyBLEP`), `DspCore` (`DspJunoHPF`), y `DspEffects`.
 - Compilación nativa y WebAssembly (Emscripten) enlazando directamente las unidades C++20 de `SynthCore` y shims unificados.
@@ -487,8 +488,8 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.3 `ABDMS2000`
 
-**Cómo consume ABDSharedCode:**
-- CMake: "ABDSharedCode Integration" en su CMakeLists.txt, con doble vía local/FetchContent. Además, incluye `ABDBankManager/cpp` como submódulo y hace notar que ABDBankManager ya incluye ABDSharedCode.
+**Cómo consume ABDShared:**
+- CMake: integración del árbol compartido (el bloque de su CMakeLists.txt aún se rotula "ABDSharedCode Integration"), con doble vía local/FetchContent. Además, incluye `ABDBankManager/cpp` como submódulo y hace notar que ABDBankManager ya incluye ABDShared.
 - JS workspace: depende de `@abdsynths/midi-keyb` y `@abdsynths/shared`.
 - Migraciones documentadas: efectos como `TapeDelay`, `EnsembleFx`, `ShelfFilter` desde el propio `Source/DSP/Effects` del proyecto hacia el módulo compartido.
 
@@ -498,13 +499,13 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.4 `ABDJUNiO601`
 
-**Cómo consume ABDSharedCode:**
-- CMake: integración local de `ABDSharedCode`.
+**Cómo consume ABDShared:**
+- CMake: integración local de `ABDShared`.
 - Enlaza `ABDShared::LutDSP`, `ABDShared::DspCore` y `ABDShared::HardwareDrivers`.
 - Consumo activo y verificado de:
-  - `ABDSharedCode/DspCore/DspJunoHPF.h` (vía shim `Source/Synth/JunoHPF.h`)
-  - `ABDSharedCode/SynthCore/ArpeggiatorJuno.h` (vía shim zero-alloc en `Source/Synth/JunoArpeggiator.h`)
-  - `ABDSharedCode/DspEffects/JunoBBD.h` (modelo BBD)
+  - `Code/DspCore/DspJunoHPF.h` (vía shim `Source/Synth/JunoHPF.h`)
+  - `Code/SynthCore/ArpeggiatorJuno.h` (vía shim zero-alloc en `Source/Synth/JunoArpeggiator.h`)
+  - `Code/DspEffects/JunoBBD.h` (modelo BBD)
 - Suite completa `JunoUnitTests` pasando al 100% con cero fallos.
 
 **Estado del consumo:** activo.
@@ -513,9 +514,9 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.5 `ABDNeural`
 
-**Cómo consume ABDSharedCode:**
+**Cómo consume ABDShared:**
 - WebUI: depende de `@abdsynths/midi-keyb` y `@abdsynths/shared`.
-- CMake: integración de `ABDSharedCode` (con build-reference notable en el árbol).
+- CMake: integración de `ABDShared` (con build-reference notable en el árbol).
 - Consumo documentado de `DspCore`, `DspEffects`, `SynthCore`, `MidiKeyboard`, `LcdDisplay` (legacy/migrado), etc.
 - Aparición de `StudioTopologyAssets` en su build-reference también apunta a consumo indirecto del paquete de assets de StudioTopology.
 
@@ -525,7 +526,7 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.6 `ABDCZ101`
 
-**Cómo consume ABDSharedCode:**
+**Cómo consume ABDShared:**
 - JS workspace: depende de `@abdsynths/midi-keyb` y `@abdsynths/shared`.
 - CMake: tiene integración propia de JUCE/wasm y build/_deps.
 
@@ -535,13 +536,13 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 ### 4.7 `ABDScope` (repo hermano)
 
-**Qué parece ser:** Repo propio de Scope (oscilloscope/analyzer), que ahora también tiene codificación dentro de `ABDSharedCode/Scope`.
+**Qué parece ser:** Repo propio de Scope (oscilloscope/analyzer), que ahora también tiene codificación dentro de `Code/Scope`.
 
-**Cómo relacionarse con ABDSharedCode:**
-- `ABDScope/CMakeLists.txt` además de su propio target, documenta que cuando se consume vía `add_subdirectory`, el Scope en cuestión es el de `ABDSharedCode/Scope`.
-- `ABDScope/package.json` → `@abdsynths/scope`, igual que `ABDSharedCode/Scope/package.json`.
+**Cómo relacionarse con ABDShared:**
+- `ABDScope/CMakeLists.txt` además de su propio target, documenta que cuando se consume vía `add_subdirectory`, el Scope en cuestión es el de `Code/Scope`.
+- `ABDScope/package.json` → `@abdsynths/scope`, igual que `Code/Scope/package.json`.
 
-**Estado del consumo/relación:** hay superposición canónica. Lo más probable es que `ABDSharedCode/Scope` sea la vía canónica dentro del monorepo compartido y `ABDScope/` sea la vía standalone/legacy.
+**Estado del consumo/relación:** hay superposición canónica. Lo más probable es que `Code/Scope` sea la vía canónica dentro del monorepo compartido y `ABDScope/` sea la vía standalone/legacy.
 
 ---
 
@@ -549,7 +550,7 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 
 **Qué parece ser:** Suite/unificador (host + web + módulos). En el árbol aparece con `host/` y `web/`.
 
-**Consumo de ABDSharedCode:**
+**Consumo de ABDShared:**
 - No se detectó consumo directo en este inventario mediante los cruces realizados.
 
 **Estado:** por confirmar. Posiblemente no consuma este repo tal cual, o lo haga de forma indirecta que aún no aparece en los ficheros revisados.
@@ -624,7 +625,7 @@ Esto son los que he podido confirmar con evidencia en este directorio. No es una
 - `.github/` (CI del repo)
 - `.git/` (control de versiones)
 - `.freebuff/` (metadatos de la herramienta)
-- **carpeta duplicada:** `ABDSharedCode/ABDSharedCode/` y su subcarpeta `tools/` — aparece en el árbol actual y no está documentada; hay que decidir si es layout real o copia residual
+- **carpeta duplicada:** `ABDSharedCode/ABDSharedCode/` — existía en el repositorio anterior; el residuo desapareció con la fusión y hoy no hay `Code/ABDSharedCode/`
 
 ---
 
@@ -634,9 +635,9 @@ Cosas que este inventario no puede cerrar solo con los ficheros revisados:
 
 1. **`visualizers/`** — si tiene código vivo, a qué proyecto sirve, o si es scratch.
 2. **`Certification/`** — si es reglas/actividades de certificación del ecosistema y quién lo consume, o si es residuo.
-3. **¿Scope canónico es `ABDSharedCode/Scope` o `ABDScope/`?** — conviene decidirlo explicitamente y alinear los dos lados, porque ahora hay dos `package.json` con el mismo nombre de paquete.
+3. **¿Scope canónico es `Code/Scope` o `ABDScope/`?** — conviene decidirlo explicitamente y alinear los dos lados, porque ahora hay dos `package.json` con el mismo nombre de paquete.
 4. **¿Cuál es el estado exacto de consumo de `AudioComparator` y `LutDSP` como target formal vs por-ruta?** — la guía parece indicar que todavía no está del todo consolidado en todos los proyectos.
-5. **¿ABDOmegaUnified consume o no ABDSharedCode?** — no se encontró evidencia en este directorio; conviene mirar sus CMake y sus package.json concretos.
+5. **¿ABDOmegaUnified consume o no ABDShared?** — no se encontró evidencia en este directorio; conviene mirar sus CMake y sus package.json concretos.
 6. **Ficheros raíz sueltos** — valorar si `nul.exe` y el txt son basura, artefacto de herramienta, o documentación pendiente.
 
 Si quieres, puedo:
@@ -674,7 +675,7 @@ Script `Scripts/affected_consumers.js` que, a partir de los ficheros tocados en 
 
 Esta sección es un **catálogo de lo que apareció en el árbol ahora**, no una lista definitiva de todo lo que existe ni una declaración de que el catálogo está completo. No se verificó un `DspEffects/CMakeLists.txt` a ese nivel ni la publicación del target `ABDShared::DspEffects`; por encima, lo que se registró es lo siguiente.
 
-### A.1 Lo que aparece en `ABDSharedCode/DspEffects/`
+### A.1 Lo que aparece en `Code/DspEffects/`
 
 Arquitectura visible de contenedor/catálogo/política + efectos + soporte inyectable + tests:
 
@@ -803,7 +804,7 @@ Infraestructura propia de slots/ecosistema + gran variedad de efectos, algunos c
 
 - si un documento dice “`DspEffects` existe”, puede decirlo como “carpeta presente con efectos/catálogo/tests visibles”,
 - pero si un documento da por sentado que `DspEffects` cubre todo lo que tiene `ABDEep/Source/DSP/FX/`, eso ya no es correcto sin matizar,
-- y si un documento habla de “`VoiceAllocator` del compartido”, la ubicación verificada es `SynthCore/VoiceAllocator.h`, no una carpeta `VoiceAllocator/` en `ABDSharedCode`.
+- y si un documento habla de “`VoiceAllocator` del compartido”, la ubicación verificada es `SynthCore/VoiceAllocator.h`, no una carpeta `VoiceAllocator/` en `ABDShared`.
 
 Este catálogo es válido para lo que apareció en el árbol en esta sesión; si luego se añade/release un `DspEffects/CMakeLists.txt` o más archivos, la conclusión cambia.
 

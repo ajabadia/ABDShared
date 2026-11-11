@@ -111,7 +111,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../ABDScope" ABDScope_Build)
 
 # Link ABDScopeCore to your plugin target
 target_link_libraries(ABDMS2000 PRIVATE
-    ABDScope::ABDScopeCore
+    ABDShared::ScopeCore
 )
 ```
 
@@ -483,26 +483,15 @@ if(COMMAND juce_add_binary_data)
     SOURCES ${ABDSCOPE_WEB_ASSETS}
   )
   target_link_libraries(ABDScopeCore INTERFACE ABDScopeWebAssets)
-  add_library(ABDScope::ABDScopeWebAssets ALIAS ABDScopeWebAssets)
+  # Superficie canónica publicada por Code/CMakeLists.txt: ABDShared::ScopeWebAssets
 endif()
 ```
 
-### 7.3. Basename Resolution in `ScopeResourceProvider`
-Because `juce_add_binary_data` strips subdirectory paths and stores only the base filename in `originalFilenames`, ES6 module requests (e.g. `/src/mount/LaneController.js` or `../renderers/OscilloscopeRenderer.js`) must be resolved by their base filename:
+### 7.3. Basename Resolution (delegated to `WebView2ResourceProvider`)
+`ScopeResourceProvider` is a thin adapter: it declares the `ABDScopeWebAssets` catalog and calls `abd::webview2::webView2ResourceProvider(url, catalog)`. URL normalization (query string, fragment, `juce://` host), MIME resolution and catalog lookup live in `Code/WebView2Bridge/WebView2ResourceProvider.cpp`, shared with HardwareMidiDetect and every other embedded WebUI.
 
-```cpp
-// Extract bare filename (e.g. "/src/mount/LaneController.js" -> "LaneController.js")
-juce::String filename = decodedPath.fromLastOccurrenceOf("/", false, false);
-if (filename.isEmpty()) filename = decodedPath;
+One consequence still matters when adding WebUI sources: `juce_add_binary_data` stores only the base filename in `originalFilenames`, so ES6 module requests such as `/src/mount/LaneController.js` or `/src/renderers/OscilloscopeRenderer.js` are matched by base filename in the bridge's last lookup pass. Two entries sharing a base filename are ambiguous (first match wins), so keep module filenames unique across `WebUI/src/`.
 
-// Match against originalFilenames table
-for (int i = 0; i < ABDScopeWebAssets::namedResourceListSize; ++i) {
-    if (filename.equalsIgnoreCase(ABDScopeWebAssets::originalFilenames[i])) {
-        binData = ABDScopeWebAssets::getNamedResource(ABDScopeWebAssets::namedResourceList[i], binSize);
-        break;
-    }
-}
-```
 Always return strict MIME types: `text/html` (`.html`), `text/css` (`.css`), `application/javascript` (`.js`/`.mjs`).
 
 ---
@@ -533,7 +522,7 @@ else()
 endif()
 
 # Link the core library to your audio target
-target_link_libraries(MySynthesizer PRIVATE ABDScope::ABDScopeCore)
+target_link_libraries(MySynthesizer PRIVATE ABDShared::ScopeCore)
 ```
 
 ### Benefits of this Pattern:
@@ -590,7 +579,7 @@ juce_add_plugin(MyPlugin
     ...
     NEEDS_WEBVIEW2 TRUE
 )
-target_link_libraries(MyPlugin PRIVATE ABDScope::ABDScopeCore)
+target_link_libraries(MyPlugin PRIVATE ABDShared::ScopeCore)
 ```
 
 > **⚠ Compile-time requirement verified against JUCE 8.0.12:** the WebView2 SDK headers are loaded through JUCE's own `FindWebView2.cmake`, which searches for a local `Microsoft.Web.WebView2` NuGet package (default: `%USERPROFILE%\AppData\Local\PackageManagement\NuGet\Packages`). Install it with:

@@ -76,12 +76,16 @@ Para mantener un orden absoluto y evitar la dispersión de modelos en el código
 
 ### 5. 📚 `Docs/` — Centro de Documentación Técnica Transversal
 * **Tecnología:** Markdown estructurado con diagramas y esquemas.
-* **Regla de oro:** **Toda la documentación técnica y guías transversales viven aquí**, divididas en subcarpetas temáticas:
-  * `architecture/`: Architectural Decision Records (ADRs), mapas de módulos y dependencias.
-  * `integration/`: Guías de integración paso a paso por sintetizador (CMake, WebUI).
-  * `dsp/`: Fundamentos matemáticos, modelado analógico, filtros y osciladores.
+* **Regla de oro:** **Toda la documentación técnica y guías transversales viven aquí**, divididas en subcarpetas temáticas. El índice y las convenciones están en [`Docs/README.md`](Docs/README.md):
+  * `architecture/`: Normas de ingeniería, patrones y catálogo de módulos.
+  * `integration/`: Guías de integración paso a paso (CMake, WebUI, puente, empaquetado).
+  * `dsp/`: Fundamentos matemáticos, modelado analógico, filtros y catálogo de efectos.
   * `ui-ux/`: Guías de componentes interactivos, tokens de diseño y ergonomía.
-  * `specs/`: Especificaciones formales de hardware, protocolos MIDI y volcados SysEx.
+  * `specs/`: Especificaciones formales de protocolos, contratos de datos y hardware.
+  * `decisions/`: Architecture Decision Records (ADRs) y actas de auditoría, inmutables.
+  * `projects/`: Documentación de un producto concreto (arquitectura, investigación, planes).
+  * `status/`: Seguimiento de trabajo (hojas de ruta y matrices de adopción), no normativo.
+* **No confundir:** una regla vive en `architecture/`, `integration/`, `specs/` o `ui-ux/`; un plan vive en `status/` o `projects/`. Un documento superado se conserva en `_Deprecados/Docs/`.
 
 ---
 

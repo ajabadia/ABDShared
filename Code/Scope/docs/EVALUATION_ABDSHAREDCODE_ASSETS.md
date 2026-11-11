@@ -1,5 +1,7 @@
 # Evaluación: ABDScope → ABDSharedCode y relación con ABDSharedAssets
 
+> **Documento histórico (2026-11-10).** Evalúa la fusión cuando el código compartido vivía en dos repositorios (`ABDScope` → `ABDSharedCode`, activos en `ABDSharedAssets`). Se conserva tal cual: **los nombres de repositorio son el objeto evaluado**, no rutas vigentes. El árbol actual es `ABDShared` (`Code/`, `Assets/`, `Contracts/`, `Components/`).
+
 **Fecha:** 5 de septiembre de 2026
 **Estado:** Documento de evaluación y decisión. **Fase 0 cerrada (2026-09-05):** decisión A1 + versionado + destino de repo + política de servido registradas en §7 y en `HANDOFF.md`. **Fase 1 (assets) ejecutada 2026-09-05, sin commitear** (ver §6).
 **Alcance:** ABDScope (este repo), `ABDSharedCode`, `ABDSharedAssets` y los consumidores conocidos (`ABDMS2000`, `ABDAudioLab`)
@@ -30,7 +32,7 @@ Se revisa el estado actual de los tres repositorios con evidencia verificada y s
 - **CMake actual (working tree, sin commitear):** división ya hecha de
   `ABDScopeCoreHeaders` (INTERFACE, **sin JUCE**, incluye solo `Source/`+`Source/Core`) y
   `ABDScopeCore` (INTERFACE, enlaza `ABDScopeCoreHeaders` + fuentes de `Source/JUCE/`).
-  El smoke test enlaza solo `ABDScopeCoreHeaders`. Alias públicos: `ABDScope::ABDScopeCore` y `ABDScope::ABDScopeWebAssets`.
+  El smoke test enlaza solo `ABDScopeCoreHeaders`. Superficie canónica: `ABDShared::ScopeCore` y `ABDShared::ScopeWebAssets` (los alias `ABDScope::*` se retiraron en Fase 4, 2026-11-10).
   WebUI embebible vía `juce_add_binary_data` (cuando el llamador tiene JUCE en scope): embebe `WebUI/src/*` + `index.html`, excluyendo demo/tests/node_modules.
 - **Consumidores conocidos hoy:**
   - `ABDMS2000`: `add_subdirectory ../ABDScope` **local obligatorio** (`FATAL_ERROR` si no existe; sin fallback FetchContent). WebUI consumido por **copiado** a `WebUI/abdscope` vía script `sync_scope.js` (patrón raw-ESM + Vite dev).
@@ -77,7 +79,7 @@ Se revisa el estado actual de los tres repositorios con evidencia verificada y s
 ### 4.2 Costes y riesgos
 
 1. **Historia git**: ABDScope tiene 37 commits y repo propio (`github.com/ajabadia/ABDScope`) con versionado semver (0.3.1). Una copia sin historia (como la de MidiKeyboard) perdería trazabilidad. Si se mueve, debe ser con historia (`git subtree`/merge) o manteniendo `ABDScope.git` como repo canónico y ABDSharedCode consumiéndolo como peer.
-2. **Renombrado de targets**: `ABDScope::ABDScopeCore*` → `ABDShared::Scope*`. Hay que actualizar MS2000 y AudioLab **en el mismo cambio** y mantener aliases de compatibilidad durante la transición.
+2. **Renombrado de targets**: `ABDScope::ABDScopeCore*` → `ABDShared::Scope*`. MS2000 y AudioLab se actualizaron y verificaron (2026-11-10); los aliases de compatibilidad se retiraron al cerrar la Fase 4.
 3. **Cadencia y versionado**: ABDSharedCode versiona grueso (`master` + tags ocasionales); ABDScope tiene semver propio, changelog y dos toolchains Vitest. Hay que fijar política de tags y dónde corren los tests del WebUI del scope tras el traslado.
 4. **Política de servido del WebUI**: hoy conviven copia/sync (MS2000), embed binario (JUCE vía `juce_add_binary_data`) y junction. ABDSharedCode debe formalizar cuándo se embebe y cuándo se sirve desde disco/ABDSharedAssets (fricción #6).
 5. **Crecimiento del repo compartido**: mezcla módulos C++ con componentes WebUI (MidiKeyboard + Scope) en un mismo árbol CMake; exige disciplina de módulos (una carpeta = un módulo = sus docs/tests propios).
@@ -143,12 +145,13 @@ Cada fase es reversible o contiene su propio rollback; ninguna fase posterior em
 - **Hecho cuando:** tests JS **59/59** verdes en ambas toolchains (eran 56/56; +3 del test de paridad de iconos). Todo commiteado en rama `abdscope-theme-cascade` (5 commits: `5748c73`, `7bdf296`, `0a296f3`, `ab20906`, `a0539ac`) + commits de documentación previos (`bc3927f`, `5b98085`, `16eed0b`, `f25d04e`, `92e5b49`). **El estado "sin commitear" del doc original está desactualizado — está commiteado en rama de feature, no en master (master es `303ee32 chore(workspace)` en D:/desarrollos/ABDSynths).**
 - **Riesgo:** bajo (ejecutado + commiteado). **Rollback:** revertir commits de `abdscope-theme-cascade`.
 
-### Fase 2 — Extraer andamiaje WebView2 común en ABDSharedCode ✅ EXISTE, NO FUSIONADO
+### Fase 2 — Extraer andamiaje WebView2 común en ABDSharedCode ✅ COMPLETADA (2026-11-10)
 
 - [x] Módulo base existe: `ABDSharedCode/WebView2Bridge/` con `JuceWebView2Component.h` (5.4 KB, 118 líneas, base JUCE Component con tema + reload + pageLoaded) + `WebView2ResourceProvider.h/.cpp` (11.3 KB, 258 líneas, pipeline: normalize → embedded catalog → ABDSharedAssets filesystem fallback).
-- [ ] **NO fusionado:** JuceWebScopeComponent (`ABDScope/Source/JUCE/JuceWebScopeComponent.h`) ya hereda de `abd::webview2::JuceWebView2Component` (include + inheritance confirmados), pero el scope sigue teniendo `ScopeResourceProvider.h/.cpp` (namespace `abd::scope`) que es el resource provider específico del scope — redundante con el `WebView2ResourceProvider` genérico que usa HardwareMidiDetect. La extracción del andamiaje está hecha (WebView2Bridge existe), pero el scope no está 100% migrado al provider genérico — sigue con su propio ScopeResourceProvider.
-- [ ] **Pendiente:** migrar `ScopeResourceProvider` al pipeline genérico de `WebView2ResourceProvider` (o eliminarlo si el genérico cubre su caso).
-- **Hecho cuando:** ScopeResourceProvider delegado/eliminado en favor del genérico; JuceWebScopeComponent solo aporta lo específico del scope (no el resource provider). HardwareMidiDetect ya usa el genérico — confirmado.
+- [x] **Fusionado el 2026-11-10:** `Source/JUCE/ScopeResourceProvider.{h,cpp}` queda como adaptador (~45 líneas): declara el catálogo `ABDScopeWebAssets` y delega en `abd::webview2::webView2ResourceProvider`. Se eliminó la copia propia del pipeline (normalización de URL, tabla de MIME, búsqueda en el catálogo). `JuceWebScopeComponent` conserva solo lo específico del scope (suscripción de taps, serialización de frames) y sigue consumiendo `scopeResourceProvider` como `ResourceProvider` del puente.
+- [x] **Hueco destapado por la migración, cerrado en el puente (2026-11-10):** `juce_add_binary_data` guarda solo el nombre base en `originalFilenames`, así que la WebUI anidada del scope (`/src/mount/MountBase.js`) no resolvía con el pipeline genérico, que solo cubría rutas planas (índice `index.html` + `*.js` de HardwareMidiDetect). `Code/WebView2Bridge/WebView2ResourceProvider.cpp` incorpora un último pase por nombre base contra `originalFilenames`: es la misma regla que aplicaba el proveedor propio del scope, así que ningún recurso ya resoluble cambia de resultado.
+- [x] **Registro de targets determinista (2026-11-10):** `Code/CMakeLists.txt` §9 publica `ABDShared::ScopeCoreHeaders`, `ABDShared::ScopeCore` y `abd_scope_core` sin guardas `if(TARGET)` (los crea siempre `Scope/Source/CMakeLists.txt`; un alias sobre un target ausente debe fallar en el orquestador, no degradar al consumidor), y `ABDShared::ScopeWebAssets` cuando hay JUCE. `Code/Scope/Source/CMakeLists.txt` enlaza `ABDShared::WebView2Bridge` cuando existe y, en modo sandbox standalone (`cmake -S Code/Scope`), usa las fuentes del puente dentro del propio repositorio en lugar del `../../../ABDSharedCode` que ya no existe.
+- **Hecho cuando:** ScopeResourceProvider delegado/eliminado en favor del genérico; JuceWebScopeComponent solo aporta lo específico del scope (no el resource provider). HardwareMidiDetect ya usa el genérico — confirmado. **Verificado el 2026-11-10:** proyecto de verificación desechable que consume `ABDShared::ScopeCore` por el nombre canónico (como ABDMS2000/ABDAudioLab); compila con MSVC `/W4` contra JUCE 9.0.3 + WebView2 SDK sin avisos, y el proveedor sirve `/`, `/index.html`, `/src/scope.css`, `/src/theme.generated.css`, `/src/scope.js`, `/src/mount/MountBase.js` y `/src/renderers/OscilloscopeRenderer.js` con su MIME correcto, devolviendo `nullopt` para `juce.js` y para rutas inexistentes (9/9).
 
 ### Fase 3 — Absorber ABDScope en ABDSharedCode (solo si A1) ❌ PENDIENTE
 

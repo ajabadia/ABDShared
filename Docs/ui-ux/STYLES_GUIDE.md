@@ -1,4 +1,4 @@
-# GUIA DEL SISTEMA DE DISENO Y ESTILOS — ABDSharedAssets
+# GUIA DEL SISTEMA DE DISENO Y ESTILOS — ABDShared
 
 > Proposito: Especificacion de tokens de diseno, paletas tematicas y contratos de estilo para toda la suite ABDSynths.
 
@@ -9,7 +9,7 @@
 El sistema de estilos utiliza un patron de cascada de 3 niveles:
 
 1. Host Tokens (Sintetizador / Plugin) — Define --color-bg-base, --color-panel-bg, --color-accent
-2. Global Shared Tokens (ABDSharedAssets/styles/tokens.css) — Provee valores estandar y temas preconfigurados
+2. Global Shared Tokens (Assets/styles/tokens.css) — Provee valores estandar y temas preconfigurados
 3. Component Tokens (scope.css, keyboard.css) — Mapea variables especificas con fallback automatico al Host
 
 ---
@@ -281,7 +281,7 @@ Reglas del contrato:
 2. Los fallbacks del adaptador reflejan los defaults canonicos del modulo (paridad standalone == cascada sin tokens).
 3. El adaptador se carga DESPUES del css del modulo (gana por orden de fuente en `:root`).
 4. Los hosts pueden overridear cualquier `--scope-*`/`--kbd-*` en su propia cascada.
-5. ABDSharedAssets solo aloja activos con >=2 consumidores.
+5. `Assets/` solo aloja activos con >=2 consumidores.
 
 ### 6.1 Prefijo de tokens (decisión)
 

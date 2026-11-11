@@ -21,7 +21,7 @@ DOCS/BRIDGE_PROTOCOL.md                     este documento
 
 NEURONiK_BridgeProtocolContractTest         C++: JSON vs constantes compiladas
 NEURONiK_BridgeProtocolJs (node)            JS: JSON vs bridgeCore.js + formas de mensaje reales
-NEURONiK_WebViewBridgeDirection             guard de dirección del canal (ABDSharedCode)
+NEURONiK_WebViewBridgeDirection             guard de dirección del canal (ABDShared)
 ```
 
 Este documento vivía en `WebPilot/BRIDGE_PROTOCOL.md` y se mudó a `DOCS/` con el contrato en el

@@ -44,11 +44,20 @@ endif()
 add_library(ABDScopeCore INTERFACE)
 target_link_libraries(ABDScopeCore INTERFACE ABDScopeCoreHeaders)
 
+# The JUCE glue (JuceWebScopeComponent + ScopeResourceProvider) builds on the shared
+# WebView2 bridge: URL normalization, MIME resolution and embedded-catalog lookup
+# live in Code/WebView2Bridge, so the scope only contributes its own asset catalog.
 if(TARGET ABDShared::WebView2Bridge)
+  # Consumer build: the orchestrator (Code/CMakeLists.txt) already published it.
   target_link_libraries(ABDScopeCore INTERFACE ABDShared::WebView2Bridge)
-elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../../ABDSharedCode")
+elseif(NOT EMSCRIPTEN)
+  # Standalone sandbox (cmake -S Code/Scope): there is no orchestrator above us, so
+  # link the in-repo bridge sources directly. Never a path outside this repository.
   target_include_directories(ABDScopeCore INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../ABDSharedCode>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
+  )
+  target_sources(ABDScopeCore INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../WebView2Bridge/WebView2ResourceProvider.cpp
   )
 endif()
 

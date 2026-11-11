@@ -119,6 +119,29 @@ std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const ju
         binData = catalog.getNamedResource(flattenedName.toRawUTF8(), binSize);
     }
 
+    // Pass 5: Basename match against originalFilenames. juce_add_binary_data records
+    // bare filenames, so a WebUI with nested sources (e.g. /src/mount/MountBase.js)
+    // cannot be reached by the exact/suffix passes above. Last resort only: it is
+    // the same rule the pre-bridge Scope provider used, so nothing that resolves
+    // earlier changes meaning. Ambiguous basenames resolve to the first catalog entry.
+    if (binData == nullptr)
+    {
+        const juce::String requestedBasename = normalizedPath.fromLastOccurrenceOf("/", false, false);
+        if (requestedBasename.isNotEmpty() && !requestedBasename.equalsIgnoreCase(normalizedPath))
+        {
+            for (int i = 0; i < catalog.namedResourceListSize; ++i)
+            {
+                juce::String orig = juce::String::fromUTF8(catalog.originalFilenames[i]).replace("\\", "/");
+                if (orig.fromLastOccurrenceOf("/", false, false).equalsIgnoreCase(requestedBasename))
+                {
+                    binData = catalog.getNamedResource(catalog.namedResourceList[i], binSize);
+                    if (binData != nullptr)
+                        break;
+                }
+            }
+        }
+    }
+
     if (binData != nullptr)
     {
         std::vector<std::byte> bytes(static_cast<size_t>(binSize));

@@ -15,7 +15,7 @@ LfoAnalog::LfoAnalog()
 
 void LfoAnalog::setSampleRate(double newSampleRate)
 {
-    sampleRate = std::max(1.0, newSampleRate);
+    sampleRate = (std::isfinite(newSampleRate) && newSampleRate > 1.0) ? newSampleRate : 44100.0;
     updatePhaseIncrement();
 }
 
@@ -77,8 +77,12 @@ void LfoAnalog::trigger()
 
 void LfoAnalog::setPhase(double newPhase)
 {
-    phase = std::fmod(newPhase, 1.0);
-    if (phase < 0.0) phase += 1.0;
+    if (!std::isfinite(newPhase))
+    {
+        phase = 0.0;
+        return;
+    }
+    phase = newPhase - std::floor(newPhase);
 }
 
 double LfoAnalog::getPhase() const
@@ -88,6 +92,8 @@ double LfoAnalog::getPhase() const
 
 void LfoAnalog::setRateScale(float escala)
 {
+    if (!std::isfinite(escala))
+        return;
     const float recortada = std::clamp(escala, 0.05f, 20.0f);
     if (recortada == rateScale) return; // hot-path guard
     rateScale = recortada;
@@ -96,7 +102,8 @@ void LfoAnalog::setRateScale(float escala)
 
 void LfoAnalog::updatePhaseIncrement()
 {
-    phaseIncrement = (rate * rateScale) / sampleRate;
+    const double rawInc = (static_cast<double>(rate) * static_cast<double>(rateScale)) / sampleRate;
+    phaseIncrement = std::isfinite(rawInc) ? std::clamp(rawInc, 0.0, 0.49) : 0.0;
 }
 
 float LfoAnalog::nextRandomFloat()
@@ -113,7 +120,7 @@ float LfoAnalog::generateRawWave()
     switch (currentShape)
     {
         case Shape::kSine:
-            out = std::sin(2.0 * M_PI * p);
+            out = static_cast<float>(std::sin(2.0 * M_PI * p));
             break;
 
         case Shape::kTriangle:
@@ -171,10 +178,12 @@ float LfoAnalog::nextSample()
     // 2. Phase advancement
     bool phaseWrapped = false;
     double nextPhase  = phase + phaseIncrement;
-    if (nextPhase >= 1.0)
+    if (!std::isfinite(nextPhase))
+        nextPhase = 0.0;
+    if (nextPhase >= 1.0 || nextPhase < 0.0)
     {
-        phaseWrapped = true;
-        nextPhase    = std::fmod(nextPhase, 1.0);
+        phaseWrapped = (nextPhase >= 1.0);
+        nextPhase   -= std::floor(nextPhase);
     }
     phase = nextPhase;
 

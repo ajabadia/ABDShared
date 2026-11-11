@@ -129,35 +129,25 @@ Assembled from the strongest features of **ABDMS2000**, **ABDEep**, and **ABDCZ1
 
 ## Running the tests
 
-The suite is **vitest**, and it runs from a clean clone of `ABDSharedCode` with
-one command:
+The suite is **vitest**. `@abdsynths/shared` is the root package of this
+repository (`package.json` at the repo root, exporting `Assets/`, `Contracts/` and
+`Components/`), so a clean clone resolves the `"workspace:*"` dependency without
+fetching anything from a sibling repository:
 
 ```bash
-node tools/bootstrap-workspace.mjs   # ensures the sibling repo is there and installs
-pnpm test                           # 340 tests
+pnpm test                 # from the repo root: whole suite
+pnpm exec vitest run      # from Code/MidiKeyboard: this package only
 ```
 
-`bootstrap-workspace.mjs` exists because this package declares
-`"@abdsynths/shared": "workspace:*"`, and that package lives in **ABDSharedAssets,
-a different repo**. A clean clone of `ABDSharedCode` therefore cannot resolve its
-own dependency alone; the script clones the sibling next to it if missing and
-installs. It does **not** update or switch branches in a sibling that is already
-there: checking that it exists is not the same as deciding which version to use.
-
-```bash
-node tools/bootstrap-workspace.mjs --check   # verifies without installing or writing
-```
-
-From inside this package, `pnpm exec vitest run` works too. Inside the
-ABDSynths monorepo the suite root's own workspace is used instead, and no
-bootstrap is needed.
+> **Histórico:** antes de la fusión de repositorios en `ABDShared`, este paquete
+> resolvía `@abdsynths/shared` desde el repositorio hermano `ABDSharedAssets` y un
+> `tools/bootstrap-workspace.mjs` lo clonaba si faltaba. Ese script ya no existe.
 
 **One file needs the whole monorepo.** `tests/host-strip-height.test.js` is not
 a test of this package: it is the strip-height contract of the four synths that
-mount the keyboard, and it reads their CSS and their sources. Run from a clean
-clone of `ABDSharedCode` alone, its three workspace-dependent blocks are
-**skipped with a printed reason** and the other 331 tests run. Run from the
-suite root, all 340 run.
+mount the keyboard, and it reads their CSS and their sources. Run from
+`Code/MidiKeyboard` alone, its three workspace-dependent blocks are **skipped
+with a printed reason**; run from the repo root and they run too.
 
 ## Installation
 
@@ -165,7 +155,7 @@ suite root, all 340 run.
 
 ```bash
 # From your synth project root, which must be a pnpm workspace that also has
-# ABDSharedAssets as a member: the package is declared as "workspace:*".
+# ABDShared as a member: the package is declared as "workspace:*".
 pnpm install
 ```
 

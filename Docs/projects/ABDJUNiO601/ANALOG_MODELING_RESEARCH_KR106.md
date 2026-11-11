@@ -1,5 +1,8 @@
 # Análisis Comparativo y Decisiones de Diseño: ABDJUNiO601 vs Ultramaster KR-106
 
+> **Tipo:** proyecto (investigación/referencia) · **Alcance:** análisis comparativo DSP `ABDJUNiO601` vs Ultramaster KR-106 y decisiones de modelado orientadas al Roland Juno-106.
+> **Estado:** referencia de diseño en evolución; no verificada contra hardware en esta revisión. · **Última revisión:** 2026-11-10.
+
 Este documento contiene el análisis exhaustivo del código fuente DSP de **Ultramaster KR-106** comparado con nuestro **ABDJUNiO601**. Se han fusionado los hallazgos y fórmulas matemáticas iniciales con el inventario completo del proyecto y las decisiones tomadas para optimizar la fidelidad al hardware original del **Roland Juno-106**.
 
 ---

@@ -1,4 +1,4 @@
-# Catálogo de módulos compartidos: ABDSharedCode
+# Catálogo de módulos compartidos: ABDShared
 
 Objetivo: tener un mapa de lo que ya hay, qué interfaz usa cada cosa, y qué sigue duplicado o fuera de shared, para poder añadir piezas nuevas (filtros, osciladores, sumadores, etc.) sin duplicar y con una forma compatible entre familias.
 
@@ -6,11 +6,11 @@ Este fichero es REFERENCIA DE INVENTARIO, no especulación. Donde diga "cliente 
 
 ---
 
-## 1. Módulos actuales de ABDSharedCode
+## 1. Módulos actuales de ABDShared
 
 ### 1.1 DspCore — base de síntesis libre de JUCE
 
-Ruta: `ABDSharedCode/DspCore`
+Ruta: `Code/DspCore`
 Namespace: `abd::dsp`
 
 **Archivos y qué aporta:**
@@ -43,7 +43,7 @@ Namespace: `abd::dsp`
 
 ### 1.2 SynthCore — bloques de síntesis básicos
 
-Ruta: `ABDSharedCode/SynthCore`
+Ruta: `Code/SynthCore`
 Namespace: `abd::synth`
 
 **Archivos y qué aporta:**
@@ -153,7 +153,7 @@ Plantilla `ModMatrixT<kNumSlots, kZeroIdInert = true>`:
 
 ### 1.3 DspEffects — motor de efectos compartidos
 
-Ruta: `ABDSharedCode/DspEffects`
+Ruta: `Code/DspEffects`
 Namespace: `abd::dsp`
 Modelo: motor sin política + catálogo inyectado + etapas inyectadas.
 
@@ -256,7 +256,7 @@ Modos: Insert, Send, Bypass.
 
 ### 1.4 LutDSP — motor de evaluación LUT / respuesta medida
 
-Ruta: `ABDSharedCode/LutDSP`
+Ruta: `Code/LutDSP`
 Namespace: `abd::lutdsp`
 Dependencia externa: tablas `AbdBatchedPoint` alineadas producidas por ABDAudioLab.
 
@@ -510,7 +510,7 @@ Criterio general: **estandarizar INTERFAZ POR FAMILIA, con el algoritmo/hardware
 - **Ejemplo nuevo:** bloque oscilador genérico (fase + forma/tabla + anti-aliasing) + familias concretas que lo instancian con sus parámetros (VCO exponencial estilo ca-72, DCO, wavetable).
 
 - **Estado: ENTREGADO (2026-10-06) — la familia y sus dos miembros.** El contrato
-  vive en `ABDSharedCode/SynthCore/OscillatorFamily.h` (`abd::synth`) y fija el
+  vive en `Code/SynthCore/OscillatorFamily.h` (`abd::synth`) y fija el
   idioma: frecuencia en **Hz** (y cada pieza devuelve en `getFrequency()` la que
   de verdad da), formas con `OscWaveform { Sawtooth, Triangle, Rectangle, Sine }`,
   ancho de pulso 0..1 con el mismo significado en todos los miembros (0,5 =

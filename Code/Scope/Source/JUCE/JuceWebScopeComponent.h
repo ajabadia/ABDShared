@@ -44,7 +44,7 @@ public:
                     handleTapSubscription(message);
                 }}},
               initialTheme),
-          scopeCollector(collector), sampleRate(initialSampleRate)
+          scopeCollector(collector), sampleRate(initialSampleRate), m_refreshRateHz(refreshRateHz)
     {
         // All-active fallback until the WebUI subscribes lanes (see class docs).
         activateAllTaps();
@@ -67,6 +67,28 @@ public:
     {
         scopeCollector.selectTap(tapName);
     }
+
+    /** Pause live pump and push a static/captured frame to the WebUI (e.g. IR spectrum). */
+    void showCapturedFrame(const juce::String& frameJson)
+    {
+        stopTimer();
+        m_showingCaptured = true;
+        if (frameJson.isNotEmpty())
+        {
+            juce::String js = "if (window.__pushScopeFrame) { window.__pushScopeFrame(" + frameJson + "); }";
+            webBrowser.evaluateJavascript(js);
+        }
+    }
+
+    /** Resume live pump after a captured/static frame. */
+    void resumeLive()
+    {
+        m_showingCaptured = false;
+        if (m_refreshRateHz > 0 && !isTimerRunning())
+            startTimerHz(m_refreshRateHz);
+    }
+
+    [[nodiscard]] bool isShowingCaptured() const noexcept { return m_showingCaptured; }
 
     [[nodiscard]] const std::string& getTheme() const noexcept { return currentTheme; }
 
@@ -170,6 +192,8 @@ private:
     ScopeDataCollector& scopeCollector;
     ScopeFrameSerializer frameSerializer{512};
     std::atomic<double> sampleRate{44100.0};
+    int m_refreshRateHz { 30 };
+    bool m_showingCaptured { false };
 
     std::vector<size_t> m_laneTaps; ///< laneIdx -> registered tap index (NO_TAP if unsubscribed)
 

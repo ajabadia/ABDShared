@@ -131,7 +131,7 @@ Themes can be set at any time from C++ via:
 ```cpp
 scopeComponent->setTheme("audiolab-light"); // or "audiolab", "ms2000", "cz101", "deepmind"
 ```
-The component passes the active theme in the URL query string (`?theme=...`) and synchronizes reactively on the `pageLoaded` event. The embedded `ScopeResourceProvider` automatically strips query strings and fragments before resolving binary resources, ensuring robust loading without 404 errors. Canvas renderers dynamically adapt backgrounds, reticles, and traces to match dark and light themes seamlessly.
+The component passes the active theme in the URL query string (`?theme=...`) and synchronizes reactively on the `pageLoaded` event. The embedded `ScopeResourceProvider` — a thin adapter over the shared `abd::webview2::webView2ResourceProvider` — strips query strings and fragments before resolving binary resources, ensuring robust loading without 404 errors. Canvas renderers dynamically adapt backgrounds, reticles, and traces to match dark and light themes seamlessly.
 
 ---
 
@@ -152,14 +152,14 @@ The component passes the active theme in the URL query string (`?theme=...`) and
 ### Theming
 
 - `WebUI/src/scope.css` contains **layout + canonical dark fallbacks only** (`:root`, 16 `--scope-*` tokens). Per-theme palettes are no longer shipped with the module.
-- Color per theme comes from the **host cascade**: shared tokens → theme (`ABDSharedAssets/styles/themes/*.css`) → component adapter (`ABDSharedAssets/styles/components/scope.css`), which maps the full `--scope-*` set onto `--color-*`/`--font-*` (fallbacks mirror the module's canonical defaults).
+- Color per theme comes from the **host cascade**: shared tokens → theme (`Assets/styles/themes/*.css`) → component adapter (`Assets/styles/components/scope.css`), which maps the full `--scope-*` set onto `--color-*`/`--font-*` (fallbacks mirror the module's canonical defaults).
 - Adapters must load **after** the module's CSS so the `:root` mapping wins by source order.
 - `--scope-font-lcd` is the token the module consumes; hosts provide `--scope-font` (aliased by the adapter).
 - The embedded host page defaults to the dark canonical theme (`?theme=ms2000`); hosts can pass any shared theme name once they inject the cascade.
-- Keyboard component: same contract via `ABDSharedAssets/styles/components/keyboard.css` (21 theme tokens; runtime per-key state like `--kbd-pressure`/`--kbd-velocity` is not themable).
+- Keyboard component: same contract via `Assets/styles/components/keyboard.css` (21 theme tokens; runtime per-key state like `--kbd-pressure`/`--kbd-velocity` is not themable).
 
 ### Icons
 
-- Single source of truth: `ABDSharedAssets/icons/*.svg`. Consumers embed **only the icons they use**.
+- Single source of truth: `Assets/icons/*.svg`. Consumers embed **only the icons they use**.
 - The scope renders from `WebUI/src/icons.js` (generated module: `camera`, `close`, `freeze`) — never inline SVG in module code.
 - Parity is enforced by `WebUI/tests/icons.test.js` (compares against the canonical files; auto-skips outside the ABDSynths workspace).

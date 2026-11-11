@@ -45,9 +45,12 @@ juce::String normalizeResourcePath(const juce::String& url);
 
 /**
  * @brief Resolve a normalized, URL-decoded path against an embedded binary catalog.
- * @details Two-pass lookup: direct filename match against originalFilenames, then a
- *          flattened resource-identifier fallback. Returns nullopt for `juce.js`
- *          (served by JUCE itself) and unknown assets.
+ * @details Multi-pass lookup, most to least specific: exact/suffix match against
+ *          originalFilenames, flattened resource identifier, Vite `assets/` basename,
+ *          root-level basename, and finally a bare-basename match (which is what
+ *          makes nested WebUI sources such as `/src/mount/MountBase.js` reachable,
+ *          since juce_add_binary_data records only filenames). Returns nullopt for
+ *          `juce.js` (served by JUCE itself) and unknown assets.
  */
 std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const juce::String& decodedPath,
                                                                         const BinaryAssetsCatalog& catalog);

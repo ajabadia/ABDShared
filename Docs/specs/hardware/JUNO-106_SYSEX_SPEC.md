@@ -1,27 +1,27 @@
-# JUNiO 601 — Formato interno canónico de SysEx, presets y tape
+# JUNO-106 / ABDJUNiO601 — Formato interno canónico de SysEx, presets y tape
 
-> 🟠 **Marcado 2026-11-07 — título, restos de extracción y ausencia de política de envío.** El epígrafe dice «JUNiO 601» mientras el fichero es `JUNO-106_SYSEX_SPEC.md`, y las ~30 marcas `[file:22]` son restos de la extracción del PDF, no enlaces. El documento fija el layout canónico de 18 bytes y **no** la transmisión, así que la crítica de saturación del puerto MIDI no se dirime aquí: pertenece al transporte.
-> **Alternativa:** unificar el nombre, retirar las marcas y añadir una sección normativa de envío (cola lock-free, coalescer a ~60 Hz) o remitir al contrato de hardware archivado en `_Deprecados/Docs/hw-sysex-contract.md`.
-> **Prioridad:** baja. Ver [acta 2026](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md).
+> **Tipo:** especificación · **Alcance:** layout canónico del patch (18 bytes, `SW1`/`SW2`), su correspondencia con `SynthParams`, la persistencia y la cinta. **No** define la política de envío MIDI: eso pertenece al transporte.
+> **Estado (2026-11-10):** título alineado con el nombre del fichero y marcas de extracción del PDF retiradas (`[file:22]`, 38 casos). Queda pendiente una sección normativa de transmisión (cola, coalescer ~60 Hz, techo por bloque) o su remisión al contrato de hardware.
+> **Norma relacionada:** [`ABDSYNTHS_SYSEX_SPEC.md`](../ABDSYNTHS_SYSEX_SPEC.md) y [`ADR-004`](../../decisions/ADR-004-2026-specs-cdd-wire-bipolar.md) §2.4.
 
-Este documento fija el formato canónico de intercambio para evitar que el mapeo de `SW1` y `SW2` vuelva a divergir entre SysEx, presets, JSON, tape y motor. [file:22]
+Este documento fija el formato canónico de intercambio para evitar que el mapeo de `SW1` y `SW2` vuelva a divergir entre SysEx, presets, JSON, tape y motor.
 
-## Principio de verdad
+## 1. Principio de verdad
 
-La representación canónica del sintetizador en tiempo de ejecución es `SynthParams`, y la representación canónica persistente dentro del gestor de presets es el `ValueTree` con propiedades nominales como `dcoRange`, `pulseOn`, `sawOn`, `chorus1`, `chorus2`, `pwmMode`, `vcaMode`, `vcfPolarity` y `hpfFreq`. [file:22]
-Toda conversión binaria debe pasar por ese modelo semántico, no por reinterpretaciones parciales de bytes empaquetados. [file:22]
+La representación canónica del sintetizador en tiempo de ejecución es `SynthParams`, y la representación canónica persistente dentro del gestor de presets es el `ValueTree` con propiedades nominales como `dcoRange`, `pulseOn`, `sawOn`, `chorus1`, `chorus2`, `pwmMode`, `vcaMode`, `vcfPolarity` y `hpfFreq`.
+Toda conversión binaria debe pasar por ese modelo semántico, no por reinterpretaciones parciales de bytes empaquetados.
 
-## Cuerpo de patch
+## 2. Cuerpo de patch
 
-El patch Juno usado por SysEx y tape tiene 18 bytes: 16 valores lineales de 7 bits y 2 bytes empaquetados (`SW1` y `SW2`). [file:22]
-El mensaje SysEx de patch dump usa el formato `F0 41 30 <channel> <18-byte body> F7`, que en JUCE se expone como 21 bytes de datos SysEx sin contar `F0/F7`, aunque el mensaje completo tenga 23 bytes. [file:22]
+El patch Juno usado por SysEx y tape tiene 18 bytes: 16 valores lineales de 7 bits y 2 bytes empaquetados (`SW1` y `SW2`).
+El mensaje SysEx de patch dump usa el formato `F0 41 30 <channel> <18-byte body> F7`, que en JUCE se expone como 21 bytes de datos SysEx sin contar `F0/F7`, aunque el mensaje completo tenga 23 bytes.
 
-## Bytes 0–15
+## 3. Bytes 0–15
 
-Los bytes 0–15 se asignan así: `lfoRate`, `lfoDelay`, `lfoToDCO`, `pwmAmount`, `noiseLevel`, `vcfFreq`, `resonance`, `envAmount`, `lfoToVCF`, `kybdTracking`, `vcaLevel`, `attack`, `decay`, `sustain`, `release`, `subOscLevel`. [file:22]
-Cada uno se serializa como entero de 0 a 127 a partir de un valor normalizado 0–1. [file:22]
+Los bytes 0–15 se asignan así: `lfoRate`, `lfoDelay`, `lfoToDCO`, `pwmAmount`, `noiseLevel`, `vcfFreq`, `resonance`, `envAmount`, `lfoToVCF`, `kybdTracking`, `vcaLevel`, `attack`, `decay`, `sustain`, `release`, `subOscLevel`.
+Cada uno se serializa como entero de 0 a 127 a partir de un valor normalizado 0–1.
 
-## 2. SW1 canónico [HARDWARE SPEC]
+## 4. SW1 canónico [HARDWARE SPEC]
 
 `SW1` codifica chorus, rango DCO, pulse y saw. 
 El layout canónico es:
@@ -43,67 +43,67 @@ Reglas derivadas al decodificar:
 - `cEnabled = (sw1 & (1 << 5)) == 0`
 - `cModeI = (sw1 & (1 << 6)) != 0`
 
-## SW2 canónico
+## 5. SW2 canónico
 
-`SW2` codifica PWM mode, VCA mode, polaridad del VCF y HPF. [file:22]
+`SW2` codifica PWM mode, VCA mode, polaridad del VCF y HPF.
 El layout canónico es:
 
 | Bits | Campo | Regla |
 |---|---|---|
-| bit 0 | `pwmMode` | `1` si manual/LFO según modelo actual [file:22] |
-| bit 1 | `vcaMode` | `1` si gate, `0` si env [file:22] |
-| bit 2 | `vcfPolarity` | `1` si invertida/negativa según implementación [file:22] |
-| bits 3–4 | HPF hardware | `hwHpf = 3 - hpfFreq` [file:22] |
+| bit 0 | `pwmMode` | `1` si manual/LFO según modelo actual |
+| bit 1 | `vcaMode` | `1` si gate, `0` si env |
+| bit 2 | `vcfPolarity` | `1` si invertida/negativa según implementación |
+| bits 3–4 | HPF hardware | `hwHpf = 3 - hpfFreq` |
 
 Reglas derivadas al decodificar:
-- `pwmMode = (sw2 & (1 << 0)) ? 1 : 0` [file:22]
-- `vcaMode = (sw2 & (1 << 1)) ? 1 : 0` [file:22]
-- `vcfPolarity = (sw2 & (1 << 2)) ? 1 : 0` [file:22]
-- `hpfFreq = 3 - ((sw2 >> 3) & 0x03)` [file:22]
+- `pwmMode = (sw2 & (1 << 0)) ? 1 : 0`
+- `vcaMode = (sw2 & (1 << 1)) ? 1 : 0`
+- `vcfPolarity = (sw2 & (1 << 2)) ? 1 : 0`
+- `hpfFreq = 3 - ((sw2 >> 3) & 0x03)`
 
-La lógica de HPF es descendente porque el valor hardware empaquetado no coincide con el orden de la UI/motor. [file:22]
+La lógica de HPF es descendente porque el valor hardware empaquetado no coincide con el orden de la UI/motor.
 
-## Implementaciones que deben coincidir
+## 6. Implementaciones que deben coincidir
 
 Estas rutas deben usar exactamente el mismo packing/unpacking:
 
-- `JunoSysExEngine::makePatchDump` y `JunoSysExEngine::applyPatchDump` para SysEx completo. [file:22]
-- `JunoSysEx::checkSend` y el `packSw1/packSw2` de `processBlock` para cambios de parámetro `0x32`. [file:22]
-- `PresetManager::createPresetFromJunoPatch`, `createPresetFromJunoBytes` y `getJunoPatchBytes` para factory, import, export y tape. [file:22]
+- `JunoSysExEngine::makePatchDump` y `JunoSysExEngine::applyPatchDump` para SysEx completo.
+- `JunoSysEx::checkSend` y el `packSw1/packSw2` de `processBlock` para cambios de parámetro `0x32`.
+- `PresetManager::createPresetFromJunoPatch`, `createPresetFromJunoBytes` y `getJunoPatchBytes` para factory, import, export y tape.
 
-Si una de esas rutas cambia, todas deben actualizarse en el mismo commit. [file:22]
+Si una de esas rutas cambia, todas deben actualizarse en el mismo commit.
 
-## Rutas de persistencia
+## 7. Rutas de persistencia
 
-JSON no guarda `SW1` ni `SW2`; guarda `state.toXmlString()` con el `ValueTree` del preset. [file:22]
-Por tanto, JSON sólo es seguro si el `ValueTree` ya fue construido con el mapeo correcto desde bytes o desde `JunoPatch`. [file:22]
-El estado del plugin (`getStateInformation` / `setStateInformation`) también persiste el árbol APVTS/XML y no debe reinterpretar bytes empaquetados. [file:22]
+JSON no guarda `SW1` ni `SW2`; guarda `state.toXmlString()` con el `ValueTree` del preset.
+Por tanto, JSON sólo es seguro si el `ValueTree` ya fue construido con el mapeo correcto desde bytes o desde `JunoPatch`.
+El estado del plugin (`getStateInformation` / `setStateInformation`) también persiste el árbol APVTS/XML y no debe reinterpretar bytes empaquetados.
 
-## Tape
+## 8. Tape
 
-La ruta de cinta reutiliza el mismo cuerpo de 18 bytes. [file:22]
-`exportCurrentPresetToTape` obtiene primero `getJunoPatchBytes(...)` y luego `JunoTapeEncoder::encodePatches(...)`, mientras que `loadTape` decodifica audio con `JunoTapeDecoder::decodeWavFile(...)` y reconstruye presets mediante `createPresetFromJunoBytes(...)`. [file:22]
-Eso implica que tape queda automáticamente alineado si `getJunoPatchBytes` y `createPresetFromJunoBytes` siguen este documento. [file:22]
+La ruta de cinta reutiliza el mismo cuerpo de 18 bytes.
+`exportCurrentPresetToTape` obtiene primero `getJunoPatchBytes(...)` y luego `JunoTapeEncoder::encodePatches(...)`, mientras que `loadTape` decodifica audio con `JunoTapeDecoder::decodeWavFile(...)` y reconstruye presets mediante `createPresetFromJunoBytes(...)`.
+Eso implica que tape queda automáticamente alineado si `getJunoPatchBytes` y `createPresetFromJunoBytes` siguen este documento.
 
-## Invariantes obligatorios
+## 9. Invariantes obligatorios
 
 Todo cambio futuro debe preservar estos invariantes:
 
-- `ValueTree -> getJunoPatchBytes -> createPresetFromJunoBytes -> ValueTree` no debe alterar propiedades semánticas del 106. [file:22]
-- `SynthParams -> makePatchDump -> applyPatchDump -> SynthParams` no debe alterar `chorus1`, `chorus2`, `dcoRange`, `pulseOn`, `sawOn`, `pwmMode`, `vcaMode`, `vcfPolarity` ni `hpfFreq`. [file:22]
-- `exportLibraryToJson -> parse JSON -> ValueTree` no debe depender de la representación empaquetada de switches. [file:22]
-- Tape y SysEx deben producir el mismo cuerpo de 18 bytes para un mismo preset. [file:22]
+- `ValueTree -> getJunoPatchBytes -> createPresetFromJunoBytes -> ValueTree` no debe alterar propiedades semánticas del 106.
+- `SynthParams -> makePatchDump -> applyPatchDump -> SynthParams` no debe alterar `chorus1`, `chorus2`, `dcoRange`, `pulseOn`, `sawOn`, `pwmMode`, `vcaMode`, `vcfPolarity` ni `hpfFreq`.
+- `exportLibraryToJson -> parse JSON -> ValueTree` no debe depender de la representación empaquetada de switches.
+- Tape y SysEx deben producir el mismo cuerpo de 18 bytes para un mismo preset.
 
-## Anti-regresión
+## 10. Anti-regresión
 
 Antes de tocar el formato, hay que ejecutar al menos estas pruebas de ida y vuelta:
 
-- Round-trip de bytes Juno en `PresetManager`. [file:22]
-- Round-trip de patch dump en `JunoSysExEngine`. [file:22]
-- Round-trip JSON de librería/preset basado en `ValueTree`. [file:22]
-- Comparación Tape ↔ bytes directos usando el mismo preset. [file:22]
+- Round-trip de bytes Juno en `PresetManager`.
+- Round-trip de patch dump en `JunoSysExEngine`.
+- Round-trip JSON de librería/preset basado en `ValueTree`.
+- Comparación Tape ↔ bytes directos usando el mismo preset.
 
-## Regla de mantenimiento
+## 11. Regla de mantenimiento
 
-No introducir nunca lógica “equivalente” duplicada con otro layout de bits en utilidades, scripts, importadores o exportadores. [file:22]
-Si hace falta una nueva ruta de import/export, debe convertir primero a propiedades semánticas y usar este layout canónico como única especificación binaria. [file:22]
+No introducir nunca lógica “equivalente” duplicada con otro layout de bits en utilidades, scripts, importadores o exportadores.
+Si hace falta una nueva ruta de import/export, debe convertir primero a propiedades semánticas y usar este layout canónico como única especificación binaria.

@@ -10,7 +10,7 @@
 
 ---
 
-## 1. Las tres piezas JS (ABDSharedAssets/components)
+## 1. Las tres piezas JS (`Components/`)
 
 | Fichero | Qué es | Hereda de |
 |---|---|---|
@@ -99,7 +99,7 @@ mueva, la política es cerrada:
 
 ---
 
-## 2. La pieza C++ (ABDSharedCode/LcdDisplay)
+## 2. La pieza C++ (`Components/LcdDisplay`)
 
 | Fichero | Qué es |
 |---|---|
@@ -236,7 +236,7 @@ verificación de avisos se hace siempre en el standalone**.
   expuestos por `Components/index.js` como `@abdsynths/shared/components`). Ahí
   viven ya los contratos hermanos de avisos de controles (`transitionNotices.js`,
   `continuousNotices.js`), así que un `lcdNotices.js` compartido tiene sitio natural
-  junto a ellos. `ABDSharedAssets` es para CSS, tokens y utilidades, no para APIs JS.
+  junto a ellos. `Assets/` es para CSS, tokens y utilidades, no para APIs JS.
 - Cuando dos synths compartan texto o regla, el contrato se **promueve a
   `@abdsynths/shared`** y cada synth aporta solo sus datos (misma política Zero-Fork
   de `architecture/MODULAR_PACKAGES_STANDARD.md`). No se mantienen forks.

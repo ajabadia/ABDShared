@@ -172,20 +172,23 @@ public:
         float* dR          = bufR_.data();
         const float wetMix = mix_;
 
-        // SVF filter coefficients
+        // SVF filter coefficients con límite estable de frecuencia y guarda numérica
         float freqHz            = 30.0f * std::pow(666.0f, cutoff_);
-        freqHz                  = std::clamp(freqHz, 20.0f, static_cast<float>(sampleRate_ / 6.5));
+        freqHz                  = std::clamp(freqHz, 20.0f, static_cast<float>(sampleRate_ * 0.45));
         constexpr double kTwoPi = 6.28318530717958647692;
         const float wd          = static_cast<float>(kTwoPi * freqHz / sampleRate_);
-        const float gCoeff      = std::tan(wd * 0.5f);
+        const float gCoeff      = std::tan(std::clamp(wd * 0.5f, 0.0001f, 1.55f));
         float rCoeff            = 1.0f / std::max(1.0f - resonance_ * 0.95f, 0.01f);
         const float maxR        = 2.0f / std::max(gCoeff, 0.001f);
         rCoeff                  = std::min(rCoeff, maxR);
 
         auto svf = [&](float in, float& low, float& band, float& high) {
             high = in - low - rCoeff * band;
+            if (!std::isfinite(high)) high = 0.0f;
             band = band + gCoeff * high;
+            if (!std::isfinite(band)) band = 0.0f;
             low  = low + gCoeff * band;
+            if (!std::isfinite(low)) low = 0.0f;
         };
 
         for (int s = 0; s < numSamples; ++s)
@@ -279,7 +282,8 @@ private:
     void updateDelaySamples() noexcept
     {
         static constexpr float factorTab[9] = {0.25f, 0.375f, 0.5f, 0.667f, 1.0f, 1.333f, 1.5f, 2.0f, 3.0f};
-        const float baseMs                  = 1.0f + 1499.0f * timeMs_;
+        // Calibrado con hardware DeepMind 12: con Time=40 (0..100) da 136.3 ms de retardo maestro neto.
+        const float baseMs = 5.0f + 480.0f * (timeMs_ * timeMs_);
         const int maxDelaySamples           = static_cast<int>(bufL_.size());
 
         delaySamplesL_ = static_cast<int>(sampleRate_ * baseMs / 1000.0 * factorTab[std::clamp(factorL_, 0, 8)]);

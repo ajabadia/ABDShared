@@ -1,18 +1,18 @@
 # ESPECIFICACIÓN DE INTEGRACIÓN Y SINCRONIZACIÓN — MÓDULO SCOPE
-## ABDSharedCode — Arquitectura Autónoma, Gobernanza y Contratos de Consumo
+## ABDShared — Arquitectura Autónoma, Gobernanza y Contratos de Consumo
 
 **Fecha de Actualización:** 7 de Octubre de 2026  
 **Versión del Módulo Scope:** `0.4.0` (`ABD_SCOPE_VERSION`)  
 **Target Público Canónico:** `ABDShared::ScopeCore`  
 **Target Header-Only Canónico:** `ABDShared::ScopeCoreHeaders`  
-**Ubicación en Árbol:** `ABDSharedCode/Scope/` (Subtree canónico)  
+**Ubicación en Árbol:** `Code/Scope/` (Subtree canónico)  
 **Estado de Sincronización:** 🟢 **SINCRONIZADO Y CERTIFICADO**
 
 ---
 
 ## 1. Contexto y Objetivos de Sincronización
 
-A partir de la versión **0.4.0**, el subsistema de telemetría y visualización osciloscópica multi-lane (`ABDScope`) se consolida definitivamente como un módulo compartido dentro de `ABDSharedCode/Scope/`.
+A partir de la versión **0.4.0**, el subsistema de telemetría y visualización osciloscópica multi-lane (`ABDScope`) se consolida definitivamente como un módulo compartido dentro de `Code/Scope/`.
 
 El objetivo de este documento es establecer la fuente única de verdad para cualquier consumidor dentro del ecosistema ABDSynths (`ABDAudioLab`, `ABDMS2000`, `ABDCZ101`, etc.), eliminando configuraciones ad-hoc y garantizando que el módulo sea autónomo, testeable y desacoplado.
 
@@ -24,8 +24,8 @@ Para evitar discrepancias y prevenir modificaciones en repositorios erróneos, s
 
 | Entidad / Capa | Repositorio / Ruta | Responsabilidades |
 |---|---|---|
-| **Módulo Core & Glue** | `ABDSharedCode/Scope/` | API C++20, ring buffer lock-free (`SpscRingBuffer`), recolector (`ScopeDataCollector`), serializador wire protocol (`ScopeFrameSerializer`), detector pitch/trigger (`TriggerDetector`), componente base JUCE (`JuceWebScopeComponent`), resource provider (`ScopeResourceProvider`). |
-| **Frontend WebUI & Assets** | `ABDSharedAssets` & `ABDSharedCode/Scope/WebUI/` | Estilos base (`scope.css`), layout multi-lane, renderers Canvas/WebGL, tokens de diseño y temas corporativos (`ABDSharedAssets/themes/`). |
+| **Módulo Core & Glue** | `Code/Scope/` | API C++20, ring buffer lock-free (`SpscRingBuffer`), recolector (`ScopeDataCollector`), serializador wire protocol (`ScopeFrameSerializer`), detector pitch/trigger (`TriggerDetector`), componente base JUCE (`JuceWebScopeComponent`), resource provider (`ScopeResourceProvider`). |
+| **Frontend WebUI & Assets** | `Assets/` & `Code/Scope/WebUI/` | Estilos base (`scope.css`), layout multi-lane, renderers Canvas/WebGL, tokens de diseño y temas corporativos (`Assets/styles/themes/`). |
 | **Host de Laboratorio** | `ABDAudioLab` | Integración en motor (`LabAudioEngine`), ventana flotante (`ScopeWebFloatingWindow`), estrategia de pre-calentamiento (`preWarmScopeWindow()`), ciclo de vida UI. |
 | **Host Sintetizador** | `ABDMS2000` (y futuros) | Taps específicos del motor de síntesis (Osc 1/2, Filter, VCA, LFO), temas retro (`ms2000`), controles embebidos. |
 | **Repositorio Legado** | `ABDScope/` (raíz histórica) | **Archivado / Deprecado.** Se conserva solo como historial git inmutable. Ningún desarrollo nuevo se aplica sobre él. |
@@ -34,7 +34,7 @@ Para evitar discrepancias y prevenir modificaciones en repositorios erróneos, s
 
 ## 3. Integración en CMake y Targets Públicos
 
-Los consumidores integran el módulo añadiendo `ABDSharedCode` a su build.
+Los consumidores integran el módulo añadiendo `ABDShared` a su build.
 
 ```cmake
 # En el CMakeLists.txt del consumidor:
@@ -53,7 +53,7 @@ Se delimita la arquitectura de targets en tres niveles ortogonales:
 
 ### 3.2 Regla de Exclusión de `add_subdirectory(../ABDScope)`
 ⛔ **Está terminantemente prohibido incluir `add_subdirectory(../ABDScope)` o un `FetchContent` paralelo del repositorio legado `ABDScope`.**
-Dado que `ABDSharedCode` ya registra internamente el módulo en `Scope/`, un segundo registro duplicaría los identificadores de target (`ABDScopeCore`) y rompería la generación de CMake con:
+Dado que `ABDShared` ya registra internamente el módulo en `Scope/`, un segundo registro duplicaría los identificadores de target (`ABDScopeCore`) y rompería la generación de CMake con:
 `add_library cannot create target ABDScopeCore because another target with the same name already exists`.
 
 ---
@@ -123,10 +123,10 @@ La comunicación entre el backend C++ y el frontend WebUI embebido se realiza me
 
 ## 6. Frontend WebUI, Temas y Assets
 
-* **Ubicación Canónica de Código Web:** `ABDSharedCode/Scope/WebUI/src/`.
+* **Ubicación Canónica de Código Web:** `Code/Scope/WebUI/src/`.
 * **Temas e Iconografía:**
   * El módulo Scope no acopla paletas privadas. La apariencia se rige por variables CSS (`scope.css`).
-  * Los temas visuales (`audiolab`, `audiolab-light`, `ms2000`, `dark`, etc.) residen canónicamente en `ABDSharedAssets`.
+  * Los temas visuales (`audiolab`, `audiolab-light`, `ms2000`, `dark`, etc.) residen canónicamente en `Assets/styles/themes/`.
 * **Entrega de Recursos:**
   * En producción: `ScopeResourceProvider` sirve los archivos embebidos en el binario sin acceder al sistema de archivos ni abrir servidores HTTP locales.
   * En desarrollo: Fallback automático al árbol local si los binarios no estuvieran empaquetados.
@@ -135,7 +135,7 @@ La comunicación entre el backend C++ y el frontend WebUI embebido se realiza me
 
 ## 7. Verificación Autónoma y Aislamiento (Criterio C-6)
 
-Para certificar que el módulo `ABDSharedCode/Scope` es completamente autónomo y no depende de la compilación de `ABDAudioLab`:
+Para certificar que el módulo `Code/Scope` es completamente autónomo y no depende de la compilación de `ABDAudioLab`:
 
 1. **Test Standalone C++ (`ABDScope_CppSmoke`):**
    * Configurado en `Scope/CMakeLists.txt` enlazando exclusivamente `ABDScopeCoreHeaders`.
@@ -144,13 +144,13 @@ Para certificar que el módulo `ABDSharedCode/Scope` es completamente autónomo 
 2. **Suite WebUI Vitest (`WebUI/tests/`):**
    * **62 tests pasando \| 1 omitido (63 tests totales en 9 suites de pruebas)** bajo Node.js / happy-dom:
      - `frame.test.js` (10 tests): Normalización de trama `ScopeDataFrame`, cálculo de picos y RMS.
-     - `icons.test.js` (3 tests): Catálogo SVG canónico y paridad con `ABDSharedAssets`.
+     - `icons.test.js` (3 tests): Catálogo SVG canónico y paridad con `Assets/icons/`.
      - `input.test.js` (5 tests): Proveedor de entrada `PushInput` vía IPC/bridge y `AnalyserInput` WebAudio.
      - `lane.test.js` (11 tests): Empaquetado inteligente de carriles, control de ancho 50%/100%, freeze y snapshots.
      - `renderers.test.js` (13 tests): Osciloscopio temporal, analizador FFT logarítmico, vectorescopio Lissajous M/S, correlación estéreo y espectrograma cascada.
      - `scope.test.js` (3 tests): Orquestador fábrica `createScope`, montaje en DOM y ciclo de vida.
      - `smoke.test.js` (2 tests): Inicialización DOM y arranque básico.
-     - `theme.test.js` (4 tests): Inyección de temas, CSS custom properties y paridad con `ABDSharedAssets`.
+     - `theme.test.js` (4 tests): Inyección de temas, CSS custom properties y paridad con `Assets/styles/themes/`.
      - `trigger.test.js` (12 tests): Estabilización por histéresis adaptativa y pitch lock en sub-graves.
    * *Nota:* La suite histórica de 56 tests de v0.3.x creció a 63 tests al incorporar la validación de empaquetado y control de ancho de carriles en `lane.test.js` y `renderers.test.js`.
 
@@ -161,7 +161,7 @@ Para certificar que el módulo `ABDSharedCode/Scope` es completamente autónomo 
 Al integrar `ABDShared::ScopeCore` en un nuevo sintetizador o herramienta:
 
 - [x] JUCE configurado con `JUCE_USE_WIN_WEBVIEW2=ON` (en plataformas Windows).
-- [x] Inclusión de `ABDSharedCode` en CMake posterior a la declaración de JUCE.
+- [x] Inclusión de `ABDShared` en CMake posterior a la declaración de JUCE.
 - [x] Consumo exclusivo de `ABDShared::ScopeCore` o `ABDShared::ScopeCoreHeaders`.
 - [x] Cero invocaciones a `const_cast` al activar o consultar sondas.
 - [x] Invocación de `collector.deactivateAll()` al cerrar o destruir componentes de interfaz.

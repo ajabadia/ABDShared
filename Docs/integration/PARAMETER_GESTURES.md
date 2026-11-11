@@ -213,7 +213,7 @@ Reglas:
    (`ParameterRegistry.gen.h`); resolver por `String` en el camino del gesto es una
    búsqueda innecesaria y una fuente de typos.
 
-`ABDSharedCode` **no** expone un helper de gestos: el contrato es de comportamiento, y cada
+`ABDShared` **no** expone un helper de gestos: el contrato es de comportamiento, y cada
 procesador lo implementa en sus dos funciones. Es a propósito —el registro de parámetros y
 el vector de flags son de cada plugin—, pero el patrón es idéntico.
 

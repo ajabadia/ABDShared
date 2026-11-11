@@ -242,7 +242,9 @@ public:
         float* dL = delayBufL_.data();
         float* dR = delayBufR_.data();
 
-        const float baseTimeMs       = 1.0f + masterTime_ * 1499.0f;
+        // Calibrado con hardware DeepMind 12: con Time=35 (0..100) da 103 ms de delay maestro neto.
+        // Curva cuadrática/exponencial musical de retardo que cubre desde 5 ms hasta 1500 ms:
+        const float baseTimeMs       = 5.0f + masterTime_ * masterTime_ * 800.0f;
         const float baseDelaySamples = static_cast<float>(sampleRate_ * 0.001f * baseTimeMs);
         const int activeTaps         = (numTaps_ == 3) ? 3 : 4;
 

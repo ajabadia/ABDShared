@@ -192,7 +192,8 @@ private:
 
     void updateDelaySamples() noexcept
     {
-        const float masterMs = 1.0f + 1999.0f * (timeParam_ * timeParam_);
+        // Calibrado con hardware DeepMind 12: con Time=50 (0..100) da 156.1 ms neto de retardo maestro.
+        const float masterMs = 5.0f + 604.4f * (timeParam_ * timeParam_);
         float leftMs         = masterMs * factorToScale(factorL_);
         const float offsetMs = (offsetParam_ - 0.5f) * 200.0f;
         float rightMs        = masterMs * factorToScale(factorR_) + offsetMs;

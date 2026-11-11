@@ -294,7 +294,7 @@ isInScale(61, 60, SCALE_INTERVALS.major);  // false (C# not in C major)
 
 ### Keybed Horizontal Flex Row (.kbd-keys-wrapper)
 - Fixed root issue where keys collapsed into an ultra-narrow vertical strip (zipper artifact) when .kbd-keys-wrapper was missing explicit display: flex; flex-direction: row; flex: 1.
-- Added contract into src/keyboard.css and ABDSharedAssets/styles/components/keyboard.css.
+- Added contract into src/keyboard.css and Assets/styles/components/keyboard.css.
 
 ### Unified Dynamic Theming (AudioLab Dark & Light)
 - Added query param support ?theme=audiolab / ?theme=audiolab-light on load.

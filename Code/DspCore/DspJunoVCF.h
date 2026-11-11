@@ -492,8 +492,13 @@ private:
 
         for (auto& st : s)
         {
-            if (std::abs(st) < 1.0e-15f)
+            if (!std::isfinite(st) || std::abs(st) < 1.0e-15f)
                 st = 0.0f;
+        }
+        if (!std::isfinite(output))
+        {
+            s.fill(0.0f);
+            output = 0.0f;
         }
 
         float frqFactor   = std::clamp((frq - VcfCalibration::kOutTameFreqFloor) * VcfCalibration::kOutTameFreqSlope, 0.0f, 1.0f);

@@ -4,25 +4,25 @@ Detección automática de hardware MIDI sintetizador, **100% contract-driven**.
 
 - **Ningún SysEx** Query está hardcodeado: se construyen desde los contratos.
 - **Ningún mapeo** fabricante/modelo está hardcodeado: se resuelve por contrato.
-- Los contratos son single-source en `ABDSharedAssets/contracts/` (clave `midiIdentification` + `autoDetectSysEx` + `modelImage` + `brandLogo`).
+- Los contratos son single-source en `Contracts/` (clave `midiIdentification` + `autoDetectSysEx` + `modelImage` + `brandLogo`).
 
 ---
 
 ## 1. Requisitos
 
-- **C++20** (ya lo exige `ABDSharedCode`).
+- **C++20** (ya lo exige `ABDShared`).
 - **JUCE** `juce_audio_devices`, `juce_gui_extra`, `juce_core` (el target los enlaza).
 - **nlohmann_json** (para el parser de contratos; se detecta automáticamente).
 - Para el picker WebView2: Windows con WebView2 Runtime (WebBrowserComponent).
 - Para embeber el WebUI: `juce_add_binary_data` (JUCE en scope).
-- **ABDSharedAssets** accesible en runtime para `styles/`, `models/`, `brands/`.
+- **`Assets/`** accesible en runtime para `styles/`, `models/`, `brands/`.
 
 ---
 
 ## 2. Integración CMake
 
 ```cmake
-add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDSharedCode")
+add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDShared")
 target_link_libraries(TuPlugin PRIVATE ABDShared::HardwareMidiDetect)
 ```
 
@@ -35,7 +35,7 @@ target_link_libraries(TuPlugin PRIVATE ABDShared::HardwareMidiDetect)
 
 abd::hwid::HardwareContractRegistry registry;
 auto dir = juce::File::getCurrentWorkingDirectory()
-               .getChildFile("../../../ABDSharedAssets/contracts");
+               .getChildFile("../../../ABDShared/Contracts");
 if (registry.loadContractsFromDirectory(dir))
 {
     auto contracts = registry.getContracts(); // std::vector<abd::hwid::HardwareContract>
@@ -199,7 +199,7 @@ struct HardwarePickResult {
 picker->setTheme("audiolab-light");   // "ms2000" | "cz101" | "deepmind" | "juno" | "audiolab" | "audiolab-light"
 ```
 
-El WebUI usa `styles/index.css` del sistema universal `ABDSharedAssets/styles/` (tokens + 6 temas + componentes, incluyendo el tema claro de precisión `audiolab-light`). La URL de carga pasa automáticamente `?theme=...` y el proveedor de recursos `HardwareMidiPickerResourceProvider` despoja query strings y fragmentos para garantizar la entrega íntegra de recursos embebidos y assets compartidos.
+El WebUI usa `styles/index.css` del sistema universal `Assets/styles/` (tokens + 6 temas + componentes, incluyendo el tema claro de precisión `audiolab-light`). La URL de carga pasa automáticamente `?theme=...` y el proveedor de recursos `HardwareMidiPickerResourceProvider` despoja query strings y fragmentos para garantizar la entrega íntegra de recursos embebidos y assets compartidos.
 
 ### Sincronización de Configuración (`DetectionConfig` -> WebUI)
 Al iniciar o cambiar la configuración en C++, `JuceHardwareMidiPicker` invoca `pushConfigToWebUI()`, transmitiendo `maxResults` y `autoSelectIfSingle` a `window.__setConfig`:
@@ -223,16 +223,16 @@ Al iniciar o cambiar la configuración en C++, `JuceHardwareMidiPicker` invoca `
 
 ---
 
-## 7. Dependencia de datos (ABDSharedAssets)
+## 7. Dependencia de datos (`Contracts/` y `Assets/`)
 
 El módulo **no copia contratos ni assets**. Deben existir en runtime:
 
 ```
-ABDSharedAssets/
-├── contracts/*.json
-├── styles/           (tokens.css, themes/*.css, components/*.css, index.css)
-├── models/           (korg-ms2000.png, roland-juno-106.png, placeholder-synth.svg, ...)
-└── brands/           (korg-logo.svg, roland-logo.svg, ...)
+ABDShared/
+├── Contracts/*.json
+├── Assets/styles/    (tokens.css, themes/*.css, components/*.css, index.css)
+├── Assets/models/    (korg-ms2000.png, roland-juno-106.png, placeholder-synth.svg, ...)
+└── Assets/brands/    (korg-logo.svg, roland-logo.svg, ...)
 ```
 
 Forma mínima de un contrato de detección:
@@ -256,7 +256,7 @@ Forma mínima de un contrato de detección:
 
 ## 8. Extender a un modelo nuevo
 
-1. Agregar (o editar) el contrato JSON en `ABDSharedAssets/contracts/`.
+1. Agregar (o editar) el contrato JSON en `Contracts/`.
 2. Indicar `midiIdentification` (IDs de fabricante/modelo), `autoDetectSysEx`, `modelImage`, `brandLogo`.
-3. Añadir imagen del modelo en `ABDSharedAssets/models/` y logo en `brands/`.
+3. Añadir imagen del modelo en `Assets/models/` y logo en `brands/`.
 4. **Sin tocar C++ ni WebUI**: el detector y el picker lo reconocen solo.

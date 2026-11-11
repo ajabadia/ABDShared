@@ -71,23 +71,31 @@
   <script type="module">
     import { createScope } from './src/scope.js';
 
+    const params = new URLSearchParams(window.location.search);
+    const enabledModes = ['oscilloscope', 'spectrum', 'lissajous', 'phase', 'spectrogram'];
+    const requestedMode = params.get('mode') || params.get('defaultMode') || 'oscilloscope';
+    const defaultMode = enabledModes.includes(requestedMode) ? requestedMode : 'oscilloscope';
+    const availableTaps = [
+      { id: 'stimulus',    name: 'Stimulus Generator' },
+      { id: 'hardware_in', name: 'Hardware In (DUT)' },
+      { id: 'diag_tone',   name: 'Diagnostic 1kHz' }
+    ];
+    const requestedTap = params.get('tap') || params.get('defaultTap') || 'hardware_in';
+    const defaultTap = availableTaps.some(t => t.id === requestedTap) ? requestedTap : 'hardware_in';
+
     const scope = createScope({
       containerId: 'scope-app',
       mountMode: 'embedded',
       title: 'ABDSCOPE - STUDIO TELEMETRY',
       maxLanes: 4,
       layout: '2',
-      enabledModes: ['oscilloscope', 'spectrum', 'lissajous', 'phase', 'spectrogram'],
-      defaultMode: 'oscilloscope',
+      enabledModes,
+      defaultMode,
       showFreeze: true,
       showSnapshot: true,
       showVuMeters: true,
-      availableTaps: [
-        { id: 'stimulus',    name: 'Stimulus Generator' },
-        { id: 'hardware_in', name: 'Hardware In (DUT)' },
-        { id: 'diag_tone',   name: 'Diagnostic 1kHz' }
-      ],
-      defaultTap: 'hardware_in',
+      availableTaps,
+      defaultTap,
       onTapChange: (tapId, laneIdx) => {
         if (window.__JUCE__?.backend?.emitEvent) {
           window.__JUCE__.backend.emitEvent('SET_ACTIVE_TAP', { tapId, laneIdx });
@@ -97,6 +105,9 @@
         }
       }
     });
+
+    // Expose instance for host control (mode/tap/capture).
+    window.__abdScope = scope;
 
     // Handle direct JS evaluation from C++ timer pump
     window.__pushScopeFrame = function(frameJson) {

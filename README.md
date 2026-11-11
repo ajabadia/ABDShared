@@ -43,12 +43,15 @@ ABDShared/
 ├── Contracts/      # Schemas JSON, perfiles y contratos
 ├── Components/     # Componentes WebUI (JS + CSS)
 ├── Assets/         # Tokens de diseño, temas, iconos
-└── Docs/           # Documentación técnica organizada
-    ├── architecture/
-    ├── integration/
-    ├── dsp/
-    ├── ui-ux/
-    └── specs/
+└── Docs/           # Documentación técnica organizada (índice en Docs/README.md)
+    ├── architecture/   # Normas y patrones de la suite
+    ├── integration/    # Cómo se integra cada módulo
+    ├── dsp/            # Modelado DSP y referencias de algoritmos
+    ├── ui-ux/          # Sistema de diseño y componentes
+    ├── specs/          # Protocolos y contratos de datos
+    ├── decisions/      # ADR y actas (inmutables)
+    ├── projects/       # Documentación de un producto concreto
+    └── status/         # Hojas de ruta y matrices de adopción
 ```
 
 ---

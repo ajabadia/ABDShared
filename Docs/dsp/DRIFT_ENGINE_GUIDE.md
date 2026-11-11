@@ -17,9 +17,9 @@ El motor `abd::synth::DriftEngine` es un generador de fluctuaciones lentas y pse
 - Deriva de resonancia del filtro VCF (`getVcfResonanceDrift()`).
 - Deriva de constante de tiempo para envolventes ADSR (`getEnvTimeDrift()`).
 
-Fue promovido desde `ABDEep` a `ABDSharedCode/SynthCore` para estar disponible de forma transversal en todos los sintetizadores analógicos virtuales del ecosistema (`ABDEep`, `ABDJUNiO601`, `ABDMS2000`, `ABDPro800`).
+Fue promovido desde `ABDEep` a `Code/SynthCore` para estar disponible de forma transversal en todos los sintetizadores analógicos virtuales del ecosistema (`ABDEep`, `ABDJUNiO601`, `ABDMS2000`, `ABDPro800`).
 
-Sigue el principio rector de diseño de `ABDSharedCode`:
+Sigue el principio rector de diseño de `ABDShared`:
 > **«El motor expone la muestra y el suceso; la política permanece en el consumidor.»**
 
 ---

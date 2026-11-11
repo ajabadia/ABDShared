@@ -187,3 +187,17 @@ Al cambiar de modelo en la WebUI, `BridgeActions` despacha el evento atómico `s
      - Coeficiente polinómico de realimentación y ganancia de polos en cascada.
    - Estos valores deben poder calibrarse dinámicamente desde endpoints del WebUI (`CALIBRATION_SET`, `CALIBRATION_SYNC`, `CALIBRATION_RESET`) durante las fases de medición auditiva y pruebas de escucha antes de quedar fijados como valores canónicos.
 
+---
+
+## 4. Estado (2026-11-10)
+
+Revisión de rutas al ordenar `Docs/`. **No se reescribe ningún veredicto**; los documentos juzgados cambiaron de carpeta al separar norma, producto y seguimiento:
+
+| Documento juzgado | Ubicación actual | Por qué |
+|---|---|---|
+| `ANALOG_MODELING_RESEARCH_KR106.md` | `Docs/projects/ABDJUNiO601/` | Investigación de un producto concreto |
+| `HARDWARE_CALIBRATION_REFERENCE.md` | `Docs/projects/ABDJUNiO601/` | Referencia de calibración de un instrumento |
+| `HOJA_RUTA_MIGRACION_EFECTOS_FX.md` | `Docs/status/` | Plan de trabajo, no norma |
+| Catálogo de los 56 efectos | `Docs/dsp/EFECTOS_CATALOGO_EMULACION.md` | Transcrito para no duplicarlo en el plan |
+
+El veredicto de §2.6 sigue siendo cierto: el catálogo mantiene decenas de efectos como locales y el cierre de la hoja de ruta sigue afirmando lo contrario. La transcripción añade una colisión que ya estaba en el original: 57 filas para 56 tipos, con el tipo 21 usado por `NoiseGate` y `TapeDelay`.

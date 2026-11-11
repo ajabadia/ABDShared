@@ -320,13 +320,16 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Scope/CMakeLists.txt")
     add_subdirectory(Scope)
 
-    if(TARGET ABDScopeCoreHeaders)
-        add_library(ABDShared::ScopeCoreHeaders ALIAS ABDScopeCoreHeaders)
-    endif()
-    if(TARGET ABDScopeCore)
-        add_library(ABDShared::ScopeCore ALIAS ABDScopeCore)
-        add_library(abd_scope_core ALIAS ABDScopeCore)
-    endif()
+    # Los targets reales conservan su nombre ABDScope* (Scope/Source/CMakeLists.txt).
+    # Estos alias son la superficie publica del modulo: ABDMS2000 y ABDAudioLab
+    # enlazan ABDShared::Scope*, nunca los ABDScope*. Sin guardas if(TARGET):
+    # Source/CMakeLists.txt crea ambos targets siempre, y un alias sobre un target
+    # ausente debe fallar aqui, no degradar a un consumidor sin scope.
+    add_library(ABDShared::ScopeCoreHeaders ALIAS ABDScopeCoreHeaders)
+    add_library(ABDShared::ScopeCore ALIAS ABDScopeCore)
+    add_library(abd_scope_core ALIAS ABDScopeCore)
+
+    # La WebUI embebida solo existe cuando hay JUCE (juce_add_binary_data).
     if(TARGET ABDScopeWebAssets)
         add_library(ABDShared::ScopeWebAssets ALIAS ABDScopeWebAssets)
     endif()

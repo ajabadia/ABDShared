@@ -78,11 +78,11 @@ public:
         const double lp = vn + z1;
         z1              = vn + lp; // state update: 2*vn + z1_prev
 
-        // Anti-denormal flush
-        if (std::abs(z1) < 1.0e-15)
+        // Anti-denormal and NaN/Inf flush
+        if (!std::isfinite(z1) || std::abs(z1) < 1.0e-15)
             z1 = 0.0;
 
-        return static_cast<float>(lp);
+        return std::isfinite(lp) ? static_cast<float>(lp) : 0.0f;
     }
 
     /**
@@ -97,11 +97,11 @@ public:
         const double lpOut = vn + z1;
         z1                 = vn + lpOut;
 
-        if (std::abs(z1) < 1.0e-15)
+        if (!std::isfinite(z1) || std::abs(z1) < 1.0e-15)
             z1 = 0.0;
 
-        lp = static_cast<float>(lpOut);
-        hp = static_cast<float>(x - lpOut);
+        lp = std::isfinite(lpOut) ? static_cast<float>(lpOut) : 0.0f;
+        hp = std::isfinite(lpOut) ? static_cast<float>(x - lpOut) : 0.0f;
     }
 
     /**

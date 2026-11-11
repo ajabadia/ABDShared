@@ -580,7 +580,7 @@ double OscVcoCa72::triangleVoltageOf(double bufferVolts) const noexcept
 }
 
 //==============================================================================
-void OscVcoCa72::step(double a, double b, double c, double vFall, double riseBuffer) noexcept
+void OscVcoCa72::step(double a, double b, double c, double vFall, double riseBuf) noexcept
 {
     const auto& core = profile.core;
     const auto& sh   = profile.shaper;
@@ -649,7 +649,7 @@ void OscVcoCa72::step(double a, double b, double c, double vFall, double riseBuf
         {
             case 2:
                 resetPending = false;
-                doReset(a, b, c, frac, riseBuffer);
+                doReset(a, b, c, frac, riseBuf);
                 break;
 
             case 3:
@@ -698,7 +698,7 @@ void OscVcoCa72::step(double a, double b, double c, double vFall, double riseBuf
     }
 }
 
-void OscVcoCa72::doReset(double a, double b, double c, double frac, double riseBuffer) noexcept
+void OscVcoCa72::doReset(double a, double b, double c, double frac, double riseBuf) noexcept
 {
     const auto& core = profile.core;
     const auto& sh   = profile.shaper;
@@ -719,7 +719,7 @@ void OscVcoCa72::doReset(double a, double b, double c, double frac, double riseB
 
     // Si el rectangulo sigue abajo cuando la rampa vuelve arriba, su flanco de
     // subida queda citado (el transistor saliendo de saturacion tarda).
-    if (rectIsLow && buf1 >= riseBuffer)
+    if (rectIsLow && buf1 >= riseBuf)
     {
         risePending = true;
         riseIn      = sh.rectRiseDelay;

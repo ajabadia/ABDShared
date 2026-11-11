@@ -1,4 +1,4 @@
-# Guía de Iconografía Monocromática — ABDSharedAssets
+# Guía de Iconografía Monocromática — ABDShared
 
 > **Propósito:** Estándar oficial de diseño, consumo y catálogo de iconos vectoriales monocromáticos para toda la suite ABDSynths (`ABDMS2000`, `ABDCZ101`, `ABDEep`, `ABDJUNiO601`, `ABDAudioLab`, `ABDScope`, `ABDMIDIKeyb`).
 
@@ -14,7 +14,7 @@
 
 ## 2. Especificación Técnica de los Iconos (`icons/*.svg`)
 
-Todos los archivos en `ABDSharedAssets/icons/` deben cumplir este estándar geométrico:
+Todos los archivos en `Assets/icons/` deben cumplir este estándar geométrico:
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" 
@@ -41,7 +41,7 @@ Todos los archivos en `ABDSharedAssets/icons/` deben cumplir este estándar geom
 
 ## 3. Formas de Uso en WebUI / CSS
 
-Los iconos se consumen desde `ABDSharedAssets/icons/` (fuente única); cada aplicación/componente importa **solo los iconos que usa**. Para componentes web reutilizables se recomienda el **Método C** (módulo generado); los métodos A/B quedan para usos puntuales en hosts (nunca copiar SVG a mano dentro del código de un módulo).
+Los iconos se consumen desde `Assets/icons/` (fuente única); cada aplicación/componente importa **solo los iconos que usa**. Para componentes web reutilizables se recomienda el **Método C** (módulo generado); los métodos A/B quedan para usos puntuales en hosts (nunca copiar SVG a mano dentro del código de un módulo).
 
 ### Método A: SVG Inline (interactividad y hover)
 Permite que el icono herede los estados `:hover` y `:active` del botón de forma nativa sin CSS adicional:
@@ -98,5 +98,5 @@ El componente genera un pequeño módulo que incrusta el markup canónico de **l
 1. Diseñar o exportar el icono en una cuadrícula de **24x24 px**.
 2. Limpiar estilos embebidos (eliminar atributos `style="..."`, `class="..."`, colores fijos `#000` o `#fff`).
 3. Asegurar `stroke="currentColor"` y `fill="none"`.
-4. Guardar en `D:\desarrollos\ABDSynths\ABDSharedAssets\icons/[nombre-en-ingles].svg` en kebab-case.
+4. Guardar en `D:\desarrollos\ABDSynths\ABDShared\Assets\icons/[nombre-en-ingles].svg` en kebab-case.
 5. Actualizar los módulos de iconos de los consumidores afectados (p. ej. `WebUI/src/icons.js` del scope) copiando el markup canónico, y mantener sus tests de paridad en verde.

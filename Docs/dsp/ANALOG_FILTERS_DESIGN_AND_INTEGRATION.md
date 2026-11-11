@@ -4,11 +4,11 @@
 > **Espacio de nombres:** `abd::dsp`  
 > **Target CMake:** `ABDShared::DspCore`  
 > **Cabeceras Canónicas:**  
-> • `ABDSharedCode/DspCore/DspJunoVCF.h`  
-> • `ABDSharedCode/DspCore/DspVcfVoicing.h`  
-> • `ABDSharedCode/DspCore/DspVAOnePole.h`  
-> • `ABDSharedCode/DspCore/DspMoogLadder.h`  
-> • `ABDSharedCode/DspCore/DspKorgMS20.h`  
+> • `Code/DspCore/DspJunoVCF.h`  
+> • `Code/DspCore/DspVcfVoicing.h`  
+> • `Code/DspCore/DspVAOnePole.h`  
+> • `Code/DspCore/DspMoogLadder.h`  
+> • `Code/DspCore/DspKorgMS20.h`  
 > **Estándar C++:** C++17 / C++20  
 > **Dependencias:** Ninguna (100% C++ puro estándar, `<cmath>`, `<algorithm>`, libre de JUCE)  
 > **Garantía de Tiempo Real:** Zero-alloc en lazo de audio, noexcept/RT-safe, precisión `double` en estados integradores, modelado no lineal de saturación analógica.
@@ -26,7 +26,7 @@ Dentro del ecosistema ABDSynths (especialmente en **ABDEep** y extensiones multi
 4. **Bloque Primario TPT ZDF de 1 Polo (`VAOnePoleFilter`):** El bloque integrador elemental utilizado para construir las topologías Moog y MS-20.
 
 Originalmente estos componentes residían localmente en `ABDEep/Source/DSP/`. El objetivo de esta promoción es:
-* Elevar estos bloques a **`ABDSharedCode/DspCore`** como parte del sustrato analógico compartido.
+* Elevar estos bloques a **`Code/DspCore`** como parte del sustrato analógico compartido.
 * Desvincularlos de tipos JUCE o dependencias de plataforma (100% C++ estándar).
 * Mantener precisión numérica con acumuladores `double` y protección anti-denormales.
 * Sustituir los originales en **ABDEep** por *shims* delegados de coste cero que preservan la jerarquía polimórfica de `ABD::Filter`.
@@ -37,7 +37,7 @@ Originalmente estos componentes residían localmente en `ABDEep/Source/DSP/`. El
 
 ```mermaid
 graph TD
-    subgraph "ABDSharedCode/DspCore"
+    subgraph "Code/DspCore"
         VOICING["DspVcfVoicing.h<br/>abd::dsp::VcfVoicing<br/>• Curvas de resonancia / ganancia<br/>• Calibración analógica DeepMind vs J106"]
 
         JUNOVCF["DspJunoVCF.h<br/>abd::dsp::JunoVCF_ZDF<br/>• Resamplers IIR 2x/4x<br/>• Solver Newton-Raphson Padé 3/3<br/>• Modos J106 / DeepMind<br/>• 4-pole / 2-pole"]

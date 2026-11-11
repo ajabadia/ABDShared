@@ -1,7 +1,7 @@
 # SSOT de Integración: Tríada de SynthCore (Arpeggiator, ModMatrix, ControlSequencer)
 
 > **Documento:** Single Source of Truth (SSOT) de Arquitectura e Integración  
-> **Módulo:** `SynthCore` (`ABDSharedCode`)  
+> **Módulo:** `SynthCore` (`ABDShared`)  
 > **Espacio de nombres canónico:** `abd::synth`  
 > **Target CMake compartido:** `ABDShared::SynthCore`  
 > **Estándar:** C++20 puro (sin JUCE, sin dependencias de GUI, sin asignaciones en tiempo real)  
@@ -32,17 +32,17 @@ Para la metodología y flujo de trabajo para promover nuevos módulos DSP a `Syn
 
 ## 2. Inventario Canónico: Qué se promovió y Dónde vive
 
-| Componente | Ubicación en `ABDSharedCode` | Tipo / Target | Responsabilidad Técnica |
+| Componente | Ubicación en `ABDShared` | Tipo / Target | Responsabilidad Técnica |
 |---|---|---|---|
-| **`abd::synth::Arpeggiator`** | [`SynthCore/Arpeggiator.h`](file:///d:/desarrollos/ABDSynths/ABDSharedCode/SynthCore/Arpeggiator.h)<br>[`SynthCore/Arpeggiator.cpp`](file:///d:/desarrollos/ABDSynths/ABDSharedCode/SynthCore/Arpeggiator.cpp) | `STATIC`<br>`ABDShared::SynthCore` | Generación de eventos Note-On/Note-Off a nivel de muestra (*sample-accurate*), 11 modos algorítmicos, orden cronológico de teclas (`playOrder`), retrigger limpio sin notas colgadas y PRNG `FastRng` (Xorshift32). Zero-alloc en `generate()`. |
-| **`abd::synth::ModMatrixT<N, Clamp>`** | [`SynthCore/ModMatrix.h`](file:///d:/desarrollos/ABDSynths/ABDSharedCode/SynthCore/ModMatrix.h) | `INTERFACE`<br>(Header-only en `SynthCore`) | Matriz de $N$ slots con evaluación plana. Desacoplada de enums específicos mediante identificadores opacos (`ModSourceId`, `ModDestinationId`). Sin asignaciones dinámicas, operable por valor en la pila o como miembro directo de clase. |
-| **`abd::synth::ControlSequencer`** | [`SynthCore/ControlSequencer.h`](file:///d:/desarrollos/ABDSynths/ABDSharedCode/SynthCore/ControlSequencer.h)<br>[`SynthCore/ControlSequencer.cpp`](file:///d:/desarrollos/ABDSynths/ABDSharedCode/SynthCore/ControlSequencer.cpp) | `STATIC`<br>`ABDShared::SynthCore` | Secuenciador de control bipolar $[-1.0f, +1.0f]$ de 1 a 32 pasos, tabla de 16 divisores de reloj NRPN, swing estricto ($r = 0.5 + 0.25 \times \text{swing}$), filtro de slew analógico exponencial de 1 polo ($\tau = s \times 1.0\text{s}$) y cálculo continuo por muestra en `nextSample()`. |
+| **`abd::synth::Arpeggiator`** | [`SynthCore/Arpeggiator.h`](file:///d:/desarrollos/ABDSynths/Code/SynthCore/Arpeggiator.h)<br>[`SynthCore/Arpeggiator.cpp`](file:///d:/desarrollos/ABDSynths/Code/SynthCore/Arpeggiator.cpp) | `STATIC`<br>`ABDShared::SynthCore` | Generación de eventos Note-On/Note-Off a nivel de muestra (*sample-accurate*), 11 modos algorítmicos, orden cronológico de teclas (`playOrder`), retrigger limpio sin notas colgadas y PRNG `FastRng` (Xorshift32). Zero-alloc en `generate()`. |
+| **`abd::synth::ModMatrixT<N, Clamp>`** | [`SynthCore/ModMatrix.h`](file:///d:/desarrollos/ABDSynths/Code/SynthCore/ModMatrix.h) | `INTERFACE`<br>(Header-only en `SynthCore`) | Matriz de $N$ slots con evaluación plana. Desacoplada de enums específicos mediante identificadores opacos (`ModSourceId`, `ModDestinationId`). Sin asignaciones dinámicas, operable por valor en la pila o como miembro directo de clase. |
+| **`abd::synth::ControlSequencer`** | [`SynthCore/ControlSequencer.h`](file:///d:/desarrollos/ABDSynths/Code/SynthCore/ControlSequencer.h)<br>[`SynthCore/ControlSequencer.cpp`](file:///d:/desarrollos/ABDSynths/Code/SynthCore/ControlSequencer.cpp) | `STATIC`<br>`ABDShared::SynthCore` | Secuenciador de control bipolar $[-1.0f, +1.0f]$ de 1 a 32 pasos, tabla de 16 divisores de reloj NRPN, swing estricto ($r = 0.5 + 0.25 \times \text{swing}$), filtro de slew analógico exponencial de 1 polo ($\tau = s \times 1.0\text{s}$) y cálculo continuo por muestra en `nextSample()`. |
 
 ---
 
 ## 3. El Triángulo Operativo: Qué Consume Qué
 
-Los tres componentes no se acoplan directamente entre sí dentro de `ABDSharedCode`. Su interacción se orquesta en el **lazo de proceso del sintetizador**, formando un triángulo dinámico de control y modulación:
+Los tres componentes no se acoplan directamente entre sí dentro de `ABDShared`. Su interacción se orquesta en el **lazo de proceso del sintetizador**, formando un triángulo dinámico de control y modulación:
 
 ```
                           ┌──────────────────────────┐
@@ -257,7 +257,7 @@ Cualquier nuevo sintetizador del monorepo que requiera arpegiador, secuenciador 
 
 Para preservar la pureza, estabilidad y velocidad del motor compartido:
 
-1. ❌ **Reintroducir Enums Cerrados en `ABDSharedCode`:**  
+1. ❌ **Reintroducir Enums Cerrados en `ABDShared`:**  
    Prohibido añadir `enum class ModSource` o `enum class ModDestination` en `SynthCore`. Los identificadores deben permanecer opacos (`uint16_t`).
 2. ❌ **Asignaciones en Tiempo Real:**  
    Prohibido usar `std::vector`, `std::string`, `new` o `malloc` en `generate()`, `nextSample()` o `get()`.

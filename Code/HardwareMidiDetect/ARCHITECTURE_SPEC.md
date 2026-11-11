@@ -3,7 +3,7 @@
 **Versión:** 2.0.0  
 **Fecha:** 4 de Septiembre de 2026  
 **Autor:** Antigravity / ABDSynths Engineering Team  
-**Módulo:** `ABDSharedCode/HardwareMidiDetect`  
+**Módulo:** `Code/HardwareMidiDetect`  
 **Target CMake:** `ABDShared::HardwareMidiDetect`  
 **Proyectos Consumidores:**
 - Sintetizadores VST3/AU/Standalone: `ABDMS2000`, `ABDCZ101`, `ABDJUNiO601`, `ABDEep`, `ABDPro008`, `ABDBassStation`, etc.
@@ -16,13 +16,13 @@
 `HardwareMidiDetect` es un **módulo compartido universal de detección e identificación de sintetizadores hardware por MIDI y USB**, diseñado bajo la filosofía **DRY**, **Zero-Copy** y **100% Contract-Driven**:
 
 1. **Objetivo Principal**: Proporcionar una detección automática y fiable de hardware musical conectado por USB/MIDI a toda la suite de sintetizadores y herramientas de ABDSynths, eliminando la duplicación de código en cada plugin.
-2. **Filosofía 100% Contract-Driven**: Ninguna consulta SysEx (Universal Identity Inquiry, Korg SysEx, Roland SysEx, etc.) ni mapeo de fabricante/modelo está hardcodeado en el código fuente C++ o JS. Todo se deriva dinámicamente de los contratos JSON centrales en `ABDSharedAssets/contracts/`.
+2. **Filosofía 100% Contract-Driven**: Ninguna consulta SysEx (Universal Identity Inquiry, Korg SysEx, Roland SysEx, etc.) ni mapeo de fabricante/modelo está hardcodeado en el código fuente C++ o JS. Todo se deriva dinámicamente de los contratos JSON centrales en `Contracts/`.
 3. **Arquitectura en Dos Capas (Patrón ABDScope)**:
    - **Capa 1 (C++ Puro / Headless)**: `abd::hwid::HardwareMidiDetector` para escaneo programático en segundo plano, pruebas automatizadas y entornos sin interfaz gráfica.
    - **Capa 2 (WebView2 + WebUI)**: `abd::hwid::JuceHardwareMidiPicker` para ofrecer una interfaz moderna de selección asistida, donde el host únicamente "prepara el puente" inyectando el transporte de audio/MIDI (`MidiHardwareBackend`). **El picker usa el detector C++ como motor**; el WebUI es una vista pura.
-4. **Zero-Copy & Single-Source**: Los contratos no se copian a los repositorios de cada plugin; se leen en tiempo de ejecución desde `ABDSharedAssets`.
-5. **Theme System**: Usa el sistema universal de estilos de `ABDSharedAssets/styles/` (tokens + 5 temas + 7 componentes). WebUI importa `styles/index.css`; host llama `picker->setTheme("audiolab")` → `document.body.dataset.theme`.
-6. **Asset Serving**: `index.html` + JS embebidos via `juce_add_binary_data`; `styles/`, `models/`, `brands/` servidos **filesystem** desde `ABDSharedAssets/`.
+4. **Zero-Copy & Single-Source**: Los contratos no se copian a los repositorios de cada plugin; se leen en tiempo de ejecución desde `Contracts/`.
+5. **Theme System**: Usa el sistema universal de estilos de `Assets/styles/` (tokens + 5 temas + 7 componentes). WebUI importa `styles/index.css`; host llama `picker->setTheme("audiolab")` → `document.body.dataset.theme`.
+6. **Asset Serving**: `index.html` + JS embebidos via `juce_add_binary_data`; `styles/`, `models/`, `brands/` servidos **filesystem** desde `Assets/`.
 
 ---
 
@@ -36,7 +36,7 @@ Siguiendo el estándar de arquitectura establecido en `ABDScope`:
 - `HardwareMidiDetector`: Motor de escaneo C++ puro, timeouts de respuesta MIDI y parseo de tramas SysEx.
 - `MidiHardwareBackend.h`: Contrato abstracto puro que desacopla el transporte MIDI de la lógica de negocio.
 - `JuceHardwareMidiPicker.h/.cpp`: Componente JUCE que aloja WebView2, posee `HardwareMidiDetector` como motor, y enruta eventos entre el backend y el frontend.
-- `HardwareMidiPickerResourceProvider`: Servidor MIME seguro de recursos embebidos (`juce://`) + filesystem (`ABDSharedAssets/`).
+- `HardwareMidiPickerResourceProvider`: Servidor MIME seguro de recursos embebidos (`juce://`) + filesystem (`Assets/`).
 - `WebUI/index.html`: Vista pura de presentación — renderiza lista de dispositivos con imágenes/badges, radio/checkbox según `maxResults`.
 
 ### B. Límites de Complejidad
@@ -56,7 +56,7 @@ graph TD
         HostBackend -->|Transmite bytes| MidiDev
     end
 
-    subgraph ABDSharedCode ["Módulo ABDShared::HardwareMidiDetect"]
+    subgraph ABDShared ["Módulo ABDShared::HardwareMidiDetect"]
         Registry[HardwareContractRegistry]
         DetectorCpp[HardwareMidiDetector - Capa C++ / Motor]
         PickerCpp[JuceHardwareMidiPicker - Capa UI + Motor]
@@ -77,9 +77,9 @@ graph TD
         PickerCpp -->|__setDetectedDevices / __setConfig| PickerHTML
     end
 
-    subgraph SingleSource ["ABDSharedAssets (Single-Source)"]
-        ContractsJson[contracts/*.json]
-        Styles[styles/*.css]
+    subgraph SingleSource ["ABDShared (Single-Source)"]
+        ContractsJson[Contracts/*.json]
+        Styles[Assets/styles/*.css]
         Models[models/*.png]
         Brands[brands/*.svg]
         ContractsJson -->|Runtime Load| Registry
@@ -93,7 +93,7 @@ graph TD
 
 ## 4. Contrato de Datos: Especificación del Contrato JSON
 
-Los contratos residen en `ABDSharedAssets/contracts/*.json` y contienen el bloque declarativo `midiIdentification`:
+Los contratos residen en `Contracts/*.json` y contienen el bloque declarativo `midiIdentification`:
 
 ```json
 {
@@ -118,8 +118,8 @@ Los contratos residen en `ABDSharedAssets/contracts/*.json` y contienen el bloqu
 - `modelIdHex`: ID de modelo reportado en el payload del Identity Reply (`06 02`).
 - `sysexHeaderHex`: Cabecera SysEx propietaria para filtrado secundario.
 - `autoDetectSysEx`: Mensaje SysEx de sondeo específico si el modelo no responde al Identity Inquiry Universal broadcast.
-- `modelImage`: Ruta relativa a imagen del modelo en `ABDSharedAssets/models/`.
-- `brandLogo`: Ruta relativa a logo de marca en `ABDSharedAssets/brands/`.
+- `modelImage`: Ruta relativa a imagen del modelo en `Assets/models/`.
+- `brandLogo`: Ruta relativa a logo de marca en `Assets/brands/`.
 
 ---
 
@@ -221,7 +221,7 @@ public:
 
 ## 7. Theme System (estilo ABDScope)
 
-El WebUI usa el sistema universal de estilos de `ABDSharedAssets/styles/`:
+El WebUI usa el sistema universal de estilos de `Assets/styles/`:
 
 ```html
 <link rel="stylesheet" href="styles/index.css">
@@ -244,9 +244,9 @@ Scrollbars globales coherentes definidos en `tokens.css` + overrides por tema.
 | Tipo | Origen | Servido por |
 |------|--------|-------------|
 | `index.html`, `*.js` (root) | Embedded binary data | `HardwareMidiPickerAssets` (`juce_add_binary_data`) |
-| `styles/**/*` | `ABDSharedAssets/styles/` | `HardwareMidiPickerResourceProvider` (filesystem) |
-| `models/**/*` | `ABDSharedAssets/models/` | `HardwareMidiPickerResourceProvider` (filesystem) |
-| `brands/**/*` | `ABDSharedAssets/brands/` | `HardwareMidiPickerResourceProvider` (filesystem) |
+| `styles/**/*` | `Assets/styles/` | `HardwareMidiPickerResourceProvider` (filesystem) |
+| `models/**/*` | `Assets/models/` | `HardwareMidiPickerResourceProvider` (filesystem) |
+| `brands/**/*` | `Assets/brands/` | `HardwareMidiPickerResourceProvider` (filesystem) |
 
 ---
 

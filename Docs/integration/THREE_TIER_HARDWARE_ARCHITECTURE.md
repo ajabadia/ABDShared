@@ -3,12 +3,12 @@
 > **Objetivo:** Estandarizar la integración, control, gestión de librerías y calibración de hardware musical analógico, digital y modular dentro del ecosistema ABDAudioLab, ABDBankManager y la suite ABDSynths mediante una arquitectura en tres niveles (*Three-Tier Hardware Architecture*).
 > 
 > **Módulos involucrados:**  
-> - `ABDSharedAssets/contracts/` (Nivel 0: Fuente Única de la Verdad, perfiles normativos y `bankManagement`)
-> - `ABDSharedCode::HardwareDrivers` / `HardwareMidiDetect` (Nivel 1: Capa Compartida de Drivers y Detección)
+> - `ABDShared/Contracts/` (Nivel 0: Fuente Única de la Verdad, perfiles normativos y `bankManagement`)
+> - `Code/HardwareDrivers` / `HardwareMidiDetect` (Nivel 1: Capa Compartida de Drivers y Detección)
 > - `abdaudiolab::core::HardwareManager` & `ABDBankManager::ContractRegistry` (Nivel 2: Fachadas de Aplicación)
 
 > 🟠 **Marcado 2026-11-08 — tres enlaces apuntaban a un árbol de código que no está aquí.** Las rutas `../src/hardware/HardwareController.h` (§3), `../src/gui/OperatorStepModalDialog.h` (§3.4) y `../src/core/HardwareManager.cpp` (§6) son del proyecto de aplicación ABDAudioLab (namespace `abdaudiolab::…`), no de este repositorio: no existe ningún `Docs/src/`. Se citan como código, sin enlace, para no ofrecer un destino falso.
-> **Alternativas:** (a) cuando esos ficheros aterricen en `ABDSharedCode::HardwareDrivers`, moverlos aquí y restaurar los enlaces relativos; (b) si el código sigue en su repositorio, citar el repositorio en lugar de una ruta relativa; (c) mantener las rutas como referencia nominal, que es lo que hace este documento ahora.
+> **Alternativas:** (a) cuando esos ficheros aterricen en `Code/HardwareDrivers`, moverlos aquí y restaurar los enlaces relativos; (b) si el código sigue en su repositorio, citar el repositorio en lugar de una ruta relativa; (c) mantener las rutas como referencia nominal, que es lo que hace este documento ahora.
 
 ---
 
@@ -18,7 +18,7 @@ Para garantizar **cero duplicación** entre sintetizadores virtuales (emuladores
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│             NIVEL 0: FUENTE ÚNICA DE LA VERDAD (ABDSharedAssets)             │
+│             NIVEL 0: FUENTE ÚNICA DE LA VERDAD (Contracts/)                  │
 │                                                                              │
 │  ┌────────────────────────────────────────────────────────────────────────┐  │
 │  │                     hardware_profile.schema.json                       │  │
@@ -36,7 +36,7 @@ Para garantizar **cero duplicación** entre sintetizadores virtuales (emuladores
                    ▼                                       ▼
 ┌──────────────────────────────────────┐  ┌────────────────────────────────────┐
 │   NIVEL 1: CORE DE DRIVERS Y DETECC. │  │   SINCRONIZACIÓN ZERO-COPY         │
-│           (ABDSharedCode)            │  │          (ABDBankManager)          │
+│           (Code/)                    │  │          (ABDBankManager)          │
 │                                      │  │                                    │
 │  • HardwareMidiDetector (SysEx / USB)│  │  • scripts/sync_contracts.mjs      │
 │  • HardwareMidiHotplugMonitor        │  │  • npm run sync-contracts          │
@@ -58,12 +58,12 @@ Para garantizar **cero duplicación** entre sintetizadores virtuales (emuladores
 
 ---
 
-## 2. Nivel 0: Contratos JSON Canónicos y `bankManagement` (`ABDSharedAssets`)
+## 2. Nivel 0: Contratos JSON Canónicos y `bankManagement` (`ABDShared/Contracts`)
 
-Cada modelo de hardware se describe mediante un único archivo JSON normativo ubicado en `ABDSharedAssets/contracts/<hardware_id>.json`.
+Cada modelo de hardware se describe mediante un único archivo JSON normativo ubicado en `ABDShared/Contracts/<hardware_id>.json`.
 
 ### 2.1 Esquema Normativo del Bloque `bankManagement`
-El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo hermano) define las propiedades para gestión de volcados y bancos de presets:
+El esquema `ABDShared/Contracts/hardware_profile.schema.json` define las propiedades para gestión de volcados y bancos de presets:
 
 ```json
 "bankManagement": {
@@ -93,23 +93,9 @@ El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo herman
 }
 ```
 
-```text
-                                │
-│                                      ▼                                       │
-│  ┌────────────────────────────────────────────────────────────────────────┐  │
-│  │                     IHardwareController (Contrato)                     │  │
-│  │   • isAutomatic()                                                      │  │
-│  │   • setParameter(int index, float normalizedValue)                     │  │
-│  │   • setupSubmodule(int slot, uint8_t typeId)                           │  │
-│  │   • setPatchCable(uint8_t src, uint8_t dst, bool connected)            │  │
-│  └───────┬─────────────────┬──────────────────┬──────────────────┬────────┘  │
-│          │                 │                  │                  │           │
-│          ▼                 ▼                  ▼                  ▼           │
-│    AiraSysEx         MidiCc             ManualAnalogue      MockHardware     │
-│    Controller        Controller         Controller          Controller       │
-│  (Roland DT1/RQ1)  (CC & 14-bit NRPN)  (Operador Humano)  (DSP Interno)     │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+> **Fragmento retirado (2026-11-10).** Aquí terminaba un trozo de diagrama duplicado del esquema de §1
+> (le faltaba la valla de apertura y parte del dibujo). El diagrama completo de los tres niveles es el de §1;
+> este resto no aportaba información y sólo rompía la lectura.
 
 ---
 
@@ -120,19 +106,19 @@ El esquema `ABDSharedAssets/contracts/hardware_profile.schema.json` (repo herman
 > describe los tres **niveles de hardware** (contratos JSON → drivers compartidos → fachadas de aplicación) del
 > ecosistema ABDAudioLab. Son tres niveles de responsabilidad, no tres dominios de unidades: la confusión de la
 > crítica es de nombres, y adoptarla aquí duplicaría la capa donde ya vive.
-> **Defecto real que sí hay que corregir:** el apartado «Nivel 0» termina con un fragmento de diagrama huérfano
-> (le falta la valla de apertura y buena parte del dibujo; se ha encerrado en valla `text` en esta revisión para que
-> no se trague el resto del documento) y hay **dos apartados numerados «2»** («Nivel 0» y «Nivel 1»),
-> además de dos rutas distintas para los contratos (`contracts/hardware_profile.schema.json` y
-> `contracts/hardware/<id>.json`) que conviven sin decir cuál manda. Nada de esto es deuda técnica: es un pegado
-> incompleto que hay que reformatear y renumerar.
-> **Prioridad:** media (legibilidad); la reubicación de la crítica, ninguna. Ver `ADR-003-2026-integration-puente-telemetria.md` §2.7.
+> **Defectos corregidos el 2026-11-10:** el fragmento de diagrama huérfano se retiró (duplicaba el de §1), los
+> apartados se renumeraron (1 arquitectura, 2 Nivel 0, 3 Nivel 1, 4 Nivel 2, 5 guía, 6 perfilado) y las dos rutas
+> de contratos se unificaron en la real: `ABDShared/Contracts/<hardware_id>.json`, junto a
+> `hardware_profile.schema.json`.
+> **Nombres:** el texto usa ya las rutas actuales (`Code/`, `Assets/`, `Contracts/`, `Components/`); los nombres de los
+> repositorios fusionados sólo se conservan en el registro de [`DEPRECATION_POLICY.md`](../architecture/DEPRECATION_POLICY.md) §4.
+> **Prioridad:** baja. Ver [`ADR-003`](../decisions/ADR-003-2026-integration-puente-telemetria.md) §2.7.
 
-## 2. Nivel 1: Contratos JSON Compartidos (`ABDSharedAssets`)
+## 3. Nivel 1: Contratos JSON Compartidos (`ABDShared/Contracts`)
 
-Cada modelo de hardware se describe mediante un único archivo JSON normativo ubicado en `ABDSharedAssets/contracts/hardware/<hardware_id>.json`.
+Cada modelo de hardware se describe mediante un único archivo JSON normativo ubicado en `ABDShared/Contracts/<hardware_id>.json`.
 
-### 2.1 Esquema Contractual Normativo
+### 3.1 Esquema Contractual Normativo
 
 ```json
 {
@@ -188,7 +174,7 @@ Cada modelo de hardware se describe mediante un único archivo JSON normativo ub
 }
 ```
 
-### 2.2 Principio de Identidad Universal (Universal Identity Inquiry)
+### 3.2 Principio de Identidad Universal (Universal Identity Inquiry)
 `ABDShared::HardwareMidiDetector` interroga a los puertos MIDI enviando el mensaje estándar:
 ```
 F0 7E <deviceId> 06 01 F7
@@ -202,7 +188,7 @@ Si el hardware no responde a SysEx (como algunos convertidores USB-CV o sintetiz
 
 ---
 
-## 3. Nivel 2: Implementación de Controladores (`IHardwareController`)
+## 4. Nivel 2: Implementación de Controladores (`IHardwareController`)
 
 Toda interacción física o simulada implementa la interfaz pura `IHardwareController` (`ABDAudioLab/Source/hardware/HardwareController.h`):
 
@@ -232,12 +218,12 @@ public:
 }
 ```
 
-### 3.1 Controlador MIDI Continuous Controller (`MidiCcController`)
+### 4.1 Controlador MIDI Continuous Controller (`MidiCcController`)
 Utilizado para sintetizadores estándar (Behringer PRO-800, DeepMind, Korg MS2000, etc.):
 - **Mapeo Normalizado:** Convierte floats en $[0.0, 1.0]$ a escala MIDI $[0, 127]$ mediante `std::clamp(static_cast<int>(std::round(normalizedValue * 127.0f)), 0, 127)`.
 - **Soporte 14-bit NRPN:** Para parámetros de alta resolución (filtro Moog o DCO pitch), se envía el par CC 99/98 (NRPN MSB/LSB) seguido de CC 6/38 (Data Entry MSB/LSB).
 
-### 3.2 Controlador Roland AIRA SysEx (`AiraSysExController`)
+### 4.2 Controlador Roland AIRA SysEx (`AiraSysExController`)
 Maneja la arquitectura modular de los modelos Bitrazer, Torcido, Demora y Scooper:
 - **Estructura de trama DT1 (Data Set 1):**
   ```
@@ -254,35 +240,35 @@ Maneja la arquitectura modular de los modelos Bitrazer, Torcido, Demora y Scoope
   }
   ```
 
-### 3.3 Validador Topológico de Ruteo (`RoutingValidator`)
+### 4.3 Validador Topológico de Ruteo (`RoutingValidator`)
 Protege el hardware de configuraciones ilegales antes de enviar comandos:
 - **Regla RF-25:** Bloquea bucles cerrados directos de salida a salida o conexiones a puertos inexistentes.
 - **Regla RF-26:** Valida que el `typeId` del submódulo cargado en un slot pertenezca al catálogo normativo de 31 submódulos (VCF, ADSR, LFO, RingMod, Noise, etc.).
 
-### 3.4 Controlador para Operador Humano (`ManualAnalogueController`)
+### 4.4 Controlador para Operador Humano (`ManualAnalogueController`)
 Diseñado para sintetizadores puramente analógicos o módulos Eurorack sin MIDI:
 - `isAutomatic()` retorna `false`.
 - Emite un callback `PromptCallback` que despliega el diálogo modal interactivo `OperatorStepModalDialog` (`ABDAudioLab/Source/gui/OperatorStepModalDialog.h`).
 - Proporciona guía gráfica vectorial (Knob, Slider, Jack) y metrónomo visual/sonoro de 10 segundos para barridos continuos uniformes.
 
-### 3.5 Codec Universal SysEx 7-to-8 Bit (`SysExCodec`) y Receptor NRPN (`NRPNParser`)
+### 4.5 Codec Universal SysEx 7-to-8 Bit (`SysExCodec`) y Receptor NRPN (`NRPNParser`)
 Utilidades de transporte normativo de `ABDShared::HardwareDrivers`:
 - **`SysExCodec`**: Empaquetado/desempaquetado con recolector MSB de 7 bits para transmisión de volcados de memoria binaria de 8 bits en bloques de 7 bytes (Korg, Roland, Yamaha).
 - **`NRPNParser`**: Máquina de estados bidireccional que reconstruye secuencias de CC 99, 98, 6 y 38 para telemetría de parámetros de 14 bits `[0..16383]` en tiempo real.
 
-### 3.6 Módem FSK por Entrada de Audio (`FskAudioModem`)
+### 4.6 Módem FSK por Entrada de Audio (`FskAudioModem`)
 Para dispositivos que admiten inyección de patches o configuraciones por tono de audio analógico (puerto *Remote In* de Roland AIRA o *Tape Interface* de sintes vintage):
 - Modulación Continuous-Phase FSK a 1200 baudios con frecuencias portadoras de 12 kHz (Mark/0) y 14 kHz (Space/1).
 - Filtro discriminador Goertzel de alta selectividad para detección de portadora y demodulación de paquetes de audio.
 
 ---
 
-## 4. Guía Paso a Paso: Integración de un Nuevo Dispositivo
+## 5. Guía Paso a Paso: Integración de un Nuevo Dispositivo
 
 Para incorporar un nuevo sintetizador o módulo de hardware al ecosistema:
 
 1. **Crear el Contrato JSON:**
-   - Crear el archivo en `contracts/hardware/<nuevo_dispositivo>.json` (o en `ABDSharedAssets/contracts/hardware/`).
+   - Crear el archivo en `ABDShared/Contracts/<nuevo_dispositivo>.json`.
    - Definir los bloques de función analítica (`SpectrumFilter`, `TimeDynamic`, `WaveShaper`, `WienerHammerstein`).
    - Declarar los controles con sus límites útiles (`minNormalized`, `maxNormalized`) para evitar medir zonas muertas.
 
@@ -303,14 +289,14 @@ Para incorporar un nuevo sintetizador o módulo de hardware al ecosistema:
 
 ---
 
-## 5. Integración de Sintetizadores Autónomos para Perfilado (Fase 20)
+## 6. Integración de Sintetizadores Autónomos para Perfilado (Fase 20)
 
 Para sintetizadores digitales de hardware que generan su propio sonido a partir de eventos MIDI (a diferencia de procesadores de efectos o filtros analógicos que reciben estímulos de audio externos), la integración opera bajo el **Principio de Tres Capas**:
 
 $$\text{Receta Científica} \longrightarrow \text{HardwareMidiContract} \longrightarrow \text{HardwareSynthTarget (ISynthTarget)} \longrightarrow \text{Audio Capturado}$$
 
-### 5.1 Declaración en el Contrato JSON
-El contrato normativo en `ABDSharedAssets/contracts/hardware/<hardware_id>.json` declara las capacidades y políticas de transporte:
+### 6.1 Declaración en el Contrato JSON
+El contrato normativo en `ABDShared/Contracts/<hardware_id>.json` declara las capacidades y políticas de transporte:
 
 ```json
 {
@@ -338,7 +324,7 @@ El contrato normativo en `ABDSharedAssets/contracts/hardware/<hardware_id>.json`
 }
 ```
 
-### 5.2 Reglas Arquitectónicas de Desacoplamiento
+### 6.2 Reglas Arquitectónicas de Desacoplamiento
 1. **Cero Hardcodeo en el Profiler**: El motor de perfilado (`DigitalSynthMvpProfiler`) nunca comprueba si el target es "DeepMind", "Juno" o "Casio", ni envía CCs fijos. Toda la semántica se consulta a través del contrato.
 2. **Pacing y Settling Time**: El adaptador de hardware (`HardwareSynthTarget`) aplica obligatoriamente un retardo de asentamiento (`settlingTimeMs`) tras enviar cambios de parámetro o volcados SysEx antes de disparar la nota de ensayo.
 3. **Auditoría Previa**: Todo sintetizador físico debe ser auditado mediante `TargetAuditor` para clasificar su determinismo (`DeterministicAfterReset` vs `Stochastic`), detectando si la fase del oscilador es libre (*free-running*) o reiniciable.

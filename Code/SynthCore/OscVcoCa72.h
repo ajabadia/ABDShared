@@ -369,12 +369,12 @@ private:
     /** Un paso sobre-muestreado: la rampa y sus sucesos, tomados en orden de
         tiempo (el umbral, el reinicio tras el retardo, el fin de la espera, el
         paso por el umbral del rectangulo y sus flancos retrasados). */
-    void step(double a, double b, double c, double vFall, double riseBuffer) noexcept;
+    void step(double a, double b, double c, double vFall, double riseBuf) noexcept;
 
     /** El reinicio: la rampa salta a su techo, los escalones del diente de sierra
         y del triangulo entran en sus lineas, y el rectangulo queda citado para
         subir. */
-    void doReset(double a, double b, double c, double frac, double riseBuffer) noexcept;
+    void doReset(double a, double b, double c, double frac, double riseBuf) noexcept;
 
     /** La rampa un tiempo despues: C dv/dt = -(a + b v), resuelta en cerrado. */
     double advanceRamp(double rampVolts, double seconds, double a, double b, double c) const noexcept

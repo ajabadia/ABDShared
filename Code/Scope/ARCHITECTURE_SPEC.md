@@ -79,7 +79,7 @@ Estas reglas se aplican a **toda la capa C++ de ABDScope** (`Source/Core/`):
 ### D. Reglas de Calidad WebUI y Frontend (de ABDSKILLS & Skill JUCE)
 
 1. **Vanilla CSS & Tokens Obligatorios**: Sin frameworks CSS pesados (Tailwind/Bootstrap). Toda propiedad visual debe usar CSS Custom Properties (`--scope-bg`, `--scope-grid`, `--color-accent`) heredables del host. Prohibido hardcodear colores HEX/RGB en el código de componentes.
-2. **Iconografía Monocromática Vectorial (Cero Emojis)**: Prohibido terminantemente el uso de emojis Unicode (📷, ⚙️, 🔴, ❌) en botones, controles o badges de telemetría. Usar iconos vectoriales SVG monocromáticos configurados con `currentColor` / variables CSS o formas vectoriales CSS puras, centralizados en `ABDSharedAssets/icons/`.
+2. **Iconografía Monocromática Vectorial (Cero Emojis)**: Prohibido terminantemente el uso de emojis Unicode (📷, ⚙️, 🔴, ❌) en botones, controles o badges de telemetría. Usar iconos vectoriales SVG monocromáticos configurados con `currentColor` / variables CSS o formas vectoriales CSS puras, centralizados en `Assets/icons/`.
 3. **100% English en Código Técnico**: Todos los identificadores técnicos, nombres de variables, propiedades, eventos, clases y schemas (`ScopeDataFrame`) deben estar en inglés técnico estricto.
 4. **Cero `console.log` en Producción**: Toda traza de depuración debe encapsularse en un logger con flags de depuración o eliminarse para builds de producción.
 5. **Throttling & High-Frequency Safety**: Limitar eventos de alta frecuencia con `requestAnimationFrame`. No enviar más de un mensaje por frame al bridge IPC.
@@ -136,7 +136,7 @@ Siguiendo las directrices de `ABDAudioLab/docs/SHARED_ASSETS_GUIDE.md`:
   ```cmake
   # En CMakeLists.txt de ABDMS2000, ABDAudioLab, etc.
   add_subdirectory(../ABDScope ${CMAKE_CURRENT_BINARY_DIR}/ABDScope)
-  target_link_libraries(${PROJECT_NAME} PRIVATE ABDScope::ABDScopeCore)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ABDShared::ScopeCore)
   ```
 - **Garantía de ABI:** Ambos proyectos se compilan juntos con las mismas banderas de compilador (`/MD`, `/std:c++20`, `/permissive-`).
 
@@ -449,7 +449,7 @@ ABDScope/
 │   │   ├── JuceScopeComponent.h        # Componente nativo JUCE para ABDAudioLab
 │   │   ├── JuceWebScopeComponent.h     # Componente WebView2 plug-and-play multi-tap
 │   │   └── ScopeResourceProvider.(h|cpp)  # Recursos Web embebidos (MIME estricto)
-│   └── CMakeLists.txt                  # Target ABDScope::ABDScopeCore
+│   └── CMakeLists.txt                  # Target ABDShared::ScopeCore (orquestador) / ABDScopeCore (local)
 ├── WebUI/                        # Capa Web (Canvas 2D / WebGL)
 │   ├── src/
 │   │   ├── scope.js                    # Entry point factory (createScope)
@@ -473,7 +473,7 @@ ABDScope/
 │   │   │   ├── LaneView.js             # DOM de cada carril
 │   │   │   └── mountLayout/mountDom.js # Helpers puros de grid y DOM
 │   │   └── scope.css                   # Theming dinámico mediante CSS Custom Properties
-│   ├── icons.js                       # Módulo generado desde ABDSharedAssets/icons (con test de paridad)
+│   ├── icons.js                       # Módulo generado desde Assets/icons (con test de paridad)
 │   ├── tests/
 │   │   ├── trigger.test.js             # Tests unitarios del algoritmo de disparo
 │   │   ├── frame.test.js               # Tests de decodificación y métricas

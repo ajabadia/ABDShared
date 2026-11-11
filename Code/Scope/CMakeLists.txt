@@ -13,9 +13,6 @@ endif()
 
 add_subdirectory(Source)
 
-# Target Alias for clean consumer integration: ABDScope::ABDScopeCore
-add_library(ABDScope::ABDScopeCore ALIAS ABDScopeCore)
-
 # Optional Native JUCE GUI Standalone Demo.
 # The JUCE probe runs ONLY when ABDScope is the top-level project (standalone
 # dev sandbox). When consumed via add_subdirectory (ABDSharedCode/Scope, and
@@ -47,7 +44,6 @@ if(COMMAND juce_add_binary_data)
     SOURCES ${ABDSCOPE_WEB_ASSETS}
   )
   target_link_libraries(ABDScopeCore INTERFACE ABDScopeWebAssets)
-  add_library(ABDScope::ABDScopeWebAssets ALIAS ABDScopeWebAssets)
 endif()
 
 # Standalone C++ Smoke Test (MSVC Validation). Links the JUCE-free core headers

@@ -164,18 +164,17 @@
   - Componente gráfico nativo `juce::Component` para aplicaciones puramente C++ (reemplazo en ABDAudioLab).
 
 - [x] **4.5 `CMakeLists.txt`:**
-  - Configuración del target `ABDScope::ABDScopeCore` con exportación de include directories.
+  - Configuración de targets CMake con exportación de include directories (superficie canónica `ABDShared::Scope*`; alias legacy `ABDScope::*` retirados en Fase 4, 2026-11-10).
 
 ---
 
 ### FASE 5: Integración en la Suite y Validación (Zero-Copy)
 > **Objetivo:** Conectar `ABDScope` a los proyectos de la suite reemplazando los scopes fake/placeholder.
 
-- [ ] **5.1 Integración en `ABDMS2000`:**
-  - Creación de Junction NTFS (`mklink /J`) para WebUI.
-  - Reemplazo de `OscilloscopeModal.js` (scope fake) y `panelScope.js` (scope placeholder) por `createScope()`.
-  - Eliminación del anti-patrón `window.updateAudioSnapshot`.
-  - Conexión del `ScopeDataCollector` en `processBlock` del C++ del MS2000.
+- [x] **5.1 Integración en `ABDMS2000` (referencia, verificada 2026-11-10):**
+  - `Scripts/sync_scope.js` sincroniza WebUI desde `ABDShared/Code/Scope/WebUI` (fuente canónica) hacia `WebUI/abdscope/` (copia/sustitución, patrón raw-ESM del host; sin junction en runtime).
+  - `WebUI/src/components/OscilloscopeModal.js` usa `createScope()` de ABDScope (montaje flotante, multi-lane, `pushFrame`/`connectAnalyser`) integrado en `app.js`/`index.html`; no existe `panelScope.js` placeholder ni `window.updateAudioSnapshot` en WebUI.
+  - C++: `SynthEngine` registra taps y los alimenta vía `ScopeDataCollector`/`flushScopeTaps` en `processBlock`; `ScopeFloatingWindow` (`JuceWebScopeComponent`) y serialización/envío de `scopeFrame` desde el editor completan la ruta nativa (targets `ABDShared::ScopeCore`/`ScopeCoreHeaders`). (Diferencias de implementación respecto al plan original documentadas; integración funcional Zero-Copy/taps en uso.)
 
 - [ ] **5.2 Integración en `ABDAudioLab`:**
   - Conexión vía CMake `add_subdirectory`.

@@ -136,6 +136,16 @@ Atenuar la ganancia a cero no elimina la energía almacenada en los integradores
 - Reiniciar las memorias del filtro (`z1`/`z2`, estados del ladder) al reasignar la voz, o interpolar suavemente entre el estado antiguo y el nuevo dentro de la misma rampa de ~5 ms.
 - Reiniciar también la modulación de la voz robada: fases de LFO, etapa de los envelopes y valores de los `SmoothedValue`.
 
+### 2.8. Integridad de Fase en Osciladores, Clamping Sub-Nyquist y Hard Sync Sub-Muestra
+- `[x]` ✅ **Acotación estricta de frecuencia e incremento de fase (`dt` $\in [0.0, 0.49]$):** Tanto en osciladores principales (`OSC1`, `OSC2`), sub-osciladores como en LFOs (`LfoAnalog`), la frecuencia efectiva se acota a $[0.1\text{ Hz}, 0.49 \cdot f_s]$ y el paso de fase normalizado `dt` a $[0.0, 0.49]$ antes de evaluar `PolyBLEP`, evitando divisiones por cero o desbordamientos de fase de múltiples ciclos.
+- `[x]` ✅ **Envoltura de fase con `std::floor` y guarda `std::isfinite`:** El acumulador de fase se envuelve mediante `phase -= std::floor(phase)` (con fallback `if (!std::isfinite(phase)) phase = 0.0;`) en lugar de una resta condicional simple, garantizando que la fase permanezca siempre en $[0.0, 1.0)$ incluso ante saltos de modulación abruptos.
+- `[x]` ✅ **Orden Maestro → Esclavo y posición fraccional en Hard Sync:** Cuando `oscSync` está activo, `OSC1` (maestro) se evalúa primero; si cruza el ciclo (`osc1.didWrap()`), la fase de `OSC2` (esclavo) se reposiciona con precisión sub-muestra (`(frac - 1.0) * slaveDt`, donde `frac = osc1Phase / masterDt`) antes de generar la muestra de `OSC2`.
+- `[x]` ✅ **Sub-Oscilador con corrección `PolyBLEP`:** La onda cuadrada del sub-oscilador aplica `DSP::polyBlep2` en ambas discontinuidades (`0.0` y `0.5`) para eliminar aliasing.
+
+### 2.9. Inicialización Integral en `prepareToPlay()` y Auto-Curación Anti-`NaN`/`Inf`
+- `[x]` ✅ **Sincronización inicial en `prepareToPlay()`:** `PluginProcessor::prepareToPlay()` valida `sampleRate` y `samplesPerBlock`, limpia la cola MIDI SPSC (`clearMidiQueue()`), invoca `synthEngine.prepare()` (que reinicia explícitamente todas las fases, LFOs, envolventes, smoothers y el pool pre-instanciado de efectos en `FXSlot`) y ejecuta `synthEngine.updateParameters(apvts)` para evitar que el primer bloque opere con estado no inicializado.
+- `[x]` ✅ **Auto-curación en 1 muestra en integradores ZDF/TPT y salidas:** Los estados internos de los filtros (`DspJunoVCF`, `DspVAOnePole`, `DspJunoHPF`) y las salidas de `SynthVoice::process` y `FXSlot::process` incluyen guardas `if (!std::isfinite(x)) x = 0.0;` junto al *flush* de denormales, impidiendo que un `NaN`/`Inf` puntual contamine permanentemente la cadena recursiva.
+
 ## 3. Ciclo de Vida del `AudioProcessor`, Buses y Latencia
 
 - `[x]` ✅ **Configuración explícita de buses (`isBusesLayoutSupported`):** Soporta dinámicamente salida Mono y Stereo más bus de entrada Stereo habilitado para el modulador del Vocoder / `AudioIn` y el comparador de hardware ([`ABDMS2000/Source/Plugin/PluginProcessor.cpp:22-24,134-141`](file:///d:/desarrollos/ABDSynths/ABDMS2000/Source/Plugin/PluginProcessor.cpp#L22-L24)).

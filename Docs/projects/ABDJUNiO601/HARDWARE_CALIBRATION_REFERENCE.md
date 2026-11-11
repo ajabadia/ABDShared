@@ -1,5 +1,8 @@
 # ABDJUNiO601: Calibration & General Settings Parameter Reference
 
+> **Tipo:** proyecto (referencia) · **Alcance:** catálogo de parámetros de **General Settings > Calibration** de `ABDJUNiO601` y tablas CSV exportables/importables.
+> **Estado:** referencia de producto con marcas de revisión pendientes (ver nota 2026-11-07). · **Última revisión:** 2026-11-10.
+
 Este documento contiene la documentación completa de todos los parámetros editables en la sección **General Settings > Calibration** del sintetizador **ABDJUNiO601**, organizados por pestañas/categorías. También detalla las tablas de datos exportables e importables en formato CSV.
 
 > **🟡 Marca de revisión (2026-11-07) — dos precisiones y un método que falta fijar.**

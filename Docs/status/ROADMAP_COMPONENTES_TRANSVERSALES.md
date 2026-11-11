@@ -1,6 +1,9 @@
-# 🗺️ Roadmap de Componentes Transversales — Ecosistema ABDSynths
+# Roadmap de componentes transversales — Ecosistema ABDSynths
 
-> **Propósito:** Definir el estado, plan de adopción y especificación de los componentes compartidos reutilizables en **`ABDShared`**, asegurando que los sintetizadores de la suite compartan una base técnica homogénea y no reinventen la rueda.
+> **Tipo:** seguimiento (no normativo) · **Alcance:** estado y adopción de los componentes compartidos de `ABDShared` (`Scope`, `AutoUpdater`, `BankManager`, `MidiKeyboard`, `FitStage`, `LiveSysExInspector`, `SynthNavBar`, `AboutDialog`, `LcdDisplay`, `ModMatrixGrid`).
+> **Qué NO es:** la norma de cada componente. El contrato de `Scope` está en [`SCOPE_INTEGRATION_GUIDE.md`](../integration/SCOPE_INTEGRATION_GUIDE.md), el de los componentes de interfaz en [`ui-ux/`](../ui-ux/) y el inventario C++ en [`MODULE_CATALOG.md`](../architecture/MODULE_CATALOG.md).
+> **Estado (2026-11-10):** la matriz de adopción y los «siguientes pasos» son una foto sin reverificar contra cada repositorio de producto; trátese como estado a confirmar, no como hecho.
+> **Propósito original:** definir el estado, plan de adopción y especificación de los componentes compartidos reutilizables en `ABDShared`, para que los sintetizadores no reinicien la rueda.
 
 ---
 

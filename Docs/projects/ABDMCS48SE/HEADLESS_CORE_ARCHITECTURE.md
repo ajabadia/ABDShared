@@ -1,9 +1,11 @@
 # BDMCS48SE — Arquitectura del proyecto
 
-> Documento de dirección y diseño en evolución; no es una implementación ni congela las decisiones abiertas del roadmap.
+> **Tipo:** proyecto · **Alcance:** arquitectura del core headless MCS-48 y de su host (`ABDMCS48SE`). Describe un producto, no una norma de la suite.
+> **Estado:** documento de dirección y diseño en evolución; no es una implementación ni congela las decisiones abiertas del roadmap. · **Última revisión:** 2026-11-10.
+> **Ubicación:** movido desde `Docs/architecture/` el 2026-11-10 para separar la documentación de producto de los estándares transversales.
 
 > 🟠 **Marcado 2026-11-08 — tres enlaces apuntaban fuera de este repositorio.** `../ROADMAP.md` (cabecera y §Criterios de aceptación) y `FIRMWARE_PACKAGE.md` son documentos del proyecto BDMCS48SE: en `ABDShared/Docs` no existe ningún `ROADMAP.md` ni `FIRMWARE_PACKAGE.md`, así que los enlaces estaban rotos. Se dejan como texto, sin enlace, para no ofrecer un destino falso.
-> **Alternativas:** (a) si se quiere un roadmap dentro de la suite, el vigente para módulos transversales es `Docs/architecture/ROADMAP_COMPONENTES_TRANSVERSALES.md` (no es el de este core); (b) si los documentos se traen aquí, colocarlos en `Docs/architecture/` y restaurar los enlaces; (c) mantenerlos en el repositorio de origen y citarlo explícitamente.
+> **Alternativas:** (a) si se quiere un roadmap dentro de la suite, el vigente para módulos transversales es `Docs/status/ROADMAP_COMPONENTES_TRANSVERSALES.md` (no es el de este core); (b) si los documentos se traen aquí, colocarlos en `Docs/projects/ABDMCS48SE/` y restaurar los enlaces; (c) mantenerlos en el repositorio de origen y citarlo explícitamente.
 
 ## Propósito
 

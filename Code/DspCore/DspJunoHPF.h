@@ -185,10 +185,16 @@ struct BassBoostFilter
 
     float process(float x) noexcept
     {
+        if (!std::isfinite(x))
+            return 0.0f;
         float y = b0 * x + static_cast<float>(z1);
         z1      = b1 * x - a1 * y + z2;
         z2      = b2 * x - a2 * y;
-        return y;
+        if (!std::isfinite(z1) || std::abs(z1) < 1.0e-15)
+            z1 = 0.0;
+        if (!std::isfinite(z2) || std::abs(z2) < 1.0e-15)
+            z2 = 0.0;
+        return std::isfinite(y) ? y : 0.0f;
     }
 };
 
@@ -327,6 +333,8 @@ struct JunoHPFSwitched
         float v  = (x - hpState) * hpG / (1.f + hpG);
         float lp = hpState + v;
         hpState  = lp + v;
+        if (!std::isfinite(hpState) || std::abs(hpState) < 1.0e-15f)
+            hpState = 0.f;
         return x - lp;
     }
 
@@ -430,6 +438,8 @@ struct JunoHPFContinuous
             float v  = (y - hpState) * hpG / (1.f + hpG);
             float lp = hpState + v;
             hpState  = lp + v;
+            if (!std::isfinite(hpState) || std::abs(hpState) < 1.0e-15f)
+                hpState = 0.f;
             y        = y - lp;
         }
 

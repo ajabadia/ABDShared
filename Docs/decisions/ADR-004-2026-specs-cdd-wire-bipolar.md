@@ -143,3 +143,19 @@ Añadir esa obligación (y descartar la trama si no cuadra) antes de tocar el mo
 - Fuera de alcance: el contrato de hardware (archivado en `_Deprecados/Docs/hw-sysex-contract.md`; ya no vive en
   la raíz de `Docs/`) tiene una fila
   duplicada de `HARDWARE_PORT_STATUS` y describe el puerto nativo como stub; merece su propia revisión.
+
+---
+
+## 5. Estado (2026-11-10)
+
+Revisión del bloque al ordenar `Docs/`. **No se reescribe ningún veredicto**: se fecha lo que ha cambiado y lo que sigue abierto.
+
+| Punto | Veredicto original | Estado 2026-11-10 | Evidencia |
+|---|---|---|---|
+| §1, fila 2 (CDD) | 🔴 Obsoleto (v1.0) | **El veredicto describe la v1.0, no el archivo actual** | `Docs/specs/COMMON_DATA_DICTIONARY_AND_INTEGRATION.md` es **v2.0** (`SymBipolar`, `wireZeroCenter`, `Lut`). La v1.0 está archivada como `_Deprecados/Docs/WIRE_DOMAIN_TRANSLATION.md` |
+| §2.4 JUNO | 🟠 Título y `[file:22]` | **Corregido (2026-11-10)** | Título alineado («JUNO-106 / ABDJUNiO601»), secciones renumeradas y 38 marcas de extracción retiradas. Queda pendiente la **sección normativa de transmisión** (P6) |
+| §2.5 PRO-800 | 🟠 Sanitización | **Sigue abierto** | `Code/BankManager/Pro800Midi.cpp` no contiene `clamp`, `std::min/max` ni `isfinite` |
+| §2.6 AIRA | 🔴 FSK y espera activa | **Sigue abierto** | §3 conserva «El motor de audio se detiene en estado de espera activa» y §4 «Generada directamente en el hilo de audio de JUCE» |
+| §2.1, §2.3 | P3, P4 | **Sin comprobar** | No se han verificado en esta revisión las carpetas de automatización en Cubase/Bitwig ni el gate de fuzzing |
+
+**Consecuencia para el índice:** [`Docs/README.md`](../README.md) marca cada documento con su estado, y el catálogo de efectos transcrito a `Docs/dsp/` conserva la contradicción de ADR-002 §2.6 en lugar de esconderla.

@@ -1,7 +1,7 @@
 # Checklist Canónico de Promoción a `SynthCore`
 
 > **Documento:** Protocolo Estándar de Extracción y Promoción DSP  
-> **Destino compartido:** `ABDSharedCode/SynthCore` (`ABDShared::SynthCore`)  
+> **Destino compartido:** `Code/SynthCore` (`ABDShared::SynthCore`)  
 > **Espacio de nombres canónico:** `abd::synth`  
 > **Estándar:** C++20 puro (sin dependencias de JUCE, GUI ni SO)  
 > **Propósito:** Guía de ejecución paso a paso para promover módulos DSP desde cualquier sintetizador donante (ABDEep, ABDMS2000, ABDCZ101, etc.) hacia el núcleo compartido sin regresiones sonoras ni duplicidad de código.
@@ -24,9 +24,9 @@
 - [ ] **1.1. Inspección del archivo donante:**
   - Identificar la clase DSP original (ej. `Source/DSP/MiModulo.h` y `.cpp`).
   - Separar la **lógica algorítmica matemática** de la **política del sintetizador** (parámetros de panel, presets, tipos de framework).
-- [ ] **1.2. Crear cabecera e implementación en `ABDSharedCode/SynthCore/`:**
-  - Ruta de cabecera: `ABDSharedCode/SynthCore/MiModulo.h`.
-  - Ruta de implementación: `ABDSharedCode/SynthCore/MiModulo.cpp` (o solo `.h` si es estrictamente *header-only*).
+- [ ] **1.2. Crear cabecera e implementación en `Code/SynthCore/`:**
+  - Ruta de cabecera: `Code/SynthCore/MiModulo.h`.
+  - Ruta de implementación: `Code/SynthCore/MiModulo.cpp` (o solo `.h` si es estrictamente *header-only*).
   - Envolver todo en `namespace abd::synth`.
 - [ ] **1.3. Purga estricta de dependencias (100% C++20 agnóstico):**
   - [ ] Eliminar cualquier `#include <JuceHeader.h>` o cabeceras `juce_*`.
@@ -46,10 +46,10 @@
 
 ## Fase 2: Registro en el Build System (CMake)
 
-- [ ] **2.1. Registrar fuentes en `ABDSharedCode/CMakeLists.txt`:**
+- [ ] **2.1. Registrar fuentes en `CMakeLists.txt`:**
   - Si el módulo tiene archivo `.cpp`, añadirlo a la lista de fuentes del target `ABDShared_SynthCore`:
     ```cmake
-    # En ABDSharedCode/CMakeLists.txt:
+    # En CMakeLists.txt:
     add_library(ABDShared_SynthCore STATIC
         ...
         SynthCore/MiModulo.cpp
@@ -143,16 +143,16 @@ Antes de dar por cerrado el módulo, documentar cómo consumirá cada miembro de
 
 ## Fase 6: Documentación y Registro Canónico
 
-- [ ] **6.1. Actualizar `ABDSharedCode/INTEGRATION_GUIDE.md`:**
+- [ ] **6.1. Actualizar `Docs/integration/INTEGRATION_GUIDE.md`:**
   - Añadir el nuevo archivo al árbol de fuentes de `SynthCore/`.
   - Crear la sección `## Módulo: SynthCore — <Nombre>` con snippet de enlace CMake y consumo mínimo.
-- [ ] **6.2. Actualizar `ABDSharedCode/README.md`:**
+- [ ] **6.2. Actualizar `ABDShared/README.md`:**
   - Incorporar el módulo y sus capacidades a la fila correspondiente de la tabla de módulos disponibles.
 - [ ] **6.3. Guía técnica de integración (si aplica):**
   - Si el componente presenta complejidad algorítmica, tablas métricas o curvas no triviales, crear:  
-    `ABDSharedCode/docs/<MODULO>_INTEGRATION_GUIDE.md` (ver como referencia `ARPEGGIATOR_INTEGRATION_GUIDE.md` o `CONTROL_SEQUENCER_INTEGRATION_GUIDE.md`).
+    `Docs/integration/<MODULO>_INTEGRATION_GUIDE.md`.
 - [ ] **6.4. Commit atómico:**
-  - Registrar los cambios en `ABDSharedCode` y en el sintetizador donante con mensajes descriptivos bajo convención Conventional Commits:
+  - Registrar los cambios en `ABDShared` y en el sintetizador donante con mensajes descriptivos bajo convención Conventional Commits:
     - `feat(SynthCore): promote <Componente> to shared C++20 engine`
     - `refactor(DSP): convert <Componente> to shim over abd::synth::<Componente>`
     - `docs(SynthCore): add integration guide for <Componente>`

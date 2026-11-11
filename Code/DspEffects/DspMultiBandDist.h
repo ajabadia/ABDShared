@@ -190,9 +190,9 @@ public:
                 distLowR = distMidR = distHiR = postR_;
             }
 
-            // 4. Recombinación con ganancias de banda
-            float wetL = distLowL * lowGain + distMidL * midGain + distHiL * hiGain;
-            float wetR = distLowR * lowGain + distMidR * midGain + distHiR * hiGain;
+            // 4. Recombinacion con compensacion de suma tri-banda (-6 dB)
+            float wetL = (distLowL * lowGain + distMidL * midGain + distHiL * hiGain) * 0.37f;
+            float wetR = (distLowR * lowGain + distMidR * midGain + distHiR * hiGain) * 0.37f;
 
             // 5. Simulación de recinto/altavoz (Cabinet)
             if (cabinetType_ > 0)

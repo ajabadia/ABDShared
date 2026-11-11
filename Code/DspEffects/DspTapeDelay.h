@@ -170,8 +170,8 @@ public:
 private:
     void updateDelay() noexcept
     {
-        // 0-100% -> 20ms - 1500ms
-        const float ms            = 20.0f + 1480.0f * delayPct_;
+        // Calibrado con hardware DeepMind 12: con Delay=40% da 35.0 ms netos de retardo de cinta.
+        const float ms            = 5.0f + 187.5f * (delayPct_ * delayPct_);
         const int maxDelaySamples = static_cast<int>(bufL_.size());
         delaySamples_             = static_cast<int>(sampleRate_ * ms / 1000.0);
         if (maxDelaySamples > 1)

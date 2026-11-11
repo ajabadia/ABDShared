@@ -153,6 +153,22 @@ Auditoría contra los plugins de referencia (`ABDJUNiO601`, `ABDAxionikVS`, `ABD
 
 ---
 
+## 6. Estado (2026-11-10)
+
+Revisión del bloque al ordenar `Docs/`. **No se reescribe ningún veredicto**: se fecha lo que ha cambiado y lo que sigue abierto.
+
+| Punto | Veredicto original | Estado 2026-11-10 | Evidencia |
+|---|---|---|---|
+| §2.6 WASM | 🔴 Obsoleto | **Corregido en el documento** | `WASM_DSP_BUILD_GUIDE.md` §1 ya prohíbe duplicar la lista de fuentes y copiar JUCE, y exige `DspSources.cmake`; §7 define tolerancias de paridad. El **gate en CI** (P2/P3) sigue pendiente |
+| §2.3 Gestos | 🟠 Hueco real (P1) | **Cableado compartido disponible** | `Components/paramGesture.js` implementa `beginGesture`/`endGesture` sobre `onDragStart`/`onDragEnd`, y el barrel lo exporta. La adopción por cada sintetizador no se ha comprobado aquí |
+| §2.4 PASO 6 | 🟠 Defecto editorial (P7) | **Sigue abierto** | `BANK_MANAGER_INTEGRATION.md` conserva las vallas escapadas y `\\ABDBankManagerCore\\` desde el PASO 6 |
+| §2.7 THREE_TIER | 🟠 Numeración duplicada (P7) | **Corregido (2026-11-10)** | Apartados renumerados 1–6, fragmento de diagrama huérfano retirado y rutas de contratos unificadas en `ABDShared/Contracts/`. En la prosa quedan nombres de repositorios fusionados (`ABDSharedAssets`, `ABDSharedCode`), con mapeo en `DEPRECATION_POLICY.md` §4 |
+| §2.1, §2.2, §2.5, §2.8 | varios | **Sin comprobar** | No se han verificado en esta revisión el `.d.ts` generado, el `pointercancel` del keybed, el techo de trama del scope ni el pipeline de firma |
+
+**Consecuencia para el índice:** [`Docs/README.md`](../README.md) marca cada documento con su estado; las deudas abiertas se leen allí sin abrir el acta.
+
+---
+
 ## Apéndice A: Patrones Avanzados de Integración Híbrida (Auditoría 2026-11)
 
 ### A.1 Detección Dinámica de Vite Dev Server (`isDevServerReachable`)

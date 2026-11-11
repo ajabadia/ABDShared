@@ -107,6 +107,8 @@ export class Knob
         // saber que este mando tiene el cero en el centro.
         this.wrapper.dataset.bipolar = this.options.bipolar ? 'true' : 'false';
 
+        if (this.options.paramIndex !== undefined && this.options.paramIndex !== null)
+            this.wrapper.dataset.paramIndex = String(this.options.paramIndex);
         if (this.options.label)
         {
             this.labelEl = document.createElement('span');

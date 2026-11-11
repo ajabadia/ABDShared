@@ -59,7 +59,7 @@ ABDScope/
 │   │   ├── mount/                # MountBase + Mounts, LaneController/LaneView, layout & DOM helpers
 │   │   ├── renderers/            # Oscilloscope, Spectrum, Lissajous, Phase, Spectrogram, VU
 │   │   ├── input/                # AnalyserInput (WebAudio) & PushInput (Bridge)
-│   │   ├── icons.js             # Generated icon module (canonical: ABDSharedAssets/icons)
+│   │   ├── icons.js             # Generated icon module (canonical: Assets/icons)
 │   │   └── utils/                # exportImage (PNG clipboard/download)
 │   └── tests/                    # Vitest unit test suite (59 tests)
 ├── docs/                         # Integration guides, data contracts, and usage manuals

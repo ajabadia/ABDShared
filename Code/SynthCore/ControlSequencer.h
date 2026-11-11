@@ -26,7 +26,7 @@ public:
     /** 0-15, el rango confirmado por NRPN (manual: el resto va por menú). */
     void setClockDivider(int div) { clockDivider = std::clamp(div, 0, 15); }
     /** Pasos activos: 1 a 32. */
-    void setLength(int steps) { length = std::clamp(steps, 1, 32); }
+    void setLength(int stepCount) { length = std::clamp(stepCount, 1, 32); }
     /** Swing normalizado 0..1: 0 = recto (50%), 1 = máximo (75%). */
     void setSwing(float swing) { swingAmount = std::clamp(swing, 0.0f, 1.0f); }
     /** 0 = bucle, 1 = reinicia con la tecla y no buclea, 2 = las dos. */

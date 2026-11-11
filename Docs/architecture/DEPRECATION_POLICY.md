@@ -54,6 +54,8 @@ export function legacyUiHelper() {
 | **`ABDSharedAssets`** | `d:/desarrollos/ABDSynths/ABDSharedAssets` | `ABDShared/Assets/` y `ABDShared/Contracts/` | 🟢 **Migración completada en la suite.** Consumido canónicamente por `ABDAudioLab`, `ABDEep`, `ABDCZ101`, `ABDMS2000`, `ABDNeural` y `ABDJUNiO601`. Listo para archivar en `_Deprecados/`. |
 | **`convertSysExToCutoffHz`** | Global | `conversion::normToCutoffHz` | 🔴 Retirado |
 
+> **Estado de la documentación (2026-11-10):** toda la documentación del repositorio usa ya las rutas actuales (`Code/`, `Assets/`, `Contracts/`, `Components/`). Los nombres `ABDSharedCode` y `ABDSharedAssets` sólo sobreviven en esta tabla, en las actas (`Docs/decisions/`), en los changelogs y en el informe de evaluación de la fusión.
+
 ---
 
 ## 5. Compatibilidad de estado en el DAW: parámetros retirados y capa de alias

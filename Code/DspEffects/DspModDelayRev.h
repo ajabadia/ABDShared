@@ -236,7 +236,8 @@ public:
 private:
     void updateParams() noexcept
     {
-        const float baseMs                  = 1.0f + 1499.0f * time_;
+        // Calibrado con hardware DeepMind 12: con Time=30 (0..100) da 126.3 ms de retardo neto.
+        const float baseMs                  = 5.0f + 1347.8f * (time_ * time_);
         static constexpr float factorTab[4] = {1.0f, 0.5f, 0.667f, 1.5f};
         const int maxDelaySamples           = static_cast<int>(delayBufL_.size());
         delaySamples_                       = static_cast<int>(sampleRate_ * baseMs / 1000.0 * factorTab[std::clamp(factor_, 0, 3)]);

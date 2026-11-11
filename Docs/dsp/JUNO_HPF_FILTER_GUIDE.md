@@ -3,7 +3,7 @@
 > **Módulo:** `DspCore`  
 > **Espacio de nombres:** `abd::dsp`  
 > **Target CMake:** `ABDShared::DspCore`  
-> **Cabecera Canónica:** `ABDSharedCode/DspCore/DspJunoHPF.h`  
+> **Cabecera Canónica:** `Code/DspCore/DspJunoHPF.h`  
 > **Estándar C++:** C++17 / C++20  
 > **Dependencias:** Ninguna (100% C++ puro estándar, `<cmath>`, `<algorithm>`, libre de JUCE)  
 > **Garantía de Tiempo Real:** Zero-alloc, noexcept, `double` para acumuladores bilineales, determinismo bit-exacto por muestra.
@@ -21,7 +21,7 @@ Sin embargo, existía divergencia en su orquestación y semántica de conmutaci�
 - **`ABDJUNiO601`** modela el selector rotatorio/deslizante mecánico de 4 posiciones con comportamientos **mutuamente excluyentes** (en Juno-106 pos 0 activa el refuerzo de graves mientras que el filtro pasa-altos queda en derivación; pos 1 es Flat; pos 2 y 3 son cortes TPT fijos).
 - **`ABDEep`** modela un sintetizador continuo híbrido donde el corte HPF (continuo 0 a 20 kHz o mapeado por PCHIP) y el Bass Boost operan en **cascada serie independiente** ($x \to \text{TPT HPF} \to \text{BassBoost} \to y$).
 
-El objetivo de este diseño es unificar las primitivas analógicas y ambas semánticas en **`ABDSharedCode/DspCore`**, desacoplándolas por completo de JUCE y proveyendo *shims* de compatibilidad 100% transparentes en los repositorios cliente.
+El objetivo de este diseño es unificar las primitivas analógicas y ambas semánticas en **`Code/DspCore`**, desacoplándolas por completo de JUCE y proveyendo *shims* de compatibilidad 100% transparentes en los repositorios cliente.
 
 ---
 
@@ -29,7 +29,7 @@ El objetivo de este diseño es unificar las primitivas analógicas y ambas semá
 
 ```mermaid
 graph TD
-    subgraph "ABDSharedCode/DspCore"
+    subgraph "Code/DspCore"
         PRIMS["Primitivas Matemáticas y Analógicas<br/>• BassBoostFilter (DF2T)<br/>• getJuno6HPFFreqPCHIP(x)<br/>• getJuno60HPFFreq(pos)<br/>• getJuno106HPFFreq(pos)<br/>• enum class HPFMode"]
         
         CSW["JunoHPFSwitched<br/>(Semántica Excluyente Hardware)<br/>• Modos: J106 / J60 / J6Continuous<br/>• setPosition(pos, f1, f2, f3, gain)"]
@@ -263,7 +263,7 @@ using abd::dsp::getJuno6HPFFreqPCHIP;
 
 ## 7. Plan de Verificación y Calidad
 
-1. **Tests Unitarios en `ABDSharedCode` (`DspCoreTests.cpp`):**
+1. **Tests Unitarios en `ABDShared` (`DspCoreTests.cpp`):**
    - Coeficientes de `BassBoostFilter` a 44.1 kHz, 48 kHz y 96 kHz.
    - Monotonía estricta de `getJuno6HPFFreqPCHIP` en todo el recorrido $x \in [0.0, 1.0]$.
    - Mapeo exacto de posiciones 0 a 3 de `getJuno60HPFFreq` y `getJuno106HPFFreq`.

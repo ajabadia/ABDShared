@@ -42,6 +42,12 @@
    * Los overlays que abre (p. ej. `AboutDialog`) gestionan su propio `Escape` con `createOverlayFocus({ onEscape })`. **Una sola capa consume cada `Escape`**: primero el desplegable, después el overlay abierto; cuando el desplegable está cerrado el navbar **no** debe consumir la tecla ni hacer `preventDefault`.
    * Los atajos globales (`enableGlobalShortcuts`) no disparan con el foco en `input`, `textarea`, `select` ni `contenteditable`, para no robarle las letras al DAW ni a un campo de texto.
 
+### 10. Internacionalización y cambio dinámico de idioma (`setLocale` y `setMenus`):
+* `SynthNavBar` implementa soporte nativo para `options.locale` ('es' | 'en') y el método público `navBar.setLocale(newLocale)`.
+* Cada ítem de menú o cabecera puede declarar etiquetas bilingües (`nameEs`, `labelEs`) o claves del estándar compartido (`i18nKey: 'navbar.menuFile'`).
+* Cuando una aplicación gestiona menús con esquemas propios o dinámicos, `navBar.setMenus(newMenus)` reconstruye inmediatamente la barra y sus desplegables sin recrear el DOM ni perder el estado activo.
+* El tick `✓` en submenús de selección de idioma se gestiona de forma reactiva con `navBar.setActiveValues({ setLangEs: lang === 'es' ? 'es' : null, setLangEn: lang === 'en' ? 'en' : null })`.
+
 ```javascript
 // Las cuatro ranuras, en un solo bloque
 const navBar = createSynthNavBar({

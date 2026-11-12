@@ -62,6 +62,7 @@ void LfoAnalog::reset()
     phase               = 0.0;
     delaySamplesElapsed = 0.0;
     lastOutput          = 0.0f;
+    lastFadeGain        = 1.0f;
     targetSH            = 0.0f;
     currentSH           = 0.0f;
 }
@@ -230,7 +231,8 @@ float LfoAnalog::nextSample()
         }
     }
 
-    lastOutput = rawOutput;
+    lastOutput   = rawOutput;
+    lastFadeGain = fadeGain;
 
     // 6. Apply fade-in gain
     return rawOutput * fadeGain;

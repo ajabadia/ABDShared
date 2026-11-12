@@ -14,6 +14,9 @@
 #include <functional>
 #include "DspCore/NeuronVS/NeuronVoicePool.h"
 #include "DspCore/NeuronVS/NeuronSilverRack.h"
+#include "DspCore/NeuronVS/NeuronCalibration.h"
+#include "DspEffects/DspAxionikPlusRack.h"
+#include "DspEffects/DspAxionikExpandedRack.h"
 
 namespace abd::dsp::neuron {
 
@@ -30,9 +33,12 @@ public:
         sampleRate_ = sampleRate > 0.0 ? sampleRate : 44100.0;
         globalSlicer_.prepare(sampleRate_);
         silverRack_.prepare(sampleRate_);
+        plusRack_.prepare(sampleRate_);
         masterModFX_.prepare(sampleRate_);
         masterTimeFX_.prepare(sampleRate_);
-        masterOutputStage_.reset();
+        plusMasterFX_.prepare(sampleRate_);
+        expandedRack_.prepare(sampleRate_);
+        masterOutputStage_.prepare(sampleRate_);
         reset();
     }
 
@@ -42,8 +48,11 @@ public:
         bufferReadPos_ = kNeuronInternalBlockSize; // Forzar cálculo de nuevo bloque al primer pedido
         globalSlicer_.reset();
         silverRack_.reset();
+        plusRack_.reset();
+        expandedRack_.reset();
         masterModFX_.reset();
         masterTimeFX_.reset();
+        plusMasterFX_.reset();
         masterOutputStage_.reset();
     }
 
@@ -60,12 +69,38 @@ public:
     CMasterTimeFX& getMasterTimeFX() noexcept { return masterTimeFX_; }
     const CMasterTimeFX& getMasterTimeFX() const noexcept { return masterTimeFX_; }
 
+    DspAxionikPlusRack& getPlusRack() noexcept { return plusRack_; }
+    const DspAxionikPlusRack& getPlusRack() const noexcept { return plusRack_; }
+
+    DspAxionikPlusMasterFX& getPlusMasterFX() noexcept { return plusMasterFX_; }
+    const DspAxionikPlusMasterFX& getPlusMasterFX() const noexcept { return plusMasterFX_; }
+
+    void setUsePlusRack(bool enabled) noexcept { usePlusRack_ = enabled; }
+    [[nodiscard]] bool getUsePlusRack() const noexcept { return usePlusRack_; }
+
+    DspAxionikExpandedRack& getExpandedRack() noexcept { return expandedRack_; }
+    const DspAxionikExpandedRack& getExpandedRack() const noexcept { return expandedRack_; }
+
+    void setUseExpandedRack(bool enabled) noexcept { useExpandedRack_ = enabled; }
+    [[nodiscard]] bool getUseExpandedRack() const noexcept { return useExpandedRack_; }
+
     CMasterOutputStage& getMasterOutputStage() noexcept { return masterOutputStage_; }
     const CMasterOutputStage& getMasterOutputStage() const noexcept { return masterOutputStage_; }
 
     /// Conmutador de modo de limitación: false (por defecto) = clamp limpio [-1.0, +1.0]; true = bug histórico Clip-to-Zero de 0x1000bc40
     void setOracleClipToZeroMode(bool enabled) noexcept { oracleClipToZeroMode_ = enabled; }
     [[nodiscard]] bool getOracleClipToZeroMode() const noexcept { return oracleClipToZeroMode_; }
+
+    void setCalibrationConfig(const NeuronCalibrationConfig& cfg) noexcept {
+        globalSlicer_.setCalibration(cfg.slicerMaxDelaySamples);
+        masterOutputStage_.setCalibration(cfg.masterInputBusScale,
+                                          cfg.masterBassTiltGain,
+                                          cfg.masterTrebleTiltGain,
+                                          cfg.masterSoftKneeThresh,
+                                          cfg.masterSoftKneeRatio);
+        masterTimeFX_.setCalibration(cfg.masterReverbFdnBlend);
+        setOracleClipToZeroMode(cfg.oracleClipToZeroMode > 0.5f);
+    }
 
     /// Callback opcional para inyectar los Resynators v2 (modo expanded) en el bus de voces
     /// ANTES del Blender/Slicer/SilverRack/MasterFX (paridad con la cadena original Neuron).
@@ -172,18 +207,47 @@ private:
         // 3. Configurar el Slicer Global (FUN_100295d0 en e[0xd94])
         globalSlicer_.setParameters(slicerType, slicerDepth, slicerRateHz, slicerWave);
 
-        // 4. Cadena maestra por muestra (FUN_100295d0 -> FUN_10029e34 -> MasterFX -> FUN_100382b0 L1720-1775)
-        for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
-            globalSlicer_.process(internalLeft_[i], internalRight_[i]);
-            silverRack_.process(internalLeft_[i], internalRight_[i]);
-            masterModFX_.process(internalLeft_[i], internalRight_[i]);
-            masterTimeFX_.process(internalLeft_[i], internalRight_[i]);
-            masterOutputStage_.process(internalLeft_[i], internalRight_[i]);
+        // 4. Cadena maestra por muestra / bloque (Expanded, Plus o Classic)
+        if (useExpandedRack_) {
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                globalSlicer_.process(internalLeft_[i], internalRight_[i]);
+            }
+            expandedRack_.getFreqFX().processBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize);
+            expandedRack_.getTimeFX().processBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize);
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                masterModFX_.process(internalLeft_[i], internalRight_[i]);
+            }
+            expandedRack_.getMasterFX().processBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize);
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                masterOutputStage_.process(internalLeft_[i], internalRight_[i]);
+            }
+        } else if (usePlusRack_) {
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                globalSlicer_.process(internalLeft_[i], internalRight_[i]);
+            }
+            plusRack_.processBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize);
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                masterModFX_.process(internalLeft_[i], internalRight_[i]);
+            }
+            plusMasterFX_.processBlock(internalLeft_.data(), internalRight_.data(), kNeuronInternalBlockSize);
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                masterOutputStage_.process(internalLeft_[i], internalRight_[i]);
+            }
+        } else {
+            for (size_t i = 0; i < kNeuronInternalBlockSize; ++i) {
+                globalSlicer_.process(internalLeft_[i], internalRight_[i]);
+                silverRack_.process(internalLeft_[i], internalRight_[i]);
+                masterModFX_.process(internalLeft_[i], internalRight_[i]);
+                masterTimeFX_.process(internalLeft_[i], internalRight_[i]);
+                masterOutputStage_.process(internalLeft_[i], internalRight_[i]);
+            }
         }
     }
 
     double sampleRate_{44100.0};
     bool oracleClipToZeroMode_{false};
+    bool usePlusRack_{false};
+    bool useExpandedRack_{false};
     ExpandedVoiceRenderCallback expandedVoiceRenderCb_{};
 
     // Buffers internos de 128 muestras
@@ -194,11 +258,14 @@ private:
     size_t bufferReadPos_{kNeuronInternalBlockSize};
 
     // Racks de procesamiento DSP
-    CGlobalSlicer      globalSlicer_;
-    CSilverRack        silverRack_;
-    CMasterModFX       masterModFX_;
-    CMasterTimeFX      masterTimeFX_;
-    CMasterOutputStage masterOutputStage_;
+    CGlobalSlicer          globalSlicer_;
+    CSilverRack            silverRack_;
+    DspAxionikPlusRack     plusRack_;
+    DspAxionikExpandedRack expandedRack_;
+    CMasterModFX           masterModFX_;
+    CMasterTimeFX          masterTimeFX_;
+    DspAxionikPlusMasterFX plusMasterFX_;
+    CMasterOutputStage     masterOutputStage_;
 };
 
 } // namespace abd::dsp::neuron

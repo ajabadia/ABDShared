@@ -83,4 +83,33 @@ describe('SynthNavBar Component (ABDShared)', () => {
     nav.destroy();
     document.body.removeChild(container);
   });
+
+  it('soporta setLocale() y actualiza textos y triggers dinámicamente', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const nav = new SynthNavBar({
+      container,
+      locale: 'en',
+      aboutDialog: false,
+    });
+
+    const fileTrigger = nav.element.querySelector('.nav-menu-trigger[data-menu="File"]');
+    expect(fileTrigger.textContent.trim()).toBe('File');
+
+    nav.setLocale('es');
+    expect(fileTrigger.textContent.trim()).toBe('Archivo');
+
+    fileTrigger.click();
+    const item = nav.dropdownEl.querySelector('button[data-action="initBank"]');
+    expect(item.textContent).toContain('Iniciar Banco');
+
+    nav.setLocale('en');
+    expect(fileTrigger.textContent.trim()).toBe('File');
+    const itemEn = nav.dropdownEl.querySelector('button[data-action="initBank"]');
+    expect(itemEn.textContent).toContain('Init Bank');
+
+    nav.destroy();
+    document.body.removeChild(container);
+  });
 });

@@ -157,7 +157,10 @@ public:
         AlgoSpWarp       = 4
     };
 
-    DspNeuronSilverFreqFX() noexcept
+    static constexpr size_t kXoBufSize = 96000;
+
+    DspNeuronSilverFreqFX()
+        : xoBuffer_(kXoBufSize, 0.0f)
     {
         prepare(44100.0);
     }
@@ -165,6 +168,10 @@ public:
     void prepare(double sampleRate) noexcept
     {
         sampleRate_ = (sampleRate > 1000.0) ? sampleRate : 44100.0;
+        acPole_ = (std::abs(sampleRate_ - 44100.0) < 0.5)
+                      ? 0.99f
+                      : static_cast<float>(std::pow(0.99, 44100.0 / sampleRate_));
+        recomputeAllEqCoeffs();
         reset();
     }
 
@@ -178,7 +185,7 @@ public:
         dcFilterL_ = dcFilterR_ = 0.0f;
         distPrevYL_ = distPrevYR_ = 0.0f;
         distPrevHpL_ = distPrevHpR_ = 0.0f;
-        xoBuffer_.fill(0.0f);
+        std::fill(xoBuffer_.begin(), xoBuffer_.end(), 0.0f);
         xoWritePos_ = 0;
         swStateL_.fill(0.0f);
         swStateR_.fill(0.0f);
@@ -187,8 +194,23 @@ public:
         compEnv_ = 0.0f;
     }
 
-    void setEnabled(bool enabled) noexcept { enabled_ = enabled; }
-    void setAlgorithm(int algo) noexcept { algorithm_ = std::clamp(algo, 0, 4); }
+    /// Corrección Mac 1.56: limpia colas/estados al activar o cambiar algoritmo
+    void setEnabled(bool enabled) noexcept
+    {
+        if (enabled && !enabled_) {
+            reset();
+        }
+        enabled_ = enabled;
+    }
+
+    void setAlgorithm(int algo) noexcept
+    {
+        const int clamped = std::clamp(algo, 0, 4);
+        if (clamped != algorithm_) {
+            algorithm_ = clamped;
+            reset();
+        }
+    }
 
     /// Configuración de EQ de 4 bandas (CurFreqFX = 0, FUN_1002d3d4 / FUN_100343e4)
     void setEQParams(bool eqSwitch,
@@ -201,28 +223,30 @@ public:
         eqBandSwitch_ = { lsSwitch, b1Switch, b2Switch, hsSwitch };
 
         // Banda 0: Low Shelf (20..800 Hz, Gain -12..+12 dB)
-        float f0 = 30.0f * std::pow(25.0f, std::clamp(lsFreqNorm, 0.0f, 1.0f));
-        float g0 = std::clamp(lsGainDb * 0.25f, -12.0f, 12.0f);
-        float q0 = 0.5f + std::clamp(lsSlopeNorm, 0.0f, 1.0f) * 1.2f;
-        computeBiquadCoeffs(0, 0, f0, g0, q0);
+        eqBandSpec_[0] = { 0,
+                           30.0f * std::pow(25.0f, std::clamp(lsFreqNorm, 0.0f, 1.0f)),
+                           std::clamp(lsGainDb * 0.25f, -12.0f, 12.0f),
+                           0.5f + std::clamp(lsSlopeNorm, 0.0f, 1.0f) * 1.2f };
 
         // Banda 1: Parametric Band 1 (80..4000 Hz, Gain -12..+12 dB)
-        float f1 = 80.0f * std::pow(50.0f, std::clamp(b1FreqNorm, 0.0f, 1.0f));
-        float g1 = std::clamp(b1GainDb * 0.25f, -12.0f, 12.0f);
-        float q1 = 0.5f + std::clamp(b1QNorm, 0.0f, 1.0f) * 6.0f;
-        computeBiquadCoeffs(1, 1, f1, g1, q1);
+        eqBandSpec_[1] = { 1,
+                           80.0f * std::pow(50.0f, std::clamp(b1FreqNorm, 0.0f, 1.0f)),
+                           std::clamp(b1GainDb * 0.25f, -12.0f, 12.0f),
+                           0.5f + std::clamp(b1QNorm, 0.0f, 1.0f) * 6.0f };
 
         // Banda 2: Parametric Band 2 (250..10000 Hz, Gain -12..+12 dB)
-        float f2 = 250.0f * std::pow(40.0f, std::clamp(b2FreqNorm, 0.0f, 1.0f));
-        float g2 = std::clamp(b2GainDb * 0.25f, -12.0f, 12.0f);
-        float q2 = 0.5f + std::clamp(b2QNorm, 0.0f, 1.0f) * 6.0f;
-        computeBiquadCoeffs(2, 1, f2, g2, q2);
+        eqBandSpec_[2] = { 1,
+                           250.0f * std::pow(40.0f, std::clamp(b2FreqNorm, 0.0f, 1.0f)),
+                           std::clamp(b2GainDb * 0.25f, -12.0f, 12.0f),
+                           0.5f + std::clamp(b2QNorm, 0.0f, 1.0f) * 6.0f };
 
         // Banda 3: High Shelf (1000..16000 Hz, Gain -12..+12 dB)
-        float f3 = 1000.0f * std::pow(16.0f, std::clamp(hsFreqNorm, 0.0f, 1.0f));
-        float g3 = std::clamp(hsGainDb * 0.25f, -12.0f, 12.0f);
-        float q3 = 0.5f + std::clamp(hsSlopeNorm, 0.0f, 1.0f) * 1.2f;
-        computeBiquadCoeffs(3, 2, f3, g3, q3);
+        eqBandSpec_[3] = { 2,
+                           1000.0f * std::pow(16.0f, std::clamp(hsFreqNorm, 0.0f, 1.0f)),
+                           std::clamp(hsGainDb * 0.25f, -12.0f, 12.0f),
+                           0.5f + std::clamp(hsSlopeNorm, 0.0f, 1.0f) * 1.2f };
+
+        recomputeAllEqCoeffs();
     }
 
     /// Configuración de Compresor (CurFreqFX = 0, FUN_1003785c)
@@ -283,14 +307,15 @@ public:
 
         float dryL = l;
         float dryR = r;
+        const double srRatio = (std::abs(sampleRate_ - 44100.0) < 0.5) ? 1.0 : (sampleRate_ / 44100.0);
 
         switch (algorithm_)
         {
             case AlgoDistortion:
             {
                 // Réplica 1:1 de FUN_10029e34 líneas 164-240:
-                // Pre-filtro paso bajo de 1 polo con constante _DAT_1030b4a8 = 30.0
-                double d12 = 30.0 * static_cast<double>(dsPreFilter_);
+                // Pre-filtro paso bajo de 1 polo con constante _DAT_1030b4a8 = 30.0 escalada por sampleRate
+                double d12 = 30.0 * static_cast<double>(dsPreFilter_) * srRatio;
                 double d13 = 1.0 / (1.0 + d12);
 
                 preFilterL_ = static_cast<float>((static_cast<double>(preFilterL_) * d12 + static_cast<double>(l)) * d13);
@@ -300,8 +325,8 @@ public:
                 float xL = preFilterL_ * 25.0f * dsInGain_;
                 float xR = preFilterR_ * 25.0f * dsInGain_;
 
-                float curvedL = applyDistortionCurve(xL, dsCurveType_, distPrevYL_, distPrevHpL_);
-                float curvedR = applyDistortionCurve(xR, dsCurveType_, distPrevYR_, distPrevHpR_);
+                float curvedL = applyDistortionCurve(xL, dsCurveType_, distPrevYL_, distPrevHpL_, acPole_);
+                float curvedR = applyDistortionCurve(xR, dsCurveType_, distPrevYR_, distPrevHpR_, acPole_);
 
                 l = curvedL * dsOutGain_;
                 r = curvedR * dsOutGain_;
@@ -317,14 +342,15 @@ public:
                 float lfoVal = DspNeuronLfoTables::readInterpolated(rmWave_, lfoPhase_);
 
                 // Frecuencia instantánea modulada: modFreq * (1 + lfo * depth)
-                float instFreq = std::clamp(rmFreq_ * (1.0f + lfoVal * rmDepth_), 0.0f, 20000.0f);
+                float maxCarrierHz = std::min(20000.0f, static_cast<float>(sampleRate_ * 0.48));
+                float instFreq = std::clamp(rmFreq_ * (1.0f + lfoVal * rmDepth_), 0.0f, maxCarrierHz);
                 phase_ += 6.28318530717958647692 * static_cast<double>(instFreq) / sampleRate_;
                 if (phase_ >= 6.28318530717958647692) phase_ -= 6.28318530717958647692;
 
                 // Portadora cosenoidal (DAT_103017e0 en FUN_10029e34 L276)
                 float carrier = static_cast<float>(std::cos(phase_));
 
-                // Línea de retardo Crossover mono (buffer 0x56384 en FUN_10029e34 L281-306)
+                // Línea de retardo Crossover mono (buffer 96000 soporta 500 ms hasta 192 kHz)
                 size_t bufSize = xoBuffer_.size();
                 size_t dSamples = static_cast<size_t>(rmXover_ * (sampleRate_ * 0.5));
                 dSamples = std::clamp(dSamples, size_t(1), bufSize - 1);
@@ -345,13 +371,14 @@ public:
             case AlgoDecimator:
             {
                 // Réplica 1:1 de FUN_10029e34 líneas 315-350:
-                // Pre-filtro de 1 polo con constante _DAT_1030b588 = 50.0
-                double d12 = 50.0 * static_cast<double>(1.0f - dcCutoff_);
+                // Pre-filtro de 1 polo con constante _DAT_1030b588 = 50.0 y S&H invariantes a sampleRate
+                double d12 = 50.0 * static_cast<double>(1.0f - dcCutoff_) * srRatio;
                 double d13 = 1.0 / (1.0 + d12);
                 dcFilterL_ = static_cast<float>((static_cast<double>(dcFilterL_) * d12 + static_cast<double>(dryL)) * d13);
                 dcFilterR_ = static_cast<float>((static_cast<double>(dcFilterR_) * d12 + static_cast<double>(dryR)) * d13);
 
-                if (++shCounter_ >= dcSHFactor_)
+                const int effSHFactor = std::max(1, static_cast<int>(std::round(static_cast<double>(dcSHFactor_) * srRatio)));
+                if (++shCounter_ >= effSHFactor)
                 {
                     shCounter_ = 0;
                     heldL_ = dcFilterL_;
@@ -371,7 +398,8 @@ public:
 
                 // Frecuencia modulada (FUN_10029e34 L366: freq + lfo * depth * 22050)
                 float baseHz = 80.0f + swFreq_ * swFreq_ * 12000.0f;
-                float modHz = std::clamp(baseHz + lfoVal * swDepth_ * 4000.0f, 40.0f, 18000.0f);
+                float maxWarpHz = std::min(18000.0f, static_cast<float>(sampleRate_ * 0.45));
+                float modHz = std::clamp(baseHz + lfoVal * swDepth_ * 4000.0f, 40.0f, maxWarpHz);
                 float w0 = 6.2831853f * modHz / static_cast<float>(sampleRate_);
                 float q = 0.707f + swTilt_ * 8.0f;
                 float alpha = std::sin(w0) / (2.0f * q);
@@ -459,8 +487,23 @@ public:
     }
 
 private:
+    struct EqBandSpec {
+        int type{0};
+        float freqHz{1000.0f};
+        float gainDb{0.0f};
+        float q{0.707f};
+    };
+
+    void recomputeAllEqCoeffs() noexcept
+    {
+        for (size_t b = 0; b < 4; ++b) {
+            const auto& sp = eqBandSpec_[b];
+            computeBiquadCoeffs(b, sp.type, sp.freqHz, sp.gainDb, sp.q);
+        }
+    }
+
     /// Las 6 curvas exactas de distorsión de FUN_10029e34 líneas 193-235
-    static float applyDistortionCurve(float in, int curve, float& prevY, float& prevHp) noexcept
+    static float applyDistortionCurve(float in, int curve, float& prevY, float& prevHp, float acPole) noexcept
     {
         switch (curve)
         {
@@ -479,7 +522,7 @@ private:
                 float u  = xc + 1.0f;
                 float u2 = u * u;
                 float y  = (u2 * u2 - 1.0f) * 0.33333334f; // _DAT_1030b4f8 = 1/3
-                float hp = (y - prevY) + prevHp * 0.99f;    // _DAT_1030b500 = 0.99
+                float hp = (y - prevY) + prevHp * acPole;   // _DAT_1030b500 = 0.99 a 44.1 kHz
                 prevY  = y;
                 prevHp = hp;
                 return hp * 0.5f;                           // _DAT_1030b508 = 0.5
@@ -489,7 +532,7 @@ private:
             {
                 float xc = std::clamp(in, -1.0f, 1.0f);
                 float y  = xc * xc * 2.0f - 1.0f;
-                float hp = (y - prevY) + prevHp * 0.99f;
+                float hp = (y - prevY) + prevHp * acPole;
                 prevY  = y;
                 prevHp = hp;
                 return hp * 0.5f;
@@ -499,7 +542,7 @@ private:
             {
                 float xc = std::clamp(in, -1.0f, 1.0f);
                 float y  = xc * xc * xc;
-                float hp = (y - prevY) + prevHp * 0.99f;
+                float hp = (y - prevY) + prevHp * acPole;
                 prevY  = y;
                 prevHp = hp;
                 return hp * 0.5f;
@@ -552,12 +595,19 @@ private:
     }
 
     double sampleRate_{44100.0};
+    float acPole_{0.99f};
     bool enabled_{false};
     int algorithm_{0};
 
     // EQ & Compressor (CurFreqFX = 0)
     bool eqEnabled_{false};
     std::array<bool, 4> eqBandSwitch_{ false, false, false, false };
+    std::array<EqBandSpec, 4> eqBandSpec_{{
+        { 0, 150.0f, 0.0f, 0.707f },
+        { 1, 565.0f, 0.0f, 1.0f },
+        { 1, 1580.0f, 0.0f, 1.0f },
+        { 2, 4000.0f, 0.0f, 0.707f }
+    }};
     std::array<std::array<float, 5>, 4> eqCoeffs_{{
         { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
         { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
@@ -590,7 +640,7 @@ private:
     float rmFeedback_{0.0f};
     double phase_{0.0};
     double lfoPhase_{0.0};
-    std::array<float, 44100> xoBuffer_{};
+    std::vector<float> xoBuffer_;
     size_t xoWritePos_{0};
 
     // Decimator
@@ -629,7 +679,11 @@ public:
         AlgoChorus       = 4
     };
 
-    DspNeuronSilverTimeFX() noexcept
+    static constexpr size_t kDelayBufSize = 131072; // Potencia de 2: soporta 1000 ms a 96 kHz (96000 muestras)
+
+    DspNeuronSilverTimeFX()
+        : delayBufferL_(kDelayBufSize, 0.0f),
+          delayBufferR_(kDelayBufSize, 0.0f)
     {
         prepare(44100.0);
     }
@@ -642,8 +696,8 @@ public:
 
     void reset() noexcept
     {
-        delayBufferL_.fill(0.0f);
-        delayBufferR_.fill(0.0f);
+        std::fill(delayBufferL_.begin(), delayBufferL_.end(), 0.0f);
+        std::fill(delayBufferR_.begin(), delayBufferR_.end(), 0.0f);
         writePos_ = 0;
         lfoPhase_ = 0.0;
         smoothMix_ = 0.0f;
@@ -651,8 +705,23 @@ public:
         smoothDelay_ = 1.0f;
     }
 
-    void setEnabled(bool enabled) noexcept { enabled_ = enabled; }
-    void setAlgorithm(int algo) noexcept { algorithm_ = std::clamp(algo, 0, 4); }
+    /// Corrección Mac 1.56: limpia buffers circulares al activar o cambiar algoritmo
+    void setEnabled(bool enabled) noexcept
+    {
+        if (enabled && !enabled_) {
+            reset();
+        }
+        enabled_ = enabled;
+    }
+
+    void setAlgorithm(int algo) noexcept
+    {
+        const int clamped = std::clamp(algo, 0, 4);
+        if (clamped != algorithm_) {
+            algorithm_ = clamped;
+            reset();
+        }
+    }
 
     /// Configuración de Stereo Spread (CurTimeFX = 0, FUN_10029e34 L388-508)
     void setStereoSpreadParams(float chanDelaySignedMs, float feedback) noexcept
@@ -688,7 +757,10 @@ public:
 
         float dryL = l;
         float dryR = r;
-        size_t bufSize = delayBufferL_.size();
+        const size_t bufSize = delayBufferL_.size();
+        const float srRatio = (std::abs(sampleRate_ - 44100.0) < 0.5)
+                                  ? 1.0f
+                                  : static_cast<float>(sampleRate_ / 44100.0);
 
         switch (algorithm_)
         {
@@ -701,7 +773,7 @@ public:
                 size_t delaySamples = static_cast<size_t>(absMs * 0.001 * sampleRate_);
                 delaySamples = std::clamp(delaySamples, size_t(1), bufSize - 1);
                 float fb = (delaySamples <= 1) ? 0.0f : ssFeedback_;
-                size_t readPos = (writePos_ + bufSize - delaySamples) % bufSize;
+                size_t readPos = (writePos_ + bufSize - delaySamples) & (bufSize - 1);
 
                 if (ssDelaySignedMs_ > 0.0f) {
                     float wetL = delayBufferL_[readPos];
@@ -720,17 +792,21 @@ public:
             case AlgoLRDelay:
             {
                 // Réplica 1:1 de FUN_10029e34 líneas 510-575:
-                // Suavizado de 1 polo (100*y + x)/101 y (10000*y + x)/10001
+                // Suavizado de 1 polo invariante a sampleRate (100/101 y 10000/10001 a 44.1 kHz)
                 float targetDelay = std::clamp(static_cast<float>(lrdTimeMs_ * 0.001 * sampleRate_), 1.0f, static_cast<float>(bufSize - 2));
-                smoothMix_   = (smoothMix_ * 100.0f + lrdMix_) * (1.0f / 101.0f);
-                smoothFb_    = (smoothFb_ * 100.0f + lrdFeedback_) * (1.0f / 101.0f);
-                smoothDelay_ = (smoothDelay_ * 10000.0f + targetDelay) * (1.0f / 10001.0f);
+                const float k100 = 100.0f * srRatio;
+                const float invK101 = 1.0f / (k100 + 1.0f);
+                const float k10000 = 10000.0f * srRatio;
+                const float invK10001 = 1.0f / (k10000 + 1.0f);
+                smoothMix_   = (smoothMix_ * k100 + lrdMix_) * invK101;
+                smoothFb_    = (smoothFb_ * k100 + lrdFeedback_) * invK101;
+                smoothDelay_ = (smoothDelay_ * k10000 + targetDelay) * invK10001;
 
                 size_t delaySamplesL = std::clamp(static_cast<size_t>(smoothDelay_), size_t(1), bufSize - 1);
                 size_t delaySamplesR = std::max(size_t(1), delaySamplesL >> 1); // Mitad exacta en R (FUN_10029e34 L547)
 
-                size_t readPosL = (writePos_ + bufSize - delaySamplesL) % bufSize;
-                size_t readPosR = (writePos_ + bufSize - delaySamplesR) % bufSize;
+                size_t readPosL = (writePos_ + bufSize - delaySamplesL) & (bufSize - 1);
+                size_t readPosR = (writePos_ + bufSize - delaySamplesR) & (bufSize - 1);
 
                 float wetL = delayBufferL_[readPosL];
                 float wetR = delayBufferR_[readPosR];
@@ -757,18 +833,18 @@ public:
                 float lfoL = (DspNeuronLfoTables::readInterpolated(modWave_, lfoPhase_) + 1.0f) * 0.5f;
                 float lfoR = (DspNeuronLfoTables::readInterpolated(modWave_, phaseR) + 1.0f) * 0.5f;
 
-                float maxSamples = 500.0f;  // Flanger: _DAT_1030b838 = 500.0
-                float preSamples = 1.0f;
+                float maxSamples = 500.0f * srRatio;  // Flanger: _DAT_1030b838 = 500.0 a 44.1 kHz
+                float preSamples = srRatio;
                 float fbScale    = 0.98f;
                 float signPolarity = 1.0f;
 
                 if (algorithm_ == AlgoPhaser) {
-                    maxSamples   = 125.0f;  // Phaser: _DAT_1030b880 = 125.0
-                    fbScale      = -0.99f;  // Realimentación negativa (FUN_10029e34 L1165)
-                    signPolarity = -1.0f;   // Mezcla sustractiva (FUN_10029e34 L1177)
+                    maxSamples   = 125.0f * srRatio;  // Phaser: _DAT_1030b880 = 125.0 a 44.1 kHz
+                    fbScale      = -0.99f;            // Realimentación negativa (FUN_10029e34 L1165)
+                    signPolarity = -1.0f;             // Mezcla sustractiva (FUN_10029e34 L1177)
                 } else if (algorithm_ == AlgoChorus) {
-                    maxSamples   = 5000.0f; // Chorus: _DAT_1030b8b0 = 5000.0
-                    preSamples   = 1.0f + modPreDelay_ * 5000.0f;
+                    maxSamples   = 5000.0f * srRatio; // Chorus: _DAT_1030b8b0 = 5000.0 a 44.1 kHz
+                    preSamples   = srRatio + modPreDelay_ * 5000.0f * srRatio;
                     fbScale      = 0.99f;
                 }
 
@@ -791,11 +867,11 @@ public:
                 break;
         }
 
-        writePos_ = (writePos_ + 1) % bufSize;
+        writePos_ = (writePos_ + 1) & (bufSize - 1);
     }
 
 private:
-    static inline float readFractional(const std::array<float, 65536>& buf, size_t writePos, float delaySamples) noexcept
+    static inline float readFractional(const std::vector<float>& buf, size_t writePos, float delaySamples) noexcept
     {
         size_t bufSize = buf.size();
         size_t i0 = static_cast<size_t>(delaySamples);
@@ -832,8 +908,8 @@ private:
     double lfoPhase_{0.0};
 
     size_t writePos_{0};
-    std::array<float, 65536> delayBufferL_{};
-    std::array<float, 65536> delayBufferR_{};
+    std::vector<float> delayBufferL_;
+    std::vector<float> delayBufferR_;
 };
 
 // ============================================================================

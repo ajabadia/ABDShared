@@ -54,6 +54,7 @@ public:
 
     float nextSample();
     float getUnipolar() const;
+    float getFadeGain() const { return lastFadeGain; }
 
 private:
     double sampleRate  = 44100.0;
@@ -72,7 +73,8 @@ private:
     double phaseIncrement      = 0.0;
     double delaySamplesElapsed = 0.0;
 
-    float lastOutput = 0.0f;
+    float lastOutput   = 0.0f;
+    float lastFadeGain = 1.0f;
     float targetSH   = 0.0f;
     float currentSH  = 0.0f;
 

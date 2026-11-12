@@ -138,6 +138,21 @@ public:
             }
         }
 
+        // 1b. Extraer parameterSet desde manifest.json o metadata si existe
+        auto manifestFile = folderPath / "manifest.json";
+        if (std::filesystem::exists(manifestFile)) {
+            std::ifstream in(manifestFile);
+            std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            auto pos = content.find("\"parameterSet\":");
+            if (pos != std::string::npos) {
+                pos += 15;
+                while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) ++pos;
+                try {
+                    parameterSet_ = std::clamp(std::stoi(content.substr(pos)), 0, 9);
+                } catch (...) {}
+            }
+        }
+
         // 2. Cargar fuentes .scape y .sphere
         sources_.clear();
         for (int i = 1; i <= static_cast<int>(kMaxModelSources); ++i) {
@@ -172,9 +187,11 @@ public:
         char buf[32];
         if (modelSlotNumber == 511) {
             name_ = "sinew";
+            parameterSet_ = 0;
         } else {
             std::snprintf(buf, sizeof(buf), "Model #%03d", std::clamp(modelSlotNumber, 0, 511));
             name_ = buf;
+            parameterSet_ = modelSlotNumber % 10;
         }
 
         // 1. Construir chunk csAN (.scape) de 100 muestras int16 (0x104 + 200 = 460 bytes)
@@ -283,6 +300,8 @@ public:
     }
 
     [[nodiscard]] const std::string& getName() const noexcept { return name_; }
+    [[nodiscard]] int getParameterSet() const noexcept { return parameterSet_; }
+    void setParameterSet(int ps) noexcept { parameterSet_ = std::clamp(ps, 0, 9); }
     [[nodiscard]] const std::array<ModelZoneRecord, kMidiKeysCount>& getKeyZones() const noexcept { return keyZones_; }
 
 private:
@@ -425,6 +444,7 @@ private:
 
     std::filesystem::path modelPath_;
     std::string name_{"InitModel"};
+    int parameterSet_{0};
     std::vector<SourcePair> sources_;
     std::array<ModelZoneRecord, kMidiKeysCount> keyZones_{};
 };

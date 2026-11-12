@@ -156,10 +156,12 @@ public:
                 const float envelope  = 0.5f * (1.0f + std::cos(3.141592653589793f * progress));
                 const float grainGain = envelope * grains[g].gain;
 
-                wetL += sampL * grainGain;
-                wetR += sampR * grainGain;
+                const float panL      = std::cos(0.5f * 3.141592653589793f * (1.0f - grains[g].pan));
+                const float panR      = std::sin(0.5f * 3.141592653589793f * (1.0f - grains[g].pan));
+                wetL += sampL * grainGain * panL;
+                wetR += sampR * grainGain * panR;
 
-                grains[g].readPos += static_cast<int>(grains[g].pitchRatio);
+                grains[g].readPos += grains[g].pitchRatio;
                 grains[g].age++;
                 if (grains[g].age >= grains[g].length)
                     grains[g].active = false;
@@ -182,7 +184,7 @@ private:
     struct Grain
     {
         bool active      = false;
-        int readPos      = 0;
+        float readPos    = 0.0f;
         int length       = 0;
         int age          = 0;
         float pitchRatio = 1.0f;
@@ -202,7 +204,7 @@ private:
         const float pitchRatio = std::pow(2.0f, (pitchParam - 0.5f) * 2.0f);
 
         grains[nextGrainIdx].active     = true;
-        grains[nextGrainIdx].readPos    = (ringWritePos - grainLen + bufLen * 2) % bufLen;
+        grains[nextGrainIdx].readPos    = static_cast<float>((ringWritePos - grainLen + bufLen * 2) % bufLen);
         grains[nextGrainIdx].length     = grainLen;
         grains[nextGrainIdx].age        = 0;
         grains[nextGrainIdx].pitchRatio = pitchRatio;

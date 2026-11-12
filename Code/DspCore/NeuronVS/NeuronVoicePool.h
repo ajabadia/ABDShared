@@ -12,11 +12,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace abd::dsp::neuron {
 
 inline constexpr size_t kMaxSynthVoices =
-    12; // Coincide con SoundNumVoices máximo en presets
+    32; // Coincide con SoundNumVoices máximo en presets (hasta 32 voces)
 
 class NeuronVoicePool {
 public:
@@ -38,6 +39,20 @@ public:
 
   void setMaxActiveVoices(size_t maxVoices) noexcept {
     maxActiveVoices_ = std::clamp<size_t>(maxVoices, 1, kMaxSynthVoices);
+  }
+
+  void setUsePlusFilter(bool usePlus) noexcept {
+    usePlusFilter_ = usePlus;
+    for (auto &v : voices_) {
+      v.setUsePlusFilter(usePlus);
+    }
+  }
+
+  void setCalibrationConfig(const NeuronCalibrationConfig &cfg) noexcept {
+    setMaxActiveVoices(static_cast<size_t>(std::clamp(std::round(cfg.maxPolyphonyVoices), 1.0f, 32.0f)));
+    for (auto &v : voices_) {
+      v.setCalibrationConfig(cfg);
+    }
   }
 
   void setVelocitySwitchThresholds(float r1VelSwitchNorm,
@@ -141,9 +156,7 @@ public:
       auto &resy = (resynator == 0) ? v.getR1() : v.getR2();
       resy.setLayerCoordinates(layerIdx, sc1, sc2, sp1, sp2);
       resy.setLayerLevel(layerIdx, level);
-      if (layerIdx == 0) {
-        v.setBaseLayer0Coords(resynator, sc1, sc2, sp1, sp2);
-      }
+      v.setBaseLayerCoords(resynator, layerIdx, sc1, sc2, sp1, sp2);
     }
   }
 
@@ -212,8 +225,7 @@ public:
     }
   }
 
-  /// Actualiza envolvente libre (FreeEnv) para R1 (0) o R2 (1) y su
-  /// enrutamiento en todas las voces
+  /// Actualiza envolvente libre ADSR (FreeEnv) para R1 (0) o R2 (1)
   void updateFreeEnvelopes(int resynator, float aNorm, float dNorm,
                            float sLevel, float rNorm, bool repeatMode = false,
                            int dest = 1, float depthNorm = 0.0f,
@@ -228,13 +240,53 @@ public:
     }
   }
 
+  /// Actualiza parámetros ADSR libres sin pisar la matriz de enrutamiento completa
+  void updateFreeAdsrParameters(int resynator, float aNorm, float dNorm,
+                                float sLevel, float rNorm,
+                                bool repeatMode = false) noexcept {
+    for (auto &v : voices_) {
+      auto &env = (resynator == 0) ? v.getR1FreeEnv() : v.getR2FreeEnv();
+      env.setParameters(aNorm, dNorm, sLevel, rNorm);
+      env.setRepeatMode(repeatMode);
+    }
+  }
+
+  /// Actualiza la envolvente bipolar de 4 Niveles y 4 Tiempos (4L4T, [242..250])
+  void updateFree4L4TEnvelope(float level1Bipolar, float level2Bipolar,
+                              float level3Bipolar, float level4Bipolar,
+                              float time1Norm, float time2Norm,
+                              float time3Norm, float time4Norm,
+                              bool repeatMode) noexcept {
+    for (auto &v : voices_) {
+      v.getFree4L4TEnv().setParameters(level1Bipolar, level2Bipolar,
+                                       level3Bipolar, level4Bipolar, time1Norm,
+                                       time2Norm, time3Norm, time4Norm,
+                                       repeatMode);
+    }
+  }
+
+  /// Actualiza el tipo de FreeEnv (0=Dual ADSR, 1=4L4T) y sus profundidades desacopladas
+  void updateFreeEnvRoutingConfig(const FreeEnvRoutingConfig &cfg) noexcept {
+    for (auto &v : voices_) {
+      v.setFreeEnvRoutingConfig(cfg);
+    }
+  }
+
+  /// Actualiza las profundidades de modulación de ResEnv por capa (L1=0, L2=1, L3=2)
+  void updateResEnvLayerModDepths(int resynator, size_t layerIdx, float sc1D,
+                                  float sc2D, float sp1D, float sp2D,
+                                  float velDepth = 0.0f) noexcept {
+    for (auto &v : voices_) {
+      v.setResEnvLayerModDepths(resynator, layerIdx, sc1D, sc2D, sp1D, sp2D,
+                                velDepth);
+    }
+  }
+
   /// Actualiza las profundidades de modulación de ResEnv ([188..199],
   /// [218..229]) y su velocidad ([187], [217])
   void updateResEnvModDepths(int resynator, float sc1D, float sc2D, float sp1D,
                              float sp2D, float velDepth = 0.0f) {
-    for (auto &v : voices_) {
-      v.setResEnvModDepths(resynator, sc1D, sc2D, sp1D, sp2D, velDepth);
-    }
+    updateResEnvLayerModDepths(resynator, 0, sc1D, sc2D, sp1D, sp2D, velDepth);
   }
 
   /// Actualiza la sensibilidad a la velocidad de la envolvente de filtro
@@ -293,7 +345,8 @@ private:
   float r1VelSwitchNorm_{0.5f};
   float r2VelSwitchNorm_{0.5f};
   float currentPolyGain_{1.0f};
-  std::array<NeuronVoice, kMaxSynthVoices> voices_;
+  bool usePlusFilter_{false};
+  std::vector<NeuronVoice> voices_{kMaxSynthVoices};
 };
 
 } // namespace abd::dsp::neuron

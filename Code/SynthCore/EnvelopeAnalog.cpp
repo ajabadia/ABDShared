@@ -137,24 +137,24 @@ float EnvelopeAnalog::nextSample()
 
     if (currentStage == Stage::kSustain)
     {
-        // Sustain curve: modula sutilmente el nivel sostenido sobre el tiempo
+        // Sustain Slope continuo (hardware DM12 bytes 60/69/78, verificado en HIL 3B):
         //   curve=0:  sustain plano (comportamiento estándar)
-        //   curve<0:  el nivel decrece gradualmente (slow fade)
-        //   curve>0:  el nivel crece gradualmente (slow swell)
-        currentProgress += progressIncrement;
-        if (currentProgress >= 1.0) currentProgress = 1.0;
-
-        float curveMod = 0.0f;
-        if (std::abs(sustainCurve) > 0.005f)
+        //   curve<0:  el nivel cae progresivamente hacia 0.0 (piano-like decay)
+        //   curve>0:  el nivel sube progresivamente hacia 1.0 (swell)
+        const float effectiveSustainCurve = std::clamp(sustainCurve + curveModulation[(int)Stage::kSustain], -1.0f, 1.0f);
+        if (std::abs(effectiveSustainCurve) <= 0.005f)
         {
-            float progress       = (float)currentProgress;
-            float curvedProgress = applyCurve(progress,
-                                              sustainCurve + curveModulation[(int)Stage::kSustain]);
-            // Desviación máxima: ±10% del sustain level
-            float deviation = (curvedProgress - progress) * sustainEfectivo() * 0.1f;
-            curveMod        = deviation;
+            currentLevel = sustainEfectivo();
         }
-        currentLevel = std::clamp(sustainEfectivo() + curveMod, 0.0f, 1.0f);
+        else
+        {
+            const float slopeDurationSec = std::max(0.05f, decayTime * 2.0f) * timeScale;
+            const float step = std::abs(effectiveSustainCurve) / (slopeDurationSec * (float)sampleRate);
+            if (effectiveSustainCurve < 0.0f)
+                currentLevel = std::max(0.0f, currentLevel - step);
+            else
+                currentLevel = std::min(1.0f, currentLevel + step);
+        }
         return currentLevel;
     }
 
@@ -188,6 +188,7 @@ float EnvelopeAnalog::nextSample()
             }
             else
             {
+                currentLevel = sustainEfectivo();
                 changeStage(Stage::kSustain);
             }
         }
@@ -203,10 +204,13 @@ float EnvelopeAnalog::nextSample()
 
     if (currentStage == Stage::kAttack)
     {
-        // Curva de ataque: norm 0 (internal -1) = exponential (subida rápida inicial),
-        // norm 255 (internal +1) = logarithmic (subida lenta inicial). applyCurve(+,amount)
-        // da exponent<1 -> subida rápida inicial. Se niega para invertir la polaridad.
-        curvedProgress = applyCurve(progress, -(attackCurve + curveModulation[(int)Stage::kAttack]));
+        // Curva de ataque: norm 0 (internal -1) = exponential RC (1 - (1-p)^e, subida rápida con pendiente finita),
+        // norm 255 (internal +1) = logarithmic (subida lenta inicial, p^e).
+        const float effectiveAttackCurve = std::clamp(attackCurve + curveModulation[(int)Stage::kAttack], -1.0f, 1.0f);
+        if (effectiveAttackCurve < 0.0f)
+            curvedProgress = 1.0f - applyCurve(1.0f - progress, effectiveAttackCurve);
+        else
+            curvedProgress = applyCurve(progress, -effectiveAttackCurve);
         currentLevel   = startLevel + (targetLevel - startLevel) * curvedProgress;
     }
     else if (currentStage == Stage::kDecay)

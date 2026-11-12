@@ -33,6 +33,7 @@ flowchart TD
 ### 1.1 ¿Qué pertenece a la Capa 1 (`@abdsynths/shared/i18n`)?
 Todo vocabulario y funcionalidad **común a 2 o más sintetizadores**:
 - **`common`**: Acciones universales (`Close`, `Save`, `Cancel`, `Load`, `Export`, `Import`, `Reset`, `Reset All`, `Search...`, `ALL`, `Min`, `Max`, `Default`, `MODIFIED`, `Apply`, `Discard`, etc.).
+- **`copilot`**: Componente visual unificado `CopilotShell` (pestañas `Assistant`/`Manual`/`Log`, carril colapsable `ASSISTANT`, botones de acción `Send`/`Undo`/`Clear`, etiquetas HUD `Model:`/`Zones:`/`Detected F0:`/`Instrument:` y mensajes de estado).
 - **`navbar` estándar**: Menús (`File`, `Edit`, `Mode`, `View`, `Help`), carga/guardado de bancos y presets, `Zoom`, `Color Theme`, `Language`, `Check for Updates...`, `About...`, e indicadores HUD (`PRESET:`, `VOICES:`, `CPU`).
 - **`settings` comunes**: Polifonía, panorama, rango de Pitch Bend, escala de interfaz y selector de tema.
 - **`calibration` UI**: Controles del cajón de calibración DSP (`LOAD JSON`, `EXPORT JSON`, `MODIFIED`, `RESET ALL`, `Reset Group`, tooltips de doble clic y marcadores de fábrica).

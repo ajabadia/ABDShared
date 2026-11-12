@@ -10,8 +10,10 @@
 #include "DspCore/DspNeuronEnvelope.h"
 #include "DspCore/NeuronVS/NeuronModel.h"
 #include "DspCore/NeuronVS/NeuronOscillators.h"
+#include "DspCore/NeuronVS/NeuronCalibration.h"
 #include "DspEffects/DspNeuronSilverFilter.h"
 #include "DspEffects/DspNeuronSilverRack.h"
+#include "DspEffects/DspAxionikPlusVoiceFilter.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -21,6 +23,27 @@ namespace abd::dsp::neuron {
 
 using NeuronFilter = abd::dsp::DspNeuronSilverFilter;
 using NeuronEnvelope = abd::dsp::DspNeuronEnvelope;
+using NeuronShaper4T4L = abd::dsp::DspNeuronShaper4T4L;
+
+struct FreeEnvRoutingConfig {
+  int freeEnvType{0}; // 0 = Dual ADSR ([204..211, 234..241]), 1 = 4L4T ([242..252])
+  int dest{1};        // ShaperResySelect [255]: 0=Off, 1=R1, 2=R2, 3=R1+R2, 4=Blender, 5=Filter
+  float r1AdsrDepth{0.0f};
+  float r2AdsrDepth{0.0f};
+  float tl4L4TDepth{0.0f};
+  float adsr1VelDepth{0.0f};
+  float adsr2VelDepth{0.0f};
+  float tl4L4TVelDepth{0.0f};
+  float r1Adsr1PitchDepth{0.0f};
+  float r1Adsr2PitchDepth{0.0f};
+  float r1Free4L4TPitchDepth{0.0f};
+  float r2Adsr1PitchDepth{0.0f};
+  float r2Adsr2PitchDepth{0.0f};
+  float r2Free4L4TPitchDepth{0.0f};
+  float blenderAdsr1Depth{0.0f};
+  float blenderAdsr2Depth{0.0f};
+  float blender4L4TDepth{0.0f};
+};
 
 /// Una voz individual del sintetizador Neuron (2 motores R1 y R2 de 0x6838
 /// bytes)
@@ -30,6 +53,8 @@ public:
 
   void setSampleRate(double sr) noexcept {
     sampleRate_ = sr > 0.0 ? sr : 44100.0;
+    r1Engine_.setSampleRate(sampleRate_);
+    r2Engine_.setSampleRate(sampleRate_);
     ampEnv_.setSampleRate(sampleRate_);
     r2AmpEnv_.setSampleRate(sampleRate_);
     filterEnv_.setSampleRate(sampleRate_);
@@ -37,7 +62,24 @@ public:
     r2ResEnv_.setSampleRate(sampleRate_);
     r1FreeEnv_.setSampleRate(sampleRate_);
     r2FreeEnv_.setSampleRate(sampleRate_);
+    free4L4TEnv_.setSampleRate(sampleRate_);
     filter_.setSampleRate(sampleRate_);
+    plusFilter_.setSampleRate(sampleRate_);
+  }
+
+  void setCalibrationConfig(const NeuronCalibrationConfig &cfg) noexcept {
+    calib_ = cfg;
+    r1Engine_.setCalibrationConfig(cfg);
+    r2Engine_.setCalibrationConfig(cfg);
+    ampEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    r2AmpEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    filterEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    r1ResEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    r2ResEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    r1FreeEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    r2FreeEnv_.setCalibration(cfg.envMaxTimeSeconds, cfg.envDecayExpRate, cfg.envReleaseExpRate, cfg.envSilenceThreshold);
+    free4L4TEnv_.setCalibration(cfg.envMaxTimeSeconds);
+    filter_.setCalibration(cfg.filterLp24FeedbackK, cfg.filterLp24PoleGain, cfg.filterSvfMaxHz);
   }
 
   void noteOn(uint8_t note, float velocity, const ModelZoneRecord &r1Zone,
@@ -60,9 +102,9 @@ public:
 
     // Frecuencia base de la nota
     float freqHz =
-        440.0f * std::pow(2.0f, (static_cast<float>(note) - 69.0f) / 12.0f);
+        calib_.a4ReferenceHz * std::pow(2.0f, (static_cast<float>(note) - 69.0f) / 12.0f);
     // Escala canónica de Neuron: 100 muestras/ciclo del Scape
-    basePhaseStep_ = static_cast<float>(100.0 * freqHz / sampleRate_);
+    basePhaseStep_ = static_cast<float>(static_cast<double>(calib_.scapeCycleSamples) * freqHz / sampleRate_);
     phaseStep_ = basePhaseStep_ * pitchBendFactor;
 
     // Rampa anti-click de inicio de nota (4.0 ms con curva Hermite suave)
@@ -81,6 +123,7 @@ public:
     r2ResEnv_.reset();
     r1FreeEnv_.reset();
     r2FreeEnv_.reset();
+    free4L4TEnv_.reset();
     ampEnv_.trigger(velocity);
     r2AmpEnv_.trigger(velocity);
     filterEnv_.trigger(velocity);
@@ -88,7 +131,13 @@ public:
     r2ResEnv_.trigger(velocity);
     r1FreeEnv_.trigger(velocity);
     r2FreeEnv_.trigger(velocity);
+    free4L4TEnv_.trigger(velocity);
     filter_.reset();
+    plusFilter_.reset();
+  }
+
+  void setUsePlusFilter(bool usePlus) noexcept {
+    usePlusFilter_ = usePlus;
   }
 
   void setResynatorEnabled(int resynator, bool enabled) noexcept {
@@ -114,12 +163,12 @@ public:
 
   void updateEffectiveResynatorVolumes() noexcept {
     float keyNorm = (static_cast<float>(note_) - 60.0f) / 64.0f;
-    float v1 = std::clamp(r1BaseVol_ + velocity_ * r1VelDepth_ * 0.5f +
-                              keyNorm * r1KeyTrack_ * 0.5f,
-                          0.0f, 1.5f);
-    float v2 = std::clamp(r2BaseVol_ + velocity_ * r2VelDepth_ * 0.5f +
-                              keyNorm * r2KeyTrack_ * 0.5f,
-                          0.0f, 1.5f);
+    float r1VelScale = abd::dsp::computeNeuronVelocityScale(velocity_, r1VelDepth_);
+    float r2VelScale = abd::dsp::computeNeuronVelocityScale(velocity_, r2VelDepth_);
+    float r1KeyScale = std::clamp(1.0f + keyNorm * r1KeyTrack_ * 0.5f, 0.0f, 2.0f);
+    float r2KeyScale = std::clamp(1.0f + keyNorm * r2KeyTrack_ * 0.5f, 0.0f, 2.0f);
+    float v1 = std::clamp(r1BaseVol_ * r1VelScale * r1KeyScale, 0.0f, 1.5f);
+    float v2 = std::clamp(r2BaseVol_ * r2VelScale * r2KeyScale, 0.0f, 1.5f);
     r1Engine_.setVolume(v1);
     r2Engine_.setVolume(v2);
   }
@@ -141,6 +190,7 @@ public:
     r2ResEnv_.release();
     r1FreeEnv_.release();
     r2FreeEnv_.release();
+    free4L4TEnv_.release();
   }
 
   void stop() noexcept {
@@ -151,6 +201,7 @@ public:
     r2ResEnv_.reset();
     r1FreeEnv_.reset();
     r2FreeEnv_.reset();
+    free4L4TEnv_.reset();
     declickTailL_ = 0.0f;
     declickTailR_ = 0.0f;
     lastOutL_ = 0.0f;
@@ -201,6 +252,7 @@ public:
     if (filterType != lastFilterType_) {
       lastFilterType_ = filterType;
       filter_.reset();
+      plusFilter_.reset();
     }
 
     auto fMode = static_cast<abd::dsp::DspNeuronSilverFilter::Mode>(
@@ -217,72 +269,120 @@ public:
       float env = std::max(r1Enabled_ ? env1 : 0.0f, r2Enabled_ ? env2 : 0.0f);
 
       // Envolventes dinámicas de resonador R1 y R2 (ResEnv [182..185] y
-      // [212..215]) y FreeEnv ([205..208] y [235..238])
+      // [212..215]) y FreeEnv ([204..211], [234..241] o 4L4T [242..252])
       float r1Mod = r1ResEnv_.process();
       float r2Mod = r2ResEnv_.process();
-      float f1Mod = r1FreeEnv_.process();
-      float f2Mod = r2FreeEnv_.process();
-      float freeMod = (f1Mod + f2Mod) * 0.5f * freeEnvDepth_;
+      float f1Raw = r1FreeEnv_.process();
+      float f2Raw = r2FreeEnv_.process();
+      float tlRaw = free4L4TEnv_.process();
 
-      // Modulación de coordenadas Scape/Sphere por ResEnv ([188..199],
-      // [218..229]) y FreeEnv (dest 1=R1, 2=R2, 3=R1+R2)
-      float r1VelScale =
-          std::clamp(1.0f + (velocity_ - 0.5f) * r1ResEnvVelDepth_, 0.0f, 2.0f);
-      float r2VelScale =
-          std::clamp(1.0f + (velocity_ - 0.5f) * r2ResEnvVelDepth_, 0.0f, 2.0f);
-      float r1FreeCoordMod = (freeEnvDest_ == 1 || freeEnvDest_ == 3)
-                                 ? (f1Mod * freeEnvDepth_ * 0.35f)
-                                 : 0.0f;
-      float r2FreeCoordMod = (freeEnvDest_ == 2 || freeEnvDest_ == 3)
-                                 ? (f2Mod * freeEnvDepth_ * 0.35f)
-                                 : 0.0f;
-      if (r1HasResEnvMod_ || std::abs(r1FreeCoordMod) > 0.0005f) {
-        float m = r1Mod * r1VelScale;
-        r1Engine_.setLayerCoordinates(
-            0,
-            std::clamp(r1BaseCoords_[0] + m * r1ResEnvDepths_[0] +
-                           r1FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r1BaseCoords_[1] + m * r1ResEnvDepths_[1] +
-                           r1FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r1BaseCoords_[2] + m * r1ResEnvDepths_[2] +
-                           r1FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r1BaseCoords_[3] + m * r1ResEnvDepths_[3] +
-                           r1FreeCoordMod,
-                       0.0f, 1.0f));
+      float f1Sig = f1Raw * abd::dsp::computeNeuronVelocityScale(
+                                velocity_, freeCfg_.adsr1VelDepth);
+      float f2Sig = f2Raw * abd::dsp::computeNeuronVelocityScale(
+                                velocity_, freeCfg_.adsr2VelDepth);
+      float tlSig = tlRaw * abd::dsp::computeNeuronVelocityScale(
+                                velocity_, freeCfg_.tl4L4TVelDepth);
+
+      float r1FreeCoordMod = 0.0f;
+      float r2FreeCoordMod = 0.0f;
+      float r1PitchSemis = 0.0f;
+      float r2PitchSemis = 0.0f;
+      float blenderFreeMod = 0.0f;
+      float freeCutMod = 0.0f;
+
+      if (freeCfg_.freeEnvType == 1) {
+        const float shaperMod = tlSig * freeCfg_.tl4L4TDepth;
+        r1PitchSemis = tlSig * freeCfg_.r1Free4L4TPitchDepth * calib_.freeEnvPitchSemitones;
+        r2PitchSemis = tlSig * freeCfg_.r2Free4L4TPitchDepth * calib_.freeEnvPitchSemitones;
+        blenderFreeMod = tlSig * freeCfg_.blender4L4TDepth * 0.5f;
+        if (freeCfg_.dest == 1 || freeCfg_.dest == 3)
+          r1FreeCoordMod = shaperMod * calib_.freeEnvCoordModScale;
+        if (freeCfg_.dest == 2 || freeCfg_.dest == 3)
+          r2FreeCoordMod = shaperMod * calib_.freeEnvCoordModScale;
+        if (freeCfg_.dest == 4)
+          blenderFreeMod += shaperMod * 0.5f;
+        if (freeCfg_.dest == 5)
+          freeCutMod = shaperMod * 0.5f;
+      } else {
+        r1PitchSemis = (f1Sig * freeCfg_.r1Adsr1PitchDepth +
+                        f2Sig * freeCfg_.r1Adsr2PitchDepth) *
+                       calib_.freeEnvPitchSemitones;
+        r2PitchSemis = (f1Sig * freeCfg_.r2Adsr1PitchDepth +
+                        f2Sig * freeCfg_.r2Adsr2PitchDepth) *
+                       calib_.freeEnvPitchSemitones;
+        blenderFreeMod = (f1Sig * freeCfg_.blenderAdsr1Depth +
+                          f2Sig * freeCfg_.blenderAdsr2Depth) *
+                         0.5f;
+        if (freeCfg_.dest == 1 || freeCfg_.dest == 3)
+          r1FreeCoordMod = f1Sig * freeCfg_.r1AdsrDepth * calib_.freeEnvCoordModScale;
+        if (freeCfg_.dest == 2 || freeCfg_.dest == 3)
+          r2FreeCoordMod = f2Sig * freeCfg_.r2AdsrDepth * calib_.freeEnvCoordModScale;
+        const float avgFree = 0.5f * (f1Sig * freeCfg_.r1AdsrDepth +
+                                      f2Sig * freeCfg_.r2AdsrDepth);
+        if (freeCfg_.dest == 4)
+          blenderFreeMod += avgFree * 0.5f;
+        if (freeCfg_.dest == 5)
+          freeCutMod = avgFree * 0.5f;
       }
-      if (r2HasResEnvMod_ || std::abs(r2FreeCoordMod) > 0.0005f) {
+
+      // Modulación de coordenadas Scape/Sphere por ResEnv en las 3 capas L1, L2, L3
+      // ([188..199], [218..229], gobernadas por Contour == 1) y FreeEnv
+      float r1VelScale =
+          abd::dsp::computeNeuronVelocityScale(velocity_, r1ResEnvVelDepth_);
+      float r2VelScale =
+          abd::dsp::computeNeuronVelocityScale(velocity_, r2ResEnvVelDepth_);
+      const bool hasR1FreeCoord = std::abs(r1FreeCoordMod) > 0.0005f;
+      const bool hasR2FreeCoord = std::abs(r2FreeCoordMod) > 0.0005f;
+      if (r1HasResEnvMod_ || hasR1FreeCoord) {
+        float m = r1Mod * r1VelScale;
+        for (size_t l = 0; l < 3; ++l) {
+          if (r1LayerHasResEnvMod_[l] || (l == 0 && hasR1FreeCoord)) {
+            const float fc = (l == 0) ? r1FreeCoordMod : 0.0f;
+            r1Engine_.setLayerCoordinates(
+                l,
+                std::clamp(r1BaseCoords_[l][0] + m * r1ResEnvDepths_[l][0] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r1BaseCoords_[l][1] + m * r1ResEnvDepths_[l][1] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r1BaseCoords_[l][2] + m * r1ResEnvDepths_[l][2] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r1BaseCoords_[l][3] + m * r1ResEnvDepths_[l][3] + fc,
+                           0.0f, 1.0f));
+          }
+        }
+      }
+      if (r2HasResEnvMod_ || hasR2FreeCoord) {
         float m = r2Mod * r2VelScale;
-        r2Engine_.setLayerCoordinates(
-            0,
-            std::clamp(r2BaseCoords_[0] + m * r2ResEnvDepths_[0] +
-                           r2FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r2BaseCoords_[1] + m * r2ResEnvDepths_[1] +
-                           r2FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r2BaseCoords_[2] + m * r2ResEnvDepths_[2] +
-                           r2FreeCoordMod,
-                       0.0f, 1.0f),
-            std::clamp(r2BaseCoords_[3] + m * r2ResEnvDepths_[3] +
-                           r2FreeCoordMod,
-                       0.0f, 1.0f));
+        for (size_t l = 0; l < 3; ++l) {
+          if (r2LayerHasResEnvMod_[l] || (l == 0 && hasR2FreeCoord)) {
+            const float fc = (l == 0) ? r2FreeCoordMod : 0.0f;
+            r2Engine_.setLayerCoordinates(
+                l,
+                std::clamp(r2BaseCoords_[l][0] + m * r2ResEnvDepths_[l][0] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r2BaseCoords_[l][1] + m * r2ResEnvDepths_[l][1] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r2BaseCoords_[l][2] + m * r2ResEnvDepths_[l][2] + fc,
+                           0.0f, 1.0f),
+                std::clamp(r2BaseCoords_[l][3] + m * r2ResEnvDepths_[l][3] + fc,
+                           0.0f, 1.0f));
+          }
+        }
       }
 
       float fEnv = filterEnv_.process();
+      const float minHz = std::max(calib_.filterMinCutoffHz, 5.0f);
+      const float expRatio = std::max(calib_.filterCutoffExpRatio, 10.0f);
+      const float logExpRatio = std::log(expRatio);
       float baseCutoffNorm = std::clamp(
-          std::log(std::max(filterCutoffHz, 20.0f) / 20.0f) / 6.80239476f, 0.0f,
+          std::log(std::max(filterCutoffHz, minHz) / minHz) / logExpRatio, 0.0f,
           1.0f);
       float effFilterEnvDepth =
           filterEnvDepth *
-          std::clamp(1.0f + (velocity_ - 0.5f) * filterEnvVelDepth_, 0.0f,
-                     2.0f);
+          abd::dsp::computeNeuronVelocityScale(velocity_, filterEnvVelDepth_);
       float envMod = (std::abs(effFilterEnvDepth) > 0.001f)
                          ? (fEnv * effFilterEnvDepth)
                          : 0.0f;
-      float freeCutMod = (freeEnvDest_ == 5) ? (freeMod * 0.5f) : 0.0f;
       float keyMod = (std::abs(filterKeyTrack) > 0.001f)
                          ? (((static_cast<float>(note_) - 60.0f) / 64.0f) *
                             (filterKeyTrack / 64.0f))
@@ -292,28 +392,25 @@ public:
                          : 0.0f;
       float dynCutoffNorm = std::clamp(
           baseCutoffNorm + envMod + freeCutMod + keyMod + velMod, 0.0f, 1.0f);
-      filter_.setParameters(fMode, dynCutoffNorm, filterReso, 0.0f);
+      if (usePlusFilter_) {
+        plusFilter_.setParameters(fMode, dynCutoffNorm, filterReso, 0.0f);
+      } else {
+        filter_.setParameters(fMode, dynCutoffNorm, filterReso, 0.0f);
+      }
 
       // 1. Renderizar motores R1 y R2 con sus respectivas envolventes de
       // amplitud y modulación de tono FreeEnv ([38..40], [118..120])
-      float r1Step =
-          (std::abs(r1FreePitchDepth_) > 0.001f)
-              ? (phaseStep_ *
-                 std::pow(2.0f, (f1Mod * r1FreePitchDepth_ * 12.0f) / 12.0f))
-              : phaseStep_;
-      float r2Step =
-          (std::abs(r2FreePitchDepth_) > 0.001f)
-              ? (phaseStep_ *
-                 std::pow(2.0f, (f2Mod * r2FreePitchDepth_ * 12.0f) / 12.0f))
-              : phaseStep_;
+      float r1Step = (std::abs(r1PitchSemis) > 0.001f)
+                         ? (phaseStep_ * std::pow(2.0f, r1PitchSemis / 12.0f))
+                         : phaseStep_;
+      float r2Step = (std::abs(r2PitchSemis) > 0.001f)
+                         ? (phaseStep_ * std::pow(2.0f, r2PitchSemis / 12.0f))
+                         : phaseStep_;
       float s1 = r1Enabled_ ? (r1Engine_.renderSample(r1Step) * env1) : 0.0f;
       float s2 = r2Enabled_ ? (r2Engine_.renderSample(r2Step) * env2) : 0.0f;
 
       // 2. Blender (Los 10 algoritmos de fusión de Hartmann Neuron -
       // FUN_1002e7a0 + BlenderFreeDepths [264..266])
-      float blenderFreeMod =
-          ((freeEnvDest_ == 4) ? (freeMod * 0.5f) : 0.0f) +
-          ((f1Mod + f2Mod) * 0.5f * blenderFreeEnvDepth_ * 0.5f);
       float effBlender = std::clamp(blenderAmount + blenderFreeMod, 0.0f, 1.0f);
       float mixedL = 0.0f;
       float mixedR = 0.0f;
@@ -336,20 +433,20 @@ public:
           break;
         case 3: // Crossmorph (interpolación con intermodulación armónica)
           mixed =
-              (1.0f - effBlender) * s1 + effBlender * s2 + (s1 * s2 * 0.25f);
+              (1.0f - effBlender) * s1 + effBlender * s2 + (s1 * s2 * calib_.crossmorphIntermodGain);
           break;
         case 4: // Intermorph (morfología no lineal de bandas intermedias)
           mixed = (1.0f - effBlender) * s1 + effBlender * s2 +
-                  std::sin(3.14159f * effBlender) * (s1 - s2) * 0.35f;
+                  std::sin(3.14159f * effBlender) * (s1 - s2) * calib_.intermorphSineGain;
           break;
         case 5: { // Dyn Transsphere (gobernado por la envolvente dinámica)
-          float dynA = std::clamp(effBlender + (env - 0.5f) * 0.4f, 0.0f, 1.0f);
+          float dynA = std::clamp(effBlender + (env - 0.5f) * calib_.dynTranssphereEnvSens, 0.0f, 1.0f);
           mixed = (1.0f - dynA) * s1 + dynA * s2;
           break;
         }
         case 6: { // Dyn Crossmorph (crossmorph dependiente de envolvente)
           float dynA = std::clamp(effBlender * env, 0.0f, 1.0f);
-          mixed = (1.0f - dynA) * s1 + dynA * s2 + (s1 * s2 * dynA * 0.3f);
+          mixed = (1.0f - dynA) * s1 + dynA * s2 + (s1 * s2 * dynA * calib_.dynCrossmorphIntermod);
           break;
         }
         case 7: { // Velo Crossmorph (crossmorph según la velocidad de nota)
@@ -363,7 +460,7 @@ public:
           break;
         }
         case 9: { // Ring Blend / Hard Sync
-          float ring = s1 * s2 * 2.2f;
+          float ring = s1 * s2 * calib_.ringBlendGain;
           mixed = (1.0f - effBlender) * ((s1 + s2) * 0.5f) + effBlender * ring;
           break;
         }
@@ -400,7 +497,7 @@ public:
       float filteredR = mixedR;
       if (blenderType != 1 && filterType >= 0) {
         float monoSum = (mixedL + mixedR) * 0.5f;
-        float fOut = filter_.process(monoSum);
+        float fOut = usePlusFilter_ ? plusFilter_.process(monoSum) : filter_.process(monoSum);
         filteredL = fOut;
         filteredR = fOut;
       }
@@ -445,40 +542,87 @@ public:
   NeuronEnvelope &getR2ResEnv() noexcept { return r2ResEnv_; }
   NeuronEnvelope &getR1FreeEnv() noexcept { return r1FreeEnv_; }
   NeuronEnvelope &getR2FreeEnv() noexcept { return r2FreeEnv_; }
+  NeuronShaper4T4L &getFree4L4TEnv() noexcept { return free4L4TEnv_; }
+
+  void setFreeEnvRoutingConfig(const FreeEnvRoutingConfig &cfg) noexcept {
+    freeCfg_.freeEnvType = (cfg.freeEnvType != 0) ? 1 : 0;
+    freeCfg_.dest = cfg.dest;
+    freeCfg_.r1AdsrDepth = std::clamp(cfg.r1AdsrDepth, -1.0f, 1.0f);
+    freeCfg_.r2AdsrDepth = std::clamp(cfg.r2AdsrDepth, -1.0f, 1.0f);
+    freeCfg_.tl4L4TDepth = std::clamp(cfg.tl4L4TDepth, -1.0f, 1.0f);
+    freeCfg_.adsr1VelDepth = std::clamp(cfg.adsr1VelDepth, -1.0f, 1.0f);
+    freeCfg_.adsr2VelDepth = std::clamp(cfg.adsr2VelDepth, -1.0f, 1.0f);
+    freeCfg_.tl4L4TVelDepth = std::clamp(cfg.tl4L4TVelDepth, -1.0f, 1.0f);
+    freeCfg_.r1Adsr1PitchDepth = std::clamp(cfg.r1Adsr1PitchDepth, -1.0f, 1.0f);
+    freeCfg_.r1Adsr2PitchDepth = std::clamp(cfg.r1Adsr2PitchDepth, -1.0f, 1.0f);
+    freeCfg_.r1Free4L4TPitchDepth =
+        std::clamp(cfg.r1Free4L4TPitchDepth, -1.0f, 1.0f);
+    freeCfg_.r2Adsr1PitchDepth = std::clamp(cfg.r2Adsr1PitchDepth, -1.0f, 1.0f);
+    freeCfg_.r2Adsr2PitchDepth = std::clamp(cfg.r2Adsr2PitchDepth, -1.0f, 1.0f);
+    freeCfg_.r2Free4L4TPitchDepth =
+        std::clamp(cfg.r2Free4L4TPitchDepth, -1.0f, 1.0f);
+    freeCfg_.blenderAdsr1Depth =
+        std::clamp(cfg.blenderAdsr1Depth, -1.0f, 1.0f);
+    freeCfg_.blenderAdsr2Depth =
+        std::clamp(cfg.blenderAdsr2Depth, -1.0f, 1.0f);
+    freeCfg_.blender4L4TDepth = std::clamp(cfg.blender4L4TDepth, -1.0f, 1.0f);
+  }
+
   void setFreeEnvRouting(int dest, float depthNorm, float r1PitchDepth = 0.0f,
                          float r2PitchDepth = 0.0f,
                          float blenderFreeDepth = 0.0f) noexcept {
-    freeEnvDest_ = dest;
-    freeEnvDepth_ = std::clamp(depthNorm, -1.0f, 1.0f);
-    r1FreePitchDepth_ = std::clamp(r1PitchDepth, -1.0f, 1.0f);
-    r2FreePitchDepth_ = std::clamp(r2PitchDepth, -1.0f, 1.0f);
-    blenderFreeEnvDepth_ = std::clamp(blenderFreeDepth, -1.0f, 1.0f);
+    freeCfg_.freeEnvType = 0;
+    freeCfg_.dest = dest;
+    freeCfg_.r1AdsrDepth = std::clamp(depthNorm, -1.0f, 1.0f);
+    freeCfg_.r2AdsrDepth = std::clamp(depthNorm, -1.0f, 1.0f);
+    freeCfg_.r1Adsr1PitchDepth = std::clamp(r1PitchDepth, -1.0f, 1.0f);
+    freeCfg_.r2Adsr2PitchDepth = std::clamp(r2PitchDepth, -1.0f, 1.0f);
+    freeCfg_.blenderAdsr1Depth = std::clamp(blenderFreeDepth, -1.0f, 1.0f);
+    freeCfg_.blenderAdsr2Depth = std::clamp(blenderFreeDepth, -1.0f, 1.0f);
   }
-  void setBaseLayer0Coords(int resynator, float sc1, float sc2, float sp1,
-                           float sp2) noexcept {
-    auto &arr = (resynator == 0) ? r1BaseCoords_ : r2BaseCoords_;
+
+  void setBaseLayerCoords(int resynator, size_t layerIdx, float sc1, float sc2,
+                          float sp1, float sp2) noexcept {
+    if (layerIdx >= 3)
+      return;
+    auto &arr = (resynator == 0) ? r1BaseCoords_[layerIdx] : r2BaseCoords_[layerIdx];
     arr[0] = sc1;
     arr[1] = sc2;
     arr[2] = sp1;
     arr[3] = sp2;
   }
-  void setResEnvModDepths(int resynator, float sc1D, float sc2D, float sp1D,
-                          float sp2D, float velDepth = 0.0f) noexcept {
-    auto &arr = (resynator == 0) ? r1ResEnvDepths_ : r2ResEnvDepths_;
-    arr[0] = sc1D;
-    arr[1] = sc2D;
-    arr[2] = sp1D;
-    arr[3] = sp2D;
-    bool hasMod = (std::abs(sc1D) + std::abs(sc2D) + std::abs(sp1D) +
-                   std::abs(sp2D)) > 0.001f;
+
+  void setBaseLayer0Coords(int resynator, float sc1, float sc2, float sp1,
+                           float sp2) noexcept {
+    setBaseLayerCoords(resynator, 0, sc1, sc2, sp1, sp2);
+  }
+
+  void setResEnvLayerModDepths(int resynator, size_t layerIdx, float sc1D,
+                               float sc2D, float sp1D, float sp2D,
+                               float velDepth = 0.0f) noexcept {
+    if (layerIdx >= 3)
+      return;
+    auto &depths = (resynator == 0) ? r1ResEnvDepths_ : r2ResEnvDepths_;
+    auto &layerFlags =
+        (resynator == 0) ? r1LayerHasResEnvMod_ : r2LayerHasResEnvMod_;
+    depths[layerIdx] = {sc1D, sc2D, sp1D, sp2D};
+    layerFlags[layerIdx] = (std::abs(sc1D) + std::abs(sc2D) + std::abs(sp1D) +
+                            std::abs(sp2D)) > 0.001f;
+    const bool anyMod = layerFlags[0] || layerFlags[1] || layerFlags[2];
     if (resynator == 0) {
-      r1HasResEnvMod_ = hasMod;
+      r1HasResEnvMod_ = anyMod;
       r1ResEnvVelDepth_ = velDepth;
     } else {
-      r2HasResEnvMod_ = hasMod;
+      r2HasResEnvMod_ = anyMod;
       r2ResEnvVelDepth_ = velDepth;
     }
   }
+
+  void setResEnvModDepths(int resynator, float sc1D, float sc2D, float sp1D,
+                          float sp2D, float velDepth = 0.0f) noexcept {
+    setResEnvLayerModDepths(resynator, 0, sc1D, sc2D, sp1D, sp2D, velDepth);
+  }
+
   void setFilterEnvVelocityDepth(float velDepth) noexcept {
     filterEnvVelDepth_ = std::clamp(velDepth, -1.0f, 1.0f);
   }
@@ -521,16 +665,23 @@ private:
   NeuronEnvelope r2ResEnv_;
   NeuronEnvelope r1FreeEnv_;
   NeuronEnvelope r2FreeEnv_;
-  int freeEnvDest_{1};
-  float freeEnvDepth_{0.0f};
-  float r1FreePitchDepth_{0.0f};
-  float r2FreePitchDepth_{0.0f};
-  float blenderFreeEnvDepth_{0.0f};
+  NeuronShaper4T4L free4L4TEnv_;
+  FreeEnvRoutingConfig freeCfg_{};
   float filterEnvVelDepth_{0.0f};
-  std::array<float, 4> r1BaseCoords_{0.5f, 0.5f, 0.5f, 0.5f};
-  std::array<float, 4> r2BaseCoords_{0.5f, 0.5f, 0.5f, 0.5f};
-  std::array<float, 4> r1ResEnvDepths_{0.0f, 0.0f, 0.0f, 0.0f};
-  std::array<float, 4> r2ResEnvDepths_{0.0f, 0.0f, 0.0f, 0.0f};
+  std::array<std::array<float, 4>, 3> r1BaseCoords_{{
+      {0.5f, 0.5f, 0.5f, 0.5f},
+      {0.5f, 0.5f, 0.5f, 0.5f},
+      {0.5f, 0.5f, 0.5f, 0.5f},
+  }};
+  std::array<std::array<float, 4>, 3> r2BaseCoords_{{
+      {0.5f, 0.5f, 0.5f, 0.5f},
+      {0.5f, 0.5f, 0.5f, 0.5f},
+      {0.5f, 0.5f, 0.5f, 0.5f},
+  }};
+  std::array<std::array<float, 4>, 3> r1ResEnvDepths_{};
+  std::array<std::array<float, 4>, 3> r2ResEnvDepths_{};
+  std::array<bool, 3> r1LayerHasResEnvMod_{false, false, false};
+  std::array<bool, 3> r2LayerHasResEnvMod_{false, false, false};
   bool r1HasResEnvMod_{false};
   bool r2HasResEnvMod_{false};
   float r1ResEnvVelDepth_{0.0f};
@@ -543,6 +694,9 @@ private:
   float lastOutL_{0.0f};
   float lastOutR_{0.0f};
   NeuronFilter filter_;
+  DspAxionikPlusVoiceFilter plusFilter_{};
+  bool usePlusFilter_{false};
+  NeuronCalibrationConfig calib_{};
 };
 
 } // namespace abd::dsp::neuron

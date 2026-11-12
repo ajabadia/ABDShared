@@ -180,21 +180,24 @@ public:
             }
 
             // Difusión Allpass
-            float diff = matrixOut[0] + matrixOut[4];
+            float diffL = matrixOut[0] + matrixOut[4];
+            float diffR = matrixOut[2] + matrixOut[6];
             for (int a = 0; a < kNumAllpasses; ++a)
             {
                 const int apSize = apSizes_[a];
                 if (apSize <= 0) continue;
                 const int readPos             = (apWritePos_[a] - apSize / 2 + apSize * 2) % apSize;
                 const float apOut             = apBuffers_[a][readPos];
-                apBuffers_[a][apWritePos_[a]] = diff + apGains_[a] * apOut;
-                diff                          = -apGains_[a] * diff + apOut;
+                apBuffers_[a][apWritePos_[a]] = diffL + apGains_[a] * apOut;
+                diffL                         = -apGains_[a] * diffL + apOut;
+                diffR                         = apGains_[a] * diffR - apOut;
                 apWritePos_[a]                = (apWritePos_[a] + 1) % apSize;
             }
 
-            const float wet = diff * 0.5f;
-            outL[s]         = xL * (1.0f - mix_) + wet * mix_;
-            outR[s]         = xR * (1.0f - mix_) + wet * mix_;
+            const float wetL = diffL * 0.5f;
+            const float wetR = diffR * 0.5f;
+            outL[s]          = xL * (1.0f - mix_) + wetL * mix_;
+            outR[s]          = xR * (1.0f - mix_) + wetR * mix_;
         }
     }
 

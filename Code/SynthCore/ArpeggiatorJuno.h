@@ -7,6 +7,7 @@
       - Curva analógica de velocidad (RC clock: 470nF, 33kΩ + 1MΩ pot).
       - Límite de teclado físico (C1 a C6, notas 36 a 96 con plegado de octava).
       - Modos Up, Up/Down y Down.
+      - HOLD: las notas quedan latcheadas al soltar el teclado.
       - Rango de 1 a 3 octavas.
       - Sincronización a host DAW por divisiones métricas.
       - Zero-alloc: buffer estático sin asignaciones dinámicas en audio thread.
@@ -87,6 +88,9 @@ public:
     std::atomic<uint32_t> mTickCount{0};
 
     bool mLimitToKeyboard = true;
+    // HOLD: al soltar las teclas el acorde sigue sonando. La primera tecla de un
+    // acorde nuevo (cuando no hay ninguna pulsada fisicamente) sustituye al latch.
+    bool mHold = false;
 
     ArpeggiatorJuno() noexcept = default;
 
@@ -103,6 +107,13 @@ public:
     void NoteOn(int note) noexcept
     {
         if (note < 0 || note > 127) return;
+
+        if (mHold)
+        {
+            if (mPhysDown == 0)
+                mHeldCount = 0; // acorde nuevo: el latch anterior se descarta
+            ++mPhysDown;
+        }
 
         auto* begin = mHeldNotes.data();
         auto* end   = begin + mHeldCount;
@@ -126,6 +137,12 @@ public:
 
     void NoteOff(int note) noexcept
     {
+        if (mHold)
+        {
+            if (mPhysDown > 0) --mPhysDown;
+            return; // latcheadas: el acorde sigue sonando
+        }
+
         auto* begin = mHeldNotes.data();
         auto* end   = begin + mHeldCount;
         auto* it    = std::find(begin, end, note);
@@ -144,9 +161,25 @@ public:
         }
     }
 
+    void SetHold(bool on) noexcept
+    {
+        if (mHold == on) return;
+        mHold = on;
+
+        // Al soltar HOLD sin teclas pulsadas, el latch se suelta.
+        if (! on && mPhysDown == 0)
+        {
+            mHeldCount = 0;
+            mStepIndex = 0;
+            mDirection = 1;
+            mPhase     = 0.f;
+        }
+    }
+
     void Reset() noexcept
     {
         mHeldCount    = 0;
+        mPhysDown     = 0;
         mStepIndex    = 0;
         mDirection    = 1;
         mPhase        = 0.f;
@@ -351,6 +384,7 @@ public:
 private:
     std::array<int, kMaxHeldNotes> mHeldNotes{};
     int mHeldCount = 0;
+    int mPhysDown  = 0; // teclas pulsadas de verdad (para separar latch de HOLD)
 };
 
 } // namespace abd::synth

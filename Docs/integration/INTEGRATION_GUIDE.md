@@ -248,7 +248,9 @@ Antes de dar por integrado un nuevo sintetizador a la suite:
 
 Dos excepciones a la regla "un módulo, un target": `Code/SynthCore` ya está en
 `target_include_directories(...)` de los proyectos que la consumen, así que estos headers no
-declaran target propio (a propósito) y se usan con un `#include` normal.
+declaran target propio (a propósito) y se usan con un `#include` normal. Las dos están registradas
+como cabeceras de `ABDShared_SynthCore` con `target_sources(...)`: no compilan nada, pero aparecen
+en el proyecto y en el IDE como parte del módulo al que pertenecen.
 
 ### Módulo: SynthCore — `JunoLfoProfile`
 

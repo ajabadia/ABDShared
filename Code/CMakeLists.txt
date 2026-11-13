@@ -92,6 +92,13 @@ target_include_directories(ABDShared_SynthCore PUBLIC
 )
 target_compile_features(ABDShared_SynthCore PUBLIC cxx_std_20)
 
+# Cabeceras header-only del modulo: no compilan nada, pero quedan registradas en el
+# target y visibles en el IDE (el #include ya funcionaba por target_include_directories).
+target_sources(ABDShared_SynthCore PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoLfoProfile.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoDcoLfoDepth.h
+)
+
 option(ABDSHARED_BUILD_SYNTHCORE_TESTS "Build SynthCore standalone tests" OFF)
 if(ABDSHARED_BUILD_SYNTHCORE_TESTS)
     add_executable(ABDShared_SynthCore_Tests

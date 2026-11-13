@@ -447,10 +447,17 @@ private:
         // k=4.04 (res=0.86); 4.04 * (1 - g1) = 3.13, que es lo medido.
         // Sintoma: a 1x y sin entrada el filtro silbaba a 4-12 kHz desde
         // res~0.4 (rms hasta 0.77 en silencio).
-        if (mPoleMode == PoleMode::TwoPole)
+        //
+        // En modo 2-Pole (12 dB/oct), la realimentación negativa de 2 etapas
+        // (G = g1^2) no puede auto-oscilar (Q <= sqrt(1+k)/2) y atenúa la banda
+        // pasante en 1/(1+k). La topología OTA 2-Pole con realimentación paso-banda
+        // (bp = lp1 - lp2) mantiene ganancia DC = 1.0, frecuencia resonante = fc
+        // y auto-oscilación en k2p = k * 0.5 -> 2.0 (mismo umbral res ≈ 0.86).
+        const bool isTwoPole = (mPoleMode == PoleMode::TwoPole);
+        if (isTwoPole)
         {
-            G = g1 * g1;
-            S = (1.0f - g1) * (s[0] * g1 + s[1]);
+            G = g1 * (1.0f - g1);
+            S = (1.0f - g1) * ((1.0f - g1) * s[0] - s[1]);
         }
         else
         {
@@ -461,9 +468,18 @@ private:
         float kFbScale = 4.20f * std::clamp((k - 2.5f) * 1.0f, 0.3f, 1.0f);
         float fbSig    = OTASat(S * kFbScale) / kFbScale;
 
-        float u = (input * comp * mVoicing.stageSaturationAmount - k * fbSig) / (1.0f + k * G);
+        float u = 0.0f;
+        if (isTwoPole)
+        {
+            const float k2p = k * 0.5f;
+            u = (input * comp * mVoicing.stageSaturationAmount + k2p * fbSig) / (1.0f - k2p * G);
+        }
+        else
+        {
+            u = (input * comp * mVoicing.stageSaturationAmount - k * fbSig) / (1.0f + k * G);
+        }
 
-        float stateAmp = std::abs(s[3]);
+        float stateAmp = isTwoPole ? std::abs(s[1]) : std::abs(s[3]);
         float dfGain   = 1.0f / std::sqrt(1.0f + 0.6f * stateAmp * stateAmp);
         dfGain         = std::max(dfGain, 0.65f);
 
@@ -501,9 +517,15 @@ private:
             output = 0.0f;
         }
 
-        float frqFactor   = std::clamp((frq - VcfCalibration::kOutTameFreqFloor) * VcfCalibration::kOutTameFreqSlope, 0.0f, 1.0f);
-        float resFactor   = std::clamp((k - VcfCalibration::kOutTameResStart) * VcfCalibration::kOutTameResSlope, 0.0f, 1.0f);
-        float outputScale = 1.0f - frqFactor * resFactor * VcfCalibration::kOutTameMaxReduction;
+        // En modo 2-Pole no aplicamos el taming HF de 4-Pole (-6 dB sobre frq > 0.02),
+        // para preservar el nivel acústico de resonancia/auto-oscilación en notas agudas (ej. A008 C5).
+        float outputScale = 1.0f;
+        if (!isTwoPole)
+        {
+            float frqFactor = std::clamp((frq - VcfCalibration::kOutTameFreqFloor) * VcfCalibration::kOutTameFreqSlope, 0.0f, 1.0f);
+            float resFactor = std::clamp((k - VcfCalibration::kOutTameResStart) * VcfCalibration::kOutTameResSlope, 0.0f, 1.0f);
+            outputScale     = 1.0f - frqFactor * resFactor * VcfCalibration::kOutTameMaxReduction;
+        }
 
         if (mVoicing.gainCompCurve)
             outputScale *= mVoicing.gainCompCurve(res);

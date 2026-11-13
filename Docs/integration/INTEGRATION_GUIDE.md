@@ -24,6 +24,7 @@ demás documentos del bloque, con sus alternativas y prioridades, están en
    - [4.4 Monitor de Tramas en Vivo: LiveSysExInspector](#44-monitor-de-tramas-en-vivo-livesysexinspector)
 5. [Contratos de Datos y Esquemas JSON](#5-contratos-de-datos-y-esquemas-json)
 6. [Checklist de Calidad para Nuevos Sintetizadores](#6-checklist-de-calidad-para-nuevos-sintetizadores)
+7. [Módulos header-only de `SynthCore/`](#7-módulos-header-only-de-synthcore)
 
 ---
 
@@ -240,3 +241,43 @@ Antes de dar por integrado un nuevo sintetizador a la suite:
 - [ ] Opción `View ➔ Live SysEx Inspector...` mapeada a `Ctrl+I`.
 - [ ] Diálogo `AboutDialog` conectado al actualizador.
 - [ ] Tests de contrato pasando al 100% con `npm test`.
+
+---
+
+## 7. Módulos header-only de `SynthCore/`
+
+Dos excepciones a la regla "un módulo, un target": `Code/SynthCore` ya está en
+`target_include_directories(...)` de los proyectos que la consumen, así que estos headers no
+declaran target propio (a propósito) y se usan con un `#include` normal.
+
+### Módulo: SynthCore — `JunoLfoProfile`
+
+```cpp
+#include "SynthCore/JunoLfoProfile.h"
+
+const auto& perfil = abd::synth::kJunoLfoProfileJ6;      // o kJunoLfoProfileJ60
+const float hz     = perfil.rateHz(rate01);               // 0,14 … 21,1 Hz
+const float tau    = perfil.delayTauSeconds(delay01);     // delay RC del circuito
+const float secs   = perfil.delaySeconds(delay01);        // misma espera como tiempo
+```
+
+Perfil del LFO analógico del Juno-6/60 (TA75558S + Schmitt): frecuencia, delay **RC** y trigger
+AUTO/MAN. **No sustituye** a `LfoAnalog.h`: le da los números del aparato. El Juno-106 no lo usa
+(sigue con su tabla de firmware `0x0C60`).
+
+### Módulo: SynthCore — `JunoDcoLfoDepth`
+
+```cpp
+#include "SynthCore/JunoDcoLfoDepth.h"
+
+// model: 0 = Juno-6, 1 = Juno-60, 2 = Juno-106
+const float st = abd::synth::junoDcoLfoDepthSemitones(1, slider01);
+// 6/60: interpolacion de kJunoDcoLfoDepth6Table (max 2,526 st)
+// 106:  taper del pot con shunt (kJunoDcoLfoMaxSemitones106 = 4 st)
+```
+
+Profundidad LFO→DCO de 11 puntos medida sobre hardware (máximo **2,526 st**) y el *taper* del
+Juno-106. La tabla y su procedencia viven en el propio header; no hay guía aparte porque el dato
+es la tabla.
+
+---

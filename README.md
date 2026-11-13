@@ -56,6 +56,20 @@ ABDShared/
 
 ---
 
+## 📐 Módulos header-only de `Code/SynthCore/`
+
+`Code/SynthCore` ya está en los `target_include_directories` de sus consumidores, así que estos
+dos headers no declaran target propio (a propósito): se usan con un `#include` normal.
+
+| Módulo | Qué aporta |
+|---|---|
+| `JunoLfoProfile.h` | Perfil del LFO analógico del Juno-6/60: frecuencia 0,14–21,1 Hz, delay **RC** y trigger AUTO/MAN. Complementa a `LfoAnalog.h` con los números del aparato; el 106 no lo usa. |
+| `JunoDcoLfoDepth.h` | Profundidad LFO→DCO del 6/60 en una tabla medida de 11 puntos (máx. **2,526 st**) y el taper del potenciómetro del 106 (4 st). |
+
+Guía de consumo y snippets: [§7 de la guía de integración](Docs/integration/INTEGRATION_GUIDE.md#7-módulos-header-only-de-synthcore).
+
+---
+
 ## 🧪 Tests y lint
 
 La suite JS, el linter y los tests C++ se pueden lanzar en local; el workflow

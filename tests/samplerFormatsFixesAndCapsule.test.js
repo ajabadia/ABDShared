@@ -15,6 +15,8 @@ import {
   parseUniversalSamplerInstrument,
   exportUniversalSamplerCapsule,
   renderUniversalSamplerNoteOffline,
+  inspectSamplerNoteMapping,
+  formatSamplerMidiNoteName,
   createDefaultArticulation,
 } from '../Code/SamplerFormats/index.ts';
 
@@ -521,5 +523,52 @@ describe('SamplerFormats clean-room fixes, canonical capsule, and offline verifi
       sampleRate: 48000,
     });
     expect(renderFiltered.rmsLinear).toBeLessThan(render1.rmsLinear * 0.45);
+  });
+
+  it('inspects root keys and flags stretched zones (e.g. E2 on a C1..C5 bank)', async () => {
+    expect(formatSamplerMidiNoteName(36)).toBe('C2');
+    expect(formatSamplerMidiNoteName(40)).toBe('E2');
+
+    const cWav = makeSineWav(261.63, 48000, 4800);
+    const sfzText = [
+      '<group>',
+      '<region> sample=note.wav lokey=24 hikey=35 pitch_keycenter=24',
+      '<region> sample=note.wav lokey=36 hikey=47 pitch_keycenter=36',
+      '<region> sample=note.wav lokey=48 hikey=59 pitch_keycenter=48',
+      '<region> sample=note.wav lokey=60 hikey=71 pitch_keycenter=60',
+      '<region> sample=note.wav lokey=72 hikey=84 pitch_keycenter=72',
+    ].join('\n');
+
+    const inst = await parseUniversalSamplerInstrument(
+      'Octaves.sfz',
+      new TextEncoder().encode(sfzText).buffer,
+      new Map([['note.wav', cWav]]),
+    );
+
+    const exactC2 = inspectSamplerNoteMapping(inst, { midiNote: 36, velocity: 100 });
+    expect(exactC2.rootKeys).toEqual([24, 36, 48, 60, 72]);
+    expect(exactC2.hasActiveZone).toBe(true);
+    expect(exactC2.isExactRootMatch).toBe(true);
+    expect(exactC2.maxAbsShiftSemis).toBe(0);
+
+    const renderedE2 = renderUniversalSamplerNoteOffline(inst, {
+      midiNote: 40,
+      velocity: 100,
+      noteHoldSec: 0.2,
+      releaseTailSec: 0.1,
+      sampleRate: 48000,
+    });
+    expect(renderedE2.mappingInspection.hasActiveZone).toBe(true);
+    expect(renderedE2.mappingInspection.isExactRootMatch).toBe(false);
+    expect(renderedE2.mappingInspection.activeZones[0].rootKey).toBe(36);
+    expect(renderedE2.mappingInspection.activeZones[0].semitoneShift).toBe(4);
+    expect(renderedE2.mappingInspection.activeZones[0].playbackRateRatio).toBeCloseTo(
+      Math.pow(2, 4 / 12),
+      4,
+    );
+
+    const unmapped = inspectSamplerNoteMapping(inst, { midiNote: 12, velocity: 100 });
+    expect(unmapped.hasActiveZone).toBe(false);
+    expect(unmapped.rootKeys).toEqual([24, 36, 48, 60, 72]);
   });
 });

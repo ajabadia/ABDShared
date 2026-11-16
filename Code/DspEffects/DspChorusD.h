@@ -166,9 +166,9 @@ public:
             delayBufR_[writePos_] = dryR;
             writePos_             = (writePos_ + 1) & kDelayMask;
 
-            // Spatial cross-mixing con fase invertida (amplitud estéreo Dimension D)
-            const float wetL = delayedL - delayedR * 0.4f;
-            const float wetR = delayedR - delayedL * 0.4f;
+            // Spatial cross-mixing con fase invertida (amplitud estéreo Dimension D, calibrada HW -2.2 dB)
+            const float wetL = (delayedL - delayedR * 0.4f) * 0.70f;
+            const float wetR = (delayedR - delayedL * 0.4f) * 0.70f;
 
             outL[s] = dryL * (1.0f - mix_) + wetL * mix_;
             outR[s] = dryR * (1.0f - mix_) + wetR * mix_;

@@ -8,14 +8,15 @@
     QUE ES. El Juno-106 lleva el LFO en firmware (triangulo por acumulador de
     14 bits, tabla ROM 0C60, paso de 4,2335 ms). El Juno-6 y el Juno-60 no: el
     suyo es un integrador analogico con disparador de Schmitt, y su ritmo no se
-    parece al del 106. Hoy ABDJUNiO601 usa el del 106 en los tres modelos, asi
-    que en un build 60/6 el mando de velocidad da hasta 2,3 veces la frecuencia
-    real a mitad de recorrido.
+    parece al del 106. El 106 sigue con su ROM; en ABDJUNiO601 los builds 6/60
+    usan este perfil. Con la ROM del 106 en los tres modelos, el mando de
+    velocidad daba hasta 2,3 veces la frecuencia real a mitad de recorrido en un
+    build 60/6.
 
     Este fichero es el PERFIL, no el motor: los numeros del circuito como datos,
     igual que OscVcoCa72Profile.h o DspEffects/profiles/JunoBbdProfile.h. El
     generador que los consume es LfoAnalog (Code/SynthCore/LfoAnalog.h), que ya
-    existe y es agnostico. Lo que faltaba era el banco de numeros del aparato.
+    existe y es agnostico. Este fichero aporta el banco de numeros del aparato.
 
     DE DONDE SALEN LOS NUMEROS. Del esquema del Juno-6: integrador TA75558S con
     C6 = 0,1 uF y realimentacion R32 = 150K, umbral fijado por el divisor
@@ -23,7 +24,7 @@
     (serie) y R25 = 330R (masa). La curva de la ley del potenciometro reproduce
     la del modelo de circuito de KR-106 (0,14 a 21,1 Hz en 11 puntos medidos);
     los valores de este fichero se comprobaron contra esa tabla y coinciden en
-    los 11 puntos con error menor que el 1 %.
+    los 11 puntos con error menor que el 0,13 %.
 
     QUE NO TRAE, Y ES A PROPOSITO.
       - El 60 usa un potenciometro de 50KA distinto del A54 del 6. La funcion es
@@ -40,8 +41,10 @@
     y el motor avanza la fase.
       - rateHz(slider01)     -> Hz del triangulo para el mando 0..1
       - delaySeconds(slider01) -> segundos de fade-in
-      - triggerMode          -> AUTO (free-run, el ciclo no se reinicia con la
-                                tecla) o MAN (se reinicia en cada nota)
+      - delayTauSeconds(slider01) -> constante RC que consume el motor
+      - LfoTriggerMode (enum) -> AUTO (free-run, el ciclo no se reinicia con la
+        tecla) o MAN (se reinicia en cada nota); el estado no vive en el perfil,
+        lo guarda el motor.
 
   ==============================================================================
 */

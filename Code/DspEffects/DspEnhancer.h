@@ -141,13 +141,13 @@ public:
             const float midOutR = midCoeffA * midInR + midDelayR;
             midDelayR           = midInR - midCoeffB * midOutR;
 
-            // High shelf
+            // High shelf delta (sin duplicar la senal directa ya presente en bassL/R)
             const float hiInL = l - bassStateL;
             const float hiInR = r - bassStateR;
             hiStateL += hiCoeff * (hiInL - hiStateL);
             hiStateR += hiCoeff * (hiInR - hiStateR);
-            const float hiL = hiInL + (hiStateL - hiInL) * hiGainScale;
-            const float hiR = hiInR + (hiStateR - hiInR) * hiGainScale;
+            const float hiL = (hiStateL - hiInL) * hiGainScale;
+            const float hiR = (hiStateR - hiInR) * hiGainScale;
 
             // Solo mode
             float wetL, wetR;

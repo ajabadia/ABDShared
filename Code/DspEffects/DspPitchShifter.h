@@ -197,31 +197,41 @@ public:
             dL[writePosL_] = inWetL;
             dR[writePosR_] = inWetR;
 
-            // Avance de fase de grano y ventana Hann
+            // Avance de fase de grano y lectura overlap-add de 2 taps con ventana Hann (suma unitaria sin tremolo)
             phase1_ += grainInc1_;
             if (phase1_ >= 1.0 || phase1_ < 0.0) phase1_ -= std::floor(phase1_);
-            const float win1 = static_cast<float>(0.5 - 0.5 * std::cos(kTwoPi * phase1_));
+            const double phase1B = (phase1_ + 0.5) - std::floor(phase1_ + 0.5);
+            const float win1A    = static_cast<float>(0.5 - 0.5 * std::cos(kTwoPi * phase1_));
+            const float win1B    = 1.0f - win1A;
 
             phase2_ += grainInc2_;
             if (phase2_ >= 1.0 || phase2_ < 0.0) phase2_ -= std::floor(phase2_);
-            const float win2 = static_cast<float>(0.5 - 0.5 * std::cos(kTwoPi * phase2_));
+            const double phase2B = (phase2_ + 0.5) - std::floor(phase2_ + 0.5);
+            const float win2A    = static_cast<float>(0.5 - 0.5 * std::cos(kTwoPi * phase2_));
+            const float win2B    = 1.0f - win2A;
 
-            // Lectura Voice 1
-            const float readOff1  = delaySamp1 + static_cast<float>(phase1_ * kGrainLen);
-            const float shiftedL1 = readDelay(dL, writePosL_, readOff1, maxDelaySamples_);
-            const float shiftedR1 = readDelay(dR, writePosR_, readOff1, maxDelaySamples_);
+            // Lectura Voice 1 (2 taps en contrafase)
+            const float readOff1A = delaySamp1 + static_cast<float>(phase1_ * kGrainLen);
+            const float readOff1B = delaySamp1 + static_cast<float>(phase1B * kGrainLen);
+            const float shiftedL1 = readDelay(dL, writePosL_, readOff1A, maxDelaySamples_) * win1A
+                                  + readDelay(dL, writePosL_, readOff1B, maxDelaySamples_) * win1B;
+            const float shiftedR1 = readDelay(dR, writePosR_, readOff1A, maxDelaySamples_) * win1A
+                                  + readDelay(dR, writePosR_, readOff1B, maxDelaySamples_) * win1B;
 
-            // Lectura Voice 2
-            const float readOff2  = delaySamp2 + static_cast<float>(phase2_ * kGrainLen);
-            const float shiftedL2 = readDelay(dL, writePosL_, readOff2, maxDelaySamples_);
-            const float shiftedR2 = readDelay(dR, writePosR_, readOff2, maxDelaySamples_);
+            // Lectura Voice 2 (2 taps en contrafase)
+            const float readOff2A = delaySamp2 + static_cast<float>(phase2_ * kGrainLen);
+            const float readOff2B = delaySamp2 + static_cast<float>(phase2B * kGrainLen);
+            const float shiftedL2 = readDelay(dL, writePosL_, readOff2A, maxDelaySamples_) * win2A
+                                  + readDelay(dL, writePosL_, readOff2B, maxDelaySamples_) * win2B;
+            const float shiftedR2 = readDelay(dR, writePosR_, readOff2A, maxDelaySamples_) * win2A
+                                  + readDelay(dR, writePosR_, readOff2B, maxDelaySamples_) * win2B;
 
             writePosL_ = (writePosL_ + 1) % maxDelaySamples_;
             writePosR_ = (writePosR_ + 1) % maxDelaySamples_;
 
-            // Mezcla de voces con panorama y ponderación de ventana
-            const float voiceL = shiftedL1 * win1 * gain1_ * pLeft1 + shiftedL2 * win2 * gain2_ * pLeft2;
-            const float voiceR = shiftedR1 * win1 * gain1_ * pRight1 + shiftedR2 * win2 * gain2_ * pRight2;
+            // Mezcla de voces con panorama (ventanas ya suman 1.0)
+            const float voiceL = shiftedL1 * gain1_ * pLeft1 + shiftedL2 * gain2_ * pLeft2;
+            const float voiceR = shiftedR1 * gain1_ * pRight1 + shiftedR2 * gain2_ * pRight2;
 
             if (vintage_)
             {
@@ -252,8 +262,8 @@ private:
     void updateGrainParams() noexcept
     {
         auto calcRatio = [](float semiNorm, float centNorm) -> double {
-            const int st = static_cast<int>((semiNorm - 0.5f) * 24.0f + 0.5f);  // -12..+12
-            const int ct = static_cast<int>((centNorm - 0.5f) * 100.0f + 0.5f); // -50..+50
+            const int st = static_cast<int>(std::round((semiNorm - 0.5f) * 24.0f));  // -12..+12
+            const int ct = static_cast<int>(std::round((centNorm - 0.5f) * 100.0f)); // -50..+50
             return std::pow(2.0, (st * 100.0 + ct) / 1200.0);
         };
 
@@ -264,7 +274,7 @@ private:
         grainInc2_          = (1.0 - ratio2) / kGrainLen;
 
         const float freqHz = hiCut_ * 19800.0f + 200.0f;
-        hiCutLP_           = static_cast<float>(freqHz / (freqHz + sampleRate_ * 0.5));
+        hiCutLP_           = static_cast<float>(1.0 - std::exp(-6.28318530717958647692 * freqHz / sampleRate_));
     }
 
     static constexpr int kGrainLen = 1024;

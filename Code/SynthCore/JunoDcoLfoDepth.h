@@ -6,10 +6,11 @@
 // Datos, no motor: solo la curva que convierte el deslizador LFO del panel
 // (0..1) en desviacion de tono en semitonos.
 //
-//  - Juno-6 / Juno-60: tabla de 11 puntos medida sobre hardware real
+//  - Juno-6: tabla de 11 puntos medida sobre hardware real
 //    (KR-106, KR106Voice.h:406-416, `dcoLfoDepth6`), potenciometro A-taper.
-//    Maximo ~2,526 st en el tope del deslizador. El 60 usa el mismo circuito
-//    IR3109 (`dcoLfoDepth_j60` = `dcoLfoDepth6`).
+//    Maximo ~2,526 st en el tope del deslizador. El 60 comparte la tabla del
+//    6 (`dcoLfoDepth_j60` = `dcoLfoDepth6` en KR-106); falta medida propia
+//    del 60 para confirmarlo.
 //  - Juno-106: x/(1 + kx - kx^2) con k = Rpot/Rshunt = 5, escalado a +/-4 st
 //    (ficha de servicio, "LFO MOD. +/-400 cents"; KR-106, `dcoLfoDepth106`).
 //
@@ -19,7 +20,7 @@
 namespace abd::synth
 {
 
-/** Tabla medida del Juno-6/60: semitonos de desviacion por punto del mando. */
+/** Tabla medida del Juno-6; KR-106 le asigna la misma al 60, pendiente de medida propia. */
 inline constexpr float kJunoDcoLfoDepth6Table[11] = {
     0.000f, 0.041f, 0.132f, 0.198f, 0.289f, 0.405f,
     0.487f, 0.940f, 1.440f, 2.053f, 2.526f

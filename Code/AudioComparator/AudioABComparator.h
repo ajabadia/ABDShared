@@ -91,6 +91,12 @@ struct AudioABComparatorResult
         double lowBandDeltaDb          = 0.0;
         double midBandDeltaDb          = 0.0;
         double highBandDeltaDb         = 0.0;
+        double spectralCorrelation     = 0.0;
+        double subSignedDeltaDb        = 0.0; // 20..120 Hz (cand - ref)
+        double lowSignedDeltaDb        = 0.0; // 120..400 Hz (cand - ref)
+        double midSignedDeltaDb        = 0.0; // 400..2500 Hz (cand - ref)
+        double highSignedDeltaDb       = 0.0; // 2500..8000 Hz (cand - ref)
+        double airSignedDeltaDb        = 0.0; // 8000..20000 Hz (cand - ref)
     } spectral;
 
     juce::StringArray warnings;

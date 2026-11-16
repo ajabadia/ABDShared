@@ -72,6 +72,12 @@ juce::var AudioABComparatorResult::toVar() const
     s->setProperty("low_band_delta_db", spectral.lowBandDeltaDb);
     s->setProperty("mid_band_delta_db", spectral.midBandDeltaDb);
     s->setProperty("high_band_delta_db", spectral.highBandDeltaDb);
+    s->setProperty("spectral_correlation", spectral.spectralCorrelation);
+    s->setProperty("sub_signed_delta_db", spectral.subSignedDeltaDb);
+    s->setProperty("low_signed_delta_db", spectral.lowSignedDeltaDb);
+    s->setProperty("mid_signed_delta_db", spectral.midSignedDeltaDb);
+    s->setProperty("high_signed_delta_db", spectral.highSignedDeltaDb);
+    s->setProperty("air_signed_delta_db", spectral.airSignedDeltaDb);
     obj->setProperty("spectral_metrics", juce::var(s.get()));
 
     juce::Array<juce::var> warnArr;

@@ -274,12 +274,12 @@ AUTO/MAN. **No sustituye** a `LfoAnalog.h`: le da los números del aparato. El J
 
 // model: 0 = Juno-6, 1 = Juno-60, 2 = Juno-106
 const float st = abd::synth::junoDcoLfoDepthSemitones(1, slider01);
-// 6/60: interpolacion de kJunoDcoLfoDepth6Table (max 2,526 st)
+// 6: interpolacion de kJunoDcoLfoDepth6Table (max 2,526 st); el 60 comparte la tabla
 // 106:  taper del pot con shunt (kJunoDcoLfoMaxSemitones106 = 4 st)
 ```
 
-Profundidad LFO→DCO de 11 puntos medida sobre hardware (máximo **2,526 st**) y el *taper* del
-Juno-106. La tabla y su procedencia viven en el propio header; no hay guía aparte porque el dato
-es la tabla.
+Profundidad LFO→DCO de 11 puntos medida sobre hardware en el Juno-6 (máximo **2,526 st**; el 60
+comparte la tabla, pendiente de medida propia) y el *taper* del Juno-106. La tabla y su procedencia
+viven en el propio header; no hay guía aparte porque el dato es la tabla.
 
 ---

@@ -419,7 +419,7 @@ private:
             g                = detail::junoFastTan(frq * kJunoVCFPi * 0.5f);
             g *= mFreqComp;
             g1          = g / (1.0f + g);
-            comp        = InputComp(k, frq);
+            comp        = InputComp(mPoleMode == PoleMode::TwoPole ? 0.0f : k, frq);
             mCachedG    = g;
             mCachedG1   = g1;
             mCachedComp = comp;
@@ -465,13 +465,17 @@ private:
             S = (1.0f - g1) * (s[0] * g1 * g1 * g1 + s[1] * g1 * g1 + s[2] * g1 + s[3]);
         }
 
-        float kFbScale = 4.20f * std::clamp((k - 2.5f) * 1.0f, 0.3f, 1.0f);
+        const float fbBase = (mMode == Mode::DeepMind) ? 2.00f : 4.20f;
+        float kFbScale = fbBase * std::clamp((k - 2.5f) * 1.0f, 0.3f, 1.0f);
         float fbSig    = OTASat(S * kFbScale) / kFbScale;
 
         float u = 0.0f;
         if (isTwoPole)
         {
-            const float k2p = k * 0.5f;
+            // Mantener k2p = k*0.5 hasta Res ~160 (res=0.63) para no disparar auto-oscilación prematura,
+            // y reforzar progresivamente por encima de Res > 160 donde el hardware entra en auto-oscilación.
+            const float twoPoleHighResBoost = 1.0f + 0.85f * std::clamp((res - 0.63f) / 0.25f, 0.0f, 1.0f);
+            const float k2p = k * 0.5f * twoPoleHighResBoost;
             u = (input * comp * mVoicing.stageSaturationAmount + k2p * fbSig) / (1.0f - k2p * G);
         }
         else

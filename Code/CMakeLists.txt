@@ -92,8 +92,10 @@ target_include_directories(ABDShared_SynthCore PUBLIC
 )
 target_compile_features(ABDShared_SynthCore PUBLIC cxx_std_20)
 
-# Cabeceras header-only del modulo: no compilan nada, pero quedan registradas en el
-# target y visibles en el IDE (el #include ya funcionaba por target_include_directories).
+# Cabeceras header-only del modulo: API publica. PUBLIC las registra en el target y
+# las propaga a los consumidores (INTERFACE_SOURCES); no compilan nada. El #include
+# ya funcionaba por target_include_directories, pero PRIVATE las dejaria fuera del IDE
+# de los consumidores.
 target_sources(ABDShared_SynthCore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoLfoProfile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoDcoLfoDepth.h

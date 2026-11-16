@@ -8,7 +8,7 @@
 //
 //  - El ciclo de fases kIdle → kAttack → kDecay → kSustain → kRelease →
 //    kIdle con sus duraciones (~10 ms por fase a 44,1 kHz con 0,01 s), el
-//    ataque monótono y el sustain clavado en el nivel pedido.
+//    ataque monótono y el sustain plano en el nivel pedido con curva 0.
 //  - Las 4 transiciones con sus políticas: por defecto decay → sustain;
 //    loopMode re-ataca tras el decay; bypassSustain salta al release.
 //  - setTimeScale: la implementación divide el incremento por el escala, así
@@ -17,8 +17,9 @@
 //  - La curvatura: en el punto medio del ataque, curva −1 sube rápido
 //    (≈p^0,25), curva 0 es lineal y curva +1 sube lento (≈p^4); setCurves
 //    clampea a [−1,+1] y la modulación de matriz se SUMA a la curva base.
-//  - El curve de sustain deriva como máximo ±10 % del nivel sostenido, y
-//    sustainEfectivo() aplica el offset clampeado a [0,1].
+//  - El sustain con curva +1 sube hacia 1,0 (la negativa baja hacia 0) con
+//    la pendiente calibrada contra el DM12; sustainEfectivo() aplica el
+//    offset clampeado a [0,1].
 //
 // Este .inc se incluye DENTRO de `namespace abd::synth::tests` (lo abre
 // SynthCoreTests.cpp): NO abre namespace propio ni incluye cabeceras de std.
@@ -51,6 +52,22 @@ static float nivelAtaqueConCurva(float curva, int k)
     e.setCurves(curva, 0.0f, 0.0f, 0.0f);
     e.trigger();
     float v = 0.0f;
+    for (int i = 0; i < k; ++i) v = e.nextSample();
+    return v;
+}
+
+// Nivel del sustain tras k muestras desde que empieza la fase.
+static float nivelSustainConCurva(float curva, int k)
+{
+    abd::synth::EnvelopeAnalog e;
+    e.setSampleRate(44100.0);
+    e.setParameters(0.01f, 0.01f, 0.5f, 0.01f);
+    e.setCurves(0.0f, 0.0f, curva, 0.0f);
+    e.trigger();
+    while (e.getCurrentStage() != EnvStage::kSustain)
+        e.nextSample();
+
+    float v = e.getCurrentLevel();
     for (int i = 0; i < k; ++i) v = e.nextSample();
     return v;
 }
@@ -170,29 +187,18 @@ static void testEnvelopeAnalogCurves()
         check(identico, "la modulación de curva se suma a la base y clampea igual");
     }
 
-    // ── Sustain: la curva +1 deriva como máximo el 10 % del nivel ──
+    // ── Sustain: +1 sube hasta 1,0; 0 se queda plano ──
     {
-        abd::synth::EnvelopeAnalog curva, plana;
-        curva.setSampleRate(44100.0);
-        curva.setParameters(0.01f, 0.01f, 0.5f, 0.01f);
-        curva.setCurves(0.0f, 0.0f, 1.0f, 0.0f);
-        curva.trigger();
-        plana.setSampleRate(44100.0);
-        plana.setParameters(0.01f, 0.01f, 0.5f, 0.01f);
-        plana.setCurves(0.0f, 0.0f, 0.0f, 0.0f);
-        plana.trigger();
+        const float sustain0   = nivelSustainConCurva(0.0f, 4410);  // 100 ms
+        const float sustain100 = nivelSustainConCurva(1.0f, 4410);  // 100 ms
+        const float sustain500 = nivelSustainConCurva(1.0f, 22050); // 500 ms
 
-        float vCurva = 0.0f, vPlana = 0.0f;
-        for (int i = 0; i < 23000; ++i)
-        {
-            vCurva = curva.nextSample();
-            vPlana = plana.nextSample();
-        }
-
-        check(std::abs(vPlana - 0.5f) < 1.0e-6f,
+        check(std::abs(sustain0 - 0.5f) < 1.0e-6f,
               "sustain con curva 0 se queda clavado en 0,5");
-        check(vCurva > 0.505f && vCurva < 0.53f,
-              "sustain con curva +1 sube pero dentro del tope del 10 % (≈ 0,517)");
+        check(sustain100 > 0.78f && sustain100 < 0.84f,
+              "sustain con curva +1 sube ~0,81 en 100 ms");
+        check(sustain500 > 0.999f,
+              "sustain con curva +1 alcanza 1,0 antes de 500 ms");
     }
 
     // ── sustainEfectivo: offset sumado y clampeado a [0,1] ──

@@ -427,7 +427,39 @@ const PresetState* s = published.load(std::memory_order_acquire);
 - **Calibración cuadrática de base de retardo:** Modelar la ley de tiempo como $\text{baseMs} = \text{offset} + k \cdot t^2$ conforme a las mediciones del hardware real (ej. `DspMultiTapDelay`, `DspStereoDelay`, `DspTapeDelay`, `DspDecimDelay`).
 - **Guarda de tangente y auto-curación en SVFs:** Acotar el argumento angular $w_d \cdot 0.5$ estrictamente a $[0.0001, 1.55]$ radianes antes de evaluar `std::tan()`, y sanitizar cada paso del integrador (`high`, `band`, `low`) con `if (!std::isfinite(s)) s = 0.0f;`.
 
+---
 
+## 27. Funciones trascendentales `libm` en bucles por muestra, lookups APVTS y fast-paths de silencio
+
+**El problema:**
+1. Llamar a funciones trascendentales estándar (`std::pow`, `std::log`, `std::exp`, `std::sin`) **por muestra** dentro de envolventes (`EnvelopeAnalog::applyCurve`), LFOs (`LfoAnalog::generateRawWave` / `kSampleGlide`) o compensaciones de filtro (`DspJunoVCF`) multiplica el coste por `voces × módulos × oversampling × fs` (ej. 12 voces × 3 envolventes + 2 LFOs + VCF 2x).
+2. Consultar `APVTS` por identificador de cadena (`getRawParameterValue`) en cada `updateParameters()` y cruzar unidades de traducción en cada llamada a `ModulationMatrix::getModulationValue()` cuando un destino no tiene rutas activas añade sobrecarga constante incluso en reposo.
+3. Ejecutar `masterSoftClip` (`std::tanh`) y filtros de salida analógica globales sobre buffers completamente silenciosos (`activeCount == 0` y pico `0.0f`) consume ~1 ms por bloque de 512 muestras sin hacer trabajo útil.
+
+**Reglas:**
+- **Cero `libm` por muestra en envolventes, LFOs y filtros:** Sustituir `std::pow`/`std::log`/`std::exp`/`std::sin` en el *hot-path* por aproximaciones polinómicas con `std::bit_cast` (`fastLog2`/`fastExp2`, seno parabólico) y precalcular coeficientes que solo dependen de `rate` o `sampleRate` (ej. `sampleGlideCoeff` en `updatePhaseIncrement()`).
+- **Caché de punteros APVTS y evaluación en una pasada (`evaluateAll`) en `ModulationMatrix`:** Cachear `std::atomic<float>*` en un mapa de direccionamiento abierto sin asignaciones (`ApvtsParamCache`), mantener en cabecera el *fast-path* `inline` de `getModulationValue()` y, en bucles por muestra con muchas consultas (12 voces × ~55 destinos), evaluar todos los slots activos una sola vez por muestra en `evaluateAll()` hacia un array plano de la voz (`getDestMod()`), guardando además flags de categoría (`hasLfoMod`, `hasEnvSustainMod`, `hasEnvRateMod`, `hasEnvCurveMod`, `hasDriftMod`) para omitir los setters por muestra cuyas categorías no tengan rutas.
+- **Fast-path de silencio post-FX:** Cuando `activeCount == 0` y `buffer.getMagnitude(0, numSamples) == 0.0f` tras `FXEngine::process()`, omitir `masterSoftClip` y los filtros globales de salida.
+
+**Impacto medido en `ABDEep_Benchmarks` (`48 kHz`, bloque `512`, presupuesto `10667 µs`):**
+- `idle`: `953.8 µs → 19.6 µs` (`48x`, `0` overruns).
+- `mono`: `1638.2 µs → 257.8 µs` (`6.3x`, `0` overruns).
+- `modmatrix32` (12 voces + 32 slots activos): `p50 = 7436.6 µs → 4061.0 µs`, `p95 = 12028.0 µs → 6615.4 µs`, overruns de `371` a `2` (sobre 3000 bloques).
+
+---
+
+## 28. Bug crítico real: `juce::Array<juce::Array<T>>::operator[]` devuelve por valor → puntero colgante (*use-after-free*) y thrashing de heap en audio RT (`ABDEep`, 2026-11)
+
+**Síntoma en producción:** en modo standalone (especialmente `DirectSound @ 1024`, donde reventaba en `< 1 s` incluso con 1 sola voz, y de forma intermitente en `WASAPI @ 1024/2048` y `ABDEep_Render` en 4 de 10 ejecuciones idénticas), el audio explotaba con ruido blanco a fondo de escala (`+3.9 dBFS`) exactamente en el sample `0` de un bloque mientras los efectos (`FX1`/`FX4`) estaban activos.
+
+**Causa raíz:** en `SynthEngine`, los 4 buffers de modulación de nivel de efectos estaban declarados como `juce::Array<juce::Array<float>> fxLevelMod;`. A diferencia de `std::vector` o `std::array`, en JUCE `juce::Array<T>::operator[]` **devuelve una copia por valor `T`** (no una referencia `T&`), diseñada solo para tipos triviales pequeños:
+- Cada acceso `fxLevelMod[h].getRawDataPointer()` (p. ej. al pasar el puntero a `fxEngine.setSlotModulation(h, fxLevelMod[h].getRawDataPointer(), numSamples)`) clonaba en el heap todo el `juce::Array<float>` temporal, obtenía su puntero y **destruía el temporal al llegar al punto y coma `;`**.
+- `FXSlot::process()` leía inmediatamente un **puntero colgante** (`levelMod[s]`) hacia memoria recién liberada en el heap de audio; cuando el hilo de DirectSound/WASAPI o la UI reutilizaban esa página del heap entre el `;` y el `FXEngine::process()`, `FXSlot` multiplicaba basura binaria como si fuera modulación de ganancia (`const float nivel = gain * (1.0f + levelMod[s])`).
+- Además, `fxLevelMod[h].set(i, val)` escribía en copias temporales descartadas (perdiendo silenciosamente la modulación real de `Fx N Level`) y generaba decenas de `malloc`/`free` por bloque en el hilo de audio.
+
+**Regla estricta:**
+- **Prohibido** anidar `juce::Array<juce::Array<T>>` o extraer punteros/referencias (`.getRawDataPointer()`, `.data()`) desde `juce::Array::operator[]`.
+- Para colecciones de tamaño fijo conocidas en compilación usar `std::array<Contenedor, N>` (p. ej. `std::array<juce::Array<float>, 4>` o `juce::AudioBuffer<float>` multicanal), o `std::vector` cuando el tamaño sea dinámico (`operator[]` devuelve `T&`).
 
 ---
 

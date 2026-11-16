@@ -57,9 +57,9 @@ constexpr float kInputEnvTauSec = 0.022f;
 // 0.86, 4.19 at 1.0. A scale < 1.0 would push the peak below the
 // self-osc threshold, so it is 1.0 (DeepMind keeps its distinct tone
 // through gainCompCurve + stageSaturationAmount instead).
-constexpr float kDeepMindResCurveScale    = 1.0f; // resonance-curve multiplier
-constexpr float kDeepMindGainCompStrength = 0.5f; // 1 / (1 + a*r^2) gain comp
-constexpr float kDeepMindStageSaturation  = 0.7f; // OTA per-stage tanh drive
+constexpr float kDeepMindResCurveScale    = 1.0f;  // resonance-curve multiplier
+constexpr float kDeepMindGainCompStrength = 0.15f; // 1 / (1 + a*r^2) gain comp (calibrado DM12 self-osc)
+constexpr float kDeepMindStageSaturation  = 0.7f;  // OTA per-stage tanh drive
 } // namespace VcfCalibration
 
 struct VcfVoicing

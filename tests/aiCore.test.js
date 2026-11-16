@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   assertSafeLoopbackHttpUrl,
   assertSafeExternalHttpsUrl,
@@ -9,6 +12,8 @@ import {
   CopilotOrchestrator,
   LocalLlmClient,
   CloudByokClient,
+  MODEL_CATALOG,
+  listCatalogModelsForApp,
 } from '../Code/AiCore/index.ts';
 
 describe('ABDShared AiCore Suite', () => {
@@ -114,6 +119,47 @@ describe('ABDShared AiCore Suite', () => {
           cloudConfigured: true,
         }).badgeText
       ).toBe('HIBRIDO IA (3/5)');
+
+      expect(
+        computeCanonicalAiHudStatus({
+          enabled: false,
+          activeTasksCount: 0,
+          totalTasksCount: 5,
+          localConnected: false,
+          cloudConfigured: false,
+        }, 'en').badgeText
+      ).toBe('100% DETERMINISTIC');
+
+      expect(
+        computeCanonicalAiHudStatus({
+          enabled: true,
+          activeTasksCount: 2,
+          totalTasksCount: 5,
+          localConnected: true,
+          localEngineLabel: 'Ollama',
+          cloudConfigured: false,
+        }, 'en').badgeText
+      ).toBe('LOCAL AI (2/5)');
+
+      expect(
+        computeCanonicalAiHudStatus({
+          enabled: true,
+          activeTasksCount: 1,
+          totalTasksCount: 5,
+          localConnected: false,
+          cloudConfigured: true,
+        }, 'en').badgeText
+      ).toBe('CLOUD AI (1/5)');
+
+      expect(
+        computeCanonicalAiHudStatus({
+          enabled: true,
+          activeTasksCount: 1,
+          totalTasksCount: 5,
+          localConnected: false,
+          cloudConfigured: false,
+        }, 'en').badgeText
+      ).toBe('DSP FALLBACK');
     });
   });
 
@@ -153,6 +199,61 @@ describe('ABDShared AiCore Suite', () => {
       // Missing required
       const missing = orchestrator.validateToolArguments(dummyTool, { cutoffHz: 1000 });
       expect(missing.valid).toBe(false);
+    });
+  });
+
+  describe('Shared ModelRegistry & CloudByokClient unification', () => {
+    it('MODEL_CATALOG matches Code/AiCore/modelCatalog.json ids, filenames and used_by flags', () => {
+      const here = dirname(fileURLToPath(import.meta.url));
+      const catalogPath = resolve(here, '../Code/AiCore/modelCatalog.json');
+      const raw = JSON.parse(readFileSync(catalogPath, 'utf8'));
+      const jsonIds = Object.keys(raw.models || {}).sort();
+      const tsIds = Object.keys(MODEL_CATALOG).sort();
+      expect(tsIds).toEqual(jsonIds);
+
+      for (const id of tsIds) {
+        expect(MODEL_CATALOG[id].filename).toBe(raw.models[id].filename);
+        expect(MODEL_CATALOG[id].used_by).toEqual(raw.models[id].used_by);
+      }
+
+      const audioLabModels = listCatalogModelsForApp('abdaudiolab');
+      const demucsInAudioLab = audioLabModels.find((m) => m.id === 'htdemucs');
+      const rtneuralInAudioLab = audioLabModels.find((m) => m.id === 'rtneural_nam_base');
+      expect(demucsInAudioLab?.supported_in_app).toBe(false);
+      expect(rtneuralInAudioLab?.supported_in_app).toBe(true);
+    });
+
+    it('CloudByokClient merges provider keys without wiping other providers and validates missing key on testConnection', async () => {
+      const client = new CloudByokClient();
+      client.clearConfig();
+
+      client.saveConfig({ geminiApiKey: 'AIza-demo-1234', provider: 'gemini', enabled: true });
+      client.saveConfig({ openaiApiKey: 'sk-demo-5678', provider: 'openai' });
+
+      expect(client.getActiveApiKey('gemini')).toBe('AIza-demo-1234');
+      expect(client.getActiveApiKey('openai')).toBe('sk-demo-5678');
+      expect(client.getFirstAvailableTextProvider()).toBe('openai');
+
+      const missingRes = await client.testConnection('claude');
+      expect(missingRes.ok).toBe(false);
+      expect(missingRes.success).toBe(false);
+
+      const missingEn = await client.testConnection('gemini', '', 'en');
+      expect(missingEn.ok).toBe(false);
+      expect(missingEn.message).toBe('API key cannot be empty.');
+    });
+
+    it('LocalLlmClient localizes unreachable errors in both es and en', async () => {
+      const llm = new LocalLlmClient();
+      llm.performRequest = async () => ({ ok: false, status: 0, json: null });
+
+      const esRes = await llm.checkHealthAndListModels(50, 'es');
+      expect(esRes.connected).toBe(false);
+      expect(esRes.error).toContain('Sin respuesta del LLM local');
+
+      const enRes = await llm.checkHealthAndListModels(50, 'en');
+      expect(enRes.connected).toBe(false);
+      expect(enRes.error).toContain('No response from local LLM');
     });
   });
 });

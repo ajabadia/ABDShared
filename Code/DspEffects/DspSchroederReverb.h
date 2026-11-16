@@ -274,6 +274,12 @@ public:
             rebuild();
         }
     }
+    void setHardwareWetScale(float scale) noexcept { hardwareWetScale_ = scale; }
+    void setHardwareDecayFloor(float floorVal) noexcept
+    {
+        hardwareDecayFloor_ = jlimit(0.0f, 0.99f, floorVal);
+        updateCombParams();
+    }
     bool isHardwareCalibratedMode() const noexcept { return hardwareCalibratedMode_; }
 
     /** Pre-retardo efectivo, en muestras. OJO: incluye el factor 0.2 del original. */
@@ -334,7 +340,8 @@ public:
         }
 
         // El decaimiento negativo (variante "gated") da una escala distinta.
-        const float scale = decay_ < 0.0f ? 0.5f : decay_ * 0.7f + 0.3f;
+        const float baseScale = decay_ < 0.0f ? 0.5f : decay_ * 0.7f + 0.3f;
+        const float scale     = hardwareCalibratedMode_ ? -(baseScale * 0.625f * hardwareWetScale_) : baseScale;
 
         outL = sumL * scale;
         outR = sumR * scale;
@@ -409,8 +416,11 @@ public:
     /** Coeficientes de los conbs y los allpass. NO toca los buffers. */
     void updateCombParams() noexcept
     {
+        const float effectiveDecay = hardwareCalibratedMode_
+            ? (decay_ < 0.0f ? decay_ : hardwareDecayFloor_ + (1.0f - hardwareDecayFloor_) * decay_)
+            : decay_;
         const float feedback = hardwareCalibratedMode_
-            ? (decay_ < 0.0f ? 0.65f : std::min(0.955f, std::pow(std::max(0.0f, decay_), 0.45f) * 0.88f + 0.075f))
+            ? (effectiveDecay < 0.0f ? 0.65f : std::min(0.955f, std::pow(std::max(0.0f, effectiveDecay), 0.42f) * 0.895f + 0.075f))
             : (decay_ < 0.0f ? 0.3f : decay_ * 0.9f);
 
         // LA AMORTIGUACION EN SU EXTREMO. `damp1 = damping, damp2 = 1 - damping`
@@ -431,8 +441,12 @@ public:
         // bit ningun otro valor: para `damping > 0` el par es el de siempre, y
         // ningun consumidor del arbol pasa un 0 (el rango de `ReverbProfile` es
         // 0.2..0.9), asi que el cambio solo afecta al caso que estaba roto.
-        const float damp1 = damping_ > 0.0f ? damping_ : 1.0f;
-        const float damp2 = damping_ > 0.0f ? 1.0f - damping_ : 0.0f;
+        const float damp1 = hardwareCalibratedMode_
+            ? std::clamp(1.0f - damping_ * 0.65f, 0.20f, 1.0f)
+            : (damping_ > 0.0f ? damping_ : 1.0f);
+        const float damp2 = hardwareCalibratedMode_
+            ? (1.0f - damp1)
+            : (damping_ > 0.0f ? 1.0f - damping_ : 0.0f);
 
         for (int i = 0; i < kNumCombs; ++i)
         {
@@ -508,13 +522,14 @@ public:
             combLen[i] = length;
         }
 
-        const int stereoCombSpread = hardwareCalibratedMode_ ? 23 : 0;
+        static constexpr int kStereoCombSpread[kNumCombs] = {7, 11, 13, 17};
         int combTotalL = 0;
         int combTotalR = 0;
         for (int i = 0; i < kNumCombs; ++i)
         {
+            const int spread = hardwareCalibratedMode_ ? kStereoCombSpread[i] : 0;
             combTotalL += combLen[i];
-            combTotalR += combLen[i] + stereoCombSpread;
+            combTotalR += combLen[i] + spread;
         }
 
         // Un buffer POR CANAL, no uno compartido. Es tentador ahorrar la
@@ -533,8 +548,9 @@ public:
         int offsetR = 0;
         for (int i = 0; i < kNumCombs; ++i)
         {
+            const int spread = hardwareCalibratedMode_ ? kStereoCombSpread[i] : 0;
             const int lenL = combLen[i];
-            const int lenR = combLen[i] + stereoCombSpread;
+            const int lenR = combLen[i] + spread;
 
             combsL_[i].buffer      = combBufferL.getWritePointer(0) + offsetL;
             combsL_[i].bufferSize  = lenL;
@@ -629,6 +645,8 @@ public:
     float preDelaySeconds_ = 0.0f;
     bool invertLeft_       = false;
     bool hardwareCalibratedMode_ = false;
+    float hardwareWetScale_    = 1.0f;
+    float hardwareDecayFloor_  = 0.0f;
 };
 
 } // namespace abd::dsp

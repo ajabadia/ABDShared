@@ -148,8 +148,11 @@ float EnvelopeAnalog::nextSample()
         }
         else
         {
-            const float slopeDurationSec = std::max(0.05f, decayTime * 2.0f) * timeScale;
-            const float step = std::abs(effectiveSustainCurve) / (slopeDurationSec * (float)sampleRate);
+            // Calibrado contra hardware DM12: la velocidad de pendiente de Sustain es independiente
+            // del tiempo de Decay y crece exponencialmente con |curve| (~1.0 dB/s a +-0.25, ~2s en +-0.5, <0.2s en +-1.0).
+            const float absCurve = std::abs(effectiveSustainCurve);
+            const float ratePerSec = (0.018f * std::exp(5.15f * absCurve)) / std::max(0.1f, timeScale);
+            const float step = ratePerSec / (float)sampleRate;
             if (effectiveSustainCurve < 0.0f)
                 currentLevel = std::max(0.0f, currentLevel - step);
             else
@@ -216,18 +219,22 @@ float EnvelopeAnalog::nextSample()
     else if (currentStage == Stage::kDecay)
     {
         // Curva de decay: norm 0 (internal -1) = exponential (caída rápida inicial),
-        // norm 255 (internal +1) = logarithmic (caída lenta inicial). El complemento
-        // 1-(1-p)^e con signo positivo da caída rápida inicial cuando decayCurve<0.
-        curvedProgress = 1.0f - applyCurve(1.0f - progress,
-                                           decayCurve + curveModulation[(int)Stage::kDecay]);
+        // norm 255 (internal +1) = logarithmic (caída lenta inicial).
+        // Escalado calibrado contra DM12 (sin alterar kAttack): exp <= 3.2 y log >= 1/2.8.
+        const float effectiveDecayCurve = std::clamp(decayCurve + curveModulation[(int)Stage::kDecay], -1.0f, 1.0f);
+        const float scaledCurve = effectiveDecayCurve < 0.0f ? effectiveDecayCurve * (2.2f / 3.0f)
+                                                             : effectiveDecayCurve * (1.8f / 3.0f);
+        curvedProgress = 1.0f - applyCurve(1.0f - progress, scaledCurve);
         currentLevel   = startLevel + (targetLevel - startLevel) * curvedProgress;
     }
     else if (currentStage == Stage::kRelease)
     {
         // Misma semántica que decay: exponencial = caída rápida inicial (norm 0),
         // logarítmica = caída lenta inicial (norm 255).
-        curvedProgress = 1.0f - applyCurve(1.0f - progress,
-                                           releaseCurve + curveModulation[(int)Stage::kRelease]);
+        const float effectiveReleaseCurve = std::clamp(releaseCurve + curveModulation[(int)Stage::kRelease], -1.0f, 1.0f);
+        const float scaledCurve = effectiveReleaseCurve < 0.0f ? effectiveReleaseCurve * (2.2f / 3.0f)
+                                                               : effectiveReleaseCurve * (1.8f / 3.0f);
+        curvedProgress = 1.0f - applyCurve(1.0f - progress, scaledCurve);
         currentLevel   = startLevel + (targetLevel - startLevel) * curvedProgress;
     }
 

@@ -49,6 +49,8 @@ void operator delete(void* ptr, std::size_t) noexcept
 #include "EnvelopeCurves.h"
 #include "LFO.h"
 #include "LfoAnalog.h"
+#include "JunoDcoLfoDepth.h"
+#include "JunoLfoProfile.h"
 #include "OscHalfbandDecimator.h"
 #include "OscPolyBlep.h"
 #include "OscReference.h"
@@ -686,6 +688,130 @@ static void testLFO()
     }
 }
 
+
+// ─────────────────────────── JunoLfoProfile ───────────────────────────
+
+static void testJunoLfoProfile()
+{
+    printf("=== JunoLfoProfile ===\n");
+
+    const auto& j6  = abd::synth::kJunoLfoProfileJ6;
+    const auto& j60 = abd::synth::kJunoLfoProfileJ60;
+    const float tabla[11] = {0.142f, 0.269f, 0.468f, 0.783f, 1.275f, 2.043f,
+                             3.233f, 5.070f, 7.926f, 12.546f, 21.105f};
+
+    bool tablaOk = true;
+    for (int i = 0; i < 11; ++i)
+    {
+        const float s        = static_cast<float>(i) / 10.0f;
+        const float esperado = tabla[i];
+        const float real6    = j6.rateHz(s);
+        if (std::abs(real6 - esperado) / esperado > 0.0013f
+            || std::abs(j60.rateHz(s) - real6) > 1.0e-6f)
+            tablaOk = false;
+    }
+    check(tablaOk, "J6 sigue la tabla de 11 puntos (error <= 0,13 %) y J60 comparte su ley");
+
+    const float minRate = j6.rateHz(0.0f);
+    const float maxRate = j6.rateHz(1.0f);
+    check(std::abs(j6.rateHz(-1.0f) - minRate) < 1.0e-6f
+          && std::abs(j6.rateHz(2.0f) - maxRate) < 1.0e-6f,
+          "rateHz clampea fuera del mando");
+
+    bool monotona = true;
+    float anterior = minRate;
+    for (int i = 1; i <= 100; ++i)
+    {
+        const float actual = j6.rateHz(static_cast<float>(i) / 100.0f);
+        if (actual < anterior)
+            monotona = false;
+        anterior = actual;
+    }
+    check(monotona, "rateHz es monotona en todo el recorrido");
+
+    const float delay0   = j6.delaySeconds(0.0f);
+    const float delayMid = j6.delaySeconds(0.5f);
+    const float delayMax = j6.delaySeconds(1.0f);
+
+    check(std::abs(delay0) < 1.0e-6f && std::abs(delayMid - 1.0f) < 1.0e-6f,
+          "delaySeconds mapea linealmente el mando (0 -> 0 s, 0,5 -> 1 s)");
+    check(std::abs(j6.delayMaxSec - 2.0) < 1.0e-9
+          && std::abs(delayMax - 2.0f) < 1.0e-6f,
+          "el tope del delay es 2 s (ficha del 60/6)");
+    check(std::abs(j6.delaySeconds(-1.0f)) < 1.0e-6f
+          && std::abs(j6.delaySeconds(2.0f) - delayMax) < 1.0e-6f,
+          "delaySeconds clampea fuera del mando");
+
+    const float tau     = j6.delayTauSeconds(0.5f);
+    const float enMitad = 1.0f - std::exp(-(delayMid * 0.5f) / tau);
+    const float alFinal = 1.0f - std::exp(-delayMid / tau);
+    check(std::abs(tau - 0.5f) < 1.0e-6f
+          && std::abs(enMitad - 0.63212056f) < 1.0e-5f
+          && std::abs(alFinal - 0.86466472f) < 1.0e-5f,
+          "delayTauSeconds = delay/2: RC al 63 % a mitad y 86,5 % al final");
+}
+
+// ─────────────────────────── JunoDcoLfoDepth ───────────────────────────
+
+static void testJunoDcoLfoDepth()
+{
+    printf("=== JunoDcoLfoDepth ===\n");
+
+    const float tabla[11] = {0.000f, 0.041f, 0.132f, 0.198f, 0.289f, 0.405f,
+                             0.487f, 0.940f, 1.440f, 2.053f, 2.526f};
+
+    bool tablaOk = true;
+    for (int i = 0; i < 11; ++i)
+    {
+        const float t        = static_cast<float>(i) / 10.0f;
+        const float esperado = tabla[i];
+        const float real6    = abd::synth::junoDcoLfoDepthSemitones(0, t);
+        if (std::abs(real6 - esperado) > 1.0e-6f
+            || std::abs(abd::synth::junoDcoLfoDepthSemitones(1, t) - real6) > 1.0e-6f)
+            tablaOk = false;
+    }
+    check(tablaOk, "el 6 sigue la tabla de 11 puntos y el 60 comparte la misma ley");
+
+    const float interpolado = abd::synth::junoDcoLfoDepthSemitones(0, 0.05f);
+    check(std::abs(interpolado - 0.0205f) < 1.0e-6f,
+          "la tabla interpola linealmente entre puntos");
+
+    bool taperOk = true;
+    for (int i = 0; i <= 100; ++i)
+    {
+        const float t = static_cast<float>(i) / 100.0f;
+        const float esperado = t / (1.0f + 5.0f * t * (1.0f - t)) * 4.0f;
+        const float real = abd::synth::junoDcoLfoDepthSemitones(2, t);
+        if (std::abs(real - esperado) > 1.0e-5f)
+            taperOk = false;
+    }
+    check(taperOk, "el 106 aplica el taper x/(1+5x-5x^2) escalado a 4 st");
+
+    check(std::abs(abd::synth::junoDcoLfoDepthSemitones(2, -1.0f)) < 1.0e-6f
+          && std::abs(abd::synth::junoDcoLfoDepthSemitones(2, 2.0f) - 4.0f) < 1.0e-6f,
+          "106 clampea fuera del mando");
+
+    bool monotona = true;
+    for (int model = 0; model <= 2; ++model)
+    {
+        float anterior = abd::synth::junoDcoLfoDepthSemitones(model, 0.0f);
+        for (int i = 1; i <= 100; ++i)
+        {
+            const float actual = abd::synth::junoDcoLfoDepthSemitones(
+                model, static_cast<float>(i) / 100.0f);
+            if (actual < anterior)
+                monotona = false;
+            anterior = actual;
+        }
+    }
+    check(monotona, "las tres curvas son monotonas");
+
+    check(std::abs(abd::synth::junoDcoLfoDepthSemitones(2, 1.0f, 2.0f, 5.0f) - 2.0f) < 1.0e-6f,
+          "maxSemitones106 se respeta en el 106");
+    check(std::abs(abd::synth::junoDcoLfoDepthSemitones(2, 0.5f, 4.0f, 1.0f) - 1.6f) < 1.0e-6f,
+          "shuntK se respeta en el taper del 106");
+}
+
 // ─────────────────────────── AudioThreadSnapshot ───────────────────────────
 
 static void testAudioThreadSnapshot()
@@ -853,6 +979,8 @@ int main()
     abd::synth::tests::testEnvelope();
     abd::synth::tests::testPortamento();
     abd::synth::tests::testLFO();
+    abd::synth::tests::testJunoLfoProfile();
+    abd::synth::tests::testJunoDcoLfoDepth();
     abd::synth::tests::testAudioThreadSnapshot();
     abd::synth::tests::testVoiceAllocator();
     abd::synth::tests::testModMatrixAccumulation();

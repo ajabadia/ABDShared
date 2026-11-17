@@ -58,6 +58,7 @@ import {
 import { buildAbletonAdvXml, packAbletonAdvGzip } from './AbletonAdvFormat.ts';
 import { buildExs24Binary } from './Exs24Format.ts';
 import { buildTalSamplerXml } from './TalSamplerFormat.ts';
+import { buildAbdStructuredRomplerBank } from './AbdRomplerWriter.ts';
 import { buildTx16WxProgramXml } from './Tx16WxFormat.ts';
 import { buildKorgKmpPackage } from './KorgKmpKsfFormat.ts';
 import { buildDlsBinary } from './DlsFormat.ts';
@@ -270,6 +271,20 @@ export async function exportRawSamplerLibrary(
 
   // 2. Format-Specific Generation
   switch (options.format) {
+    case 'abdbank': {
+      const isDrum = (options as any).isDrumKit ?? false;
+      const bankBytes = buildAbdStructuredRomplerBank(validRegions, processedSamplesMap as any, {
+        bankName: cleanBankName,
+        author: options.author,
+        isDrumKit: isDrum,
+      });
+      outFilename = `${cleanBankName}.abdbank`;
+      mimeType = 'application/zip';
+      outData = bankBytes;
+      totalFiles = processedSamplesMap.size + 1;
+      break;
+    }
+
     case 'sf2': {
       const sf2Samples: Sf2SampleEntry[] = [];
       const sampleIndexMap = new Map<string, number>();

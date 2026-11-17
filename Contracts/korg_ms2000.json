@@ -41,6 +41,7 @@
         {
           "index": 1,
           "name": "Filter Cutoff",
+          "semanticRole": "FilterCutoff",
           "type": "Knob",
           "controlMethod": "MIDI_CC",
           "ccNumber": 74,
@@ -52,6 +53,7 @@
         {
           "index": 2,
           "name": "Filter Resonance",
+          "semanticRole": "FilterResonance",
           "type": "Knob",
           "controlMethod": "MIDI_CC",
           "ccNumber": 71,
@@ -63,6 +65,7 @@
         {
           "index": 3,
           "name": "Filter Type",
+          "semanticRole": "FilterMode",
           "type": "RotarySwitch",
           "controlMethod": "MIDI_CC",
           "ccNumber": 83,
@@ -93,6 +96,7 @@
         {
           "index": 1,
           "name": "Drive / Shape Depth",
+          "semanticRole": "DistortionDrive",
           "type": "Knob",
           "controlMethod": "MIDI_CC",
           "ccNumber": 79,

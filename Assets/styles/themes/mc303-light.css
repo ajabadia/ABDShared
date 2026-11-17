@@ -1,0 +1,68 @@
+/* Roland MC-303 Groovebox -- Brushed Silver-Grey Alloy (Light Theme) */
+/* Inspired by the iconic 1996 silver metal faceplate tinting bg_neutral.webp */
+[data-theme="mc303-light"], body.skin-mc303-light, body.theme-mc303-light {
+  --abd-bg-tint:                  #cfd5dc;
+  --abd-bg-blend:                 soft-light;
+
+  --color-bg-base:                #cfd5dc;
+  --color-panel-bg:               rgba(222, 227, 233, 0.84);
+  --color-panel-surface:          rgba(238, 241, 245, 0.90);
+  --color-panel-surface-elevated: rgba(250, 251, 253, 0.96);
+  --color-bg-elev:                #fafbfd;
+  --color-border:                 #b6c0cc;
+  --color-scrim-rgb:              15, 23, 35;
+  --navbar-bg:                    rgba(216, 222, 229, 0.94);
+  --navbar-shadow:                0 1px 4px rgba(15, 23, 35, 0.14);
+  --color-panel-border:           rgba(30, 41, 59, 0.18);
+  --color-panel-border-strong:    rgba(217, 72, 15, 0.44);
+  --color-panel-border-dim:       rgba(30, 41, 59, 0.09);
+  --shadow-card:                  0 3px 12px rgba(15, 23, 35, 0.10);
+  --shadow-card-hover:            0 5px 18px rgba(15, 23, 35, 0.16);
+  --shadow-elevation-1:           0 2px 6px rgba(15, 23, 35, 0.12);
+  --shadow-elevation-2:           0 8px 24px rgba(15, 23, 35, 0.18);
+  --shadow-elevation-3:           0 16px 36px rgba(15, 23, 35, 0.24);
+  --shadow-inset-bevel:           inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  --color-led-active:             #d9480f;
+  --color-led-glow:               rgba(217, 72, 15, 0.45);
+
+  /* Classic Roland Orange-Red Silk-Screen & LED Accent */
+  --color-accent:                 #d9480f;
+  --color-accent-rgb:             217, 72, 15;
+  --color-accent-hover:           #e8590c;
+  --color-accent-active:          #b63a0a;
+  --color-accent-dim:             rgba(217, 72, 15, 0.13);
+
+  --color-success:                #15803d;
+  --color-success-rgb:            21, 128, 61;
+  --color-warning:                #b45309;
+  --color-warning-rgb:            180, 83, 9;
+  --color-danger:                 #dc2626;
+  --color-danger-rgb:             220, 38, 38;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
+
+  /* Typography (Industrial Graphite Silk-Screen on Silver Alloy) */
+  --color-text-main:              #161a20;
+  --color-text-muted:             #46515e;
+  --color-text-dim:               #6e7b8a;
+
+  /* Authentic MC-303 Dark Backlit LCD */
+  --color-lcd-bg:                 #1b2619;
+  --color-lcd-text:               #ff9f2e;
+  --color-lcd-border:             rgba(217, 72, 15, 0.42);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #a9b4c0;
+  --color-scrollbar-thumb-hover:  #8d9aa8;
+  --color-scrollbar-thumb-active: #d9480f;
+  --color-scrollbar-track:        #d8dde3;
+
+  /* Vector / Stick Pad */
+  --color-stick-pad-bg:           #d3dae2;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #f1f4f8 0%, #c6cfd9 100%);
+  --color-stick-pad-border:       rgba(30, 41, 59, 0.22);
+  --color-stick-pad-shadow:       inset 0 2px 6px rgba(15, 23, 35, 0.18);
+  --color-stick-crosshair:        rgba(217, 72, 15, 0.30);
+  --color-stick-ring:             rgba(217, 72, 15, 0.24);
+  --color-stick-pole-text:        #46515e;
+}

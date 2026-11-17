@@ -20,6 +20,12 @@ export const SAMPLER_FORMAT_METADATA: Record<
   RawSamplerFormat,
   { title: string; description: string; extension: string; mimeType: string }
 > = {
+  abdbank: {
+    title: 'ABD Structured Rompler (.abdbank)',
+    description: 'Contenedor propietario optimizado de la suite ABDSynths para ABDMCX0X y SamplerCore con manifest.json, 4 parciales, kits de batería y muestras PCM.',
+    extension: '.abdbank',
+    mimeType: 'application/zip',
+  },
   sf2: {
     title: 'SoundFont 2 (.sf2)',
     description: 'Estándar binario RIFF sfbk autocontenido (v2.04) compatible con SoundFont hardware y software.',

@@ -18,8 +18,9 @@
 //    la forma RC (1−(1−p)^4 ≈ 0,94), curva 0 es lineal y curva +1 sube lento
 //    (p^0,25 invertido: p^4 ≈ 0,06); setCurves
 //    clampea a [−1,+1] y la modulación de matriz se SUMA a la curva base.
-//  - El sustain con curva +1 sube hacia 1,0 (la negativa baja hacia 0) con
-//    la pendiente calibrada contra el DM12; sustainEfectivo() aplica el
+//  - El sustain con curva +1 sube hacia 1,0 y la negativa baja hacia 0 y se
+//    clava ahí, con la pendiente calibrada contra el DM12: no depende del
+//    tiempo de Decay y se divide por timeScale. sustainEfectivo() aplica el
 //    offset clampeado a [0,1].
 //
 // Este .inc se incluye DENTRO de `namespace abd::synth::tests` (lo abre
@@ -71,6 +72,25 @@ static float nivelSustainConCurva(float curva, int k, float timeScale = 1.0f)
 
     for (int i = 0; i < k; ++i) e.nextSample();
     return e.getCurrentLevel();
+}
+
+// Incremento de nivel durante `muestras` muestras de sustain, medido desde
+// que arranca la fase. Es la pendiente del sustain (paso constante por
+// muestra), con el tiempo de Decay y la escala de tiempo que se pidan.
+static float pendienteSustain(float curva, float decaySec, float timeScale, int muestras)
+{
+    abd::synth::EnvelopeAnalog e;
+    e.setSampleRate(44100.0);
+    e.setParameters(0.01f, decaySec, 0.5f, 0.01f);
+    e.setCurves(0.0f, 0.0f, curva, 0.0f);
+    if (timeScale != 1.0f) e.setTimeScale(timeScale);
+    e.trigger();
+    while (e.getCurrentStage() != EnvStage::kSustain)
+        e.nextSample();
+
+    const float inicio = e.getCurrentLevel();
+    for (int i = 0; i < muestras; ++i) e.nextSample();
+    return e.getCurrentLevel() - inicio;
 }
 
 static void testEnvelopeAnalogPhases()
@@ -203,6 +223,38 @@ static void testEnvelopeAnalogCurves()
               "sustain con curva +1 sube ~0,81 en 100 ms");
         check(sustain500 > 0.999f,
               "sustain con curva +1 alcanza 1,0 antes de 500 ms");
+    }
+
+    // ── Sustain con curva negativa: baja hacia 0 y se clava ahí ──
+    {
+        const float neg100   = nivelSustainConCurva(-1.0f, 4410);      // 100 ms
+        const float negLargo = nivelSustainConCurva(-1.0f, 132300);    // 3 s
+
+        check(neg100 > 0.17f && neg100 < 0.21f && negLargo == 0.0f,
+              "sustain con curva −1 baja hacia 0 (~0,19 en 100 ms) y no pasa de largo");
+    }
+
+    // ── La pendiente no depende del tiempo de Decay (calibración DM12) ──
+    {
+        const float pendCorta = pendienteSustain(1.0f, 0.01f, 1.0f, 441); // Decay 10 ms
+        const float pendLarga = pendienteSustain(1.0f, 0.50f, 1.0f, 441); // Decay 500 ms
+
+        check(std::abs(pendCorta - pendLarga) < 1.0e-5f,
+              "la pendiente del sustain es independiente del tiempo de Decay");
+    }
+
+    // ── timeScale divide la pendiente: 0,5 la duplica y 2,0 la reduce a la mitad ──
+    {
+        const float pendNormal = pendienteSustain(1.0f, 0.01f, 1.0f, 441);
+        const float pendRapida = pendienteSustain(1.0f, 0.01f, 2.0f, 441);
+        const float pendLenta  = pendienteSustain(1.0f, 0.01f, 0.5f, 441);
+
+        // Se compara la razón, no la diferencia: la acumulación en float de
+        // 441 pasos ya introduce ~1e-5 de ruido sobre un paso de 7e-5.
+        const float razonLenta  = pendLenta / pendNormal;
+        const float razonRapida = pendRapida / pendNormal;
+        check(std::abs(razonLenta - 2.0f) < 0.01f && std::abs(razonRapida - 0.5f) < 0.01f,
+                            "timeScale divide la pendiente del sustain (0,5 la duplica, 2,0 la reduce a la mitad)");
     }
 
     // ── setTimeScale: la pendiente del sustain se divide por la escala ──

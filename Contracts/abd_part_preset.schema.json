@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdsynths.dev/schemas/abd_part_preset.schema.json",
+  "title": "ABDSynths Single-Part Channel Preset Contract (v1.0.0)",
+  "description": "Reusable single-part Groovebox/Workstation preset separating raw Model reference from synthesis, dual serial filters, modulation matrix, MIDI inserts, and mixer channel strip.",
+  "type": "object",
+  "required": ["schemaVersion", "formatId", "name", "partKind", "engineKind"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "formatId": { "type": "string", "const": "abd_part_preset" },
+    "id": { "type": "string" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "author": { "type": "string" },
+    "categoryId": { "type": "integer", "minimum": 0, "maximum": 9 },
+    "categoryLabel": { "type": "string" },
+    "thumbnailUri": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "partKind": { "type": "string", "enum": ["chromatic", "drum_map"] },
+    "engineKind": {
+      "type": "string",
+      "enum": ["rompler_chromatic", "rompler_drum_map", "dwgs_wavetable", "virtual_analog", "fm", "spectral_ddsp"]
+    },
+    "modelRef": {
+      "type": "object",
+      "properties": {
+        "bankUri": { "type": "string" },
+        "modelId": { "type": "string" },
+        "waveSlot": { "type": "integer", "minimum": 0, "maximum": 511 }
+      }
+    },
+    "midi": {
+      "type": "object",
+      "properties": {
+        "channel": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "keyLow": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "keyHigh": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "followGlobalTranspose": { "type": "boolean" }
+      }
+    },
+    "filters": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "family": { "type": "string", "enum": ["lpf", "hpf", "bpf", "notch", "comb", "zplane"] },
+          "model": { "type": "string" },
+          "cutoffHz": { "type": "number", "minimum": 20, "maximum": 20000 },
+          "resonance": { "type": "number", "minimum": 0, "maximum": 1 },
+          "drive": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "channelStrip": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "number", "minimum": 0, "maximum": 1.5 },
+        "pan": { "type": "number", "minimum": -1, "maximum": 1 },
+        "mute": { "type": "boolean" },
+        "solo": { "type": "boolean" },
+        "drive": { "type": "number", "minimum": 0, "maximum": 1 },
+        "eq": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "lowDb": { "type": "number", "minimum": -18, "maximum": 18 },
+            "midFreqHz": { "type": "number", "minimum": 120, "maximum": 8000 },
+            "midDb": { "type": "number", "minimum": -18, "maximum": 18 },
+            "midQ": { "type": "number", "minimum": 0.3, "maximum": 8 },
+            "highDb": { "type": "number", "minimum": -18, "maximum": 18 }
+          }
+        },
+        "sends": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "properties": {
+              "level": { "type": "number", "minimum": 0, "maximum": 1 },
+              "preFader": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "modMatrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "destination", "amount"],
+        "properties": {
+          "source": { "type": "string" },
+          "viaSource": { "type": "string" },
+          "viaAmount": { "type": "number", "minimum": -1, "maximum": 1 },
+          "destination": { "type": "string" },
+          "amount": { "type": "number", "minimum": -1, "maximum": 1 }
+        }
+      }
+    },
+    "midiInserts": { "type": "array", "items": { "type": "object" } }
+  }
+}

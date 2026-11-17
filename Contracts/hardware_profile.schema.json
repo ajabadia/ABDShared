@@ -265,6 +265,10 @@
                   "minimum": -1,
                   "maximum": 127,
                   "description": "Numero de CC. Contrapartida de `cc`. El -1 es el \"no hay CC\", igual que en `cc`."
+                },
+                "semanticRole": {
+                  "type": "string",
+                  "description": "Rol semántico universal del Common Data Dictionary CDD v2.0 (ver UNIVERSAL_SEMANTIC_TAXONOMY.md). Cubre: osciladores (OscWaveform, OscPulseWidth), filtros (FilterCutoff, FilterResonance, FilterDrive), envolventes (AmpEnvAttack, FilterEnvDecay, ModEnv1Stage1Time), LFOs (Lfo1Rate, Lfo1Delay), mod matrix (ModSlot1Amount), pedales/ruedas (ModulationWheel, FootExpressionPedal, SustainPedal), mixer/partes (PartVolume, PartPan, PartReverbSend) y drum keys (DrumKeyPitch, DrumKeyLevel)."
                 }
               },
               "additionalProperties": false

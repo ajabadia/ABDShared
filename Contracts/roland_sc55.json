@@ -34,8 +34,8 @@
       "blockType": "SpectrumFilter",
       "suggestedStimulus": "LOG_SINE_SWEEP",
       "controls": [
-        { "index": 1, "name": "TVF Cutoff", "type": "Knob", "controlMethod": "NRPN", "nrpn": 160, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
-        { "index": 2, "name": "TVF Resonance", "type": "Knob", "controlMethod": "NRPN", "nrpn": 161, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" }
+        { "index": 1, "name": "TVF Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "NRPN", "nrpn": 160, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
+        { "index": 2, "name": "TVF Resonance", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "NRPN", "nrpn": 161, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" }
       ]
     },
     {
@@ -44,9 +44,9 @@
       "blockType": "TimeDynamic",
       "suggestedStimulus": "GATE_PULSE",
       "controls": [
-        { "index": 1, "name": "Attack Time", "type": "Knob", "controlMethod": "NRPN", "nrpn": 227, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
-        { "index": 2, "name": "Decay Time", "type": "Knob", "controlMethod": "NRPN", "nrpn": 228, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
-        { "index": 3, "name": "Release Time", "type": "Knob", "controlMethod": "NRPN", "nrpn": 230, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" }
+        { "index": 1, "name": "Attack Time", "semanticRole": "AmpEnvAttack", "type": "Knob", "controlMethod": "NRPN", "nrpn": 227, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
+        { "index": 2, "name": "Decay Time", "semanticRole": "AmpEnvDecay", "type": "Knob", "controlMethod": "NRPN", "nrpn": 228, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" },
+        { "index": 3, "name": "Release Time", "semanticRole": "AmpEnvRelease", "type": "Knob", "controlMethod": "NRPN", "nrpn": 230, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" }
       ]
     }
   ],

@@ -1,0 +1,199 @@
+/* @abdsynths/shared -- Code/DiagnosticProbe/WebUI/DiagnosticProbeModal.css */
+/* 100% tokenized with canonical ABDShared design tokens (zero hardcoded colors) */
+
+dialog.abd-probe-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: var(--z-modal);
+  padding: 0;
+  border: 1px solid var(--color-panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-panel-bg);
+  color: var(--color-text-main);
+  width: min(560px, 92vw);
+  max-width: 92vw;
+  height: fit-content;
+  box-shadow: var(--shadow-elevation-3);
+  overflow: hidden;
+  font-family: var(--font-sans);
+}
+
+dialog.abd-probe-dialog::backdrop {
+  background: rgba(var(--color-scrim-rgb), 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.abd-probe-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+}
+
+.abd-probe-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  border-bottom: 1px solid var(--color-panel-border-dim);
+  padding-bottom: var(--space-5);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+dialog.abd-probe-dialog.is-dragging .abd-probe-header { cursor: grabbing; }
+
+.abd-probe-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.abd-probe-subtitle {
+  margin: 3px 0 0;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+}
+
+.abd-probe-close {
+  appearance: none;
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-panel-surface);
+  color: var(--color-text-main);
+  border-radius: var(--radius-chassis);
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.abd-probe-close:hover { border-color: var(--color-accent); }
+
+.abd-probe-top {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.abd-probe-wave-frame {
+  border: 1px solid var(--color-lcd-border);
+  border-radius: var(--radius-chassis);
+  overflow: hidden;
+  background: var(--color-lcd-bg);
+  box-shadow: var(--color-stick-pad-shadow);
+}
+
+.abd-probe-canvas {
+  display: block;
+  width: 100%;
+  height: 96px;
+}
+
+.abd-probe-knob-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) var(--space-3);
+  border-radius: var(--radius-chassis);
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim);
+}
+
+.abd-probe-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.abd-probe-section-label {
+  font-size: var(--text-md);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.abd-probe-dest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: var(--space-4);
+}
+
+.abd-probe-dest-btn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 9px 11px;
+  border-radius: var(--radius-chassis);
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-panel-surface);
+  color: var(--color-text-main);
+  font-size: var(--text-base);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.abd-probe-dest-label { display: inline-flex; align-items: center; gap: 7px; }
+.abd-probe-dest-btn:hover { border-color: var(--color-accent); }
+.abd-probe-dest-btn[aria-pressed="true"] {
+  background: var(--color-accent-dim);
+  border-color: var(--color-accent);
+}
+
+.abd-probe-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-panel-border);
+}
+.abd-probe-dest-btn[aria-pressed="true"] .abd-probe-led {
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+}
+
+.abd-probe-state-tag { font-size: var(--text-sm); font-family: var(--font-mono); color: var(--color-text-dim); }
+.abd-probe-dest-btn[aria-pressed="true"] .abd-probe-state-tag { color: var(--color-accent); }
+
+.abd-probe-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  border-top: 1px solid var(--color-panel-border-dim);
+  padding-top: var(--space-5);
+}
+
+.abd-probe-status { font-family: var(--font-mono); font-size: var(--text-base); font-weight: 700; color: var(--color-text-muted); }
+.abd-probe-status.is-active { color: var(--color-lcd-text); }
+
+.abd-probe-wave-pills { display: inline-flex; gap: var(--space-2); }
+.abd-probe-mini-btn {
+  appearance: none;
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-panel-surface);
+  color: var(--color-text-main);
+  border-radius: var(--radius-md);
+  padding: 3px var(--space-4);
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+}
+.abd-probe-mini-btn.is-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg-base);
+}
+.abd-probe-mini-btn--off {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}

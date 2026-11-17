@@ -149,6 +149,28 @@ Plantilla `ModMatrixT<kNumSlots, kZeroIdInert = true>`:
 - `void accumulate(sourceValues, sourceCount, destAccum, destCount) const noexcept`
 - `float get(destination, sourceValues, sourceCount) const noexcept`
 
+#### GrooveArpeggiator
+
+Ruta: `Code/SynthCore/GrooveArpeggiator.h`
+Clase: `abd::synth::GrooveArpeggiator`
+Propósito: Arpegiador polirrítmico zero-alloc C++20 con soporte para VST3 y WebAssembly.
+
+- `void prepare(double sampleRate) noexcept`
+- `void reset() noexcept`
+- `void setBpm(float bpm) noexcept`
+- `void setResolution(GrooveArpResolution res) noexcept` (16 divisores de reloj: 1/1 a 1/32T)
+- `void setSwing(float swingBipolar) noexcept` (-1.0 a +1.0)
+- `void setGateLength(float gate01) noexcept`
+- `void setOctaveRange(int octaves) noexcept` (1..4)
+- `void setMotif(GrooveArpMotif motif) noexcept` (12 motivos: Up, Down, Alt1, Alt2, Random, AsPlayed, etc.)
+- `void setStepMask(std::uint32_t mask, int patternLength = 16) noexcept`
+- `void setAccentPattern(std::uint32_t mask, float accentGain = 1.3f) noexcept`
+- `void setStrum(float strumMs) noexcept`
+- `void setLatchMode(GrooveArpLatch latch) noexcept` (Off, Hold, LatchReArm)
+- `void noteOn(int midiNote, float velocity) noexcept`
+- `void noteOff(int midiNote) noexcept`
+- `bool processBlock(int numSamples, std::vector<GrooveArpEvent>& outEvents) noexcept`
+
 ---
 
 ### 1.3 DspEffects — motor de efectos compartidos
@@ -667,3 +689,14 @@ El inventario de §3 se escribió leyendo headers a mano, así que cualquier cam
 2. **Flag `--check`:** compara lo generado con lo versionado y devuelve código distinto de cero si hay deriva. Mismo patrón que `registry_generator.js --check` del registro de parámetros.
 3. **Gate en CI:** el job falla si el catálogo no coincide con el código; el PR incluye la regeneración o no pasa.
 4. **Introspección completa (más adelante):** `libclang`/Doxygen dan firmas y tipos exactos, pero añaden toolchain a la imagen de CI. Se adopta el día en que el extractor ligero se quede corto con plantillas, sobrecargas o alias de tipos.
+
+---
+
+## 11. DiagnosticProbe — Sonda Diagnóstica 440 Hz y Diapasón Aséptico (2026-11-17)
+
+Ruta: `Code/DiagnosticProbe` (`ABDShared::DiagnosticProbe` en CMake, `@abdsynths/shared/diagnostic-probe` en WebUI)  
+Guía de integración: [`Docs/integration/DIAGNOSTIC_PROBE_INTEGRATION_GUIDE.md`](../integration/DIAGNOSTIC_PROBE_INTEGRATION_GUIDE.md)
+
+- **C++20 (`DiagnosticSignalProbe.h`):** generador RT-safe sin asignaciones ni JUCE (`abd::synth::DiagnosticSignalProbe`) con precisión `double` para 440.0 Hz a cualquier frecuencia de muestreo (`44100..192000 Hz`), 4 formas de onda (`Sine`, `Saw`, `WhiteNoise`, `Impulse1Hz`) y máscara atómica de 64 bits (`setEnabledMask`, `setPointEnabled`, `isInjectingAt`, `injectStereoBuffer`).
+- **WebUI (`WebUI/DiagnosticProbeModal.js`, `DiagnosticProbeWave.js`, `DiagnosticProbeI18n.js`, `DiagnosticProbeModal.css`):** modal `<dialog closedby="any">` invocable desde `NavBar → Utils`, con lienzo animado de onda 440 Hz + sample rate, knob rotatorio de volumen (`Knob` de `ABDShared`), botones ON/OFF dinámicos definidos por el consumidor (con selección inicial o en llamada), temas Light/Dark e internacionalización ES/EN.
+- **Consumidor verificado:** `ABDMCX0X` (Nativo C++20, WASM y WebUI).

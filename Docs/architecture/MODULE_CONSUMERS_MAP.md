@@ -51,6 +51,7 @@ Estos son los que la guía de integración documenta como integrables desde otro
 **Proyectos que lo consumen:**
 - `ABDEep`
 - `ABDMS2000`
+- `ABDMCX0X` (consumidor nativo C++20 + WebAssembly WASM)
 - `ABDJUNiO601`
 - `ABDNeural`
 - `ABDAudioLab` (vía integración de ABDShared)
@@ -60,12 +61,13 @@ Estos son los que la guía de integración documenta como integrables desde otro
 **Archivos notables:**
 - `SynthCore/Arpeggiator.*`
 - `SynthCore/ArpeggiatorJuno.h` (unificado zero-alloc C++20; consumido por ABDJUNiO601)
+- `SynthCore/GrooveArpeggiator.h` (arpegiador polirrítmico zero-alloc con swing bipolar, 12 motivos, 16 divisores de reloj; consumido por `ABDMS2000` y `ABDMCX0X`)
 - `SynthCore/ControlSequencer.*`
 - `SynthCore/LfoAnalog.*`
 - `SynthCore/EnvelopeAnalog.*`
 - `SynthCore/DriftEngine.*`
 - `SynthCore/PortamentoGlide.*`
-- `SynthCore/PolyBLEP.h` (utilizado por ABDEep y JUNiO)
+- `SynthCore/PolyBLEP.h` (utilizado por ABDEep, JUNiO, ABDMS2000 y ABDMCX0X)
 - `SynthCore/DSPUtils.h`
 - `SynthCore/OscillatorFamily.*`
 - `SynthCore/OscVcoCa72.*`

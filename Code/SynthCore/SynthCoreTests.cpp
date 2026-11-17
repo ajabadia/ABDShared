@@ -6,6 +6,7 @@
 // Style mirrors ABDMS2000/Source/Tests/DSPCoreTests.cpp (check() + counters).
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -75,6 +76,70 @@ namespace abd::synth::tests
 
 static int testsPassed = 0;
 static int testsFailed = 0;
+
+// ───────────── Filtro por nombre: `--only=<subcadena>` ─────────────
+//
+// Iterar sobre una familia (--only=EnvelopeAnalog) no debe costar la suite
+// entera: main() llama a cada funcion a traves de RUN_TEST, que pregunta aqui
+// antes de ejecutarla. El nombre comparado es el de la funcion (#fn), no el
+// titulo en espanol que imprime cada bloque: los titulos cambian, los nombres
+// de funcion no.
+
+static const char* onlyFilter = nullptr; // nullptr = todas
+static int testsSelected = 0;
+static int testsDeselected = 0;
+
+/** Subcadena ignorando mayusculas ASCII (sin locale, para no depender de el). */
+static bool containsIgnoreCase(const char* text, const char* needle)
+{
+    const std::size_t needleLen = std::strlen(needle);
+
+    if (needleLen == 0)
+        return true;
+
+    for (const char* start = text; *start != '\0'; ++start)
+    {
+        std::size_t i = 0;
+
+        while (i < needleLen && start[i] != '\0'
+               && std::tolower(static_cast<unsigned char>(start[i]))
+                      == std::tolower(static_cast<unsigned char>(needle[i])))
+            ++i;
+
+        if (i == needleLen)
+            return true;
+    }
+
+    return false;
+}
+
+/** Fija el filtro. false si falta el nombre (argumento mal formado). */
+static bool setOnlyFilter(const char* needle)
+{
+    if (needle == nullptr || *needle == '\0')
+        return false;
+
+    onlyFilter = needle;
+    return true;
+}
+
+static const char* getOnlyFilter() { return onlyFilter; }
+
+/** true si la funcion entra en el filtro; cuenta para el resumen final. */
+static bool shouldRun(const char* testFunctionName)
+{
+    if (onlyFilter != nullptr && ! containsIgnoreCase(testFunctionName, onlyFilter))
+    {
+        ++testsDeselected;
+        return false;
+    }
+
+    ++testsSelected;
+    return true;
+}
+
+static int selectedTests()   { return testsSelected; }
+static int deselectedTests() { return testsDeselected; }
 
 static void check(bool condition, const char* testName)
 {
@@ -973,62 +1038,124 @@ static void testVoiceAllocator()
 // y antes de main(), donde se le llama.
 #include "tests/OscReferenceTests.inc"
 
-int main()
+// Ejecuta la funcion de prueba solo si el filtro --only= la acepta.
+#define RUN_TEST(fn)                            \
+    do                                          \
+    {                                           \
+        if (abd::synth::tests::shouldRun(#fn))  \
+            abd::synth::tests::fn();            \
+    } while (false)
+
+static const char* kUsage =
+    "Uso: ABDShared_SynthCore_Tests [--only=<subcadena>]\n"
+    "  --only=<subcadena>  ejecuta solo las funciones de prueba cuyo nombre\n"
+    "                      contiene <subcadena>, sin distinguir mayusculas\n"
+    "                      (ej. --only=EnvelopeAnalog).\n"
+    "  Sin argumentos ejecuta todas.\n";
+
+int main(int argc, char* argv[])
 {
+    // El filtro se lee antes de imprimir nada: un argumento mal escrito tiene
+    // que fallar (codigo 2), no correr la suite entera y aparentar que filtro.
+    for (int i = 1; i < argc; ++i)
+    {
+        const char* arg   = argv[i];
+        const char* value = nullptr;
+
+        if (std::strcmp(arg, "--only") == 0)
+        {
+            if (i + 1 < argc)
+                value = argv[++i];
+        }
+        else if (std::strncmp(arg, "--only=", 7) == 0)
+        {
+            value = arg + 7;
+        }
+        else
+        {
+            printf("Argumento no reconocido: %s\n%s", arg, kUsage);
+            return 2;
+        }
+
+        if (! abd::synth::tests::setOnlyFilter(value))
+        {
+            printf("--only necesita un nombre (ej. --only=EnvelopeAnalog)\n%s", kUsage);
+            return 2;
+        }
+    }
+
     printf("=== SynthCore Test Suite ===\n");
-    abd::synth::tests::testDSPUtils();
-    abd::synth::tests::testPolyBLEP();
-    abd::synth::tests::testEnvelope();
-    abd::synth::tests::testPortamento();
-    abd::synth::tests::testLFO();
-    abd::synth::tests::testJunoLfoProfile();
-    abd::synth::tests::testJunoDcoLfoDepth();
-    abd::synth::tests::testAudioThreadSnapshot();
-    abd::synth::tests::testVoiceAllocator();
-    abd::synth::tests::testModMatrixAccumulation();
-    abd::synth::tests::testModMatrixBounds();
-    abd::synth::tests::testModMatrixGet();
-    abd::synth::tests::testModMatrixEquivalenceWithAbdeep();
-    abd::synth::tests::testModDestinationDescriptor();
-    abd::synth::tests::testModMatrixZeroIdIsNotAlwaysInert();
-    abd::synth::tests::testS950PatchFields();
-    abd::synth::tests::testS950Disk();
-    abd::synth::tests::testS950Calibration();
-    abd::synth::tests::testS950EnvelopeBench();
-    abd::synth::tests::testS950CalibrationRender();
-    abd::synth::tests::testOscillatorFamilyContract();
 
-    abd::synth::tests::testOscHalfbandDecimator();
-    abd::synth::tests::testOscVcoCa72Frequency();
-    abd::synth::tests::testOscVcoCa72Waveforms();
-    abd::synth::tests::testOscVcoCa72BandLimiting();
-    abd::synth::tests::testOscPolyBlep();
-    abd::synth::tests::testOscillatorFamilyLanguage();
+    if (abd::synth::tests::getOnlyFilter() != nullptr)
+        printf("=== Filtro: --only=%s ===\n", abd::synth::tests::getOnlyFilter());
+    RUN_TEST(testDSPUtils);
+    RUN_TEST(testPolyBLEP);
+    RUN_TEST(testEnvelope);
+    RUN_TEST(testPortamento);
+    RUN_TEST(testLFO);
+    RUN_TEST(testJunoLfoProfile);
+    RUN_TEST(testJunoDcoLfoDepth);
+    RUN_TEST(testAudioThreadSnapshot);
+    RUN_TEST(testVoiceAllocator);
+    RUN_TEST(testModMatrixAccumulation);
+    RUN_TEST(testModMatrixBounds);
+    RUN_TEST(testModMatrixGet);
+    RUN_TEST(testModMatrixEquivalenceWithAbdeep);
+    RUN_TEST(testModDestinationDescriptor);
+    RUN_TEST(testModMatrixZeroIdIsNotAlwaysInert);
+    RUN_TEST(testS950PatchFields);
+    RUN_TEST(testS950Disk);
+    RUN_TEST(testS950Calibration);
+    RUN_TEST(testS950EnvelopeBench);
+    RUN_TEST(testS950CalibrationRender);
+    RUN_TEST(testOscillatorFamilyContract);
 
-    abd::synth::tests::testOscReferenceContract();
-    abd::synth::tests::testOscReferenceLanguage();
-    abd::synth::tests::testOscReferenceResetAndProcessBlock();
-    abd::synth::tests::testOscReferenceUnknownWaveform();
+    RUN_TEST(testOscHalfbandDecimator);
+    RUN_TEST(testOscVcoCa72Frequency);
+    RUN_TEST(testOscVcoCa72Waveforms);
+    RUN_TEST(testOscVcoCa72BandLimiting);
+    RUN_TEST(testOscPolyBlep);
+    RUN_TEST(testOscillatorFamilyLanguage);
 
-    abd::synth::tests::testArpeggiatorModes();
-    abd::synth::tests::testArpeggiatorNotesAndOctaves();
-    abd::synth::tests::testArpeggiatorGateAndZeroAlloc();
-    abd::synth::tests::testArpeggiatorRetrigger();
-    abd::synth::tests::testGrooveArpeggiator();
+    RUN_TEST(testOscReferenceContract);
+    RUN_TEST(testOscReferenceLanguage);
+    RUN_TEST(testOscReferenceResetAndProcessBlock);
+    RUN_TEST(testOscReferenceUnknownWaveform);
 
-    abd::synth::tests::testControlSequencerBipolarSteps();
-    abd::synth::tests::testControlSequencerClockTable();
-    abd::synth::tests::testControlSequencerSwingAndSlew();
+    RUN_TEST(testArpeggiatorModes);
+    RUN_TEST(testArpeggiatorNotesAndOctaves);
+    RUN_TEST(testArpeggiatorGateAndZeroAlloc);
+    RUN_TEST(testArpeggiatorRetrigger);
+    RUN_TEST(testGrooveArpeggiator);
 
-    abd::synth::tests::testLFOAnalogWaveforms();
-    abd::synth::tests::testLFOAnalogRateRange();
-    abd::synth::tests::testLFOAnalogDelayFade();
+    RUN_TEST(testControlSequencerBipolarSteps);
+    RUN_TEST(testControlSequencerClockTable);
+    RUN_TEST(testControlSequencerSwingAndSlew);
 
-    abd::synth::tests::testEnvelopeAnalogCurves();
-    abd::synth::tests::testEnvelopeAnalogPhases();
+    RUN_TEST(testLFOAnalogWaveforms);
+    RUN_TEST(testLFOAnalogRateRange);
+    RUN_TEST(testLFOAnalogDelayFade);
 
-    abd::synth::tests::testDriftEngineDeterminism();
-    abd::synth::tests::testDriftEngineAmplitudeScaling();
+    RUN_TEST(testEnvelopeAnalogCurves);
+    RUN_TEST(testEnvelopeAnalogPhases);
+
+    RUN_TEST(testDriftEngineDeterminism);
+    RUN_TEST(testDriftEngineAmplitudeScaling);
+
+    // Un filtro que no casa con nada no puede salir en verde: cero checks no es
+    // una suite que pase, es un nombre mal escrito o una funcion renombrada.
+    if (abd::synth::tests::getOnlyFilter() != nullptr)
+    {
+        printf("=== Filtro: %d funciones ejecutadas, %d omitidas ===\n",
+               abd::synth::tests::selectedTests(), abd::synth::tests::deselectedTests());
+
+        if (abd::synth::tests::selectedTests() == 0)
+        {
+            printf("=== --only=%s no coincide con ninguna funcion de prueba ===\n",
+                   abd::synth::tests::getOnlyFilter());
+            return 2;
+        }
+    }
 
     printf("\n=== Results: %d passed, %d failed ===\n",
            abd::synth::tests::testsPassed, abd::synth::tests::testsFailed);

@@ -85,6 +85,7 @@ add_library(ABDShared_SynthCore STATIC
     SynthCore/LfoAnalog.cpp
     SynthCore/EnvelopeAnalog.cpp
     SynthCore/DriftEngine.cpp
+    SynthCore/HardwareProfileHydrator.cpp
 )
 add_library(ABDShared::SynthCore ALIAS ABDShared_SynthCore)
 add_library(abd_synth_core ALIAS ABDShared_SynthCore)
@@ -104,7 +105,23 @@ target_sources(ABDShared_SynthCore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoDcoLfoDepth.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/StickPlayer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/VelocitySensitivityCurves.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/Envelope5Stage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/RolandRomLuts.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/SemanticRoleHash.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/MiniJsonParser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/HardwareProfileContract.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/HardwareProfileHydrator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/DiagnosticSignalProbe.h
 )
+
+# 2b. DiagnosticProbe Module (Aseptic 440 Hz Signal Probe, JUCE-free, Header-Only)
+add_library(ABDShared_DiagnosticProbe INTERFACE)
+add_library(ABDShared::DiagnosticProbe ALIAS ABDShared_DiagnosticProbe)
+target_include_directories(ABDShared_DiagnosticProbe INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_sources(ABDShared_DiagnosticProbe INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/DiagnosticProbe/DiagnosticSignalProbe.h
+)
+target_compile_features(ABDShared_DiagnosticProbe INTERFACE cxx_std_20)
 
 option(ABDSHARED_BUILD_SYNTHCORE_TESTS "Build SynthCore standalone tests" OFF)
 if(ABDSHARED_BUILD_SYNTHCORE_TESTS)

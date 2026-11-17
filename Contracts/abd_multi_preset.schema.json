@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdsynths.dev/schemas/abd_multi_preset.schema.json",
+  "title": "ABDSynths 16-Part Groovebox Multi / Performance Preset Contract (v1.0.0)",
+  "description": "Level-2 MultiPreset containing up to 16 independent Chromatic/DrumMap parts, 4 Global LFOs, Global Chromatic + Scale Transposer, Multi-Bus Master FX Rack, Scenes, and Song arrangement.",
+  "type": "object",
+  "required": ["schemaVersion", "formatId", "name", "parts"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "formatId": { "type": "string", "const": "abd_multi_preset" },
+    "id": { "type": "string" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "author": { "type": "string" },
+    "categoryId": { "type": "integer", "minimum": 0, "maximum": 9 },
+    "thumbnailUri": { "type": "string" },
+    "bpm": { "type": "number", "minimum": 20, "maximum": 300 },
+    "timeSignature": {
+      "type": "object",
+      "properties": {
+        "numerator": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "denominator": { "type": "integer", "enum": [2, 4, 8, 16] }
+      }
+    },
+    "globalTranspose": {
+      "type": "object",
+      "properties": {
+        "semitones": { "type": "integer", "minimum": -24, "maximum": 24 },
+        "rootNote": { "type": "integer", "minimum": 0, "maximum": 11 },
+        "scaleId": { "type": "string" },
+        "quantizeToScale": { "type": "boolean" }
+      }
+    },
+    "globalLfos": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "properties": {
+          "muted": { "type": "boolean" },
+          "waveform": { "type": "string" },
+          "rateHz": { "type": "number", "minimum": 0.01, "maximum": 40 },
+          "tempoSync": { "type": "boolean" },
+          "syncDivision": { "type": "string" },
+          "phaseDeg": { "type": "number", "minimum": 0, "maximum": 360 }
+        }
+      }
+    },
+    "masterFxRack": {
+      "type": "object",
+      "properties": {
+        "topology": { "type": "string" },
+        "slots": { "type": "array", "items": { "type": "object" } },
+        "masterVolume": { "type": "number", "minimum": 0, "maximum": 1.5 },
+        "limiterEnabled": { "type": "boolean" }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "./abd_part_preset.schema.json" }
+    },
+    "scenes": { "type": "array", "maxItems": 8, "items": { "type": "object" } },
+    "song": { "type": "array", "items": { "type": "object" } }
+  }
+}

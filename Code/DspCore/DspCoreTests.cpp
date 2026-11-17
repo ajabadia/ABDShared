@@ -62,6 +62,7 @@
 #include <cstdio>
 #include <limits>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -2415,7 +2416,7 @@ void testNonlinearFilterSweeps()
     }
 
     {
-        abd::dsp::JunoVCF_ZDF filter;
+        abd::dsp::JunoVCF_ZDF filter(abd::dsp::JunoVCF_ZDF::Mode::DeepMind);
         float frqNorm = 0.01f;
         float resNow  = 0.0f;
 
@@ -2457,11 +2458,16 @@ void testNonlinearFilterSweeps()
 void testJunoVCF()
 {
     const double sr = 44100.0;
-    abd::dsp::JunoVCF_ZDF vcf;
+    abd::dsp::JunoVCF_ZDF vcf(abd::dsp::JunoVCF_ZDF::Mode::Juno106);
     vcf.prepare(sr);
 
     // 1. Modos y configuraciones iniciales
-    check(vcf.getMode() == abd::dsp::JunoVCF_ZDF::Mode::DeepMind, "JunoVCF_ZDF modo por defecto es DeepMind");
+    // El voicing ya no se hereda: se declara al construir. Si alguien vuelve a
+    // poner un valor por defecto, este static_assert falla en compilacion.
+    static_assert(!std::is_default_constructible_v<abd::dsp::JunoVCF_ZDF>,
+                  "JunoVCF_ZDF no debe tener constructor por defecto: el modo (voicing) es obligatorio");
+    check(vcf.getMode() == abd::dsp::JunoVCF_ZDF::Mode::Juno106,
+          "JunoVCF_ZDF respeta el modo declarado al construir");
     check(vcf.getPoleMode() == abd::dsp::JunoVCF_ZDF::PoleMode::FourPole, "JunoVCF_ZDF pole mode por defecto es 4-pole");
     check(vcf.getOversample() == 1, "JunoVCF_ZDF oversample por defecto es 1");
 

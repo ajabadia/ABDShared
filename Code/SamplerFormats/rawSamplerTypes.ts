@@ -20,6 +20,7 @@ import type {
 } from './SamplerTypes.ts';
 
 export type RawSamplerFormat =
+  | 'abdbank'      // ABD Structured Rompler (.abdbank zip package with manifest.json + samples/)
   | 'sfz'          // SFZ format (.sfz + Samples/ folder packaged as .zip)
   | 'dspreset'     // Decent Sampler XML format (.dspreset + Samples/ folder packaged as .zip)
   | 'sf2'          // SoundFont 2.04 binary RIFF sfbk (.sf2 standalone)

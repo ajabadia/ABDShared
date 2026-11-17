@@ -59,8 +59,8 @@ struct JunoVCFConfig {
  */
 class JunoVCF_ZDF {
 public:
-    /** \brief Default constructor initializes to low-pass at 1kHz, no drive. */
-    JunoVCF_ZDF();
+    /** \brief El modo (respuesta del filtro) es obligatorio: no hay default que heredar. */
+    explicit JunoVCF_ZDF(JunoVCFMode mode);
 
     /** \brief Reset the filter state (call when sample rate changes). */
     void reset(float sampleRate = 48000.0f);
@@ -108,7 +108,7 @@ private:
     float hfCompensation{};      // HF pole compensation coefficient
 
     // Filter mode selection
-    JunoVCFMode mode{};  // Current mode (LPF, HPF, BPF, Notch)
+    JunoVCFMode mode;  // Current mode (LPF, HPF, BPF, Notch); lo fija el constructor
 
     // Drive/saturation emulation
     float drive{};           // Current drive amount

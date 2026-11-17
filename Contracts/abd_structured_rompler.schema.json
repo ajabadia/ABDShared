@@ -6,7 +6,7 @@
   "type": "object",
   "required": ["schemaVersion", "formatId", "bankName", "wavePool", "tones"],
   "properties": {
-    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "schemaVersion": { "type": "string", "enum": ["1.0.0", "1.1.0"] },
     "formatId": { "type": "string", "const": "abd_structured_rompler" },
     "bankName": { "type": "string", "minLength": 1, "maxLength": 120 },
     "author": { "type": "string" },
@@ -48,7 +48,7 @@
         "name": { "type": "string", "minLength": 1 },
         "sourceKind": {
           "type": "string",
-          "enum": ["spectral_ddsp", "pcm_zone", "va_osc", "fm_2op", "axionik_surface_ref"]
+          "enum": ["spectral_ddsp", "pcm_zone", "va_osc", "fm_2op", "axionik_surface_ref", "dwgs_wavetable"]
         },
         "stereo": { "type": "boolean" },
         "assetUriLeft": { "type": "string" },
@@ -80,7 +80,7 @@
         "enabled": { "type": "boolean" },
         "sourceKind": {
           "type": "string",
-          "enum": ["spectral_ddsp", "pcm_zone", "va_osc", "fm_2op", "axionik_surface_ref"]
+          "enum": ["spectral_ddsp", "pcm_zone", "va_osc", "fm_2op", "axionik_surface_ref", "dwgs_wavetable"]
         },
         "waveId": { "type": "string" },
         "vaShape": { "type": "string", "enum": ["saw", "pulse", "tri", "sine", "supersaw", "noise"] },
@@ -113,6 +113,8 @@
         "id": { "type": "string" },
         "name": { "type": "string", "minLength": 1, "maxLength": 48 },
         "category": { "type": "string" },
+        "categoryId": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "thumbnailUri": { "type": "string" },
         "structureMode": {
           "type": "string",
           "enum": [
@@ -179,10 +181,20 @@
         "pan": { "type": "number", "minimum": -1, "maximum": 1 },
         "reverbSend": { "type": "number", "minimum": 0, "maximum": 1 },
         "chorusSend": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sends": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
         "drive": { "type": "number", "minimum": 0, "maximum": 1 },
+        "attackMs": { "type": "number", "minimum": 0, "maximum": 5000 },
         "cutoffHzOverride": { "type": "number", "minimum": 20, "maximum": 20000 },
         "resonanceOverride": { "type": "number", "minimum": 0, "maximum": 1 },
         "decayScaleOverride": { "type": "number", "minimum": 0.05, "maximum": 10 },
+        "startFrame": { "type": "integer", "minimum": 0 },
+        "endFrame": { "type": "integer", "minimum": 0 },
+        "reverse": { "type": "boolean" },
         "triggerMode": { "type": "string", "enum": ["one_shot", "gated"] },
         "pitchKeyTrack": { "type": "boolean" }
       }
@@ -193,6 +205,8 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string", "minLength": 1, "maxLength": 48 },
+        "categoryId": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "thumbnailUri": { "type": "string" },
         "drumMapMode": {
           "type": "string",
           "enum": ["gm_standard", "roland_gs_mc", "yamaha_xg_xs", "korg_ai2_n5", "hardware_native", "proprietary_custom"]

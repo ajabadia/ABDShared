@@ -74,6 +74,7 @@
         {
           "index": 1,
           "name": "VCF Cutoff Frequency",
+          "semanticRole": "FilterCutoff",
           "type": "Slider",
           "controlMethod": "MIDI_CC",
           "ccNumber": 74,
@@ -85,6 +86,7 @@
         {
           "index": 2,
           "name": "VCF Resonance (Q)",
+          "semanticRole": "FilterResonance",
           "type": "Slider",
           "controlMethod": "MIDI_CC",
           "ccNumber": 71,
@@ -96,6 +98,7 @@
         {
           "index": 3,
           "name": "VCF Slope (2-Pole / 4-Pole)",
+          "semanticRole": "FilterMode",
           "type": "RotarySwitch",
           "controlMethod": "MIDI_CC",
           "ccNumber": 80,
@@ -111,6 +114,7 @@
         {
           "index": 4,
           "name": "VCF Bass Boost",
+          "semanticRole": "FilterDrive",
           "type": "RotarySwitch",
           "controlMethod": "MIDI_CC",
           "ccNumber": 81,

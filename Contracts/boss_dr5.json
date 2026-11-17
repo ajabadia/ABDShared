@@ -39,9 +39,9 @@
         "notes": "Supports standard MIDI CC 7/10/91/93 and GS Drum Key NRPNs (CC99=24,26,28,29)."
       },
       "controls": [
-        { "index": 1, "name": "Track Level", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 7, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 100.0, "unit": "midi" },
-        { "index": 2, "name": "Track Pan", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 10, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
-        { "index": 3, "name": "Reverb Depth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 91, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "midi" }
+        { "index": 1, "name": "Track Level", "semanticRole": "PartVolume", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 7, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 100.0, "unit": "midi" },
+        { "index": 2, "name": "Track Pan", "semanticRole": "PartPan", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 10, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
+        { "index": 3, "name": "Reverb Depth", "semanticRole": "PartReverbSend", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 91, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "midi" }
       ]
     },
     {
@@ -55,10 +55,10 @@
         "notes": "GS/SC-55 Drum NRPNs: CC99=24 Pitch Coarse, CC99=26 TVA Level, CC99=28 Panpot, CC99=29 Reverb Send."
       },
       "controls": [
-        { "index": 1, "name": "Drum Pitch Coarse", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3072, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "step" },
-        { "index": 2, "name": "Drum TVA Level", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3328, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 127.0, "unit": "midi" },
-        { "index": 3, "name": "Drum Panpot", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3584, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "step" },
-        { "index": 4, "name": "Drum Reverb Send", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3712, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 40.0, "unit": "midi" }
+        { "index": 1, "name": "Drum Pitch Coarse", "semanticRole": "DrumKeyPitch", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3072, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "step" },
+        { "index": 2, "name": "Drum TVA Level", "semanticRole": "DrumKeyLevel", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3328, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 127.0, "unit": "midi" },
+        { "index": 3, "name": "Drum Panpot", "semanticRole": "DrumKeyPan", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3584, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "step" },
+        { "index": 4, "name": "Drum Reverb Send", "semanticRole": "DrumKeyReverbSend", "type": "Knob", "controlMethod": "NRPN", "nrpn": 3712, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 40.0, "unit": "midi" }
       ]
     }
   ],

@@ -114,7 +114,7 @@ inline float junoFastTan(float x) noexcept
  *
  * Parametrized filter core with:
  *   - Direct cutoff frequency input (cutoffHz or normalized freq)
- *   - Selectable voicings (Juno106 / DeepMind) via VcfVoicing injection
+ *   - Voicing obligatorio al construir (Juno106 / DeepMind): no hay default
  *   - High-quality 2x/4x polyphase IIR oversampling
  *   - Newton-Raphson 1-stage non-linear solver with Padé 3/3 tanh approximation
  */
@@ -133,13 +133,15 @@ public:
         TwoPole   // 12 dB/oct — 2 integrators in cascade
     };
 
-    inline JunoVCF_ZDF()
+    /** El voicing no se hereda: el consumidor lo declara al construir. */
+    explicit JunoVCF_ZDF(Mode mode)
+        : mMode(mode)
     {
         mUp1.setCoefs(kResamplerCoefs2x);
         mUp2.setCoefs(kResamplerCoefs2x);
         mDown1.setCoefs(kResamplerCoefs2x);
         mDown2.setCoefs(kResamplerCoefs2x);
-        setMode(Mode::DeepMind);
+        setMode(mode);
         reset();
     }
 
@@ -565,7 +567,7 @@ private:
     Upsampler2x mUp1, mUp2;
     Downsampler2x mDown1, mDown2;
 
-    Mode mMode         = Mode::DeepMind;
+    Mode mMode; // obligatorio: lo fija el constructor, nunca un default
     PoleMode mPoleMode = PoleMode::FourPole;
     VcfVoicing mVoicing;
 };

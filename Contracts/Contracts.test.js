@@ -6,6 +6,13 @@ import {
   getDrumSlotName,
   resolveRemappedDrumNote,
 } from './abdDrumMapProfiles.ts';
+import {
+  SEMANTIC_ROLE_CATEGORIES,
+  getSemanticRoleCategory,
+  getDefaultMidiCC,
+  isPerVoiceSemanticRole,
+  isBipolarSemanticRole,
+} from './semanticRoles.ts';
 import { validateModelContract } from '../Code/BankManager/Contracts/ModelContract.ts';
 import {
   allJsonHydratedContracts,
@@ -130,5 +137,34 @@ describe('@abdsynths/contracts', () => {
       [0xB9, 98, 36],
       [0xB9, 6, 72],
     ]);
+  });
+
+  it('semanticRoles taxonomy categorizes and maps standard synthesizer roles accurately', () => {
+    expect(SEMANTIC_ROLE_CATEGORIES.length).toBe(10);
+    expect(getSemanticRoleCategory('VoicePolyMode')).toBe('voice');
+    expect(getSemanticRoleCategory('Osc1Waveform')).toBe('oscillator');
+    expect(getSemanticRoleCategory('FilterCutoff')).toBe('filter');
+    expect(getSemanticRoleCategory('AmpEnvAttack')).toBe('envelope');
+    expect(getSemanticRoleCategory('ModEnv1Decay')).toBe('envelope');
+    expect(getSemanticRoleCategory('Lfo1Rate')).toBe('lfo');
+    expect(getSemanticRoleCategory('ModSlot1Amount')).toBe('mod_matrix');
+    expect(getSemanticRoleCategory('ModulationWheel')).toBe('performance');
+    expect(getSemanticRoleCategory('PartReverbSend')).toBe('part_mixer');
+    expect(getSemanticRoleCategory('ReverbTime')).toBe('effects');
+    expect(getSemanticRoleCategory('DrumKeyPitch')).toBe('drum');
+
+    expect(getDefaultMidiCC('ModulationWheel')).toBe(1);
+    expect(getDefaultMidiCC('FilterCutoff')).toBe(74);
+    expect(getDefaultMidiCC('FilterResonance')).toBe(71);
+    expect(getDefaultMidiCC('AmpEnvAttack')).toBe(73);
+    expect(getDefaultMidiCC('PartReverbSend')).toBe(91);
+
+    expect(isPerVoiceSemanticRole('FilterCutoff')).toBe(true);
+    expect(isPerVoiceSemanticRole('AmpEnvRelease')).toBe(true);
+    expect(isPerVoiceSemanticRole('VoicePolyMode')).toBe(false);
+
+    expect(isBipolarSemanticRole('PartPan')).toBe(true);
+    expect(isBipolarSemanticRole('FilterEnvDepth')).toBe(true);
+    expect(isBipolarSemanticRole('FilterCutoff')).toBe(false);
   });
 });

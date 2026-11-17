@@ -40,6 +40,10 @@
 @import './themes/neuron-dark.css';
 @import './themes/virus-snow.css';
 @import './themes/virus-snow-dark.css';
+@import './themes/mc303.css';
+@import './themes/mc303-light.css';
+@import './themes/dr5.css';
+@import './themes/dr5-light.css';
 @import './components/panels.css';
 @import './components/buttons.css';
 @import './components/controls.css';

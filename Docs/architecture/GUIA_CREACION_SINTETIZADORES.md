@@ -1198,41 +1198,55 @@ std::optional<Resource> pluginResourceProvider(const String& url) {
 
 ## 8. WASM / Web Deployment
 
-### 8.1 Headless Engine Architecture
+### 8.1 Headless Engine Architecture & Anti-Drift (DspSources.cmake)
 
 ```
-Native Project → SynthEngine (pure C++) → WasmBridge.cpp (C API)
-                                           ↓
-WASM Target → emcmake cmake → AudioWorklet → Web Audio API
+DspSources.cmake (Single Source of Truth)
+   ├── Native (CMakeLists.txt)  → VST3 / Standalone (JUCE 9 + WebView2)
+   └── WASM   (wasm/CMakeLists.txt) → WasmBridge.cpp (C API) → AudioWorklet
 ```
 
-**Golden Rule:** `SynthEngine` must have ZERO dependencies on JUCE GUI modules.
+**Golden Rules:**
+1. **Single-Source Anti-Drift:** Toda la lista de código DSP C++20 vive en `DspSources.cmake` en la raíz del proyecto. Tanto el build nativo como el build WebAssembly consumen exactamente la misma lista de archivos sin divergencia.
+2. **Zero-JUCE en WASM:** Los archivos listados en `DspSources.cmake` deben ser C++20 puro o tener dependencias de JUCE protegidas con `#if defined(JUCE_VERSION)`. Enlaza con `ABDShared::SynthCore`, `ABDShared::DspCore` y `ABDShared::DspEffects`.
 
 ### 8.2 Critical WASM Configuration
 
 ```cmake
-# Linker flags (essential)
--s WASM=1
--s MODULARIZE=1
--s EXPORT_ES6=1
--s EXPORT_NAME=SynthNameDSP
--s SINGLE_FILE=1              # Embed .wasm as Base64 in .js
--s MALLOC=emmalloc            # Lightweight allocator for RT
--s ALLOW_MEMORY_GROWTH=1
--s INITIAL_MEMORY=33554432    # 32 MB fixed
--s "EXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','HEAPF32']"
--O3 --strip-all
+# Linker flags (essential in wasm/CMakeLists.txt)
+set_target_properties(<synth>_dsp PROPERTIES
+    OUTPUT_NAME "<synth>_dsp"
+    SUFFIX ".js"
+    LINK_FLAGS "-s MALLOC=emmalloc -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=33554432 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','HEAPF32','HEAPU8'] -s EXPORTED_FUNCTIONS=['_initEngine','_processAudio','_noteOn','_noteOff','_allNotesOff','_setTempoBPM','_setPartParam','_setMasterVolume','_loadBankFromMemory','_getAudioSnapshot','_resetToFactory','_malloc','_free'] -O3"
+)
 ```
 
-### 8.3 Critical WASM Pitfalls
+### 8.3 Canonical C-API Bridge Interface (`WasmBridge.h`)
+
+| Function | Signature | Purpose |
+|---|---|---|
+| `initEngine` | `(sampleRate: double) → void` | Initializes DSP engine at browser AudioContext sample rate |
+| `processAudio` | `(outL: float*, outR: float*, numSamples: int) → void` | Renders audio block to preallocated float buffers |
+| `noteOn` | `(partOrChan: int, note: int, velocity: float) → void` | Triggers Note On in voice manager |
+| `noteOff` | `(partOrChan: int, note: int) → void` | Triggers Note Off in voice manager |
+| `allNotesOff` | `() → void` | Immediate panic silence across all voices |
+| `setTempoBPM` | `(bpm: float) → void` | Syncs host tempo for arpeggiators, LFOs, and delay effects |
+| `setParamNormalized` | `(paramId: int, val: float) → void` | Updates continuous/bipolar parameters |
+| `setMasterVolume` | `(vol: float) → void` | Master gain stage control |
+| `loadBankFromMemory` | `(data: uint8_t*, sizeBytes: int) → int` | De-bakes and loads `.abdbank` PCM container from JS memory |
+| `getAudioSnapshot` | `(peakL: float*, peakR: float*, activeVoices: int*) → void` | Telemetry for VU-meters and voice monitoring |
+| `resetToFactory` | `() → void` | Restores default factory soundbank |
+
+### 8.4 Critical WASM Pitfalls
 
 | Pitfall | Solution |
 |---|---|
 | `juce::Random()` default constructor crashes in AudioWorklet | Always use seeded constructor: `Random(12345)` or inline LCG |
-| `HEAPF32` stripped by optimizer | Add to `EXPORTED_RUNTIME_METHODS` |
-| Parameter normalization mismatch | Desnormalize in WasmBridge with `std::lround()` |
+| `HEAPF32` / `HEAPU8` stripped by optimizer | Add to `EXPORTED_RUNTIME_METHODS` |
+| Memory exhaustion loading sample banks | Set `INITIAL_MEMORY=33554432` with `ALLOW_MEMORY_GROWTH=1` |
+| Parameter normalization mismatch | Desnormalize in WasmBridge with `std::lround()` or mathematical scaling |
 | GC pressure from TypedArray creation in process() | Cache `HEAPF32.subarray()` at init, reuse in process loop |
-| CORS failures loading separate .wasm | Use `-s SINGLE_FILE=1` for Base64 embedding |
+| CORS failures loading separate .wasm | Use `-s SINGLE_FILE=1` or stage `.js` and `.wasm` in same public origin |
 
 ### 8.4 AudioWorklet Pattern
 

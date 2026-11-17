@@ -38,8 +38,8 @@
         "notes": "CC74 Cutoff / CC71 Resonance or NRPN MSB=1 LSB=32/33."
       },
       "controls": [
-        { "index": 1, "name": "TVF Cutoff", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 74, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
-        { "index": 2, "name": "TVF Resonance", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 71, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" }
+        { "index": 1, "name": "TVF Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 74, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
+        { "index": 2, "name": "TVF Resonance", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 71, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" }
       ]
     },
     {
@@ -48,9 +48,9 @@
       "blockType": "TimeDynamic",
       "suggestedStimulus": "GATE_PULSE",
       "controls": [
-        { "index": 1, "name": "Attack Time", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 73, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
-        { "index": 2, "name": "Decay Time", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 75, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
-        { "index": 3, "name": "Release Time", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 72, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" }
+        { "index": 1, "name": "Attack Time", "semanticRole": "AmpEnvAttack", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 73, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
+        { "index": 2, "name": "Decay Time", "semanticRole": "AmpEnvDecay", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 75, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" },
+        { "index": 3, "name": "Release Time", "semanticRole": "AmpEnvRelease", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 72, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" }
       ]
     }
   ],

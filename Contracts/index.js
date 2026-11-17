@@ -42,3 +42,5 @@ export function getContract(name) {
   const content = readFileSync(filePath, 'utf8');
   return JSON.parse(content);
 }
+
+export * from './semanticRoles.ts';

@@ -80,7 +80,7 @@
         },
         "semanticRole": {
           "type": "string",
-          "description": "Rol semántico transversal para mapeo universal entre formatos de sampler y perfiladores (ej. 'FilterCutoff', 'FilterResonance', 'AmpEnvAttack', 'AmpEnvRelease', 'ZoneRootKey', 'ZoneTuneCents')"
+          "description": "Rol semántico transversal de la taxonomía universal CDD v2.0 (ver UNIVERSAL_SEMANTIC_TAXONOMY.md) para mapeo universal entre synthes, perfiladores hardware, WebUI, matrices de modulación y motores DSP (ej. 'FilterCutoff', 'FilterResonance', 'AmpEnvAttack', 'AmpEnvRelease', 'ModEnv1Decay', 'Lfo1Rate', 'Osc1PulseWidth', 'ModSlot1Amount', 'DrumKeyPitch')"
         },
         "type": {
           "type": "string",

@@ -102,6 +102,8 @@ target_sources(ABDShared_SynthCore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/GrooveArpeggiator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoLfoProfile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoDcoLfoDepth.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/StickPlayer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/VelocitySensitivityCurves.h
 )
 
 option(ABDSHARED_BUILD_SYNTHCORE_TESTS "Build SynthCore standalone tests" OFF)

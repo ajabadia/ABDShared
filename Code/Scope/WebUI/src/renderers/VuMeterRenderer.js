@@ -9,6 +9,8 @@
  * - Under 150 lines of code (Single Responsibility Principle).
  */
 
+import { getCanvas2dContext } from './BaseRenderer.js';
+
 export class VuMeterRenderer {
   /**
    * @param {HTMLElement} container - DOM container element (.abd-scope-vu-container)
@@ -34,7 +36,7 @@ export class VuMeterRenderer {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'abd-scope-vu-canvas';
     this.container.appendChild(this.canvas);
-    this.ctx = this.canvas.getContext('2d', { alpha: true });
+    this.ctx = getCanvas2dContext(this.canvas, { alpha: true });
 
     const w = this.container.clientWidth || 24;
     const h = this.container.clientHeight || 120;

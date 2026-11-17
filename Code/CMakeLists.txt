@@ -79,6 +79,8 @@ add_library(ABDShared_SynthCore STATIC
     SynthCore/LFO.cpp
     SynthCore/OscVcoCa72.cpp
     SynthCore/Arpeggiator.cpp
+    SynthCore/GrooveArpeggiator.cpp
+    SynthCore/GrooveArpeggiatorPatterns.cpp
     SynthCore/ControlSequencer.cpp
     SynthCore/LfoAnalog.cpp
     SynthCore/EnvelopeAnalog.cpp
@@ -97,6 +99,7 @@ target_compile_features(ABDShared_SynthCore PUBLIC cxx_std_20)
 # ya funcionaba por target_include_directories, pero PRIVATE las dejaria fuera del IDE
 # de los consumidores.
 target_sources(ABDShared_SynthCore PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/GrooveArpeggiator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoLfoProfile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/SynthCore/JunoDcoLfoDepth.h
 )

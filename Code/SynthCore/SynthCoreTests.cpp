@@ -41,6 +41,7 @@ void operator delete(void* ptr, std::size_t) noexcept
 
 #include "ADSREnvelope.h"
 #include "Arpeggiator.h"
+#include "GrooveArpeggiator.h"
 #include "AudioThreadSnapshot.h"
 #include "ControlSequencer.h"
 #include "DSPUtils.h"
@@ -99,6 +100,7 @@ static void check(bool condition, const char* testName)
 // LFO analogico, envolvente analogica y ruido determinista. Cada .inc es
 // autocontenido y solo depende de la cabecera de SynthCore que prueba.
 #include "tests/ArpeggiatorTests.inc"
+#include "tests/GrooveArpeggiatorTests.inc"
 #include "tests/ControlSequencerTests.inc"
 #include "tests/DriftEngineTests.inc"
 #include "tests/EnvelopeAnalogTests.inc"
@@ -1012,6 +1014,7 @@ int main()
     abd::synth::tests::testArpeggiatorNotesAndOctaves();
     abd::synth::tests::testArpeggiatorGateAndZeroAlloc();
     abd::synth::tests::testArpeggiatorRetrigger();
+    abd::synth::tests::testGrooveArpeggiator();
 
     abd::synth::tests::testControlSequencerBipolarSteps();
     abd::synth::tests::testControlSequencerClockTable();

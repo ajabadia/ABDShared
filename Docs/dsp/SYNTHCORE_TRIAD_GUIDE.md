@@ -228,8 +228,7 @@ Cualquier nuevo sintetizador del monorepo que requiera arpegiador, secuenciador 
 - **ModMatrix:** El hardware original dispone de un parche virtual (*Virtual Patch*) de 6 slots fijos, con 8 fuentes y 8 destinos.  
   - Instanciar `abd::synth::ModMatrixT<6, true> virtualPatch;`.
   - Mapear el `enum class PatchSource` (0..7) y `enum class PatchDestination` (0..7) a identificadores opacos.
-- **Arpeggiator:** El MS-2000 implementa 6 tipos (Up, Down, Alt1, Alt2, Random, Trigger).
-  - Los 6 modos mapean directamente a los modos canónicos de `abd::synth::Arpeggiator` (Up=0, Down=1, Up/Down=2, Up-Alt=6, Random=8, Chord/Trigger=10).
+- **Arpeggiator:** El MS-2000 implementa 6 tipos (Up, Down, Alt1, Alt2, Random, Trigger), swing bipolar `-100%..+100%`, latch con re-armado y máscara rítmica de 8 pasos. Delega directamente en `abd::synth::GrooveArpeggiator`. Consulta la guía completa de los tres arpegiadores compartidos (`Arpeggiator`, `ArpeggiatorJuno`, `GrooveArpeggiator`) en [`ARPEGGIATORS_GUIDE.md`](ARPEGGIATORS_GUIDE.md).
 
 ### 5.2. ABDCZ101 (Síntesis de Distorsión de Fase Casio CZ)
 - **ControlSequencer:** Utilizar `abd::synth::ControlSequencer` como modulador de 16/32 pasos para modular los parámetros de DCA (amplitud) y DCW (onda/filtro espectral).

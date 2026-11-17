@@ -80,6 +80,7 @@ Cada documento declara en su cabecera **Tipo**, **Alcance** y **Estado**. Los ti
 | Documento | Tipo | Estado | Nota |
 |---|---|---|---|
 | [ANALOG_FILTERS_DESIGN_AND_INTEGRATION.md](dsp/ANALOG_FILTERS_DESIGN_AND_INTEGRATION.md) | Guía de diseño | ✅ | TPT/ZDF, integradores trapezoidales, saturación OTA y Newton-Raphson |
+| [ARPEGGIATORS_GUIDE.md](dsp/ARPEGGIATORS_GUIDE.md) | Guía de diseño y uso | ✅ | `Arpeggiator`, `ArpeggiatorJuno` y `GrooveArpeggiator` (swing bipolar, motifs, máscara de 32 pasos, shims JUCE/WASM) |
 | [DRIFT_ENGINE_GUIDE.md](dsp/DRIFT_ENGINE_GUIDE.md) | Guía de diseño | 🟡 | Deriva térmica; lleva una marca de revisión sobre la componente compartida |
 | [EFECTOS_CATALOGO_EMULACION.md](dsp/EFECTOS_CATALOGO_EMULACION.md) | Referencia | 🟡 | Los 56 efectos y su máquina emulada. **Foto 2026-11-07 sin reverificar** contra `ABDEep`; contradice el cierre de la hoja de ruta (§3 del catálogo) |
 | [JUNO_HPF_FILTER_GUIDE.md](dsp/JUNO_HPF_FILTER_GUIDE.md) | Guía de diseño | ✅ | Shelf de graves de 4 posiciones y su porqué bilineal |

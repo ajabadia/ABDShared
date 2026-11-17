@@ -9,7 +9,7 @@
  * - Under 180 lines of code (Single Responsibility Principle).
  */
 
-import { BaseRenderer } from './BaseRenderer.js';
+import { BaseRenderer, getCanvas2dContext } from './BaseRenderer.js';
 
 const MIN_FREQ = 20.0;
 const MAX_FREQ = 20000.0;
@@ -42,7 +42,7 @@ export class SpectrogramRenderer extends BaseRenderer {
     this.offscreenCanvas = document.createElement('canvas');
     this.offscreenCanvas.width = this.width;
     this.offscreenCanvas.height = this.height;
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d', { alpha: false });
+    this.offscreenCtx = getCanvas2dContext(this.offscreenCanvas, { alpha: false });
     if (this.offscreenCtx) {
       this.offscreenCtx.fillStyle = '#06090e';
       this.offscreenCtx.fillRect(0, 0, this.width, this.height);

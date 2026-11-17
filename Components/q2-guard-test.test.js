@@ -2,27 +2,26 @@
  * Q2.4 — Guardia de basenames repetidos en Components/
  *
  * Vitest: falla si algún basename (case-insensitive) aparece en dos
- * rutas diferentes bajo Components/ (tanto en raíz como en Controls/).
- * Sirve de guardrail para evitar la duplicación que Q2 soluciona.
+ * subdirectorios diferentes bajo Components/, ignorando `index.js`, `*.test.js`
+ * y las entradas raíz legadas por compatibilidad hacia atrás.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const COMPONENTS_ROOT = join('Components');
-const CONTROLS_DIR = join('Components', 'Controls');
 
-async function walkComponents(dir) {
+async function walkComponentSubdirs(dir, depth = 0) {
   const results = [];
   const entries = await readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
-
     if (entry.isDirectory()) {
-      results.push(...await walkComponents(fullPath));
-    } else if (entry.name.endsWith('.js')) {
+      results.push(...await walkComponentSubdirs(fullPath, depth + 1));
+    } else if (depth > 0 && entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
+      if (entry.name.toLowerCase() === 'index.js') continue;
       results.push({
         path: fullPath,
         basename: entry.name,
@@ -38,9 +37,7 @@ describe('Q2.4 — Sin basenames repetidos en Components/', () => {
   let files;
 
   beforeAll(async () => {
-    const rootFiles = await walkComponents(COMPONENTS_ROOT);
-    const controlsFiles = await walkComponents(CONTROLS_DIR);
-    files = [...rootFiles, ...controlsFiles];
+    files = await walkComponentSubdirs(COMPONENTS_ROOT);
   });
 
   it('no debe haber basenames repetidos (case-insensitive) en dos rutas', () => {
@@ -55,7 +52,7 @@ describe('Q2.4 — Sin basenames repetidos en Components/', () => {
     }
 
     const duplicates = Array.from(seen.entries())
-      .filter(([_, paths]) => paths.length > 1)
+      .filter(([, paths]) => paths.length > 1)
       .map(([basename, paths]) => ({
         basename,
         paths,

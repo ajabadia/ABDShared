@@ -25,6 +25,7 @@ demás documentos del bloque, con sus alternativas y prioridades, están en
 5. [Contratos de Datos y Esquemas JSON](#5-contratos-de-datos-y-esquemas-json)
 6. [Checklist de Calidad para Nuevos Sintetizadores](#6-checklist-de-calidad-para-nuevos-sintetizadores)
 7. [Módulos header-only de `SynthCore/`](#7-módulos-header-only-de-synthcore)
+8. [Integración de Arpegiadores de `SynthCore/`](#8-integración-de-arpegiadores-de-synthcore)
 
 ---
 
@@ -281,5 +282,16 @@ const float st = abd::synth::junoDcoLfoDepthSemitones(1, slider01);
 Profundidad LFO→DCO de 11 puntos medida sobre hardware en el Juno-6 (máximo **2,526 st**; el 60
 comparte la tabla, pendiente de medida propia) y el *taper* del Juno-106. La tabla y su procedencia
 viven en el propio header; no hay guía aparte porque el dato es la tabla.
+
+---
+
+## 8. Integración de Arpegiadores de `SynthCore/`
+
+`ABDShared::SynthCore` provee tres arpegiadores C++20 zero-alloc compatibles tanto con builds nativos JUCE como con WebAssembly (`AudioWorklet`):
+- `SynthCore/Arpeggiator.h` (`ABDEep`, 11 modos lineales).
+- `SynthCore/ArpeggiatorJuno.h` (`ABDJUNiO601`).
+- `SynthCore/GrooveArpeggiator.h` (`ABDMS2000`, `ABDMCX0X` y nuevos grooveboxes: 12 motivos, 16 divisores de reloj, swing bipolar invariante, `LatchReArm`, strum, acento y máscara/patrón de 32 pasos).
+
+La documentación matemática, ejemplos C++/WASM/Shim JUCE y matriz de decisión completos viven en [`Docs/dsp/ARPEGGIATORS_GUIDE.md`](../dsp/ARPEGGIATORS_GUIDE.md).
 
 ---

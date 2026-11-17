@@ -9,6 +9,17 @@
  * - Under 180 lines of code (Single Responsibility Principle).
  */
 
+export function getCanvas2dContext(canvas, options = { alpha: true }) {
+  if (!canvas || typeof canvas.getContext !== 'function') return null;
+  const isNativeJsdomStub =
+    typeof navigator !== 'undefined' &&
+    /jsdom/i.test(navigator.userAgent || '') &&
+    typeof HTMLCanvasElement !== 'undefined' &&
+    canvas.getContext === HTMLCanvasElement.prototype.getContext;
+  if (isNativeJsdomStub) return null;
+  return canvas.getContext('2d', options);
+}
+
 export class BaseRenderer {
   /**
    * @param {string} modeName - Unique mode identifier (e.g. 'oscilloscope', 'spectrum')
@@ -37,7 +48,7 @@ export class BaseRenderer {
       throw new Error(`[ABDScope:${this.modeName}] init() requires a valid HTMLCanvasElement`);
     }
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d', { alpha: true });
+    this.ctx = getCanvas2dContext(canvas, { alpha: true });
     this.options = { ...options };
     this.isDestroyed = false;
     const w = options.width || canvas.clientWidth || 300;

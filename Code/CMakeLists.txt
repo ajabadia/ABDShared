@@ -425,6 +425,34 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # ==============================================================================
+# 11b. LcdDisplay Module (Universal Character LCD & Menu State Machine)
+# ==============================================================================
+if(NOT EMSCRIPTEN)
+    add_library(ABDShared_LcdDisplay INTERFACE)
+    add_library(ABDShared::LcdDisplay ALIAS ABDShared_LcdDisplay)
+    add_library(abd_lcd_display ALIAS ABDShared_LcdDisplay)
+
+    target_include_directories(ABDShared_LcdDisplay INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_sources(ABDShared_LcdDisplay INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/LcdDisplay/LcdDisplay.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/LcdDisplay/LcdMenuManager.h
+    )
+
+    if(TARGET juce::juce_gui_basics)
+        target_link_libraries(ABDShared_LcdDisplay INTERFACE
+            juce::juce_gui_basics
+        )
+    elseif(TARGET juce_gui_basics)
+        target_link_libraries(ABDShared_LcdDisplay INTERFACE
+            juce_gui_basics
+        )
+    endif()
+endif()
+
+# ==============================================================================
 # 12. HardwareMidiDetect & StudioTopology Modules
 # ==============================================================================
 if(NOT EMSCRIPTEN)

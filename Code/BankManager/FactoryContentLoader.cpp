@@ -96,7 +96,19 @@ Patch patchFromManifest(juce::ZipFile& zip,
     patch.importDate        = stringProperty(patchValue, "importDate");
 
     const auto rawDataFile = stringProperty(patchValue, "rawDataFile");
-    if (rawDataFile.isEmpty() || rawDataFile.contains("..") || rawDataFile.startsWithChar('/') || rawDataFile.containsChar('\\'))
+    if (rawDataFile.isEmpty())
+    {
+        if (!patch.parameters.isVoid())
+        {
+            result = juce::Result::ok();
+            return patch;
+        }
+
+        result = juce::Result::fail("Invalid patch path in factory content");
+        return patch;
+    }
+
+    if (rawDataFile.contains("..") || rawDataFile.startsWithChar('/') || rawDataFile.containsChar('\\'))
     {
         result = juce::Result::fail("Invalid patch path in factory content");
         return patch;
@@ -175,7 +187,8 @@ juce::Result FactoryContentLoader::loadBankFromZip(const void* data,
     const auto patches = property(manifest, "patches");
     if (auto* patchArray = patches.getArray())
     {
-        if (patchArray->size() > 128)
+        constexpr int maxPatchesPerFactoryBank = 2048;
+        if (patchArray->size() > maxPatchesPerFactoryBank)
             return juce::Result::fail("Factory bank contains too many patches");
 
         for (int i = 0; i < patchArray->size(); ++i)

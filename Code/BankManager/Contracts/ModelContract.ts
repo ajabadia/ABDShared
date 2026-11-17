@@ -176,6 +176,8 @@ export interface ModelContract {
   // ─── SysEx Operations (contract-driven import/export) ───
   /** Build a complete SysEx message for a single patch dump */
   buildPatchSysEx?(rawData: Uint8Array, slot: number, channel: number): Uint8Array;
+  /** Build the model's native bank dump (one frame for the whole bank, when supported). */
+  buildBankSysEx?(patches: { rawData: Uint8Array; slot: number }[], channel: number): Uint8Array;
   /** Build a bulk SysEx message for multiple patches (bank dump) */
   buildBulkSysEx?(patches: { rawData: Uint8Array; slot: number }[], channel: number): Uint8Array;
   /** Parse a SysEx message into { rawData, slot } or null if not matching */

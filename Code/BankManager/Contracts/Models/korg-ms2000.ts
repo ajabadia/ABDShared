@@ -1,6 +1,6 @@
 /**
- * Korg MS2000 / microKORG / Prophecy ModelContract
- * Covers: MS2000, microKORG, Prophecy
+ * Korg MS2000 / microKORG ModelContract
+ * Covers: MS2000 and microKORG (Prophecy has its own contract)
  *
  * SysEx format (ABDMS2000 reference):
  *   Single dump:      F0 42 3n 58 40 [291B packed = 254B programa] F7
@@ -25,24 +25,28 @@
  * nombre real y sin perder los últimos bytes (el payload real son 291 B, con el último
  * grupo parcial; antes se rellenaba al escribir y se tiraba al leer).
  *
- * NOTA ABIERTA (orden de los bits del empaquetado): este contrato empaqueta con el bit
- * `6 - j` del byte de control. El empaquetador del plugin (`ABDSharedCode/
- * HardwareDrivers/SysExCodec.h`) y el panel ReMS2000 (su `Bin2Dec` invierte la lista, con
- * lo que el byte *j* cae en el bit *j*) usan el bit `j`. Los dos extremos del mismo
- * formato no coinciden en ese detalle: ver `ABDMS2000/DOCS/MS2000_SysEx_Spec.md` §5.1.
+ * ORDEN DE BITS (corregido 2026-11-16): el byte `j` de cada grupo pone su MSB en el bit
+ * `j` del byte de control, que es el orden del dump real y del codec C++ (`SysExCodec`).
+ * El contrato usaba `6 - j`, el orden inverso, y por eso sus tramas no coincidían byte a
+ * byte con `ABDMS2000/WebUI/src/contracts/korg7to8.js`. Ver
+ * `ABDMS2000/DOCS/MS2000_SysEx_Spec.md` §5.1.
  */
 
 import {
   ModelContract, validateModelContract, type ContractFileParse
 } from '../ModelContract';
 import {
-  pack8to7NoPad, unpack7to8Tolerant, unpack7to8, splitSysexMessages,
+  pack8to7NoPad, unpack7to8Tolerant, splitSysexMessages,
   pack7to8NoPad, unpack7to8NoPad
 } from '../SysEx/codec';
 
 const BANK_CAPACITY = 128;
 const BANKS_COUNT = 8;
 const PROGRAMS_PER_BANK = 16;
+/** ID de familia que comparten MS2000 y microKORG en la cabecera Korg. */
+const KORG_FAMILY_MODEL_ID = 0x58;
+/** Alias histórico de entrada de microKORG; nunca se emite en una trama. */
+const KORG_MICROKORG_ALIAS_MODEL_ID = 0x71;
 const PATCH_DATA_SIZE = 254; // Programa real del MS2000/microKORG (2 bloques de timbre de 108 B)
 const PATCH_NAME_MAX_LENGTH = 12;
 
@@ -63,14 +67,6 @@ const CMD_PARAM         = 0x41; // Parameter Change (F0 42 3n 58 41 pLSB pMSB vL
 const CMD_MODE_CHANGE   = 0x4E; // Mode Change (F0 42 3n 58 4E mode 00 F7)
 const CMD_ACK           = 0x23; // Write Completed
 const CMD_NACK          = 0x24; // Write Error
-
-// ─── Model IDs (per hardware) ───
-// MS2000 uses model byte 0x58. microKORG uses 0x71 (and 0x58 legacy). Prophecy uses 0x41 (different format).
-const MODEL_IDS: Record<string, number> = {
-  'korg-ms2000':    0x58,
-  'korg-microkorg': 0x71,
-  'korg-prophecy':  0x41
-};
 
 function getBankLetter(index: number): string {
   return BANK_LETTERS[Math.floor(index / 16)];
@@ -211,6 +207,41 @@ function isKorgSysEx(msg: Uint8Array, modelIdByte: number | number[]): boolean {
   return isMatch && (msg[4] === CMD_DUMP || msg[4] === CMD_ALL_DUMP);
 }
 
+/**
+ * Builds a Korg All Data Dump (`0x4C`) with the whole bank.
+ *
+ * El 7→8 se aplica al flujo completo de `capacity × 254` B, no a cada programa:
+ * empaquetar cada bloque por separado desplaza los MSB y el equipo recibe otra
+ * cosa. Las plazas ausentes se rellenan a cero para conservar el banco entero.
+ * La cabecera usa siempre `0x58` (familia MS2000/microKORG); el perfil viaja en
+ * el payload, no en el byte de modelo.
+ */
+export function buildKorgBankDumpFrame(
+  programs: { rawData: Uint8Array; slot?: number }[],
+  channel = 1,
+  slotCount = BANK_CAPACITY
+): Uint8Array {
+  const capacity = Math.max(0, Math.floor(Number(slotCount) || BANK_CAPACITY));
+  const stream = new Uint8Array(capacity * PATCH_DATA_SIZE);
+  const entries = Array.isArray(programs) ? programs : [];
+
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index];
+    const raw = entry.rawData instanceof Uint8Array
+      ? entry.rawData
+      : new Uint8Array(entry.rawData ?? []);
+    const slot = Number.isInteger(entry.slot) ? entry.slot! : index;
+    if (slot < 0 || slot >= capacity) continue;
+    stream.set(raw.slice(0, PATCH_DATA_SIZE), slot * PATCH_DATA_SIZE);
+  }
+
+  const packed = pack8to7NoPad(stream);
+  return new Uint8Array([
+    0xF0, 0x42, korgChannelByte(channel), KORG_FAMILY_MODEL_ID, CMD_ALL_DUMP,
+    ...packed, 0xF7
+  ]);
+}
+
 const korgMs2000Contract: ModelContract = {
   modelId: 'korg-ms2000',
   displayName: 'Korg MS2000',
@@ -269,7 +300,9 @@ const korgMs2000Contract: ModelContract = {
   computeChecksum(): number { return 0; }, // Korg uses 7-to-8 packing, no separate checksum
 
   verifyChecksum(sysex: Uint8Array): boolean {
-    const validModelIds = this.modelId === 'korg-microkorg' ? [0x71, 0x58] : [MODEL_IDS[this.modelId] || 0x58];
+    const validModelIds = this.modelId === 'korg-microkorg'
+      ? [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID]
+      : [KORG_FAMILY_MODEL_ID];
     if (sysex.length < 6) return false;
     if (sysex[0] !== 0xF0 || sysex[1] !== 0x42 || !validModelIds.includes(sysex[3])) return false;
     if (sysex[sysex.length - 1] !== 0xF7) return false;
@@ -284,18 +317,24 @@ const korgMs2000Contract: ModelContract = {
   },
 
   buildPatchSysEx(rawData: Uint8Array, slot: number, channel: number): Uint8Array {
-    const modelId = MODEL_IDS[this.modelId] || 0x58;
+    // 0x58 es la familia; 0x71 solo se acepta como alias de entrada.
     const size = this.patchDataSize;
     const data = rawData.slice(0, size);
     const padded = new Uint8Array(size);
     padded.set(data);
 
     const packed = pack8to7NoPad(padded);
-    return new Uint8Array([0xF0, 0x42, korgChannelByte(channel), modelId, CMD_DUMP, ...packed, 0xF7]);
+    return new Uint8Array([0xF0, 0x42, korgChannelByte(channel), KORG_FAMILY_MODEL_ID, CMD_DUMP, ...packed, 0xF7]);
+  },
+
+  buildBankSysEx(patches: { rawData: Uint8Array; slot: number }[], channel: number): Uint8Array {
+    return buildKorgBankDumpFrame(patches, channel, this.bankCapacity);
   },
 
   parsePatchSysEx(sysex: Uint8Array): { rawData: Uint8Array; slot: number } | null {
-    const validModelIds = this.modelId === 'korg-microkorg' ? [0x71, 0x58] : [MODEL_IDS[this.modelId] || 0x58];
+    const validModelIds = this.modelId === 'korg-microkorg'
+      ? [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID]
+      : [KORG_FAMILY_MODEL_ID];
     if (!isKorgSysEx(sysex, validModelIds)) return null;
     if (sysex[sysex.length - 1] !== 0xF7) return null;
 
@@ -308,13 +347,15 @@ const korgMs2000Contract: ModelContract = {
   },
 
   buildDumpRequest(slot: number | 'all', channel: number): Uint8Array {
-    const modelId = MODEL_IDS[this.modelId] || 0x58;
+    // Todas las peticiones MS2000/microKORG usan la familia 0x58.
     const cmd = slot === 'all' ? CMD_ALL_REQUEST : CMD_REQUEST;
-    return new Uint8Array([0xF0, 0x42, korgChannelByte(channel), modelId, cmd, 0xF7]);
+    return new Uint8Array([0xF0, 0x42, korgChannelByte(channel), KORG_FAMILY_MODEL_ID, cmd, 0xF7]);
   },
 
   parseDumpResponse(sysex: Uint8Array): { rawData: Uint8Array; slot: number }[] {
-    const validModelIds = this.modelId === 'korg-microkorg' ? [0x71, 0x58] : [MODEL_IDS[this.modelId] || 0x58];
+    const validModelIds = this.modelId === 'korg-microkorg'
+      ? [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID]
+      : [KORG_FAMILY_MODEL_ID];
     const msgs = splitSysexMessages(sysex).filter(m => isKorgSysEx(m, validModelIds));
     const results: { rawData: Uint8Array; slot: number }[] = [];
 
@@ -346,7 +387,9 @@ const korgMs2000Contract: ModelContract = {
    * en el byte 4 y por eso descarta precisamente estos acuses.
    */
   parseAcknowledgement(sysex: Uint8Array): { ok: boolean } | null {
-    const validModelIds = this.modelId === 'korg-microkorg' ? [0x71, 0x58] : [MODEL_IDS[this.modelId] || 0x58];
+    const validModelIds = this.modelId === 'korg-microkorg'
+      ? [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID]
+      : [KORG_FAMILY_MODEL_ID];
     if (sysex.length !== 6) return null;
     if (sysex[0] !== 0xF0 || sysex[1] !== 0x42) return null;
     if ((sysex[2] & 0xF0) !== 0x30) return null;   // canal global 30..3F
@@ -357,11 +400,15 @@ const korgMs2000Contract: ModelContract = {
   },
 
   parseFile(data: Uint8Array, _filename: string): ContractFileParse | null {
-    const validModelIds = this.modelId === 'korg-microkorg' ? [0x71, 0x58] : [MODEL_IDS[this.modelId] || 0x58];
+    const validModelIds = this.modelId === 'korg-microkorg'
+      ? [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID]
+      : [KORG_FAMILY_MODEL_ID];
+    // `parseDumpResponse` handles both a single `0x40` and an All Data Dump
+    // (`0x4C`). Going through `parsePatchSysEx` here would read an entire bank
+    // as its first 254-byte program and silently drop the other 127 slots.
     const parsed = splitSysexMessages(data)
       .filter(m => isKorgSysEx(m, validModelIds))
-      .map(m => this.parsePatchSysEx?.(m))
-      .filter((p): p is { rawData: Uint8Array; slot: number } => p !== null);
+      .flatMap(m => this.parseDumpResponse?.(m) ?? []);
     if (parsed.length === 0) return null;
     const patches = parsed.map(p => ({
       name: this.extractPatchName?.(p.rawData) || this.getProgramAddress(p.slot),
@@ -383,6 +430,9 @@ const korgMs2000Contract: ModelContract = {
   },
 
   serializeFile(patches: { rawData: Uint8Array; slot: number; name?: string }[], options: { midiChannel: number; deviceId: number; format: 'single' | 'bank' }): Uint8Array {
+    if (options.format === 'bank') {
+      return this.buildBankSysEx?.(patches, options.midiChannel) ?? new Uint8Array();
+    }
     const msgs = patches.map(p => this.buildPatchSysEx?.(p.rawData, p.slot, options.midiChannel) ?? new Uint8Array());
     if (msgs.length === 1) return msgs[0];
     const total = msgs.reduce((n, m) => n + m.length, 0);
@@ -411,29 +461,29 @@ const korgMs2000Contract: ModelContract = {
   },
 
   legacySysEx: {
-    modelIdByte: 0x58,
-    buildDumpRequest: (ch) => new Uint8Array([0xF0, 0x42, korgChannelByte(ch), 0x58, CMD_REQUEST, 0xF7]),
-    validateSysEx: (bytes) => bytes.length >= 5 && bytes[0] === 0xF0 && bytes[1] === 0x42 && bytes[3] === 0x58
+    modelIdByte: KORG_FAMILY_MODEL_ID,
+    buildDumpRequest: (ch) => new Uint8Array([0xF0, 0x42, korgChannelByte(ch), KORG_FAMILY_MODEL_ID, CMD_REQUEST, 0xF7]),
+    validateSysEx: (bytes) => bytes.length >= 5 && bytes[0] === 0xF0 && bytes[1] === 0x42 && bytes[3] === KORG_FAMILY_MODEL_ID
   }
 };
 
-// microKORG (bifurcado: Model ID 0x71, compatible con volcados 0x58 de fábrica)
+// microKORG (acepta 0x71 como alias de entrada; emite siempre la familia 0x58)
 export const korgMicrokorgContract: ModelContract = {
   ...korgMs2000Contract,
   modelId: 'korg-microkorg',
   displayName: 'Korg microKORG',
   thumbnail: 'korg-microkorg.webp',
   compatibleModels: ['korg-ms2000', 'abd-sm002'],
-  sysexModelId: { offset: 3, values: [0x71, 0x58] },
+  sysexModelId: { offset: 3, values: [KORG_MICROKORG_ALIAS_MODEL_ID, KORG_FAMILY_MODEL_ID] },
   midiDetection: { portPattern: /microkorg/i, displayName: 'Korg microKORG' },
   midi: {
     defaultChannel: 1,
-    defaultDeviceId: 0x71
+    defaultDeviceId: KORG_FAMILY_MODEL_ID
   },
   legacySysEx: {
-    modelIdByte: 0x71,
-    buildDumpRequest: (ch) => new Uint8Array([0xF0, 0x42, korgChannelByte(ch), 0x71, CMD_REQUEST, 0xF7]),
-    validateSysEx: (bytes) => bytes.length >= 5 && bytes[0] === 0xF0 && bytes[1] === 0x42 && (bytes[3] === 0x71 || bytes[3] === 0x58)
+    modelIdByte: KORG_FAMILY_MODEL_ID,
+    buildDumpRequest: (ch) => new Uint8Array([0xF0, 0x42, korgChannelByte(ch), KORG_FAMILY_MODEL_ID, CMD_REQUEST, 0xF7]),
+    validateSysEx: (bytes) => bytes.length >= 5 && bytes[0] === 0xF0 && bytes[1] === 0x42 && (bytes[3] === KORG_MICROKORG_ALIAS_MODEL_ID || bytes[3] === KORG_FAMILY_MODEL_ID)
   }
 };
 

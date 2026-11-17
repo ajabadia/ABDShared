@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "id": "roland_sc55",
-  "aliases": ["sc55", "roland-sc-55", "sc55mk2"],
+  "aliases": ["roland-sc55", "sc55", "roland-sc-55", "sc55mk2"],
   "displayName": "Roland SC-55 / SC-55mkII Sound Canvas",
   "description": "Roland GS 16-part Sound Canvas wavetable module (TC6116AF, Model ID 42h, DT1 F0 41 dev 42 12).",
   "deviceType": "AUTOMATED_NRPN",
@@ -49,5 +49,30 @@
         { "index": 3, "name": "Release Time", "type": "Knob", "controlMethod": "NRPN", "nrpn": 230, "minVal": 14.0, "maxVal": 114.0, "defaultVal": 64.0, "unit": "step" }
       ]
     }
-  ]
+  ],
+  "bankManagement": {
+    "bankCapacity": 256,
+    "banksCount": 2,
+    "programsPerBank": 128,
+    "patchDataSize": 64,
+    "patchNameMaxLength": 12,
+    "categories": ["Keys", "Bass", "Strings", "Brass", "Lead", "Pad", "DrumKit", "Other"],
+    "defaultCategory": "Keys",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": ["boss-dr5", "roland-mc303"],
+    "sysexProtocol": {
+      "manufacturerIdHex": "41",
+      "modelIdByteHex": "42",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "7_TO_8_BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 25,
+      "dumpTimeoutMs": 3500,
+      "midiDefaultChannel": 1,
+      "midiDefaultDeviceIdHex": "10",
+      "portNameMatches": ["SC-55", "Sound Canvas", "SC55"]
+    }
+  }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "id": "roland_d2",
-  "aliases": ["d2", "roland-d-2", "mc505"],
+  "aliases": ["roland-d2", "d2", "roland-d-2", "mc505"],
   "displayName": "Roland D-2 Groovebox (MC-505 Engine)",
   "description": "Roland D-2 / MC-505 4-Partial Structured Groove Engine (TVF multimode, 10 ring/booster structures, per-key drum edit).",
   "deviceType": "AUTOMATED_NRPN",
@@ -53,5 +53,31 @@
         { "index": 3, "name": "Release Time", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 72, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "midi" }
       ]
     }
-  ]
+  ],
+  "bankManagement": {
+    "bankCapacity": 256,
+    "banksCount": 2,
+    "programsPerBank": 128,
+    "patchDataSize": 128,
+    "patchNameMaxLength": 12,
+    "categories": ["Bass", "Lead", "Pad", "Synth", "Motion", "DrumKit", "FX", "Other"],
+    "defaultCategory": "Synth",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": ["roland-mc303"],
+    "sysexProtocol": {
+      "manufacturerIdHex": "41",
+      "modelIdByteHex": "00",
+      "modelIdByteMultiHex": "0B",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "7_TO_8_BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 20,
+      "dumpTimeoutMs": 3500,
+      "midiDefaultChannel": 1,
+      "midiDefaultDeviceIdHex": "10",
+      "portNameMatches": ["D-2", "MC-505", "JX-305"]
+    }
+  }
 }

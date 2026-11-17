@@ -37,7 +37,7 @@ export function pack8to7(data: Uint8Array): Uint8Array {
     let control = 0;
     for (let j = 0; j < 7; j++) {
       const byte = j < group.length ? group[j] : 0;
-      control |= ((byte >> 7) & 1) << (6 - j);
+      control |= ((byte >> 7) & 1) << j;
     }
     packed.push(control);
     for (let j = 0; j < 7; j++) {
@@ -49,12 +49,11 @@ export function pack8to7(data: Uint8Array): Uint8Array {
 
 /**
  * Tolerant 7-to-8 unpack used by the DeepMind family (DM12/DM6/DM12D).
- * Two differences from pack8to7/unpack7to8 (Korg order):
- *   - Control-bit order is reversed: byte i's MSB lives in control bit i
- *     (Korg packs byte j into control bit 6-j).
- *   - Partial trailing groups are decoded instead of dropped, because the
- *     DeepMind family transmits a packed payload that is not a multiple of 8
- *     (278 bytes → 243 decoded, callers slice down to the 242-byte patch).
+ * The control-bit order matches pack8to7/unpack7to8 (byte i's MSB lives in
+ * control bit i); the difference is that partial trailing groups are decoded
+ * instead of dropped, because the DeepMind family transmits a packed payload
+ * that is not a multiple of 8 (278 bytes → 243 decoded, callers slice down to
+ * the 242-byte patch).
  */
 export function pack8to7Dm(data: Uint8Array): Uint8Array {
   const packed: number[] = [];
@@ -100,7 +99,7 @@ export function unpack7to8(packed: Uint8Array): Uint8Array {
   while (i < packed.length) {
     const control = packed[i++];
     for (let j = 0; j < 7 && i < packed.length; j++) {
-      const highBit = (control >> (6 - j)) & 1;
+      const highBit = (control >> j) & 1;
       unpacked.push(((highBit << 7) | (packed[i++] & 0x7F)) & 0xFF);
     }
   }
@@ -116,10 +115,9 @@ export function unpack7to8(packed: Uint8Array): Uint8Array {
  * `MS2000HardwareProgram::packedPayloadSize()`). `pack8to7` zero-pads, which
  * would make the frame 5 bytes longer than a real device's.
  *
- * El orden Korg (bit 6-j) ya existe tambien en C++ como
- * `abd::hw::SysExCodec::pack8to7Korg` — subido a ABDSharedCode junto con las
- * dos politicas de relleno; el nombre "Korg" del header compartido, que antes
- * describia el orden canonico bit i, esta corregido alla.
+ * El bit `j` del byte de control lleva el MSB del dato `j`, que es el orden
+ * del dump real (`ABDMS2000/WebUI/src/contracts/korg7to8.js`) y del codec C++
+ * `abd::hw::SysExCodec::pack8to7Korg`.
  */
 export function pack8to7NoPad(data: Uint8Array): Uint8Array {
   const packed: number[] = [];
@@ -127,7 +125,7 @@ export function pack8to7NoPad(data: Uint8Array): Uint8Array {
     const count = Math.min(7, data.length - i);
     let control = 0;
     for (let j = 0; j < count; j++) {
-      if ((data[i + j] & 0x80) !== 0) control |= 1 << (6 - j);
+      if ((data[i + j] & 0x80) !== 0) control |= 1 << j;
     }
     packed.push(control);
     for (let j = 0; j < count; j++) packed.push(data[i + j] & 0x7F);

@@ -14,8 +14,9 @@
 //  - setTimeScale: la implementación divide el incremento por el escala, así
 //    que escala 0,5 ACORTA la fase (la cabecera dice lo contrario para >1;
 //    aquí se fija el comportamiento REAL para que una divergencia salte).
-//  - La curvatura: en el punto medio del ataque, curva −1 sube rápido
-//    (≈p^0,25), curva 0 es lineal y curva +1 sube lento (≈p^4); setCurves
+//  - La curvatura: en el punto medio del ataque, curva −1 sube rápido con
+//    la forma RC (1−(1−p)^4 ≈ 0,94), curva 0 es lineal y curva +1 sube lento
+//    (p^0,25 invertido: p^4 ≈ 0,06); setCurves
 //    clampea a [−1,+1] y la modulación de matriz se SUMA a la curva base.
 //  - El sustain con curva +1 sube hacia 1,0 (la negativa baja hacia 0) con
 //    la pendiente calibrada contra el DM12; sustainEfectivo() aplica el
@@ -57,19 +58,19 @@ static float nivelAtaqueConCurva(float curva, int k)
 }
 
 // Nivel del sustain tras k muestras desde que empieza la fase.
-static float nivelSustainConCurva(float curva, int k)
+static float nivelSustainConCurva(float curva, int k, float timeScale = 1.0f)
 {
     abd::synth::EnvelopeAnalog e;
     e.setSampleRate(44100.0);
     e.setParameters(0.01f, 0.01f, 0.5f, 0.01f);
     e.setCurves(0.0f, 0.0f, curva, 0.0f);
+    if (timeScale != 1.0f) e.setTimeScale(timeScale);
     e.trigger();
     while (e.getCurrentStage() != EnvStage::kSustain)
         e.nextSample();
 
-    float v = e.getCurrentLevel();
-    for (int i = 0; i < k; ++i) v = e.nextSample();
-    return v;
+    for (int i = 0; i < k; ++i) e.nextSample();
+    return e.getCurrentLevel();
 }
 
 static void testEnvelopeAnalogPhases()
@@ -140,11 +141,11 @@ static void testEnvelopeAnalogCurves()
     printf("=== EnvelopeAnalog: curvatura [-1,+1] ===\n");
 
     // ── Curvatura del ataque en el punto medio (p ≈ 0,499 en la muestra 220) ──
-    const float mNeg  = nivelAtaqueConCurva(-1.0f, 220); // exponente 0,25: sube rápido
+    const float mNeg  = nivelAtaqueConCurva(-1.0f, 220); // RC 1−(1−p)^4: sube rápido
     const float mCero = nivelAtaqueConCurva(0.0f, 220);  // lineal
     const float mPos  = nivelAtaqueConCurva(1.0f, 220);  // exponente 4: sube lento
 
-    check(mNeg > 0.7f, "curva −1: subida rápida (≈ p^0,25) en el punto medio");
+    check(mNeg > 0.7f, "curva −1: subida rápida (RC, ≈ 0,94) en el punto medio");
     check(mCero > 0.45f && mCero < 0.55f, "curva 0: lineal en el punto medio");
     check(mPos < 0.15f, "curva +1: subida lenta (≈ p^4) en el punto medio");
     check(mNeg > mCero && mCero > mPos,
@@ -189,16 +190,31 @@ static void testEnvelopeAnalogCurves()
 
     // ── Sustain: +1 sube hasta 1,0; 0 se queda plano ──
     {
-        const float sustain0   = nivelSustainConCurva(0.0f, 4410);  // 100 ms
-        const float sustain100 = nivelSustainConCurva(1.0f, 4410);  // 100 ms
-        const float sustain500 = nivelSustainConCurva(1.0f, 22050); // 500 ms
+        const float sustain0     = nivelSustainConCurva(0.0f, 4410);  // 100 ms
+        const float sustain0Long = nivelSustainConCurva(0.0f, 22050); // 500 ms
+        const float sustain100   = nivelSustainConCurva(1.0f, 4410);  // 100 ms
+        const float sustain500   = nivelSustainConCurva(1.0f, 22050); // 500 ms
 
         check(std::abs(sustain0 - 0.5f) < 1.0e-6f,
               "sustain con curva 0 se queda clavado en 0,5");
+        check(std::abs(sustain0Long - 0.5f) < 1.0e-6f,
+              "y sigue plano a los 500 ms (no deriva con el tiempo)");
         check(sustain100 > 0.78f && sustain100 < 0.84f,
               "sustain con curva +1 sube ~0,81 en 100 ms");
         check(sustain500 > 0.999f,
               "sustain con curva +1 alcanza 1,0 antes de 500 ms");
+    }
+
+    // ── setTimeScale: la pendiente del sustain se divide por la escala ──
+    {
+        // La pendiente del sustain es un paso constante por muestra, así que a
+        // escala 0,5 el doble de rápido significa que 50 ms rinden lo mismo que
+        // 100 ms a escala 1 (y el nivel no es el plano: la prueba anterior ya
+        // fija que curva +1 sube ~0,81 en esos 100 ms).
+        const float lento  = nivelSustainConCurva(1.0f, 4410, 1.0f);
+        const float rapido = nivelSustainConCurva(1.0f, 2205, 0.5f);
+        check(std::abs(lento - rapido) < 1.0e-4f,
+              "timeScale 0,5 duplica la pendiente del sustain (50 ms = 100 ms a escala 1)");
     }
 
     // ── sustainEfectivo: offset sumado y clampeado a [0,1] ──

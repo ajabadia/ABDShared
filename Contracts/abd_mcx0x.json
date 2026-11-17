@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "2.0",
+  "id": "abd_mcx0x",
+  "aliases": ["abd-mcx0x", "abdmcx0x"],
+  "displayName": "ABD MCX0X (Structured Groove-Rompler)",
+  "description": "ABDSynths 4-Partial Structured Groove-Rompler & Hardware Mirror software synth. Supports native .abdrompler JSON banks and contract-driven DT1/NRPN hardware synchronization.",
+  "deviceType": "MOCK_DSP",
+  "category": "Groovebox / Rompler",
+  "brand": "ABDSynths",
+  "brandLogo": "",
+  "modelImage": "",
+  "isSoftsynth": true,
+  "midiIdentification": {
+    "manufacturer": "ABDSynths",
+    "manufacturerIdHex": "7D",
+    "model": "MCX0X",
+    "modelIdHex": "0B",
+    "sysexHeaderHex": "7D 0B",
+    "portNameMatches": []
+  },
+  "bankManagement": {
+    "bankCapacity": 256,
+    "banksCount": 4,
+    "programsPerBank": 64,
+    "patchDataSize": 128,
+    "patchNameMaxLength": 16,
+    "categories": ["Bass", "Lead", "Pad", "Synth", "Acid", "DrumKit", "Perc", "Other"],
+    "defaultCategory": "Synth",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": ["boss-dr5", "roland-mc303", "roland-d2", "roland-sc55"],
+    "sysexProtocol": {
+      "manufacturerIdHex": "7D",
+      "modelIdByteHex": "0B",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "7_TO_8_BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 10,
+      "dumpTimeoutMs": 2000,
+      "midiDefaultChannel": 1,
+      "midiDefaultDeviceIdHex": "10"
+    }
+  }
+}

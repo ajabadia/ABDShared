@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "id": "roland_mc303",
-  "aliases": ["mc303", "roland-mc-303"],
+  "aliases": ["roland-mc303", "mc303", "roland-mc-303"],
   "displayName": "Roland MC-303 Groovebox",
   "description": "Roland MC-303 Groovebox (1996, TC6116AF, Sound Module mode) - NRPN + DT1 SysEx profile.",
   "deviceType": "AUTOMATED_NRPN",
@@ -91,5 +91,31 @@
         { "index": 2, "name": "Chorus Depth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 93, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "midi" }
       ]
     }
-  ]
+  ],
+  "bankManagement": {
+    "bankCapacity": 448,
+    "banksCount": 7,
+    "programsPerBank": 64,
+    "patchDataSize": 64,
+    "patchNameMaxLength": 12,
+    "categories": ["Bass", "Lead", "Pad", "Synth", "Acid", "DrumKit", "Perc", "Other"],
+    "defaultCategory": "Synth",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": ["boss-dr5", "roland-sc55", "roland-d2"],
+    "sysexProtocol": {
+      "manufacturerIdHex": "41",
+      "modelIdByteHex": "00",
+      "modelIdByteMultiHex": "03",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "7_TO_8_BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 25,
+      "dumpTimeoutMs": 3500,
+      "midiDefaultChannel": 1,
+      "midiDefaultDeviceIdHex": "10",
+      "portNameMatches": ["MC-303", "MC303"]
+    }
+  }
 }

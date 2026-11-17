@@ -10,6 +10,14 @@ export { BehringerDm12ImportAdapter, BehringerDm12ExportAdapter, BehringerDm12Ha
 export { BehringerPro800ImportAdapter, BehringerPro800ExportAdapter, BehringerPro800HardwareLink } from './behringerPro800Adapter';
 export { BehringerDm12HardwareLink as BehringerDeepMind12HardwareLink } from './behringerDm12Adapter';
 export { RolandAiraImportAdapter, RolandAiraExportAdapter, RolandAiraHardwareLink } from './rolandAiraAdapter';
+export {
+  JsonContractImportAdapter,
+  JsonContractExportAdapter,
+  JsonContractHardwareLink,
+  allJsonImportAdapters,
+  allJsonExportAdapters,
+  allJsonHardwareLinks,
+} from './jsonContractAdapter';
 
 import { RolandJunoImportAdapter, RolandJunoExportAdapter, RolandJunoHardwareLink } from './rolandJunoAdapter';
 import { KorgMs2000ImportAdapter, KorgMs2000ExportAdapter, KorgMs2000HardwareLink } from './korgMs2000Adapter';
@@ -18,6 +26,7 @@ import { CasioCzImportAdapter, CasioCzExportAdapter, CasioCzHardwareLink } from 
 import { BehringerDm12ImportAdapter, BehringerDm12ExportAdapter, BehringerDm12HardwareLink } from './behringerDm12Adapter';
 import { BehringerPro800ImportAdapter, BehringerPro800ExportAdapter, BehringerPro800HardwareLink } from './behringerPro800Adapter';
 import { RolandAiraImportAdapter, RolandAiraExportAdapter, RolandAiraHardwareLink } from './rolandAiraAdapter';
+import { allJsonImportAdapters, allJsonExportAdapters } from './jsonContractAdapter';
 import type { ImportAdapter } from '../ImportAdapter';
 import type { ExportAdapter } from '../ExportAdapter';
 import type { HardwareLinkContract } from '../HardwareLinkContract';
@@ -53,9 +62,11 @@ export const allHardwareLinks: HardwareLinkContract[] = [
 ];
 
 export function getImportAdapter(modelId: string): ImportAdapter | undefined {
-  return allImportAdapters.find(adapter => adapter.targetModelIds.includes(modelId));
+  return allImportAdapters.find(adapter => adapter.targetModelIds.includes(modelId))
+    ?? allJsonImportAdapters.find(adapter => adapter.targetModelIds.includes(modelId));
 }
 
 export function getExportAdapter(modelId: string): ExportAdapter | undefined {
-  return allExportAdapters.find(adapter => adapter.targetModelIds.includes(modelId));
+  return allExportAdapters.find(adapter => adapter.targetModelIds.includes(modelId))
+    ?? allJsonExportAdapters.find(adapter => adapter.targetModelIds.includes(modelId));
 }

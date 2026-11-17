@@ -129,6 +129,7 @@ void setCommonBankProperties(juce::ValueTree& node, const Bank& bank)
     node.setProperty("manufacturer", bank.manufacturer, nullptr);
     node.setProperty("isFactory", bank.isFactory, nullptr);
     node.setProperty("isLocked", bank.isLocked, nullptr);
+    node.setProperty("includeInBundle", bank.includeInBundle, nullptr);
     node.setProperty("source", bank.source, nullptr);
     node.setProperty("imageUrl", bank.imageUrl, nullptr);
     node.setProperty("description", bank.description, nullptr);
@@ -150,9 +151,10 @@ Bank bankFromValueTree(const juce::ValueTree& node)
     bank.modelId        = node.getProperty("modelId").toString();
     bank.hardwareIds    = varToStringArray(node.getProperty("hardwareIds"));
     bank.manufacturer   = node.getProperty("manufacturer").toString();
-    bank.isFactory      = static_cast<bool>(node.getProperty("isFactory", false));
-    bank.isLocked       = static_cast<bool>(node.getProperty("isLocked", false));
-    bank.source         = node.getProperty("source").toString();
+    bank.isFactory       = static_cast<bool>(node.getProperty("isFactory", false));
+    bank.isLocked        = static_cast<bool>(node.getProperty("isLocked", false));
+    bank.includeInBundle = static_cast<bool>(node.getProperty("includeInBundle", false));
+    bank.source          = node.getProperty("source").toString();
     bank.imageUrl       = node.getProperty("imageUrl").toString();
     bank.description    = node.getProperty("description").toString();
     bank.bankAuthor     = node.getProperty("bankAuthor").toString();
@@ -230,6 +232,7 @@ juce::var bankToVar(const Bank& bank)
     dynamicObject->setProperty("manufacturer", bank.manufacturer);
     dynamicObject->setProperty("isFactory", bank.isFactory);
     dynamicObject->setProperty("isLocked", bank.isLocked);
+    dynamicObject->setProperty("includeInBundle", bank.includeInBundle);
     dynamicObject->setProperty("source", bank.source);
     dynamicObject->setProperty("imageUrl", bank.imageUrl);
     dynamicObject->setProperty("description", bank.description);
@@ -430,9 +433,10 @@ void BankManagerCore::loadWebUIState(const juce::var& data)
                 bank.modelId        = bankObject->getProperty("modelId").toString();
                 bank.hardwareIds    = varToStringArray(bankObject->getProperty("hardwareIds"));
                 bank.manufacturer   = bankObject->getProperty("manufacturer").toString();
-                bank.isFactory      = static_cast<bool>(getObjectProperty(*bankObject, "isFactory", false));
-                bank.isLocked       = static_cast<bool>(getObjectProperty(*bankObject, "isLocked", false));
-                bank.source         = bankObject->getProperty("source").toString();
+                bank.isFactory       = static_cast<bool>(getObjectProperty(*bankObject, "isFactory", false));
+                bank.isLocked        = static_cast<bool>(getObjectProperty(*bankObject, "isLocked", false));
+                bank.includeInBundle = static_cast<bool>(getObjectProperty(*bankObject, "includeInBundle", false));
+                bank.source          = bankObject->getProperty("source").toString();
                 bank.imageUrl       = bankObject->getProperty("imageUrl").toString();
                 bank.description    = bankObject->getProperty("description").toString();
                 bank.bankAuthor     = bankObject->getProperty("bankAuthor").toString();

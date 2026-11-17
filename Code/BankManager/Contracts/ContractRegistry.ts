@@ -20,11 +20,17 @@ import { validateModelContract, type ModelContract } from './ModelContract.ts';
 import type { ImportAdapter } from './ImportAdapter.ts';
 import type { ExportAdapter } from './ExportAdapter.ts';
 import type { HardwareLinkContract } from './HardwareLinkContract.ts';
-import { getMidiConfig as deriveMidiConfig, type MidiConfig } from './Models/index.ts';
-import { allModelContracts } from './Models/index.ts';
+import { getMidiConfig as deriveMidiConfig, type MidiConfig, allModelContracts, allJsonHydratedContracts } from './Models/index.ts';
 export type { HARDWARE_QUEUE_CONFIGS } from './Models/index.ts';
 import { HARDWARE_QUEUE_CONFIGS } from './Models/index.ts';
-import { allImportAdapters, allExportAdapters, allHardwareLinks } from './Adapters/index.ts';
+import {
+  allImportAdapters,
+  allExportAdapters,
+  allHardwareLinks,
+  allJsonImportAdapters,
+  allJsonExportAdapters,
+  allJsonHardwareLinks,
+} from './Adapters/index.ts';
 
 export type DeploymentMode = 'standalone' | 'plugin';
 
@@ -195,6 +201,29 @@ export function createStandaloneRegistry(): ContractRegistry {
     registry.registerExportAdapter(adapter);
   }
   for (const link of allHardwareLinks) {
+    registry.registerHardwareLink(link);
+  }
+  return registry;
+}
+
+/**
+ * Registry universal ampliado con los contratos JSON hidratados desde
+ * `ABDShared/Contracts/*.json` (DR-5, MC-303, D-2, SC-55, ABDMCX0X).
+ */
+export function createUniversalContractRegistry(): ContractRegistry {
+  const registry = createStandaloneRegistry();
+  for (const contract of allJsonHydratedContracts) {
+    if (!registry.isSupported(contract.modelId)) {
+      registry.registerModel(contract);
+    }
+  }
+  for (const adapter of allJsonImportAdapters) {
+    registry.registerImportAdapter(adapter);
+  }
+  for (const adapter of allJsonExportAdapters) {
+    registry.registerExportAdapter(adapter);
+  }
+  for (const link of allJsonHardwareLinks) {
     registry.registerHardwareLink(link);
   }
   return registry;

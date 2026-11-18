@@ -24,6 +24,8 @@ export { LedLadder } from './ledLadder.js';
 export { RotaryLedKnob } from './rotaryLedKnob.js';
 export { XYPad } from './xypad.js';
 export { TrajectoryStick2D } from './trajectoryStick2D.js';
+export { StepButtonStrip } from './Controls/stepButtonStrip.js';
+export { MpcPadMatrix } from './Controls/MpcPadMatrix.js';
 
 // Gesto de automatización de un control arrastrable, con el puente del host
 // inyectado: el mismo cableado para todos los sintetizadores.

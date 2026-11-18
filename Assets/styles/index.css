@@ -64,3 +64,5 @@
 @import './components/midi-learn.css';          /* MIDI Learn & CC/NRPN Mapping Matrix (N:M) */
 @import './components/live-sysex-inspector.css'; /* LiveSysExInspector: inspector reactivo de tramas MIDI SysEx */
 @import './components/step-matrix.css';          /* StepMatrix: matriz de pasos / filas de tracker */
+@import './components/step-button-strip.css';   /* StepButtonStrip: botonera superior 16 pasos estilo Roland */
+@import './components/mpc-pad-matrix.css';      /* MpcPadMatrix: matriz de pads 4x4 táctiles MPC */

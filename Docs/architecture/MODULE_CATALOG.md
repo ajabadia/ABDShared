@@ -700,3 +700,15 @@ Guía de integración: [`Docs/integration/DIAGNOSTIC_PROBE_INTEGRATION_GUIDE.md`
 - **C++20 (`DiagnosticSignalProbe.h`):** generador RT-safe sin asignaciones ni JUCE (`abd::synth::DiagnosticSignalProbe`) con precisión `double` para 440.0 Hz a cualquier frecuencia de muestreo (`44100..192000 Hz`), 4 formas de onda (`Sine`, `Saw`, `WhiteNoise`, `Impulse1Hz`) y máscara atómica de 64 bits (`setEnabledMask`, `setPointEnabled`, `isInjectingAt`, `injectStereoBuffer`).
 - **WebUI (`WebUI/DiagnosticProbeModal.js`, `DiagnosticProbeWave.js`, `DiagnosticProbeI18n.js`, `DiagnosticProbeModal.css`):** modal `<dialog closedby="any">` invocable desde `NavBar → Utils`, con lienzo animado de onda 440 Hz + sample rate, knob rotatorio de volumen (`Knob` de `ABDShared`), botones ON/OFF dinámicos definidos por el consumidor (con selección inicial o en llamada), temas Light/Dark e internacionalización ES/EN.
 - **Consumidor verificado:** `ABDMCX0X` (Nativo C++20, WASM y WebUI).
+
+---
+
+## 12. SynthEngines — Interfaz Polimórfica `ISoundEngine`, `TrackModRouter` y `StructuredRompler` (2026-11-19)
+
+Ruta: `Code/SynthEngines` (`ABDShared::SynthEngines` y `ABDShared::StructuredRompler` en CMake)  
+Restricción cumplida: **100 % C++20 JUCE-free**, compatible con Nativo Headless, Standalone, VST3 y Emscripten WASM (`< 300` líneas por archivo).
+
+- **`ISoundEngine.h` (`abd::engines::ISoundEngine`):** contrato abstracto donde cada motor conserva su propia topología completa de síntesis (osciladores, filtros en serie/paralelo, envolventes, LFOs de voz) y publica entradas modulables mediante `EngineControlInputDescriptor` y `SemanticRoleHash` (`getControlInputDescriptors`, `findInputByRole`, `setControlInputs`, `clearControlInputs`), contexto musical (`EngineTransportContext`), eventos RT-safe (`noteOn`, `noteOff`, `allNotesOff`) y `renderBlock(...)` booleano para *Zero-CPU idle skip*.
+- **`TrackModRouter.h` (`abd::engines::TrackModRouter`):** enrutador RT-safe por pista (`kGlobalLfo1..4`, `kTrackLfo1..2`, `kSeqLane1..4`, `kMacro1..8` y controladores físicos de interpretación) sobre `abd::synth::ModMatrix` con atenuadores `via` y enlace semántico no destructivo (`bindRoleRoute`, `setDirectOffset`, `applyTo`).
+- **`StructuredRompler/` (`abd::rompler::*`):** motor completo estéreo de 4 parciales y Drum Kit (`StructuredRomplerEngine`, `Parallel` / `RingMod12` / `Booster12` / `Vector2D`), doble filtro en serie (VCF1 + VCF2), envolventes `5-Stage` (`Env4T4L` + helper `makeEnv4T4L`), `RomplerVoicePool` compartido con presupuesto de parciales y callback `VoiceStolenFn`, `RomplerBankLoader` (`.abdbank` ZIP/WAV) y `RomplerFactoryPatches` (4 kits + 16 tonos).
+- **Verificación y consumidor real:** suite `ABDShared_StructuredRompler_Tests` (**14 passed, 0 failed**) y consumidor real `ABDMCX0X` (Headless C++20, JUCE 9 Standalone + VST3, Emscripten WASM).

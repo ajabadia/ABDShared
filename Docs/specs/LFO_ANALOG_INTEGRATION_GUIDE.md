@@ -61,6 +61,7 @@ El método `setShape(int shapeIndex)` selecciona una de las 7 formas de onda dis
 | **4** | `Shape::kRampDown` | Rampa descendente (diente de sierra negativa): $+1.0 - 2p$ | $[-1.0f, +1.0f]$ |
 | **5** | `Shape::kSampleHold` | Muestreo y retención pseudoaleatorio por ciclo (LCG determinista) | $[-1.0f, +1.0f]$ |
 | **6** | `Shape::kSampleGlide` | S&H con filtro analógico de transición exponencial dependiente del período | $[-1.0f, +1.0f]$ |
+| **7** | `Shape::kPulse25` | Pulso rectangular asimétrico (25% en alto, 75% en bajo) | $\{-1.0f, +1.0f\}$ |
 
 ---
 
@@ -125,7 +126,7 @@ void setKeySync(bool sync);
 ```
 Habilita o deshabilita la sincronización por pulsación de tecla.
 
-### Parámetros de Frecuencia y Forma
+### Parámetros de Frecuencia, Tempo Sync y Forma
 
 ```cpp
 void setRate(float rateHz);
@@ -133,9 +134,27 @@ void setRate(float rateHz);
 Ajusta la frecuencia del oscilador en Hertz (acotado internamente a $[0.005\text{ Hz}, 1280.0\text{ Hz}]$). Cuenta con protección contra recálculos redundantes (*hot-path guard*).
 
 ```cpp
+void setTempoSync(bool enabled);
+void setBpm(double bpm);
+void setSyncDivision(SyncDivision div);
+void syncToSongPosition(double beatPosition);
+```
+Sincronización métrica al tempo BPM del DAW con 20 divisiones musicales (`SyncDivision`: 32/1 a 1/64, tresillos y puntillos) y enganche de fase determinista según la posición de compás del anfitrión.
+
+```cpp
 void setShape(int shapeIndex);
 ```
-Fija la forma de onda (0 a 6).
+Fija la forma de onda (0 a 7, incluyendo `kPulse25`).
+
+```cpp
+void setKeySyncMode(KeySyncMode mode);
+```
+Define el modo de articulación: `Voice` (reinicio por nota), `Beat` (fase anclada al pulso del anfitrión) o `Free` (oscilación libre continua).
+
+```cpp
+void setDepth(float depth);   // Profundidad [0..1] con bypass 0% CPU si depth == 0
+void setBipolar(bool bipolar); // Polaridad bipolar [-1..+1] o unipolar [0..1]
+```
 
 ### Parámetros Analógicos y Modulación
 

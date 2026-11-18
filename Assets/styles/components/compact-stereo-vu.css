@@ -1,0 +1,215 @@
+/**
+ * ABDShared — compact-stereo-vu.css
+ * Canonical styling for CompactStereoVu dual-LED pill + Studio VU Dialog.
+ * Zero hardcoded colors; 100% theme tokens & accessible.
+ */
+
+.abd-compact-vu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background: color-mix(in srgb, var(--color-panel-surface) 60%, transparent);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-xs, 2px);
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.abd-compact-vu:hover,
+.abd-compact-vu:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-panel-surface-elevated);
+  outline: none;
+}
+
+.abd-compact-vu__ch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.abd-compact-vu__lbl {
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--color-text-dim);
+}
+
+.abd-compact-vu__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-panel-border-dim);
+  transition: background 0.05s ease, box-shadow 0.05s ease;
+  box-sizing: border-box;
+}
+
+.abd-compact-vu__led.is-off {
+  background: color-mix(in srgb, var(--color-panel-border-dim) 50%, transparent);
+  box-shadow: none;
+}
+
+.abd-compact-vu__led.is-low {
+  background: var(--color-success, #00e676);
+  box-shadow: 0 0 5px var(--color-success, #00e676);
+}
+
+.abd-compact-vu__led.is-mid {
+  background: var(--color-warning, #f59e0b);
+  box-shadow: 0 0 6px var(--color-warning, #f59e0b);
+}
+
+.abd-compact-vu__led.is-hot {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 60%, var(--color-warning, #f59e0b));
+  box-shadow: 0 0 7px var(--color-danger, #ef4444);
+}
+
+.abd-compact-vu__led.is-clip {
+  background: var(--color-danger, #ef4444);
+  box-shadow: 0 0 8px var(--color-danger, #ef4444);
+}
+
+.abd-compact-vu__expand {
+  font-size: 9px;
+  color: var(--color-text-dim);
+  opacity: 0.6;
+}
+
+.abd-compact-vu:hover .abd-compact-vu__expand {
+  color: var(--color-accent);
+  opacity: 1;
+}
+
+/* ── Modal Dialog ── */
+.abd-compact-vu-dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: auto;
+  outline: none;
+  z-index: 9200;
+}
+
+.abd-compact-vu-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.abd-compact-vu-card {
+  background: var(--color-panel-bg, #0e1219);
+  border: 1px solid var(--color-panel-border-strong, #3a4556);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 10px);
+  padding: 12px 16px 16px;
+  min-width: 220px;
+  box-sizing: border-box;
+}
+
+.abd-compact-vu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-panel-border-dim);
+  padding-bottom: 6px;
+  cursor: grab;
+}
+
+.abd-compact-vu-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.abd-compact-vu-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 7.5px;
+  font-weight: 800;
+  padding: 2px 4px;
+  border-radius: 2px;
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.abd-compact-vu-title {
+  font-family: var(--font-sans, system-ui);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.abd-compact-vu-close-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.abd-compact-vu-close-btn:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.abd-compact-vu-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.abd-compact-vu-readouts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.abd-compact-vu-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-xs, 2px);
+}
+
+.abd-compact-vu-pill__ch {
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+}
+
+.abd-compact-vu-pill__val {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.abd-compact-vu-meter-host {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-sm, 4px);
+  min-height: 180px;
+}

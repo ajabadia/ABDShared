@@ -66,3 +66,7 @@
 @import './components/step-matrix.css';          /* StepMatrix: matriz de pasos / filas de tracker */
 @import './components/step-button-strip.css';   /* StepButtonStrip: botonera superior 16 pasos estilo Roland */
 @import './components/mpc-pad-matrix.css';      /* MpcPadMatrix: matriz de pads 4x4 táctiles MPC */
+@import './components/multi-bus-fx-rack.css';    /* MultiBusFxRack: rack multi-bus hardware & LCD */
+@import './components/global-lfo-modal.css';     /* GlobalLfoModal: modal flotante de LFOs globales */
+@import './components/piano-roll.css';           /* PianoRollModal: secuenciador rollo de pianola y drum grid */
+@import './components/groove-shuffle.css';       /* GrooveShuffleModal: motor de groove y shuffle multialgorítmico */

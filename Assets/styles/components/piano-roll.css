@@ -1,0 +1,188 @@
+/**
+ * ABDShared -- piano-roll.css
+ * Universal Studio Piano Roll & Drum Grid Styling with Zoom, SVGs and Sticky Keys.
+ * 100% token-driven, zero hardcoded colors.
+ */
+
+dialog.abd-pianoroll-dialog {
+  position: fixed; inset: 0; margin: auto; z-index: var(--z-modal, 9999);
+  padding: 0; border: 1px solid var(--color-panel-border-strong);
+  border-radius: var(--radius-lg, 8px); background: var(--color-panel-bg);
+  color: var(--color-text-main); width: 990px; max-width: 96vw; max-height: 92vh;
+  box-shadow: var(--shadow-elevation-3, 0 16px 48px var(--color-panel-border-dim));
+  overflow-y: auto; font-family: var(--font-sans);
+}
+dialog.abd-pianoroll-dialog::backdrop { background: transparent; backdrop-filter: none; pointer-events: none; }
+
+.abd-pianoroll-card {
+  display: flex; flex-direction: column; gap: var(--space-2, 8px);
+  padding: 12px 16px; box-sizing: border-box;
+}
+
+.abd-pianoroll-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--color-panel-border-dim); padding-bottom: 6px;
+  cursor: grab; user-select: none;
+}
+dialog.abd-pianoroll-dialog.is-dragging .abd-pianoroll-head { cursor: grabbing; }
+
+.abd-pianoroll-title-wrap { display: flex; align-items: center; gap: 8px; }
+.abd-pianoroll-badge {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  background: var(--color-accent-dim); color: var(--color-accent);
+  padding: 1px 6px; border-radius: 2px;
+}
+.abd-pianoroll-badge--range {
+  background: color-mix(in srgb, var(--color-panel-surface-elevated) 80%, transparent);
+  color: var(--color-text-dim); border: 1px solid var(--color-panel-border-dim);
+}
+.abd-pianoroll-title {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+  color: var(--color-text-main); margin: 0;
+}
+
+.abd-pianoroll-mode-bar { display: flex; align-items: center; }
+.abd-pr-mode-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 800;
+  padding: 3px 8px; border-radius: var(--radius-sm, 3px);
+  border: 1px solid var(--color-panel-border-strong);
+  background: color-mix(in srgb, var(--color-panel-surface-elevated) 80%, transparent);
+  color: var(--color-accent);
+}
+.abd-pr-mode-badge--drum {
+  border-color: var(--color-warning, #f59e0b);
+  color: var(--color-warning, #f59e0b);
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 12%, var(--color-panel-surface));
+}
+.abd-pr-mode-badge--chromatic {
+  border-color: var(--color-accent, #00c3ff);
+  color: var(--color-accent, #00c3ff);
+  background: color-mix(in srgb, var(--color-accent, #00c3ff) 12%, var(--color-panel-surface));
+}
+
+.abd-pianoroll-close-btn {
+  appearance: none; background: transparent; border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-dim); width: 24px; height: 24px;
+  border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.abd-pianoroll-close-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+/* Toolbar */
+.abd-pianoroll-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  background: color-mix(in srgb, var(--color-panel-surface) 60%, transparent);
+  border: 1px solid var(--color-panel-border-dim); border-radius: 4px; padding: 4px 8px;
+  flex-wrap: wrap;
+}
+.abd-pr-transport-group, .abd-pr-tools-group, .abd-pr-select-group, .abd-pr-zoom-group, .abd-pr-actions-group {
+  display: flex; align-items: center; gap: 4px;
+}
+.abd-pr-select-group label {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: var(--color-text-dim);
+}
+.abd-pr-btn {
+  appearance: none; background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim); color: var(--color-text-main);
+  font-family: var(--font-mono); font-size: 8.5px; font-weight: 700;
+  padding: 3px 6px; border-radius: 2px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.abd-pr-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.abd-pr-btn--danger:hover { border-color: var(--color-danger); color: var(--color-danger); }
+.abd-pr-btn--mini { padding: 2px 4px; font-size: 8px; line-height: 1; }
+.abd-pr-play-btn { color: var(--color-text-dim); }
+.abd-pr-play-btn.is-playing {
+  background: color-mix(in srgb, var(--color-success, #00e676) 22%, var(--color-panel-surface));
+  border-color: var(--color-success, #00e676); color: var(--color-success, #00e676);
+  box-shadow: 0 0 6px var(--color-success, #00e676);
+}
+.abd-pr-stop-btn.is-stopped {
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 18%, var(--color-panel-surface));
+  border-color: var(--color-warning, #f59e0b); color: var(--color-warning, #f59e0b);
+}
+.abd-pr-rec-btn.is-rec {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 30%, var(--color-panel-surface));
+  border-color: var(--color-danger, #ef4444); color: var(--color-danger, #ef4444);
+  box-shadow: 0 0 8px var(--color-danger, #ef4444);
+  animation: pr-rec-pulse 1.2s infinite ease-in-out;
+}
+@keyframes pr-rec-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.97); } }
+
+/* Tool buttons (Pencil / Eraser) */
+.abd-pr-tool-btn {
+  appearance: none; background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim); color: var(--color-text-dim);
+  font-family: var(--font-mono); font-size: 11px; width: 24px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 2px; cursor: pointer; padding: 0;
+}
+.abd-pr-tool-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.abd-pr-tool-btn.is-active {
+  background: var(--color-accent-dim); border-color: var(--color-accent); color: var(--color-accent);
+}
+
+.abd-pr-select {
+  background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-accent); font-family: var(--font-mono); font-size: 8.5px;
+  font-weight: 800; border-radius: 2px; padding: 2px 4px; cursor: pointer;
+}
+
+/* Zoom Group */
+.abd-pr-zoom-group {
+  background: color-mix(in srgb, var(--color-bg-base) 60%, transparent);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: 3px; padding: 2px 5px; gap: 3px;
+}
+.abd-pr-zoom-title {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 800;
+  color: var(--color-accent); margin-right: 1px;
+}
+.abd-pr-zoom-readout {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 800;
+  color: var(--color-text-main); min-width: 14px; text-align: center;
+}
+
+/* Grid & Velocity Canvas Hosts with Sticky Keys Layout */
+.abd-pianoroll-grid-host {
+  width: 100%; height: 280px; border: 1px solid var(--color-panel-border);
+  border-radius: 4px; overflow: hidden; background: var(--color-panel-bg);
+  box-shadow: inset 0 2px 6px var(--color-panel-border-dim);
+}
+.abd-pr-grid-layout { display: flex; width: 100%; height: 100%; }
+.abd-pr-keys-col {
+  width: 48px; min-width: 48px; max-width: 48px; height: 100%;
+  overflow: hidden; border-right: 1px solid var(--color-panel-border-strong);
+  background: var(--color-bg-base); flex-shrink: 0;
+}
+.abd-pr-keys-canvas { display: block; width: 48px; }
+.abd-pr-grid-scroll {
+  flex: 1; height: 100%; overflow: auto;
+  scrollbar-width: thin; scrollbar-color: var(--color-panel-border) transparent;
+}
+.abd-pianoroll-canvas { display: block; }
+
+/* Bottom Lane */
+.abd-pianoroll-lane-bar { display: flex; flex-direction: column; gap: 4px; }
+.abd-pr-lane-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.abd-pr-lane-select-wrap { display: flex; align-items: center; gap: 6px; }
+.abd-pr-lane-select-wrap label { font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; color: var(--color-text-dim); }
+.abd-pr-lane-select { min-width: 140px; }
+.abd-pr-accent-hint { font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: var(--color-warning); }
+
+.abd-pianoroll-vel-host {
+  width: 100%; height: 90px; border: 1px solid var(--color-panel-border);
+  border-radius: 4px; overflow: hidden; background: var(--color-panel-bg);
+  box-shadow: inset 0 2px 6px var(--color-panel-border-dim);
+}
+.abd-pr-vel-layout { display: flex; width: 100%; height: 100%; }
+.abd-pr-vel-spacer {
+  width: 48px; min-width: 48px; max-width: 48px; height: 100%;
+  border-right: 1px solid var(--color-panel-border-strong);
+  background: var(--color-bg-base); flex-shrink: 0;
+}
+.abd-pr-vel-scroll {
+  flex: 1; height: 100%; overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin; scrollbar-color: var(--color-panel-border) transparent;
+}
+.abd-pianoroll-vel-canvas { display: block; }

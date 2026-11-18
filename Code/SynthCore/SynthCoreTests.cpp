@@ -71,6 +71,11 @@ void operator delete(void* ptr, std::size_t) noexcept
 #include "MusicalScaleTransposer.h"
 #include "S950EnvelopeBench.h"
 #include "S950PatchFields.h"
+#include "LcdTextFormatter.h"
+#include "StickPlayer.h"
+#include "VelocitySensitivityCurves.h"
+#include "PatternSequencerEngine.h"
+#include "GrooveShuffleEngine.h"
 
 namespace abd::synth::tests
 {
@@ -1107,6 +1112,190 @@ static void testMusicalScaleTransposer()
     check(gTestAllocations == allocBefore, "MusicalScaleTransposer is zero-alloc RT-safe");
 }
 
+void testLcdTextFormatter()
+{
+    using namespace abd::synth;
+
+    // 1. Padding 16 and 20 chars
+    auto p16 = LcdTextFormatter::pad("Hello", 16);
+    check(p16.length() == 16, "pad length 16");
+    check(p16 == "Hello           ", "pad contents 16");
+
+    auto p20 = LcdTextFormatter::pad("LongerStringHere!", 20);
+    check(p20.length() == 20, "pad length 20");
+
+    auto pTrunc = LcdTextFormatter::pad("A very long title that exceeds 16", 16);
+    check(pTrunc.length() == 16, "truncate to 16");
+    check(pTrunc == "A very long titl", "truncate contents");
+
+    // 2. Centering
+    auto c16 = LcdTextFormatter::formatCenter("SAVED", 16);
+    check(c16.length() == 16, "formatCenter length 16");
+    check(c16.find("SAVED") != std::string::npos, "formatCenter contains text");
+
+    // 3. Play Mode screen
+    auto pm = LcdTextFormatter::formatPlayMode("A", 11, "Init Synth", 16);
+    check(pm.line1 == "Prog: A11       ", "formatPlayMode line1");
+    check(pm.line2 == "[Init Synth]    ", "formatPlayMode line2");
+
+    // 4. Parameter formatting
+    auto pStr = LcdTextFormatter::formatParam("Cutoff", 72, "Hz", 16);
+    check(pStr.length() == 16, "formatParam length 16");
+    check(pStr.find("Cutoff") != std::string::npos && pStr.find("72 Hz") != std::string::npos, "formatParam contents");
+
+    // 5. Signed parameter
+    auto sStr = LcdTextFormatter::formatSigned("Pitch", 2, "st", 16);
+    check(sStr.find("+2 st") != std::string::npos, "formatSigned positive");
+    auto sNeg = LcdTextFormatter::formatSigned("Pan", -12, "", 16);
+    check(sNeg.find("-12") != std::string::npos, "formatSigned negative");
+
+    // 6. Float parameter
+    auto fStr = LcdTextFormatter::formatFloat("Rate", 2.4f, 2, "Hz", 16);
+    check(fStr.find("2.40 Hz") != std::string::npos, "formatFloat");
+
+    // 7. Choice enum lookup (DWGS / waves / algorithms)
+    const char* const waveNames[] = { "SAW", "SQUARE", "TRIANGLE", "S&H" };
+    auto chStr = LcdTextFormatter::formatChoice("Wave", 1, waveNames, 16);
+    check(chStr.find("SQUARE") != std::string::npos, "formatChoice in range");
+    auto chInvalid = LcdTextFormatter::formatChoice("Wave", 99, waveNames, 16);
+    check(chInvalid.find("---") != std::string::npos, "formatChoice out of range");
+
+    // 8. Bargraph meter
+    auto bg = LcdTextFormatter::formatBargraph("Vol", 0.5f, 8, 16);
+    check(bg.length() == 16, "formatBargraph length 16");
+    check(bg.find("[====    ]") != std::string::npos, "formatBargraph contents");
+}
+
+void testStickPlayer()
+{
+    using namespace abdsynth::core;
+    StickPlayer sp;
+    sp.prepare(44100.0);
+    check(!sp.isPlaying(), "StickPlayer initially stopped");
+
+    std::vector<StickRecEvent> events {
+        { 0, 0, 0, 512 },
+        { 100, 0, 0, 1024 }
+    };
+    sp.loadEvents(events);
+    sp.trigger();
+    check(sp.isPlaying(), "StickPlayer playing after trigger");
+    sp.stop();
+    check(!sp.isPlaying(), "StickPlayer stopped after stop()");
+}
+
+void testVelocitySensitivityCurves()
+{
+    using namespace abdsynth::core;
+    auto percussive = VelocitySensitivityProcessor::getPercussiveCurve();
+    check(percussive.amplitudeResponse == 1.0f, "percussive amp response");
+    check(percussive.attackResponse < 0.0f, "percussive attack response is negative");
+
+    auto pad = VelocitySensitivityProcessor::getPadCurve();
+    check(pad.amplitudeResponse > 0.0f, "pad amp response");
+
+    float factor = VelocitySensitivityProcessor::apply(0.8f, 0.5f);
+    check(factor > 0.0f, "apply sensitivity non-zero");
+}
+
+void testPatternSequencerEngine()
+{
+    abd::synth::PatternSequencerEngine seq;
+    seq.prepare(44100.0);
+    seq.setBpm(120.0);
+    seq.setBars(2);
+    seq.setPpq(96);
+
+    check(seq.getBars() == 2, "bars == 2");
+    check(seq.getPpq() == 96, "ppq == 96");
+    check(seq.getTotalTicks() == 768, "totalTicks == 768");
+
+    // Add note with velocity > 100 (Accent)
+    bool added = seq.addEvent(0, 0, 24, 60, 115, false);
+    check(added, "addEvent success");
+
+    // Set step 4
+    bool stepSet = seq.setStep(0, 4, true, 90, true, 62);
+    check(stepSet, "setStep success");
+
+    // Record motion
+    bool motRec = seq.recordMotion(0, 0, 74 /* Cutoff */, 0.85f);
+    check(motRec, "recordMotion success");
+
+    struct CallbackState {
+        int noteOnCount { 0 };
+        int noteOffCount { 0 };
+        int motionCount { 0 };
+        uint8_t lastVel { 0 };
+    } cbState;
+
+    seq.start();
+    check(seq.isRunning(), "seq isRunning after start");
+
+    // Process a block
+    seq.processBlock(512, &cbState,
+        [](void* ctx, int /*part*/, uint8_t /*note*/, uint8_t vel, bool /*slide*/) {
+            auto* s = static_cast<CallbackState*>(ctx);
+            s->noteOnCount++;
+            s->lastVel = vel;
+        },
+        [](void* ctx, int /*part*/, uint8_t /*note*/) {
+            auto* s = static_cast<CallbackState*>(ctx);
+            s->noteOffCount++;
+        },
+        [](void* ctx, int /*part*/, int /*paramId*/, float /*value*/) {
+            auto* s = static_cast<CallbackState*>(ctx);
+            s->motionCount++;
+        });
+
+    check(cbState.noteOnCount >= 1, "noteOn dispatched");
+    check(cbState.lastVel == 115, "velocity 115 dispatched");
+    check(cbState.motionCount >= 1, "motion dispatched");
+
+    seq.stop();
+    check(!seq.isRunning(), "seq stopped");
+    check(seq.getCurrentTick() == 0, "currentTick reset on stop");
+}
+
+void testGrooveShuffleEngine()
+{
+    abd::synth::GrooveShuffleEngine engine;
+    check(engine.getMasterGroove().algorithm == abd::synth::GrooveShuffleEngine::Algorithm::Mpc, "default algo == mpc");
+    check(engine.getMasterGroove().amount == 0.50f, "default amount == 0.50");
+
+    // Off mode preserves straight tick
+    abd::synth::GrooveShuffleEngine::GrooveSettings offSettings {
+        abd::synth::GrooveShuffleEngine::Mode::Off,
+        abd::synth::GrooveShuffleEngine::Algorithm::Mpc,
+        abd::synth::GrooveShuffleEngine::Resolution::Sixteenth,
+        0.60f
+    };
+    engine.setPartGroove(9, offSettings);
+    check(engine.applyGroove(24, 96, 9) == 24, "off mode preserves straight tick");
+
+    // Part with MPC swing 60%
+    abd::synth::GrooveShuffleEngine::GrooveSettings mpcSettings {
+        abd::synth::GrooveShuffleEngine::Mode::Custom,
+        abd::synth::GrooveShuffleEngine::Algorithm::Mpc,
+        abd::synth::GrooveShuffleEngine::Resolution::Sixteenth,
+        0.60f
+    };
+    engine.setPartGroove(1, mpcSettings);
+    check(engine.applyGroove(0, 96, 1) == 0, "downbeat step 0 never delayed");
+    int delayedTick = engine.applyGroove(24, 96, 1);
+    check(delayedTick > 24, "even step delayed by swing");
+
+    // Part with TR-909 algorithm
+    abd::synth::GrooveShuffleEngine::GrooveSettings tr909Settings {
+        abd::synth::GrooveShuffleEngine::Mode::Custom,
+        abd::synth::GrooveShuffleEngine::Algorithm::Tr909,
+        abd::synth::GrooveShuffleEngine::Resolution::Sixteenth,
+        0.70f
+    };
+    engine.setPartGroove(2, tr909Settings);
+    check(engine.applyGroove(24, 96, 2) > 24, "tr909 delays even step");
+}
+
 static const char* kUsage =
     "Uso: ABDShared_SynthCore_Tests [--only=<subcadena>]\n"
     "  --only=<subcadena>  ejecuta solo las funciones de prueba cuyo nombre\n"
@@ -1203,6 +1392,11 @@ int main(int argc, char* argv[])
     RUN_TEST(testDriftEngineDeterminism);
     RUN_TEST(testDriftEngineAmplitudeScaling);
     RUN_TEST(testMusicalScaleTransposer);
+    RUN_TEST(testLcdTextFormatter);
+    RUN_TEST(testStickPlayer);
+    RUN_TEST(testVelocitySensitivityCurves);
+    RUN_TEST(testPatternSequencerEngine);
+    RUN_TEST(testGrooveShuffleEngine);
 
     // Un filtro que no casa con nada no puede salir en verde: cero checks no es
     // una suite que pase, es un nombre mal escrito o una funcion renombrada.

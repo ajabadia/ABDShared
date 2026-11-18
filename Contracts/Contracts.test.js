@@ -53,6 +53,7 @@ describe('@abdsynths/contracts', () => {
     expect(schemas).toContain('modulation_matrix.schema.json');
     expect(schemas).toContain('abd_structured_rompler.schema.json');
     expect(schemas).toContain('drum_map_profile.schema.json');
+    expect(schemas).toContain('abd_pattern.schema.json');
   });
 
   it('abdDrumMapProfiles supports GM, Roland GS/MC, Yamaha XG/XS/CS2x, Korg AI2/N5, hardware, and proprietary remapping', () => {
@@ -166,5 +167,19 @@ describe('@abdsynths/contracts', () => {
     expect(isBipolarSemanticRole('PartPan')).toBe(true);
     expect(isBipolarSemanticRole('FilterEnvDepth')).toBe(true);
     expect(isBipolarSemanticRole('FilterCutoff')).toBe(false);
+  });
+
+  it('abdPattern supports PPQ ticks, bars, velocity accent threshold > 100, and motion lanes', async () => {
+    const { createDefaultPattern, getTotalPatternTicks, isAccentVelocity, getTicksPerStep } = await import('./abdPattern.ts');
+    const pat = createDefaultPattern(2, 96);
+    expect(pat.bars).toBe(2);
+    expect(pat.ppq).toBe(96);
+    expect(getTotalPatternTicks(pat)).toBe(768); // 2 * 4 * 96
+    expect(getTicksPerStep(pat, 16)).toBe(24); // 96 * 4 / 16
+
+    expect(isAccentVelocity(80)).toBe(false);
+    expect(isAccentVelocity(100)).toBe(false);
+    expect(isAccentVelocity(101)).toBe(true);
+    expect(isAccentVelocity(127)).toBe(true);
   });
 });

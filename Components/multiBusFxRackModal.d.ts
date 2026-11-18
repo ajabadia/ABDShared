@@ -1,0 +1,62 @@
+/**
+ * ABDShared -- Components/multiBusFxRackModal.d.ts
+ * TypeScript type definitions for MultiBusFxRackModal.
+ * Strict line limit: < 200 lines.
+ */
+
+export interface FxRackTelemetryDto {
+  peakSendA?: number;
+  peakSendB?: number;
+  peakSendC?: number;
+  peakSendD?: number;
+  peakMasterL?: number;
+  peakMasterR?: number;
+  limiterGainReductionDb?: number;
+  lfoMod?: [number, number, number, number];
+}
+
+export interface FxRackBridgeAdapter {
+  setTopology?: (topo: number) => void;
+  setMacro?: (slotIdx: number, macroId: number) => void;
+  setParam?: (paramId: string, value: number) => void;
+  setSendReturns?: (retA: number, retB: number, retC: number, retD: number) => void;
+  setCascadeInjections?: (choToRev: number, delToRev: number) => void;
+  muteSendBus?: (busIdx: number, muted: boolean) => void;
+  setGate?: (gateIdx: number, state: number) => void;
+}
+
+export interface MultiBusFxRackModalOptions {
+  bridge?: FxRackBridgeAdapter;
+  initialTopology?: number;
+  bpm?: number;
+  locale?: string;
+  onSendLabelsChange?: (labels: { sendA: string; sendB: string; sendC: string; sendD: string }) => void;
+  onClose?: () => void;
+}
+
+export declare class MultiBusFxRackLcd {
+  constructor(container: HTMLElement | string);
+  setTopology(t: number): void;
+  setInjections(choToRev: number, delToRev: number): void;
+  setLabels(labels: Partial<{ sendA: string; sendB: string; sendC: string; sendD: string }>): void;
+  setBusMutes(mutes: boolean[]): void;
+  render(): void;
+}
+
+export declare class MultiBusFxRackModal {
+  constructor(options?: MultiBusFxRackModalOptions);
+  open(): void;
+  close(): void;
+  toggle(): void;
+  isOpen(): boolean;
+  setLocale(locale: string): void;
+  setBpm(bpm: number): void;
+  updateTelemetry(dto: FxRackTelemetryDto): void;
+  destroy(): void;
+}
+
+export declare const TOPOLOGY_NAMES: string[];
+export declare const REVERB_MACROS: string[];
+export declare const CHORUS_MACROS: string[];
+export declare const DELAY_MODES: string[];
+export declare const AUX_MODES: string[];

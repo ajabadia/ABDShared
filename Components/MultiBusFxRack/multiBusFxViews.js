@@ -1,0 +1,169 @@
+/**
+ * ABDShared -- MultiBusFxRack/multiBusFxRackViews.js
+ * HTML Generators & i18n for 3-Level Polymorphic MultiBusFxRackModal.
+ * Strict line limit: < 200 lines.
+ */
+
+import { FX_CATEGORIES, TOPOLOGIES, getAlgorithmsForCategory, findAlgorithm } from './multiBusFxRegistry.js';
+
+export const FX_STRINGS = {
+  es: {
+    title: 'RACK DE EFECTOS MULTIBUS (POLIMÓRFICO)',
+    topo: 'TOPOLOGÍA:',
+    closeTitle: 'Cerrar Rack',
+    slotMuteTitle: 'Silenciar/Bypass slot (0% CPU)',
+    tempoSyncBay: 'TEMPO & SINCRONÍA',
+    tempoSyncBtn: 'SYNC TEMPO',
+    tempoSyncTitle: 'Sincronía de tiempo BPM',
+    gatesTitle: 'COMPUERTAS RÍTMICAS (DISPATCH DINÁMICO)',
+    duckTip: 'Atenuación rítmica con bombo',
+    gateRevTip: 'Corte abrupto de cola',
+    freezeTip: 'Congela el buffer de eco en bucle',
+    killTip: 'Silencia retornos para paradas',
+    lfoTitle: 'ENTRADAS MOD LFO (BIPOLAR [-1..+1])',
+    limTitle: 'LIMITADOR MASTER',
+    limTip: 'Activar limitador de seguridad',
+  },
+  en: {
+    title: 'MULTI-BUS EFFECTS RACK (POLYMORPHIC)',
+    topo: 'TOPOLOGY:',
+    closeTitle: 'Close Rack',
+    slotMuteTitle: 'Mute/Bypass slot (0% CPU)',
+    tempoSyncBay: 'TEMPO & SYNC',
+    tempoSyncBtn: 'TEMPO SYNC',
+    tempoSyncTitle: 'BPM tempo synchronization',
+    gatesTitle: 'RHYTHMIC GATES (DYNAMIC DISPATCH)',
+    duckTip: 'Rhythmic ducking with kick trigger',
+    gateRevTip: 'Abrupt tail gating',
+    freezeTip: 'Freeze echo loop buffer',
+    killTip: 'Mute all returns for stops',
+    lfoTitle: 'LFO MOD INPUTS (BIPOLAR [-1..+1])',
+    limTitle: 'SAFETY LIMITER',
+    limTip: 'Toggle safety limiter',
+  },
+};
+
+export function getFxStrings(locale = 'es') {
+  return String(locale).startsWith('es') ? FX_STRINGS.es : FX_STRINGS.en;
+}
+
+export function renderSlotCardHtml(slotIdx, state, muteTip) {
+  const { catId, algoId, presetIdx } = state;
+  const algos = getAlgorithmsForCategory(catId);
+  const curAlgo = findAlgorithm(catId, algoId);
+  const catOpts = FX_CATEGORIES.map((c) => `<option value="${c.id}"${c.id === catId ? ' selected' : ''}>${c.label}</option>`).join('');
+  const algoOpts = algos.map((a) => `<option value="${a.id}"${a.id === curAlgo.id ? ' selected' : ''}>${a.name}</option>`).join('');
+  const presetOpts = curAlgo.presets.map((p, idx) => `<option value="${idx}"${idx === presetIdx ? ' selected' : ''}>${p}</option>`).join('');
+
+  return `
+    <div class="fx-slot-card" data-slot="${slotIdx}">
+      <div class="fx-slot-head">
+        <span class="fx-slot-title">SLOT ${slotIdx + 1}: ${curAlgo.name.toUpperCase()}</span>
+        <button type="button" class="fx-slot-mute-btn" data-act="slot-mute" data-slot="${slotIdx}" title="${muteTip}">M</button>
+        <span class="fx-slot-badge">${curAlgo.badge}</span>
+      </div>
+      <div class="fx-slot-body">
+        <div class="fx-select-tier-row">
+          <select class="fx-cat-select" data-slot="${slotIdx}" aria-label="Categoría">${catOpts}</select>
+          <select class="fx-algo-select" data-slot="${slotIdx}" aria-label="Algoritmo">${algoOpts}</select>
+        </div>
+        <div class="fx-preset-tier-row">
+          <span class="fx-preset-lbl">PRST:</span>
+          <select class="fx-preset-select" data-slot="${slotIdx}" aria-label="Preset">${presetOpts}</select>
+        </div>
+        <div class="fx-slot-knobs">
+          <div class="fx-knob-mount" data-param="slot${slotIdx}_p1" data-title="${curAlgo.p1.label}" data-val="${curAlgo.p1.val}"></div>
+          <div class="fx-knob-mount" data-param="slot${slotIdx}_p2" data-title="${curAlgo.p2.label}" data-val="${curAlgo.p2.val}"></div>
+          <div class="fx-knob-mount is-return" data-param="ret${slotIdx}" data-title="RET" data-val="100%"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRINGS.es) {
+  return `
+    <div class="fx-sync-mod-bay">
+      <div class="fx-sync-col">
+        <span class="fx-mod-title">${str.tempoSyncBay}</span>
+        <div class="fx-bpm-row">
+          <button type="button" class="fx-bpm-step-btn" data-act="bpm-dec">◀</button>
+          <span class="fx-bpm-val" id="fx-bpm-display">${bpm}</span>
+          <span class="fx-bpm-tag">BPM</span>
+          <button type="button" class="fx-bpm-step-btn" data-act="bpm-inc">▶</button>
+        </div>
+        <button type="button" class="fx-tempo-sync-btn${tempoSync ? ' is-active' : ''}" data-act="toggle-sync" title="${str.tempoSyncTitle}">${str.tempoSyncBtn}</button>
+      </div>
+
+      <div class="fx-gates-col">
+        <span class="fx-mod-title">${str.gatesTitle}</span>
+        <div class="fx-gates-row">
+          <button type="button" class="fx-gate-btn" data-gate="0" title="${str.duckTip}"><span class="fx-gate-led"></span>DUCK</button>
+          <button type="button" class="fx-gate-btn" data-gate="1" title="${str.gateRevTip}"><span class="fx-gate-led"></span>GATE REV</button>
+          <button type="button" class="fx-gate-btn" data-gate="2" title="${str.freezeTip}"><span class="fx-gate-led"></span>FREEZE</button>
+          <button type="button" class="fx-gate-btn" data-gate="3" title="${str.killTip}"><span class="fx-gate-led"></span>KILL</button>
+        </div>
+      </div>
+
+      <div class="fx-lfo-col">
+        <span class="fx-mod-title">${str.lfoTitle}</span>
+        <div class="fx-lfo-row">
+          <div class="fx-lfo-cell" data-lfo="0"><span class="fx-lfo-lbl">S1</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="1"><span class="fx-lfo-lbl">S2</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="2"><span class="fx-lfo-lbl">S3</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="3"><span class="fx-lfo-lbl">S4</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotStates) {
+  const str = getFxStrings(locale);
+  const topoOpts = TOPOLOGIES.map((t) => `<option value="${t.id}"${t.id === activeTopo ? ' selected' : ''}>${t.label}</option>`).join('');
+
+  return `
+    <div class="fx-rack-modal-card">
+      <div class="fx-rack-head">
+        <div class="fx-rack-title-wrap">
+          <span class="fx-rack-badge">DSP</span>
+          <h2 class="fx-rack-title">${str.title}</h2>
+        </div>
+        <div class="fx-rack-topo-bar">
+          <span class="fx-topo-lbl">${str.topo}</span>
+          <select class="fx-topo-select" aria-label="Ruteo">${topoOpts}</select>
+        </div>
+        <button type="button" class="fx-rack-close-btn" data-act="close" title="${str.closeTitle}">✕</button>
+      </div>
+
+      <div class="fx-lcd-mount" id="fx-lcd-mount-point"></div>
+
+      <!-- 4 Polymorphic Slots Grid -->
+      <div class="fx-slots-grid">
+        ${renderSlotCardHtml(0, slotStates[0], str.slotMuteTitle)}
+        ${renderSlotCardHtml(1, slotStates[1], str.slotMuteTitle)}
+        ${renderSlotCardHtml(2, slotStates[2], str.slotMuteTitle)}
+        ${renderSlotCardHtml(3, slotStates[3], str.slotMuteTitle)}
+      </div>
+
+      <!-- Bottom Bar: Sync / Mod Bay + Master Limiter -->
+      <div class="fx-bottom-bar">
+        ${renderSyncModBusHtml(bpm, tempoSync, str)}
+        <div class="fx-limiter-strip">
+          <div class="fx-lim-head">
+            <span class="fx-lim-title">${str.limTitle}</span>
+            <button type="button" class="fx-lim-btn is-active" data-act="lim-toggle" title="${str.limTip}">ON</button>
+          </div>
+          <div class="fx-lim-body">
+            <div class="fx-knob-mount" data-param="limCeiling" data-title="CEILING" data-val="-0.3dB"></div>
+            <div class="fx-gr-meter-cell">
+              <span class="fx-gr-lbl">GR</span>
+              <div class="fx-gr-meter" id="fx-gr-bar"><span class="fx-gr-fill"></span></div>
+              <span class="fx-gr-val" id="fx-gr-val">0.0 dB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}

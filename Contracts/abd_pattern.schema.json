@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdsynths.dev/schemas/abd_pattern.schema.json",
+  "title": "ABDSynths Musical Pattern & Motion Automation Contract (v1.0.0)",
+  "description": "Universal sequence pattern contract based on musical PPQ ticks for step sequencers, drum grids, and Cubase-style piano rolls with parameter motion recording.",
+  "type": "object",
+  "required": ["schemaVersion", "formatId", "bars", "ppq", "events"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "formatId": { "type": "string", "const": "abd_pattern" },
+    "name": { "type": "string", "maxLength": 64 },
+    "bars": { "type": "integer", "minimum": 1, "maximum": 32, "default": 1 },
+    "ppq": { "type": "integer", "enum": [96, 480], "default": 96 },
+    "timeSigNum": { "type": "integer", "minimum": 1, "maximum": 16, "default": 4 },
+    "timeSigDen": { "type": "integer", "enum": [2, 4, 8, 16], "default": 4 },
+    "swing": { "type": "number", "minimum": 0.50, "maximum": 0.75, "default": 0.50 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["startTick", "durationTicks", "midiNote", "velocity"],
+        "properties": {
+          "id": { "type": "string" },
+          "startTick": { "type": "integer", "minimum": 0 },
+          "durationTicks": { "type": "integer", "minimum": 1 },
+          "midiNote": { "type": "integer", "minimum": 0, "maximum": 127 },
+          "velocity": { "type": "integer", "minimum": 1, "maximum": 127 },
+          "slide": { "type": "boolean", "default": false },
+          "mute": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "automation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["paramId", "points"],
+        "properties": {
+          "paramId": { "type": "string" },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["tick", "value"],
+              "properties": {
+                "tick": { "type": "integer", "minimum": 0 },
+                "value": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+/**
+ * ABDShared — groove-shuffle.css
+ * Universal Groove & Shuffle Engine Dialog & Controls styling.
+ * 100% token-driven, zero hardcoded colors.
+ * Strict line limit: < 200 lines.
+ */
+
+dialog.abd-groove-dialog {
+  position: fixed; inset: 0; margin: auto; z-index: var(--z-modal, 9999);
+  padding: 0; border: 1px solid var(--color-panel-border-strong);
+  border-radius: var(--radius-lg, 8px); background: var(--color-panel-bg);
+  color: var(--color-text-main); width: 480px; max-width: 95vw;
+  box-shadow: var(--shadow-elevation-3, 0 20px 48px rgba(0, 0, 0, 0.8));
+  font-family: var(--font-sans); overflow: hidden;
+}
+dialog.abd-groove-dialog::backdrop { background: transparent; pointer-events: none; }
+
+.abd-groove-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; box-sizing: border-box;
+}
+
+.abd-groove-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--color-panel-border-dim); padding-bottom: 6px;
+  cursor: grab; user-select: none;
+}
+dialog.abd-groove-dialog.is-dragging .abd-groove-head { cursor: grabbing; }
+
+.abd-groove-title-wrap { display: flex; align-items: center; gap: 6px; }
+.abd-groove-badge {
+  font-family: var(--font-mono); font-size: 8.5px; font-weight: 800;
+  background: var(--color-accent-dim); color: var(--color-accent); padding: 1px 5px; border-radius: 2px;
+}
+.abd-groove-title { font-size: 12px; font-weight: 800; letter-spacing: 0.06em; margin: 0; color: var(--color-text-main); }
+.abd-groove-close-btn {
+  appearance: none; background: transparent; border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-dim); font-size: 11px; width: 22px; height: 22px; border-radius: 3px; cursor: pointer;
+}
+.abd-groove-close-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+/* Mode selector */
+.abd-groove-mode-row { display: flex; align-items: center; gap: 6px; }
+.abd-groove-mode-lbl { font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; color: var(--color-text-dim); }
+.abd-groove-seg { display: flex; flex: 1; gap: 2px; background: var(--color-panel-surface); padding: 2px; border-radius: 3px; }
+.abd-groove-seg-btn {
+  flex: 1; appearance: none; background: transparent; border: 1px solid transparent;
+  color: var(--color-text-dim); font-family: var(--font-mono); font-size: 8.5px; font-weight: 800;
+  padding: 3px 6px; border-radius: 2px; cursor: pointer; text-align: center;
+}
+.abd-groove-seg-btn:hover { color: var(--color-text-main); }
+.abd-groove-seg-btn.is-active {
+  background: var(--color-accent-dim); border-color: var(--color-accent); color: var(--color-accent);
+}
+
+/* Algorithm select */
+.abd-groove-row { display: flex; flex-direction: column; gap: 4px; }
+.abd-groove-row label { font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; color: var(--color-text-dim); }
+.abd-groove-select {
+  background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-accent); font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+  padding: 4px 6px; border-radius: 3px; cursor: pointer; width: 100%;
+}
+.abd-groove-desc { font-family: var(--font-mono); font-size: 8px; color: var(--color-text-dim); margin-top: -2px; }
+
+/* Amount Slider & Presets */
+.abd-groove-amount-wrap { display: flex; flex-direction: column; gap: 4px; }
+.abd-groove-amount-head { display: flex; justify-content: space-between; align-items: center; }
+.abd-groove-val-badge {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 800; color: var(--color-accent);
+}
+.abd-groove-slider {
+  appearance: none; width: 100%; height: 6px; border-radius: 3px;
+  background: var(--color-panel-surface); outline: none; cursor: pointer;
+}
+.abd-groove-slider::-webkit-slider-thumb {
+  appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--color-accent); cursor: pointer; box-shadow: 0 0 6px var(--color-accent);
+}
+.abd-groove-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+.abd-groove-pill {
+  appearance: none; background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-dim); font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+  padding: 2px 6px; border-radius: 2px; cursor: pointer;
+}
+.abd-groove-pill:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+/* Timing micro-visualizer */
+.abd-groove-vis {
+  height: 28px; width: 100%; border: 1px solid var(--color-panel-border-dim);
+  border-radius: 3px; background: color-mix(in srgb, var(--color-panel-surface) 60%, transparent);
+  position: relative; display: flex; align-items: center; overflow: hidden;
+}
+.abd-groove-vis-line { position: absolute; height: 100%; width: 1px; background: var(--color-panel-border-strong); }
+.abd-groove-vis-even { position: absolute; height: 100%; width: 2px; background: var(--color-accent); box-shadow: 0 0 6px var(--color-accent); }
+.abd-groove-vis-straight { position: absolute; height: 100%; width: 1px; background: var(--color-text-dim); opacity: 0.3; }

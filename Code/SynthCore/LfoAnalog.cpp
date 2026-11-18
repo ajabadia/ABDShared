@@ -8,6 +8,7 @@
 
 namespace abd::synth
 {
+
 LfoAnalog::LfoAnalog()
 {
     reset();
@@ -22,19 +23,42 @@ void LfoAnalog::setSampleRate(double newSampleRate)
 void LfoAnalog::setRate(float rateHz)
 {
     float clamped = std::clamp(rateHz, 0.005f, 1280.0f);
-    if (clamped == rate) return; // hot-path guard
+    if (clamped == rate) return;
     rate = clamped;
     updatePhaseIncrement();
 }
 
 void LfoAnalog::setShape(int shapeIndex)
 {
-    currentShape = static_cast<Shape>(std::clamp(shapeIndex, 0, 6));
+    currentShape = static_cast<Shape>(std::clamp(shapeIndex, 0, 7));
 }
 
 void LfoAnalog::setKeySync(bool sync)
 {
-    keySync = sync;
+    keySyncMode = sync ? KeySyncMode::Voice : KeySyncMode::Free;
+}
+
+void LfoAnalog::setKeySyncMode(KeySyncMode mode)
+{
+    keySyncMode = mode;
+}
+
+void LfoAnalog::setTempoSync(bool enabled)
+{
+    tempoSyncEnabled = enabled;
+    updatePhaseIncrement();
+}
+
+void LfoAnalog::setBpm(double bpm)
+{
+    currentBpm = std::clamp(bpm, 20.0, 300.0);
+    if (tempoSyncEnabled) updatePhaseIncrement();
+}
+
+void LfoAnalog::setSyncDivision(SyncDivision div)
+{
+    currentDivision = div;
+    if (tempoSyncEnabled) updatePhaseIncrement();
 }
 
 void LfoAnalog::setDelay(float delaySec)
@@ -69,20 +93,33 @@ void LfoAnalog::reset()
 
 void LfoAnalog::trigger()
 {
-    if (keySync)
+    if (keySyncMode == KeySyncMode::Voice)
     {
-        phase               = 0.0;
+        const double offset = std::clamp(static_cast<double>(phaseOffset), 0.0, 1.0);
+        phase               = offset - std::floor(offset);
         delaySamplesElapsed = 0.0;
+        currentSH           = nextRandomFloat();
+        targetSH            = nextRandomFloat();
+    }
+}
+
+void LfoAnalog::syncToSongPosition(double beatPosition)
+{
+    if (keySyncMode == KeySyncMode::Beat && tempoSyncEnabled)
+    {
+        const double beats = static_cast<double>(getBeatsForDivision(currentDivision));
+        if (beats > 0.0001)
+        {
+            const double raw = (beatPosition / beats) + static_cast<double>(phaseOffset);
+            phase = raw - std::floor(raw);
+            if (phase < 0.0) phase += 1.0;
+        }
     }
 }
 
 void LfoAnalog::setPhase(double newPhase)
 {
-    if (!std::isfinite(newPhase))
-    {
-        phase = 0.0;
-        return;
-    }
+    if (!std::isfinite(newPhase)) { phase = 0.0; return; }
     phase = newPhase - std::floor(newPhase);
 }
 
@@ -93,17 +130,22 @@ double LfoAnalog::getPhase() const
 
 void LfoAnalog::setRateScale(float escala)
 {
-    if (!std::isfinite(escala))
-        return;
+    if (!std::isfinite(escala)) return;
     const float recortada = std::clamp(escala, 0.05f, 20.0f);
-    if (recortada == rateScale) return; // hot-path guard
+    if (recortada == rateScale) return;
     rateScale = recortada;
     updatePhaseIncrement();
 }
 
 void LfoAnalog::updatePhaseIncrement()
 {
-    const double rawInc = (static_cast<double>(rate) * static_cast<double>(rateScale)) / sampleRate;
+    double effRate = static_cast<double>(rate);
+    if (tempoSyncEnabled)
+    {
+        const float beats = getBeatsForDivision(currentDivision);
+        if (beats > 0.0001f) effRate = (currentBpm / 60.0) / static_cast<double>(beats);
+    }
+    const double rawInc = (effRate * static_cast<double>(rateScale)) / sampleRate;
     phaseIncrement = std::isfinite(rawInc) ? std::clamp(rawInc, 0.0, 0.49) : 0.0;
 }
 
@@ -115,62 +157,50 @@ float LfoAnalog::nextRandomFloat()
 
 float LfoAnalog::generateRawWave()
 {
-    float out = 0.0f;
-    double p  = phase;
-
+    const double p = phase;
     switch (currentShape)
     {
         case Shape::kSine:
-            out = static_cast<float>(std::sin(2.0 * M_PI * p));
-            break;
-
+            return static_cast<float>(std::sin(2.0 * M_PI * p));
         case Shape::kTriangle:
-            if (p < 0.25)
-                out = static_cast<float>(p * 4.0);
-            else if (p < 0.75)
-                out = static_cast<float>(2.0 - p * 4.0);
-            else
-                out = static_cast<float>(p * 4.0 - 4.0);
-            break;
-
+            if (p < 0.25) return static_cast<float>(p * 4.0);
+            if (p < 0.75) return static_cast<float>(2.0 - p * 4.0);
+            return static_cast<float>(p * 4.0 - 4.0);
         case Shape::kSquare:
-            out = (p < 0.5) ? 1.0f : -1.0f;
-            break;
-
+            return (p < 0.5) ? 1.0f : -1.0f;
         case Shape::kRampUp:
-            out = -1.0f + 2.0f * static_cast<float>(p);
-            break;
-
+            return -1.0f + 2.0f * static_cast<float>(p);
         case Shape::kRampDown:
-            out = 1.0f - 2.0f * static_cast<float>(p);
-            break;
-
+            return 1.0f - 2.0f * static_cast<float>(p);
+        case Shape::kPulse25:
+            return (p < 0.25) ? 1.0f : -1.0f;
         case Shape::kSampleHold:
         case Shape::kSampleGlide:
-            break;
+        default:
+            return 0.0f;
     }
-
-    return out;
 }
 
 float LfoAnalog::nextSample()
 {
+    if (currentDepth <= 0.0001f) return 0.0f; // 0% CPU bypass
+
     // 1. Fade-in: 40% silent delay time, 60% linear amplitude ramp (Behringer DeepMind 12 specs)
     float fadeGain = 1.0f;
     if (delayTime > 0.0f)
     {
-        double delaySamples = static_cast<double>(delayTime) * delayScale * sampleRate;
+        const double delaySamples = static_cast<double>(delayTime) * delayScale * sampleRate;
         if (delaySamplesElapsed < delaySamples)
         {
-            double silentSamples = delaySamples * 0.4;
+            const double silentSamples = delaySamples * 0.4;
             if (delaySamplesElapsed < silentSamples)
             {
                 fadeGain = 0.0f;
             }
             else
             {
-                double fadeSamples = delaySamples * 0.6;
-                fadeGain           = static_cast<float>((delaySamplesElapsed - silentSamples) / (fadeSamples > 0.0 ? fadeSamples : 1.0));
+                const double fadeSamples = delaySamples * 0.6;
+                fadeGain = static_cast<float>((delaySamplesElapsed - silentSamples) / (fadeSamples > 0.0 ? fadeSamples : 1.0));
             }
             delaySamplesElapsed += 1.0;
         }
@@ -179,8 +209,7 @@ float LfoAnalog::nextSample()
     // 2. Phase advancement
     bool phaseWrapped = false;
     double nextPhase  = phase + phaseIncrement;
-    if (!std::isfinite(nextPhase))
-        nextPhase = 0.0;
+    if (!std::isfinite(nextPhase)) nextPhase = 0.0;
     if (nextPhase >= 1.0 || nextPhase < 0.0)
     {
         phaseWrapped = (nextPhase >= 1.0);
@@ -192,10 +221,7 @@ float LfoAnalog::nextSample()
     if (phaseWrapped || (currentSH == 0.0f && targetSH == 0.0f))
     {
         targetSH = nextRandomFloat();
-        if (currentShape == Shape::kSampleHold)
-        {
-            currentSH = targetSH;
-        }
+        if (currentShape == Shape::kSampleHold) currentSH = targetSH;
     }
 
     // 4. Generate raw waveform value
@@ -206,10 +232,10 @@ float LfoAnalog::nextSample()
     }
     else if (currentShape == Shape::kSampleGlide)
     {
-        // Glide constant proportional to LFO period, SR-independent
-        float periodSec    = 1.0f / std::max(0.01f, rate);
-        float glideTimeSec = periodSec * 0.1f;
-        float k            = 1.0f - std::exp(-1.0f / (glideTimeSec * static_cast<float>(sampleRate)));
+        const float effR = tempoSyncEnabled ? static_cast<float>((currentBpm / 60.0) / getBeatsForDivision(currentDivision)) : rate;
+        const float periodSec = 1.0f / std::max(0.01f, effR);
+        const float glideTimeSec = periodSec * 0.1f;
+        const float k = 1.0f - std::exp(-1.0f / (glideTimeSec * static_cast<float>(sampleRate)));
         currentSH += (targetSH - currentSH) * std::clamp(k, 0.001f, 1.0f);
         rawOutput = currentSH;
     }
@@ -221,25 +247,27 @@ float LfoAnalog::nextSample()
     // 5. Slew rate limiting (sample-rate independent, time-domain constant)
     if (slew > 0.0f)
     {
-        float transitionTimeSec = slew * slewScale * 0.5f;
+        const float transitionTimeSec = slew * slewScale * 0.5f;
         if (transitionTimeSec > 0.0001f)
         {
-            float maxChangePerSample = 2.0f / (transitionTimeSec * static_cast<float>(sampleRate));
-            float change             = rawOutput - lastOutput;
-            change                   = std::clamp(change, -maxChangePerSample, maxChangePerSample);
-            rawOutput                = lastOutput + change;
+            const float maxChangePerSample = 2.0f / (transitionTimeSec * static_cast<float>(sampleRate));
+            const float change = std::clamp(rawOutput - lastOutput, -maxChangePerSample, maxChangePerSample);
+            rawOutput = lastOutput + change;
         }
     }
 
     lastOutput   = rawOutput;
     lastFadeGain = fadeGain;
 
-    // 6. Apply fade-in gain
-    return rawOutput * fadeGain;
+    // 6. Polarity, fade gain & depth
+    float finalOut = rawOutput;
+    if (!isBipolar) finalOut = (finalOut * 0.5f) + 0.5f;
+    return finalOut * fadeGain * currentDepth;
 }
 
 float LfoAnalog::getUnipolar() const
 {
     return lastOutput * 0.5f + 0.5f;
 }
+
 } // namespace abd::synth

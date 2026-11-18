@@ -25,7 +25,10 @@ export { RotaryLedKnob } from './rotaryLedKnob.js';
 export { XYPad } from './xypad.js';
 export { TrajectoryStick2D } from './trajectoryStick2D.js';
 export { StepButtonStrip } from './Controls/stepButtonStrip.js';
+export { CompactTransportBar } from './Controls/compactTransportBar.js';
+export { CompactStereoVu } from './Controls/compactStereoVu.js';
 export { MpcPadMatrix } from './Controls/MpcPadMatrix.js';
+export { PerformanceDeck } from './PerformanceDeck/performanceDeck.js';
 
 // Gesto de automatización de un control arrastrable, con el puente del host
 // inyectado: el mismo cableado para todos los sintetizadores.
@@ -141,6 +144,7 @@ export {
 } from './synthNavBar.js';
 
 // Medición de señal VU y analizador espectral logarítmico (ABDAudioLab / ABDScope)
+export { StereoVuMeter } from './stereoVuMeter.js';
 export { VuMeter } from './vuMeter.js';
 export { SpectrumPlotter } from './spectrumPlotter.js';
 // Visor de onda pequeno (unas pocas decenas de pixeles): pinta las muestras
@@ -174,13 +178,13 @@ export {
   createMidiLearnDrawerContent,
 } from './midiLearn.js';
 
-// Motor universal reactivo de Internacionalización (i18n) en 2 Capas (Base Común + Extensión de Sintetizador)
-export {
-  SHARED_EN,
-  SHARED_ES,
-  SHARED_LOCALES,
-  DEFAULT_STORAGE_KEY,
-  deepMergeLocales,
-  collectLocaleKeys,
-  createSynthI18n,
-} from './i18n.js';
+// Motor universal reactivo de Internacionalización (i18n)
+export { SHARED_EN, SHARED_ES, SHARED_LOCALES, DEFAULT_STORAGE_KEY, deepMergeLocales, collectLocaleKeys, createSynthI18n } from './i18n.js';
+
+// Universal Modals: Multi-Bus Effects Rack & Master Global LFOs
+export { MultiBusFxRackModal, MultiBusFxRackLcd, TOPOLOGY_NAMES, REVERB_MACROS, CHORUS_MACROS, DELAY_MODES, AUX_MODES } from './multiBusFxRackModal.js';
+export { GlobalLfoModal, GLOBAL_LFO_WAVES, LFO_SYNC_DIVISIONS, GLOBAL_LFO1_TARGETS, GLOBAL_LFO2_TARGETS } from './globalLfoModal.js';
+export { PianoRollModal } from './PianoRoll/pianoRollModal.js';
+export { GrooveShuffleModal } from './GrooveShuffle/grooveShuffleModal.js';
+export { GROOVE_ALGORITHMS, GROOVE_RESOLUTIONS, GROOVE_MODES, calculateGrooveTick } from './GrooveShuffle/grooveShuffleContract.js';
+

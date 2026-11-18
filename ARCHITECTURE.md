@@ -26,6 +26,7 @@ Para mantener un orden absoluto y evitar la dispersión de modelos en el código
 * **Módulos:**
   * `DspCore/`: Matemáticas deterministas, buffers portables, interpoladores y filtros resonantes TPT.
   * `SynthCore/`: Bloques de síntesis universales (ADSR, LFO con sync, osciladores PolyBLEP, matrices de modulación y VoiceAllocator).
+  * `SynthEngines/`: Interfaz polimórfica JUCE-free `ISoundEngine`, enrutador de modulación RT-safe por pista `TrackModRouter` y motores completos reutilizables de la suite (`StructuredRompler` con `RomplerVoicePool` compartido).
   * `DspEffects/`: Motor FX modular de 4 ranuras (chorus BBD analógico, modelado tape, delays, diode bridges).
   * `LutDSP/`: Evaluador SIMD de respuesta de filtros medidos por tablas.
   * `HardwareDrivers/`: Protocolos y codecs MIDI/SysEx de hardware de bajo nivel.

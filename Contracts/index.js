@@ -44,3 +44,5 @@ export function getContract(name) {
 }
 
 export * from './semanticRoles.ts';
+export * from './filterRegistry.ts';
+export * from './abdPattern.ts';

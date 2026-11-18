@@ -1,0 +1,196 @@
+/**
+ * ABDShared -- PianoRoll/pianoRollModal.js
+ * Universal Modeless Piano Roll & Drum Grid Dialog with SVGs, Zoom H/V & Recording Engine.
+ * Strict line limit: < 200 lines. 100% tokenized.
+ */
+
+import { PianoRollCanvas } from './pianoRollCanvas.js';
+import { PianoRollVelocityLane } from './pianoRollVelocityLane.js';
+import { buildPianoRollModalHtml } from './pianoRollViews.js';
+import { DEFAULT_AUTOMATION_TARGETS, DEFAULT_DRUM_MAP, PR_TOOLS, transposeNotes, quantizeNotes, humanizeNotes, serializeSequence, parseSequence } from './pianoRollContract.js';
+import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+
+export class PianoRollModal {
+  constructor(options = {}) {
+    this.bridge = options.bridge; this.onPatternChange = options.onPatternChange || null;
+    this.onMotionPlayback = options.onMotionPlayback || null; this.onNotePreview = options.onNotePreview || null;
+    this.onClose = options.onClose || null; this.onNotice = options.onNotice || null;
+    this.locale = options.locale || 'es'; this.bars = options.bars || 1; this.ppq = options.ppq || 96;
+    this.mode = options.mode || 'chromatic'; this.grid = '1/16'; this.swing = options.swing || 0.50;
+    this.target = 'velocity'; this.playing = false; this.recording = false; this.currentTick = 0;
+    this.zoomH = 1.0; this.zoomV = 1.0; this.activeRecordNotes = {};
+    this.activeTool = PR_TOOLS.PENCIL; this.notes = options.initialNotes ? [...options.initialNotes] : [];
+    this.motionData = {}; this.playableRange = options.playableRange || null;
+    this.drumMap = options.drumMap || DEFAULT_DRUM_MAP; this.automationTargets = options.automationTargets || DEFAULT_AUTOMATION_TARGETS;
+
+    this.el = document.createElement('dialog');
+    this.el.className = 'abd-pianoroll-dialog';
+    document.body.appendChild(this.el);
+    this.render();
+  }
+
+  render() {
+    this.el.innerHTML = buildPianoRollModalHtml(this, this.locale, this.automationTargets);
+    const handle = this.el.querySelector('.abd-pianoroll-head');
+    if (handle) attachDialogDrag(this.el, handle);
+
+    const gridCanvas = this.el.querySelector('#abd-pianoroll-canvas');
+    const keysCanvas = this.el.querySelector('#abd-pr-keys-canvas');
+    this.gridRenderer = new PianoRollCanvas(gridCanvas, {
+      keysCanvas, mode: this.mode, totalTicks: this.getTotalTicks(), zoomH: this.zoomH, zoomV: this.zoomV,
+      playableRange: this.playableRange, drumMap: this.drumMap, activeTool: this.activeTool,
+      onNotesChange: (notes) => this.handleNotesUpdated(notes),
+      onNotePreview: (m, v) => (this.onNotePreview ? this.onNotePreview(m, v) : this.bridge?.noteOn?.(0, m, v / 127)),
+      onNotice: this.onNotice,
+    });
+
+    const velCanvas = this.el.querySelector('#abd-pianoroll-vel-canvas');
+    this.velRenderer = new PianoRollVelocityLane(velCanvas, {
+      totalTicks: this.getTotalTicks(), zoomH: this.zoomH, hasSpacer: true,
+      onVelocityChange: () => this.handleNotesUpdated(this.notes),
+      onMotionChange: (t, k, v) => this.handleMotionUpdated(t, k, v),
+    });
+
+    const gs = this.el.querySelector('#abd-pr-grid-scroll'), kc = this.el.querySelector('#abd-pr-keys-col'), vs = this.el.querySelector('#abd-pr-vel-scroll');
+    gs?.addEventListener('scroll', () => { if (kc) kc.scrollTop = gs.scrollTop; if (vs) vs.scrollLeft = gs.scrollLeft; });
+    vs?.addEventListener('scroll', () => { if (gs) gs.scrollLeft = vs.scrollLeft; });
+    this.bindEvents(); this.syncData();
+  }
+
+  getTotalTicks() { return this.bars * 4 * this.ppq; }
+  getStepTicks() { return this.gridRenderer?.getStepTicks() || ((this.ppq * 4) / 16); }
+
+  syncData() {
+    const meta = this.automationTargets.find((t) => t.id === this.target);
+    const velMeta = this.automationTargets.find((t) => t.id === 'velocity' || t.isVelocity);
+    this.gridRenderer?.setData(this.notes, this.getTotalTicks(), this.mode, this.grid, this.playableRange, this.drumMap, this.activeTool, velMeta, this.zoomH, this.zoomV);
+    this.velRenderer?.setData(this.notes, this.motionData[this.target] || [], this.getTotalTicks(), this.target, meta, this.zoomH);
+  }
+
+  open() {
+    if (!this.isOpen()) { (typeof this.el.show === 'function') ? this.el.show() : this.el.setAttribute('open', ''); }
+    requestAnimationFrame(() => requestAnimationFrame(() => this.syncData()));
+  }
+
+  close() {
+    if (this.isOpen()) { (typeof this.el.close === 'function') ? this.el.close() : this.el.removeAttribute('open'); this.onClose?.(); }
+  }
+
+  toggle() { this.isOpen() ? this.close() : this.open(); }
+  isOpen() { return Boolean(this.el.open || this.el.hasAttribute('open')); }
+  setLocale(loc) { this.locale = loc; this.render(); }
+  setPlayhead(tick) { this.currentTick = tick; this.gridRenderer?.setPlayhead(tick); }
+
+  setPlaying(p) {
+    this.playing = Boolean(p);
+    this.el.querySelector('.abd-pr-play-btn')?.classList.toggle('is-playing', this.playing);
+    this.el.querySelector('.abd-pr-stop-btn')?.classList.toggle('is-stopped', !this.playing);
+  }
+
+  isRecording() { return Boolean(this.recording); }
+  setRecording(r) { this.recording = Boolean(r); this.el.querySelector('.abd-pr-rec-btn')?.classList.toggle('is-rec', this.recording); }
+
+  recordNoteOn(midi, vel = 100) {
+    if (!this.recording) return;
+    if (this.playing) { this.activeRecordNotes[midi] = { startTick: this.currentTick, velocity: vel }; return; }
+    const step = this.getStepTicks();
+    this.notes = this.notes.filter((n) => !(n.midiNote === midi && n.startTick === this.currentTick));
+    this.notes.push({ midiNote: midi, startTick: this.currentTick, durationTicks: step || 24, velocity: vel });
+    this.currentTick = (this.currentTick + (step || 24)) % this.getTotalTicks();
+    this.setPlayhead(this.currentTick); this.handleNotesUpdated(this.notes);
+  }
+
+  recordNoteOff(midi) {
+    if (!this.recording || !this.playing || !this.activeRecordNotes[midi]) return;
+    const rec = this.activeRecordNotes[midi]; delete this.activeRecordNotes[midi];
+    let dur = this.currentTick - rec.startTick; if (dur <= 0) dur = (this.currentTick + this.getTotalTicks()) - rec.startTick;
+    dur = Math.max(this.getStepTicks() || 24, dur);
+    this.notes = this.notes.filter((n) => !(n.midiNote === midi && n.startTick === rec.startTick));
+    this.notes.push({ midiNote: midi, startTick: rec.startTick, durationTicks: dur, velocity: rec.velocity });
+    this.handleNotesUpdated(this.notes);
+  }
+
+  setZoom(h, v) {
+    this.zoomH = Math.max(1.0, Math.min(3.0, Math.round(h * 2) / 2));
+    this.zoomV = Math.max(1.0, Math.min(2.5, Math.round(v * 4) / 4));
+    const zh = this.el.querySelector('#pr-zoom-h'), zv = this.el.querySelector('#pr-zoom-v');
+    if (zh) zh.textContent = `${this.zoomH}x`; if (zv) zv.textContent = `${this.zoomV}x`;
+    this.syncData();
+  }
+
+  setMode(mode) { if (this.mode !== mode) { this.mode = mode; this.render(); } }
+  setDrumMap(map) { this.drumMap = map; this.syncData(); }
+  setPlayableRange(range) { this.playableRange = range; this.render(); }
+  setAutomationTargets(targets) { this.automationTargets = targets; this.render(); }
+  setNotes(notes) { this.notes = [...notes]; this.syncData(); }
+  getNotes() { return [...this.notes]; }
+  getSequence() { return { bars: this.bars, ppq: this.ppq, mode: this.mode, notes: this.notes, motion: this.motionData }; }
+
+  loadSequence(seq) {
+    if (!seq) return;
+    if (seq.bars) this.bars = seq.bars; if (seq.ppq) this.ppq = seq.ppq; if (seq.mode) this.mode = seq.mode;
+    if (seq.notes) this.notes = [...seq.notes]; if (seq.motion) this.motionData = { ...seq.motion };
+    this.render(); this.handleNotesUpdated(this.notes);
+  }
+
+  handleNotesUpdated(notes) {
+    this.notes = notes; this.syncData(); this.onPatternChange?.(this.getSequence());
+  }
+
+  handleMotionUpdated(paramId, tick, value) {
+    if (!this.motionData[paramId]) this.motionData[paramId] = [];
+    this.motionData[paramId].push({ tick, value });
+    this.motionData[paramId].sort((a, b) => a.tick - b.tick);
+    this.syncData(); this.bridge?.recordMotion?.(paramId, tick, value);
+  }
+
+  exportSequenceFile() {
+    const blob = new Blob([serializeSequence(this.getSequence())], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = `sequence_${Date.now()}.abdseq`; a.click(); URL.revokeObjectURL(url);
+    this.onNotice?.('Secuencia exportada con éxito (.abdseq)');
+  }
+
+  importSequenceFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const seq = parseSequence(e.target?.result); this.loadSequence(seq); this.onNotice?.(`Secuencia importada (${seq.notes.length} notas)`);
+      } catch (err) { this.onNotice?.(`Error al importar: ${err.message}`); }
+    };
+    reader.readAsText(file);
+  }
+
+  bindEvents() {
+    this.el.querySelector('.abd-pianoroll-close-btn')?.addEventListener('click', () => this.close());
+    this.el.querySelectorAll('.abd-pr-tool-btn').forEach((btn) => btn.addEventListener('click', () => {
+      this.activeTool = btn.dataset.tool;
+      this.el.querySelectorAll('.abd-pr-tool-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      this.syncData();
+    }));
+
+    const on = (sel, ev, fn) => this.el.querySelector(sel)?.addEventListener(ev, fn);
+    on('[data-act="bars"]', 'change', (e) => { this.bars = Number(e.target.value); this.syncData(); this.bridge?.setBars?.(this.bars); });
+    on('[data-act="grid"]', 'change', (e) => { this.grid = e.target.value; this.syncData(); });
+    on('[data-act="swing"]', 'change', (e) => { this.swing = Number(e.target.value); this.bridge?.setSwing?.(this.swing); });
+    on('[data-act="groove"]', 'click', () => this.opts.onOpenGroove?.(this.partIndex));
+    on('[data-act="zoom-h-in"]', 'click', () => this.setZoom(this.zoomH + 0.5, this.zoomV));
+    on('[data-act="zoom-h-out"]', 'click', () => this.setZoom(this.zoomH - 0.5, this.zoomV));
+    on('[data-act="zoom-v-in"]', 'click', () => this.setZoom(this.zoomH, this.zoomV + 0.25));
+    on('[data-act="zoom-v-out"]', 'click', () => this.setZoom(this.zoomH, this.zoomV - 0.25));
+    on('[data-act="play"]', 'click', () => this.bridge?.togglePlay?.());
+    on('[data-act="stop"]', 'click', () => { this.bridge?.stop?.(); this.setPlayhead(0); });
+    on('[data-act="record"]', 'click', () => { this.setRecording(!this.recording); this.bridge?.setRecording?.(this.recording); });
+    on('[data-act="lane-target"]', 'change', (e) => { this.target = e.target.value; this.syncData(); });
+    on('[data-act="oct-down"]', 'click', () => { this.notes = transposeNotes(this.notes, -12, this.playableRange); this.handleNotesUpdated(this.notes); });
+    on('[data-act="oct-up"]', 'click', () => { this.notes = transposeNotes(this.notes, +12, this.playableRange); this.handleNotesUpdated(this.notes); });
+    on('[data-act="quantize"]', 'click', () => { this.notes = quantizeNotes(this.notes, this.getStepTicks(), 1.0); this.handleNotesUpdated(this.notes); });
+    on('[data-act="humanize"]', 'click', () => { this.notes = humanizeNotes(this.notes, 4, 8); this.handleNotesUpdated(this.notes); });
+    on('[data-act="clear"]', 'click', () => { this.notes = []; this.motionData = {}; this.handleNotesUpdated(this.notes); });
+    const fileInput = this.el.querySelector('.abd-pr-file-input');
+    on('[data-act="export"]', 'click', () => this.exportSequenceFile());
+    on('[data-act="import"]', 'click', () => fileInput?.click());
+    fileInput?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) this.importSequenceFile(f); e.target.value = ''; });
+  }
+
+  destroy() { this.gridRenderer?.destroy(); this.velRenderer?.destroy(); this.el.remove(); }
+}

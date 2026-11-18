@@ -605,3 +605,10 @@ if(ABDSHARED_BUILD_AUDIOSECURITY_TESTS)
         )
     endif()
 endif()
+
+# ==============================================================================
+# 14. SynthEngines Module (ISoundEngine, TrackModRouter & StructuredRompler)
+# ==============================================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/SynthEngines/CMakeLists.txt")
+    add_subdirectory(SynthEngines)
+endif()

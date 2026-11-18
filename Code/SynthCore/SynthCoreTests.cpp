@@ -68,6 +68,7 @@ void operator delete(void* ptr, std::size_t) noexcept
 #include "S950Calibration.h"
 #include "S950CalibrationHarness.h"
 #include "S950Disk.h"
+#include "MusicalScaleTransposer.h"
 #include "S950EnvelopeBench.h"
 #include "S950PatchFields.h"
 
@@ -1046,6 +1047,66 @@ static void testVoiceAllocator()
             abd::synth::tests::fn();            \
     } while (false)
 
+static void testMusicalScaleTransposer()
+{
+    printf("Testing MusicalScaleTransposer...\n");
+    abd::synth::MusicalScaleTransposer transposer;
+
+    // Default state: Off, 0 semitones, C root
+    check(transposer.getTransposeSemitones() == 0, "Default transpose is 0");
+    check(transposer.getRootNote() == 0, "Default root is C (0)");
+    check(transposer.getScale() == abd::synth::MusicalScale::Off, "Default scale is Off");
+    check(!transposer.isQuantizeEnabled(), "Default quantize is disabled");
+
+    // Pure chromatic transposition
+    transposer.setTransposeSemitones(7);
+    check(transposer.processNote(60) == 67, "C4 + 7 st -> G4");
+    transposer.setTransposeSemitones(-12);
+    check(transposer.processNote(60) == 48, "C4 - 12 st -> C3");
+
+    // Bounds clamping
+    transposer.setTransposeSemitones(-24);
+    check(transposer.processNote(10) == 0, "Underflow clamped to 0");
+    transposer.setTransposeSemitones(24);
+    check(transposer.processNote(120) == 127, "Overflow clamped to 127");
+
+    // C Major scale quantize (0 semitones transpose)
+    transposer.setTransposeSemitones(0);
+    transposer.setRootNote(0); // C
+    transposer.setScale(abd::synth::MusicalScale::Major);
+    transposer.setQuantizeEnabled(true);
+
+    check(transposer.processNote(60) == 60, "C4 is in C Major");
+    check(transposer.processNote(62) == 62, "D4 is in C Major");
+    check(transposer.processNote(64) == 64, "E4 is in C Major");
+    check(transposer.processNote(65) == 65, "F4 is in C Major");
+    check(transposer.processNote(67) == 67, "G4 is in C Major");
+    check(transposer.processNote(69) == 69, "A4 is in C Major");
+    check(transposer.processNote(71) == 71, "B4 is in C Major");
+    check(transposer.processNote(72) == 72, "C5 is in C Major");
+
+    // Snap out-of-scale notes (C# -> C or D, D# -> D or E, F# -> F or G)
+    int snappedCs = transposer.processNote(61);
+    check(snappedCs == 60 || snappedCs == 62, "C#4 snaps to C4 or D4 in C Major");
+
+    // A Minor Pentatonic: A, C, D, E, G (Root A = 9)
+    transposer.setRootNote(9); // A
+    transposer.setScale(abd::synth::MusicalScale::PentatonicMinor);
+    check(transposer.processNote(57) == 57, "A3 in A minor pentatonic");
+    check(transposer.processNote(60) == 60, "C4 in A minor pentatonic");
+    check(transposer.processNote(62) == 62, "D4 in A minor pentatonic");
+    check(transposer.processNote(64) == 64, "E4 in A minor pentatonic");
+    check(transposer.processNote(67) == 67, "G4 in A minor pentatonic");
+
+    // Zero-allocation verification
+    const long long allocBefore = gTestAllocations;
+    for (int n = 0; n < 128; ++n)
+    {
+        [[maybe_unused]] int q = transposer.processNote(n);
+    }
+    check(gTestAllocations == allocBefore, "MusicalScaleTransposer is zero-alloc RT-safe");
+}
+
 static const char* kUsage =
     "Uso: ABDShared_SynthCore_Tests [--only=<subcadena>]\n"
     "  --only=<subcadena>  ejecuta solo las funciones de prueba cuyo nombre\n"
@@ -1141,6 +1202,7 @@ int main(int argc, char* argv[])
 
     RUN_TEST(testDriftEngineDeterminism);
     RUN_TEST(testDriftEngineAmplitudeScaling);
+    RUN_TEST(testMusicalScaleTransposer);
 
     // Un filtro que no casa con nada no puede salir en verde: cero checks no es
     // una suite que pase, es un nombre mal escrito o una funcion renombrada.

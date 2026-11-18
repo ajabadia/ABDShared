@@ -1,145 +1,128 @@
 import { escAttr, escText } from '../../Utils/escape.js';
+import { BANK_ICONS, getCategoryIconSvg } from './bankIcons.js';
+
 /**
- * bankCard — tarjeta canónica del catálogo NeuronDB (paquete compartido).
- * ======================================================================
- *
- * Un solo generador de `.ndb-card` para todos los hosts: la misma
- * estructura que ya pintaban ABDNeuModMakr y ABDAxionikVS (icono,
- * cabecera slot/categoría, nombre, insignias, acciones). Los estilos
- * viven en `Assets/styles/components/catalog-browser.css`, incluida la
- * selección (`.wt-selected` / `.is-selected`).
- *
- * La tarjeta no decide nada: sirve la selección por delegación
- * (`data-slot`, `data-action`) y el host decide qué significa cargar.
- * Los textos se escapan para que un nombre con comillas no rompa los
- * atributos (con nombres normales el HTML es idéntico al de antes).
- *
- * Usage:
- *   import { bankCardHtml, bindBankCards } from '@abdsynths/shared/components/bank/bankCard.js';
- *   grid.innerHTML = cards.map(bankCardHtml).join('');
- *   const unbind = bindBankCards(grid, { onCardClick, onCardDblClick, onAction });
- *
- * @typedef {object} BankCardAction
- * @param {string} BankCardAction.id      identificador servido en `onAction`.
- * @param {string} BankCardAction.label   texto del botón.
- * @param {string} [BankCardAction.kind]  'primary' (default) o 'export'.
- * @param {string} [BankCardAction.title] tooltip del botón.
- * @param {string} [BankCardAction.iconHtml] icono inline del botón.
- *
- * @param {object} card
- * @param {string|number} card.slot       slot mostrado y servido (`#007`).
- * @param {string} [card.catClass]        clase de color (`cat-N`).
- * @param {string} [card.catLabel]        etiqueta de categoría.
- * @param {string} [card.name]            nombre visible.
- * @param {string} [card.title]           tooltip (default: el nombre).
- * @param {string} [card.iconHtml]        icono inline (el host pone el suyo).
- * @param {string[]} [card.badges]        insignias de la fila meta.
- * @param {BankCardAction[]} [card.actions] botones de la tarjeta.
- * @param {boolean} [card.selected]       pinta `wt-selected`.
- * @param {string} [card.extraClass]      clase extra de la tarjeta.
- * @returns {string} HTML de la tarjeta.
+ * bankCard — Tarjeta canónica enriquecida del catálogo ABDSynths.
+ * Admite miniaturas (thumbnailUrl), icono de categoría SVG, botón de Favorito y Audition.
  */
-export function bankCardHtml (card)
-{
+export function bankCardHtml(card) {
   const slot = card.slot ?? 0;
-  const slotStr = `#${String(slot).padStart(3, '0')}`;
-  const catClass = card.catClass || '';
+  const idStr = card.id != null ? String(card.id) : String(slot);
+  const slotStr = typeof card.slot === 'number' && card.slot >= 0
+    ? `#${String(card.slot).padStart(3, '0')}`
+    : (card.slotLabel || idStr);
+  const catClass = card.catClass || 'cat-0';
   const name = card.name ?? '';
   const title = card.title ?? name;
   const badges = Array.isArray(card.badges) ? card.badges : [];
   const actions = Array.isArray(card.actions) ? card.actions : [];
-  const cls = ['ndb-card', catClass, card.extraClass || '', card.selected ? 'wt-selected' : '']
-    .filter(Boolean)
-    .join(' ');
+  const isFav = Boolean(card.isFavorite);
+  const showFav = card.isFavorite !== undefined;
+  const showAudition = card.hasAudition ?? true;
 
-  const actionsHtml = actions.length > 0
-    ? `
-                <div class="ndb-card-actions">
-                  ${actions.map((a) => `
-                  <button type="button" class="btn btn-xs ${a.kind === 'export' ? 'btn-export' : 'btn-primary'} btn-card-action" data-slot="${escAttr(String(slot))}" data-action="${escAttr(a.id)}" title="${escAttr(a.title || a.label || '')}">
-                    ${a.iconHtml || ''}${escText(a.label || '')}
-                  </button>`).join('')}
-                </div>`
-    : '';
+  const cls = [
+    'ndb-card',
+    catClass,
+    card.extraClass || '',
+    card.selected ? 'wt-selected is-selected' : '',
+    card.thumbnailUrl ? 'has-thumbnail' : ''
+  ].filter(Boolean).join(' ');
+
+  const iconOrThumbHtml = card.thumbnailUrl
+    ? `<img src="${escAttr(card.thumbnailUrl)}" class="ndb-card-thumb" alt="" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+       <div class="ndb-card-icon-fallback" style="display:none;">${card.iconHtml || getCategoryIconSvg(card.paramId ?? 0)}</div>`
+    : (card.iconHtml || getCategoryIconSvg(card.paramId ?? 0));
+
+  const quickBtnsHtml = `
+    <div class="ndb-card-quick-actions">
+      ${showAudition ? `
+        <button type="button" class="btn-card-quick btn-audition" data-action="audition" data-id="${escAttr(idStr)}" data-slot="${escAttr(String(slot))}" title="Audition / Preview">
+          ${BANK_ICONS.audition}
+        </button>` : ''}
+      ${showFav ? `
+        <button type="button" class="btn-card-quick btn-favorite ${isFav ? 'is-fav' : ''}" data-action="favorite" data-id="${escAttr(idStr)}" data-slot="${escAttr(String(slot))}" title="${isFav ? 'Remove Favorite' : 'Add Favorite'}">
+          ${isFav ? BANK_ICONS.starFilled : BANK_ICONS.star}
+        </button>` : ''}
+    </div>`;
+
+  const actionsHtml = actions.length > 0 ? `
+    <div class="ndb-card-actions">
+      ${actions.map((a) => `
+        <button type="button" class="btn btn-xs ${a.kind === 'export' ? 'btn-export' : 'btn-primary'} btn-card-action"
+                data-id="${escAttr(idStr)}" data-slot="${escAttr(String(slot))}" data-action="${escAttr(a.id)}"
+                title="${escAttr(a.title || a.label || '')}">
+          ${a.iconHtml || ''}${escText(a.label || '')}
+        </button>`).join('')}
+    </div>` : '';
 
   return `
-              <div class="${cls}" data-slot="${escAttr(String(slot))}">
-                <div class="ndb-card-icon ${catClass}">
-                  ${card.iconHtml || ''}
-                </div>
-                <div class="ndb-card-info">
-                  <div class="ndb-card-top">
-                    <span class="ndb-card-slot">${slotStr}</span>
-                    <span class="ndb-card-cat ${catClass}">${escText(card.catLabel || '')}</span>
-                  </div>
-                  <div class="ndb-card-name" title="${escAttr(String(title))}">${escText(String(name))}</div>
-                  <div class="ndb-card-meta">
-                    ${badges.map((b) => `<span class="ndb-card-badge">${escText(String(b))}</span>`).join('')}
-                  </div>
-                </div>
-                ${actionsHtml}
-              </div>`;
+    <div class="${cls}" data-slot="${escAttr(String(slot))}" data-id="${escAttr(idStr)}">
+      <div class="ndb-card-icon ${catClass}">
+        ${iconOrThumbHtml}
+      </div>
+      <div class="ndb-card-info">
+        <div class="ndb-card-top">
+          <span class="ndb-card-slot">${escText(slotStr)}</span>
+          <span class="ndb-card-cat ${catClass}">${escText(card.catLabel || '')}</span>
+          ${quickBtnsHtml}
+        </div>
+        <div class="ndb-card-name" title="${escAttr(String(title))}">${escText(String(name))}</div>
+        <div class="ndb-card-meta">
+          ${badges.map((b) => `<span class="ndb-card-badge">${escText(String(b))}</span>`).join('')}
+        </div>
+      </div>
+      ${actionsHtml}
+    </div>`;
 }
 
 /**
- * Delegación de eventos para una rejilla de tarjetas. Un solo trío de
- * listeners por render: click (seleccionar), doble-click (servir) y
- * botones `[data-action]` (paran la propagación para no seleccionar dos
- * veces). Devuelve `unbind` para soltarlos.
- *
- * @param {HTMLElement} container rejilla con `.ndb-card` ya pintadas.
- * @param {object} handlers
- * @param {Function} [handlers.onCardClick] recibe `slot` (number).
- * @param {Function} [handlers.onCardDblClick] recibe `slot` (number).
- * @param {Function} [handlers.onAction] recibe `{ slot, action }`.
- * @returns {Function} `unbind()` suelta los tres listeners.
+ * Delegación de eventos para una rejilla de tarjetas con soporte para slot, id, fav y audition.
  */
-export function bindBankCards (container, handlers = {})
-{
-  const { onCardClick, onCardDblClick, onAction } = handlers;
+export function bindBankCards(container, handlers = {}) {
+  const { onCardClick, onCardDblClick, onAction, onAudition, onFavorite } = handlers;
 
-  const toSlot = (el) =>
-  {
+  const toCardData = (el) => {
     const card = el && el.closest ? el.closest('.ndb-card') : null;
     if (!card) return null;
-    const slot = parseInt(card.getAttribute('data-slot') || '', 10);
-    return Number.isNaN(slot) ? null : slot;
+    const slotRaw = card.getAttribute('data-slot');
+    const slot = slotRaw != null && !Number.isNaN(parseInt(slotRaw, 10)) ? parseInt(slotRaw, 10) : 0;
+    const id = card.getAttribute('data-id') || String(slot);
+    return { slot, id, card };
   };
 
-  const onClick = (e) =>
-  {
+  const onClick = (e) => {
     const btn = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
-    if (btn)
-    {
+    if (btn) {
       e.stopPropagation();
-      const slot = toSlot(btn);
-      if (slot !== null && onAction) onAction({ slot, action: btn.getAttribute('data-action') || '' });
+      const action = btn.getAttribute('data-action') || '';
+      const data = toCardData(btn);
+      if (data) {
+        if (action === 'audition' && onAudition) {
+          onAudition({ slot: data.slot, id: data.id });
+          return;
+        }
+        if (action === 'favorite' && onFavorite) {
+          onFavorite({ slot: data.slot, id: data.id, button: btn });
+          return;
+        }
+        if (onAction) onAction({ slot: data.slot, id: data.id, action });
+      }
       return;
     }
-    if (onCardClick)
-    {
-      const slot = toSlot(e.target);
-      if (slot !== null) onCardClick(slot);
-    }
+    const data = toCardData(e.target);
+    if (data && onCardClick) onCardClick(data.slot, data.id);
   };
 
-  const onDblClick = (e) =>
-  {
-    if (!onCardDblClick) return;
-    const slot = toSlot(e.target);
-    if (slot !== null) onCardDblClick(slot);
+  const onDblClick = (e) => {
+    const data = toCardData(e.target);
+    if (data && onCardDblClick) onCardDblClick(data.slot, data.id);
   };
 
   container.addEventListener('click', onClick);
   container.addEventListener('dblclick', onDblClick);
 
-  return () =>
-  {
+  return () => {
     container.removeEventListener('click', onClick);
     container.removeEventListener('dblclick', onDblClick);
   };
 }
-
-
-
-

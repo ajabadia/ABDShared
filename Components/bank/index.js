@@ -1,13 +1,20 @@
 /**
- * bank — navegador de bancos NeuronDB (carcasa + tarjetas + categorías
- * + pastillas).
- *
- * Presentacional a propósito: sirve selecciones y acciones por
- * callbacks, nunca decide qué significa cargar. Cada host (MODELmaker,
- * synth) adapta sus datos y su montaje.
+ * bank — navegador de bancos y presets ABDSynths (carcasa + tarjetas + categorías
+ * + pastillas + paleta 32 + iconos SVG).
  */
 
 export { createBankShell } from './bankShell.js';
 export { bankCardHtml, bindBankCards } from './bankCard.js';
 export { bankChipsHtml, bindBankChips } from './bankChips.js';
-export { classifyBankCategory } from './bankCategories.js';
+export {
+  classifyBankCategory,
+  getBankCategoryLabel,
+  BANK_CATEGORY_LABELS,
+  STANDARD_CATEGORY_NAMES,
+  CATEGORY_32_PALETTE,
+  getCategoryColorSlot,
+  setCategoryColorSlot,
+  getExtendedGroupColorSlot,
+} from './bankCategories.js';
+export { BANK_ICONS, getCategoryIconSvg } from './bankIcons.js';
+export { BankCatalogState } from './bankCatalogState.js';

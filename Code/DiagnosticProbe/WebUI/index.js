@@ -4,4 +4,5 @@
 
 export { createDiagnosticProbeModal } from './DiagnosticProbeModal.js';
 export { DiagnosticProbeWave, generateReferenceToneBlock } from './DiagnosticProbeWave.js';
-export { PROBE_LOCALES, resolveProbeLocale, getProbeStrings } from './DiagnosticProbeI18n.js';
+export { PROBE_LOCALES, resolveProbeLocale, getProbeStrings, attachDialogDrag, attachDialogBackdropFallback } from './DiagnosticProbeI18n.js';
+

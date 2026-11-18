@@ -11,8 +11,15 @@
     "id": { "type": "string" },
     "name": { "type": "string", "minLength": 1, "maxLength": 64 },
     "author": { "type": "string" },
-    "categoryId": { "type": "integer", "minimum": 0, "maximum": 9 },
+    "categoryId": { "type": "integer", "minimum": 0, "maximum": 31 },
     "thumbnailUri": { "type": "string" },
+    "sublibrary": { "type": "string" },
+    "isFavorite": { "type": "boolean" },
+    "isSelfContained": { "type": "boolean" },
+    "embeddedBanks": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
     "bpm": { "type": "number", "minimum": 20, "maximum": 300 },
     "timeSignature": {
       "type": "object",

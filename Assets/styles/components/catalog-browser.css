@@ -894,3 +894,86 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Quick Actions (Audition & Favorites) ────────────────── */
+.ndb-card-quick-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 4px);
+  margin-left: auto;
+}
+
+.btn-card-quick {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-dim, #71717a);
+  padding: 2px 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast, 150ms ease);
+}
+
+.btn-card-quick:hover {
+  color: var(--color-text-main, #f4f4f5);
+  background: color-mix(in srgb, var(--color-text-main, #f4f4f5) 10%, transparent);
+}
+
+.btn-card-quick.btn-audition:hover {
+  color: var(--color-accent, #00c3ff);
+}
+
+.btn-card-quick.btn-favorite.is-fav {
+  color: var(--color-warning, #f59e0b);
+}
+
+/* ── Card Thumbnail ─────────────────────────────────────── */
+.ndb-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: calc(var(--radius-sm, 4px) - 1px);
+}
+
+.ndb-card.has-thumbnail .ndb-card-icon {
+  padding: 0;
+  overflow: hidden;
+  background: var(--color-bg-base, #0d1117);
+}
+
+/* ── Detailed Table View ────────────────────────────────── */
+.catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm, 12px);
+  color: var(--color-text-main, #e4e4e7);
+}
+
+.catalog-table th {
+  text-align: left;
+  padding: var(--space-2, 6px) var(--space-3, 10px);
+  background: var(--color-panel-surface-elevated, #1a2332);
+  color: var(--color-text-muted, #a1a1aa);
+  font-weight: 700;
+  border-bottom: 1px solid var(--color-panel-border, #2d3748);
+  font-size: var(--text-xs, 10px);
+  letter-spacing: 0.5px;
+}
+
+.catalog-table td {
+  padding: var(--space-2, 6px) var(--space-3, 10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-panel-border, #2d3748) 50%, transparent);
+}
+
+.catalog-table tr:hover td {
+  background: color-mix(in srgb, var(--color-accent, #00c3ff) 8%, transparent);
+  cursor: pointer;
+}
+
+.catalog-table tr.is-selected td {
+  background: color-mix(in srgb, var(--color-accent, #00c3ff) 18%, transparent);
+  color: var(--color-text-bright, #ffffff);
+}
+

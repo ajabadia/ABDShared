@@ -20,6 +20,8 @@ export { EffectLEDButton } from './EffectLEDButton.js';
 export { PeakLED } from './PeakLED.js';
 export { TapeEchoVisual } from './TapeEchoVisual.js';
 export { StepMatrix, midiNoteToName } from './stepMatrix.js';
+export { StepButtonStrip } from './stepButtonStrip.js';
+export { MpcPadMatrix, DEFAULT_DRUM_KIT, SCALE_DEGREES } from './MpcPadMatrix.js';
 export { sameControlValue, transitioned, announceTransition } from './TransitionNotices.js';
 export { announceMovement, announceSettled, createContinuousNotices } from './ContinuousNotices.js';
 export { registerSkin, getSkin, applySkin, skinNames } from './skins/index.js';

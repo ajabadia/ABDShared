@@ -54,6 +54,9 @@
     "./components/controls/stepMatrix.js": {
       "default": "./Components/Controls/stepMatrix.js"
     },
+    "./components/controls/stepButtonStrip.js": {
+      "default": "./Components/Controls/stepButtonStrip.js"
+    },
     "./components/scope/miniWaveScope.js": {
       "default": "./Components/Scope/miniWaveScope.js"
     },

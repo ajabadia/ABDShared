@@ -109,6 +109,8 @@ public:
     [[nodiscard]] GrooveBeatStep getStep(int stepIdx) const noexcept;
     void setStepActive(int stepIdx, bool active) noexcept;
     [[nodiscard]] bool isStepActive(int stepIdx) const noexcept;
+    [[nodiscard]] int getCurrentStep() const noexcept { return currentPatternStep_; }
+    [[nodiscard]] std::uint32_t getTotalStepsExecuted() const noexcept { return totalStepsExecuted_; }
     void resetPatternSteps() noexcept;
     void loadFactoryBeatPattern(int presetIdx0to7) noexcept;
     [[nodiscard]] int getHeldCount() const noexcept { return heldCount_; }

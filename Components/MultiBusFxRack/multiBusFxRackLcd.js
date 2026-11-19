@@ -16,6 +16,7 @@ export class MultiBusFxRackLcd {
     this.labels = { sendA: 'Zita Reverb', sendB: 'Stereo Chorus', sendC: 'Stereo Delay', sendD: 'Tape Saturation' };
     this.busMutes = [false, false, false, false];
     this.sampleRate = 44100;
+    this.limiterCeilingDb = -0.3;
     this.render();
   }
 
@@ -23,6 +24,7 @@ export class MultiBusFxRackLcd {
   setInjections(choToRev, delToRev) { this.render(); }
   setLabels(labels) { this.labels = { ...this.labels, ...labels }; this.render(); }
   setBusMutes(mutes) { this.busMutes = mutes; this.render(); }
+  setLimiterCeiling(db) { this.limiterCeilingDb = Number(db); const el = this.container?.querySelector('#fx-lcd-lim-ceil'); if (el) el.textContent = `${this.limiterCeilingDb.toFixed(1)} dB`; }
 
   render() {
     if (!this.container) return;
@@ -68,7 +70,7 @@ export class MultiBusFxRackLcd {
           <path d="M 464 70 L 476 70" fill="none" stroke="var(--color-accent)" stroke-width="1.5" marker-end="url(#arrow)"/>
           <rect x="480" y="52" width="52" height="36" rx="3" fill="color-mix(in srgb, var(--color-panel-surface) 90%, var(--color-bg-base))" stroke="var(--color-accent)" stroke-width="1.2"/>
           <text x="486" y="66" fill="var(--color-text-main)" font-size="7" font-weight="bold" font-family="var(--font-mono)">LIMITER</text>
-          <text x="486" y="78" fill="var(--color-warning)" font-size="6.5" font-family="var(--font-mono)">-0.3 dB</text>
+          <text id="fx-lcd-lim-ceil" x="486" y="78" fill="var(--color-warning)" font-size="6.5" font-family="var(--font-mono)">${(this.limiterCeilingDb ?? -0.3).toFixed(1)} dB</text>
           <path d="M 533 70 L 539 70" fill="none" stroke="var(--color-accent)" stroke-width="1.5"/>
         </svg>
       </div>

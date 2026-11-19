@@ -7,6 +7,7 @@
 import { MultiBusFxRackLcd } from './multiBusFxRackLcd.js';
 import { buildRackModalBodyHtml } from './multiBusFxViews.js';
 import { findAlgorithm, getAlgorithmsForCategory } from './multiBusFxRegistry.js';
+import { bindRackExtraControls } from './multiBusFxControls.js';
 import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class MultiBusFxRackModal {
@@ -24,6 +25,7 @@ export class MultiBusFxRackModal {
     this.tempoSync = true;
     this.locale = options.locale || 'es';
     this.busMutes = [false, false, false, false];
+    this.gates = [0, 0, 0, 0];
     this.slots = [
       { catId: 'reverb', algoId: 'zita', presetIdx: 0 },
       { catId: 'modulation', algoId: 'stereo_chorus', presetIdx: 0 },
@@ -31,6 +33,8 @@ export class MultiBusFxRackModal {
       { catId: 'distortion', algoId: 'saturation', presetIdx: 0 },
     ];
     this.limiterEnabled = true;
+    this.limiterCeilingDb = -0.3;
+    this.limKnob = null;
 
     this.el = document.createElement('dialog');
     this.el.className = 'fx-rack-floating-dialog';
@@ -42,10 +46,14 @@ export class MultiBusFxRackModal {
   render() {
     const rackSlots = this.getRackSlots?.() || null;
     if (this.getSendTargets) this.sendTargets = this.getSendTargets();
-    this.el.innerHTML = buildRackModalBodyHtml(this.topology, this.bpm, this.tempoSync, this.locale, this.slots, rackSlots, this.sendTargets);
+    this.el.innerHTML = buildRackModalBodyHtml(
+      this.topology, this.bpm, this.tempoSync, this.locale, this.slots, rackSlots, this.sendTargets,
+      { busMutes: this.busMutes, gates: this.gates, limiterEnabled: this.limiterEnabled, limiterCeilingDb: this.limiterCeilingDb }
+    );
     const lcdMount = this.el.querySelector('#fx-lcd-mount-point');
     this.lcd = new MultiBusFxRackLcd(lcdMount);
     this.lcd.setTopology(this.topology);
+    this.lcd.setLimiterCeiling?.(this.limiterCeilingDb);
     const handle = this.el.querySelector('.fx-rack-head');
     if (handle) attachDialogDrag(this.el, handle);
     this.bindEvents();
@@ -118,7 +126,7 @@ export class MultiBusFxRackModal {
         const slot = Number(btn.dataset.slot);
         this.busMutes[slot] = !this.busMutes[slot];
         btn.classList.toggle('is-muted', this.busMutes[slot]);
-        this.bridge?.setMute?.(slot, this.busMutes[slot]);
+        (this.bridge?.muteSendBus ?? this.bridge?.setMute)?.(slot, this.busMutes[slot]);
         this.syncLcd();
       });
     });
@@ -161,20 +169,31 @@ export class MultiBusFxRackModal {
   }
 
   bindBpmAndGates() {
-    const stepBpm = (delta) => {
-      this.bpm = Math.max(30, Math.min(300, this.bpm + delta));
-      const disp = this.el.querySelector('#fx-bpm-display');
-      if (disp) disp.textContent = String(this.bpm);
-      this.bridge?.setParam?.('masterTempoBpm', this.bpm);
-    };
-    this.el.querySelector('[data-act="bpm-inc"]')?.addEventListener('click', () => stepBpm(1));
-    this.el.querySelector('[data-act="bpm-dec"]')?.addEventListener('click', () => stepBpm(-1));
-    this.el.querySelectorAll('.fx-gate-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('is-active');
-        this.bridge?.setGate?.(Number(btn.dataset.gate), btn.classList.contains('is-active') ? 1 : 0);
-      });
-    });
+    bindRackExtraControls(this);
+  }
+
+  setBpm(bpm) {
+    this.bpm = Math.max(30, Math.min(300, Number(bpm) || 120));
+    const disp = this.el.querySelector('#fx-bpm-display');
+    if (disp) disp.textContent = String(Math.round(this.bpm));
+  }
+
+  setLimiterEnabled(enabled) {
+    this.limiterEnabled = Boolean(enabled);
+    const btn = this.el.querySelector('[data-act="lim-toggle"]');
+    if (btn) {
+      btn.classList.toggle('is-active', this.limiterEnabled);
+      btn.textContent = this.limiterEnabled ? 'ON' : 'OFF';
+    }
+  }
+
+  hydrateFromHost(dto = {}) {
+    if (typeof dto.fxTopology === 'number') this.topology = dto.fxTopology;
+    if (typeof dto.limiterEnabled === 'boolean') this.limiterEnabled = dto.limiterEnabled;
+    if (typeof dto.limiterCeilingDb === 'number') this.limiterCeilingDb = dto.limiterCeilingDb;
+    if (Array.isArray(dto.sendTargets)) this.sendTargets = [...dto.sendTargets];
+    if (Array.isArray(dto.busMutes)) this.busMutes = dto.busMutes.map(Boolean);
+    this.render();
   }
 
   updateTelemetry(dto = {}) {
@@ -193,5 +212,5 @@ export class MultiBusFxRackModal {
     }
   }
 
-  destroy() { this.el.remove(); }
+  destroy() { this.limKnob?.destroy?.(); this.el.remove(); }
 }

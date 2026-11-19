@@ -1,0 +1,68 @@
+Actúa como Arquitecto de Software Senior y Diseñador UX/UI especializado en DSP de audio en tiempo real, C++20/JUCE (8/9) y aplicaciones web embebidas (WebView2 / WebAudio / WASM) de alto rendimiento.
+
+Tu misión es realizar una AUDITORÍA INTEGRAL (Código, Funcionalidad, Usabilidad y Distribución Portable) del proyecto actual en este workspace —y, si está enlazada, su integración con la librería compartida `ABDShared`— para contrastar la visión del producto con el estado real de la implementación, detectar incumplimientos con evidencia directa en el código y proponer un plan de acción priorizado.
+
+---
+
+### 1. REGLAS DE ORO DEL PROYECTO (Inviolables)
+1. REGLA DE COMPILACIÓN Y GIT: El usuario es quien compila, ejecuta pruebas pesadas y hace los commits. NUNCA ejecutes `build.bat`, CMake build, Vite build, ni comandos git de escritura (`git add`, `git commit`, `git push`). Limítate a lectura, análisis, inspección estática y comandos puramente informativos/de solo lectura (por ejemplo `dumpbin /DEPENDENTS`, `git status` o búsquedas de texto).
+2. LÍMITES ESTRICTOS DE LÍNEAS POR ARCHIVO:
+   - C++ (`.h`, `.hpp`, `.cpp`, `.mm`): estrictamente < 300 líneas (salvo archivos autogenerados `.gen.*` o código de terceros/JUCE, que deben indicarse aparte si existen).
+   - WebUI (`.ts`, `.js`, `.mjs`, `.css`): estrictamente < 200 líneas.
+3. CERO COLORES HARDCODEADOS: Prohibido cualquier valor `#hex`, `rgb()` o `rgba()` fuera del fichero de definición de tokens/temas. Toda la interfaz debe consumir 100 % variables CSS del sistema de temas.
+4. CERO EMOJIS: Ningún emoji en código, labels, logs visibles ni templates HTML. Toda la iconografía debe ser SVG vectorial monocromático (`currentColor`).
+5. SEGURIDAD REAL-TIME EN AUDIO: Cero asignaciones de memoria (`new`, `malloc`, `std::vector` resizing, `juce::String`), cero locks/mutexes y cero I/O o logging dentro de `processBlock` / hilo de audio.
+6. IDIOMA Y ENLACES: Toda la respuesta debe estar en español y toda referencia a archivos o líneas debe usar enlaces Markdown clicables con esquema `file:///`.
+
+---
+
+### 2. PASO 1 OBLIGATORIO: DESCUBRIMIENTO DE CONTEXTO Y VISIÓN
+Antes de diagnosticar o proponer nada, identifica el tipo de proyecto (sintetizador, groovebox, efecto, utilidad MIDI/SysEx, herramienta de calibración/análisis, etc.), sus targets (Standalone, VST3, AU, WASM, CLI, apps auxiliares) y lee la documentación existente en el repositorio para sintetizar su visión:
+- `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `HANDOFF.md` (si existen).
+- `.agents/AGENTS.md` o reglas específicas del repositorio.
+- Documentos de arquitectura, planes maestros, auditorías y especificaciones dentro de `docs/` o `DOCS/`.
+- `CMakeLists.txt` (y `wasm/CMakeLists.txt`, `package.json`, `vite*.config.*`, `build.bat` si existen) para conocer el mapa real de targets y dependencias (incluyendo `ABDShared` si se enlaza).
+
+---
+
+### 3. EJES DE AUDITORÍA REQUERIDOS
+
+Inspecciona el repositorio con evidencia directa (rutas, números de línea y recuentos reales; sin suposiciones) en estos cuatro ejes:
+
+#### Eje A: Código, Arquitectura, Reglas de Oro y DRY
+- **Límites de líneas:** Lista todos los archivos propios en `Source/`, `WebUI/` y módulos relevantes de `ABDShared/` que superen 300 líneas (C++) o 200 líneas (JS/TS/CSS), excluyendo terceros (`JUCE/`, `node_modules/`, `dist/`) y señalando aparte los autogenerados (`*.gen.*`).
+- **Higiene visual en código:** Detecta colores hardcodeados (`#[0-9a-fA-F]{3,8}`, `rgba?(` fuera de definiciones de tokens) y cualquier emoji residual.
+- **Seguridad DSP / Real-Time:** Revisa `processBlock` y la ruta de audio en busca de bloqueos, asignaciones dinámicas, I/O o desnormalizados sin `ScopedNoDenormals`.
+- **DRY y contratos con `ABDShared`:** Detecta lógica duplicada, desalineación de contratos/esquemas (C++ ↔ WebUI ↔ JSON/XML) o componentes locales que deberían consumir `ABDShared` (o cuyo contrato con `ABDShared` esté desfasado).
+
+#### Eje B: Funcionalidad, Cadena de Señal/Datos y Sincronía Multi-capa
+- **Coherencia de la cadena principal** (adaptada al tipo de proyecto):
+  - *En sintetizadores / grooveboxes / FX:* MIDI / Secuenciador / Arp → Modulación → Generación sonora / Procesamiento → Cadena de FX → Mezcla / Master / Telemetría.
+  - *En utilidades de audio/MIDI/bancos/calibración:* Captura / Lectura → Parseo / Validación / Transformación → Persistencia / Exportación / Envío hardware.
+- **Sincronía entre capas:** Coherencia de estado, rangos, normalización y dirección de eventos entre C++ (Core/APVTS/Processor), puente nativo WebView2 (canal nativo → JS con `emitEventIfBrowserIsVisible`, nunca `backend.emitEvent`), WebUI (store/estado reactivo) y, si existe, motor WASM / AudioWorklet.
+- **Integridad de estado y persistencia:** Guardado/restauración de estado en DAW (`getStateInformation`/`setStateInformation`), cambio de presets/bancos/pistas/modos, gestión de errores y casos borde sin pérdidas silenciosas de estado.
+
+#### Eje C: Usabilidad, UX y Ergonomía (en el viewport base del proyecto)
+- **Claridad conceptual y jerarquía:** ¿Queda claro dónde se configura el dispositivo/proyecto, dónde se edita el sonido/parámetros y dónde se gestionan presets/secuencias/utilidades?
+- **Interacción de controles y ventanas:** Comportamiento de modales, cajones, ventanas flotantes o pestañas (apertura, cierre, foco de teclado con el DAW, atajos, arrastre, colisiones, tooltips y accesibilidad básica).
+- **Ergonomía y ajuste de viewport:** Legibilidad, densidad visual, vúmetros/feedback en tiempo real, consistencia entre temas (claro/oscuro/skins) y adaptación limpia al tamaño base de ventana (ej. 1200×768 o 1280×720) sin recortes ni scrolls innecesarios.
+
+#### Eje D: Empaquetado, WebView2 y Distribución Portable (Release fuera de mi PC)
+*(Aplicar siempre que el proyecto use WebView2, `BinaryData` o recursos embebidos/externos)*
+- **Enlace estático de WebView2:** Verifica `NEEDS_WEBVIEW2 TRUE` y `JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1` en los targets reales; si hay un `.exe`/`.vst3` compilado en `build/`, revisa `dumpbin /DEPENDENTS` para confirmar que no depende de `WebView2Loader.dll` (y documenta si el CRT es `/MD` o `/MT`).
+- **`UserDataFolder` y arranque limpio:** Comprueba que `.withUserDataFolder(...)` apunta a `userApplicationDataDirectory` (nunca junto al `.exe` ni en `tempDirectory`), que se crea el directorio (`createDirectory()`) y que se fija `.withBackgroundColour(...)` y `.withStatusBarDisabled()`.
+- **Fuga de rutas de desarrollo en Release:** Detecta cualquier uso de `__FILE__`, `localhost` o rutas del repositorio que siga activo en Release (`!JUCE_DEBUG`) en el `ResourceProvider` o cargadores de recursos (enmascarando fallos de `BinaryData` en mi PC).
+- **Resolución de `BinaryData` y `juceaide`:** Verifica que el `ResourceProvider` busque por `BinaryData::originalFilenames[]` antes de cualquier aplanamiento manual (nunca `.replace("-", "_")`, que rompe archivos con guiones y colisiones como `foo--.png`/`foo.png`), comprueba que no haya basenames duplicados ni MIME types faltantes (`.js`, `.mjs`, `.css`, `.svg`, `.png`, `.webp`, `.avif`, `.woff2`, `.wasm`, `.json`) y, si existen `dist/` y/o `BinaryData*.cpp`, audita que el 100 % de los recursos referenciados resuelven.
+- **Recursos secundarios:** Comprueba que bancos, presets (`.syx`, `.abdbank`, `.json`, `.xml`), calibraciones, IRs o fuentes funcionen si se entrega únicamente el binario Standalone/VST3 sin carpetas externas.
+
+---
+
+### 4. ENTREGABLE ESPERADO
+Presenta un informe claro, accionable y basado en hechos verificados:
+1. **Resumen Ejecutivo:** Tipo de proyecto, stack detectado, estado real de madurez frente a su Roadmap/documentación y veredicto general.
+2. **Tabla de Incumplimientos Detectados:** Clasificados por severidad (**Crítico**, **Medio**, **Deuda Técnica / Menor**), indicando eje, archivo/línea exacta e impacto real.
+3. **Puntos de Fricción UX / Usabilidad:** Hallazgos concretos con recomendación práctica.
+4. **Checklist de Distribución Portable (Release):** Estado punto por punto del Eje D (qué funciona seguro en otro PC y qué fallaría hoy).
+5. **Plan de Acción Priorizado:** Pasos ordenados por impacto/riesgo para sanear el proyecto y dejarlo coherente, limpio y listo para distribuir (sin ejecutar compilaciones ni commits).
+
+Comienza leyendo la documentación del proyecto y elabora la auditoría completa.

@@ -94,7 +94,7 @@ bool visitLfo(LfoT& lfo, std::string_view sub, float& val) noexcept
     if (sub == "rate")    return rwFloat<kWrite>(lfo.rate, 0.005f, 1280.0f, val);
     if (sub == "delayMs") return rwFloat<kWrite>(lfo.delayMs, 0.0f, 5000.0f, val);
     if (sub == "depth")   return rwFloat<kWrite>(lfo.depth, -1.0f, 1.0f, val);
-    if (sub == "target")  return rwInt<kWrite>(lfo.target, 0, 3, val);
+    if (sub == "target")  return rwInt<kWrite>(lfo.target, 0, 5, val);
     return false;
 }
 

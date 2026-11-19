@@ -28,7 +28,7 @@ export function getFxStrings(locale = 'es') {
   return String(locale).startsWith('es') ? FX_STRINGS.es : FX_STRINGS.en;
 }
 
-export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay = -1) {
+export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay = -1, isMuted = false) {
   const letters = ['A', 'B', 'C', 'D'];
   if (Array.isArray(rackSlots)) {
     const active = rackSlots.filter((b) => b && b.engine !== 0);
@@ -46,7 +46,7 @@ export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay
       <div class="fx-slot-card" data-slot="${slotIdx}">
         <div class="fx-slot-head">
           <span class="fx-slot-title">${title}</span>
-          <button type="button" class="fx-slot-mute-btn" data-act="slot-mute" data-slot="${slotIdx}" title="${muteTip}">M</button>
+          <button type="button" class="fx-slot-mute-btn${isMuted ? ' is-muted' : ''}" data-act="slot-mute" data-slot="${slotIdx}" title="${muteTip}">M</button>
           <span class="fx-slot-badge">${badge}</span>
         </div>
         <div class="fx-slot-body">
@@ -94,7 +94,7 @@ export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay
   `;
 }
 
-export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRINGS.es) {
+export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRINGS.es, gates = [0, 0, 0, 0]) {
   return `
     <div class="fx-sync-mod-bay">
       <div class="fx-sync-col">
@@ -111,10 +111,10 @@ export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRIN
       <div class="fx-gates-col">
         <span class="fx-mod-title">${str.gatesTitle}</span>
         <div class="fx-gates-row">
-          <button type="button" class="fx-gate-btn" data-gate="0" title="${str.duckTip}"><span class="fx-gate-led"></span>DUCK</button>
-          <button type="button" class="fx-gate-btn" data-gate="1" title="${str.gateRevTip}"><span class="fx-gate-led"></span>GATE REV</button>
-          <button type="button" class="fx-gate-btn" data-gate="2" title="${str.freezeTip}"><span class="fx-gate-led"></span>FREEZE</button>
-          <button type="button" class="fx-gate-btn" data-gate="3" title="${str.killTip}"><span class="fx-gate-led"></span>KILL</button>
+          <button type="button" class="fx-gate-btn${gates[0] ? ' is-active' : ''}" data-gate="0" title="${str.duckTip}"><span class="fx-gate-led"></span>DUCK</button>
+          <button type="button" class="fx-gate-btn${gates[1] ? ' is-active' : ''}" data-gate="1" title="${str.gateRevTip}"><span class="fx-gate-led"></span>GATE REV</button>
+          <button type="button" class="fx-gate-btn${gates[2] ? ' is-active' : ''}" data-gate="2" title="${str.freezeTip}"><span class="fx-gate-led"></span>FREEZE</button>
+          <button type="button" class="fx-gate-btn${gates[3] ? ' is-active' : ''}" data-gate="3" title="${str.killTip}"><span class="fx-gate-led"></span>KILL</button>
         </div>
       </div>
 
@@ -131,8 +131,8 @@ export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRIN
   `;
 }
 
-export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotStates, rackSlots, sendTargets) {
-  const str = getFxStrings(locale);
+export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotStates, rackSlots, sendTargets, ui = {}) {
+  const str = getFxStrings(locale), limOn = ui.limiterEnabled ?? true, ceilDb = ui.limiterCeilingDb ?? -0.3;
   const topoOpts = TOPOLOGIES.map((t) => `<option value="${t.id}"${t.id === activeTopo ? ' selected' : ''}>${t.label}</option>`).join('');
 
   return `
@@ -157,22 +157,22 @@ export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotS
 
       <!-- 4 Polymorphic Slots Grid -->
       <div class="fx-slots-grid">
-        ${renderSlotCardHtml(0, slotStates[0], str.slotMuteTitle, rackSlots, sendTargets?.[0])}
-        ${renderSlotCardHtml(1, slotStates[1], str.slotMuteTitle, rackSlots, sendTargets?.[1])}
-        ${renderSlotCardHtml(2, slotStates[2], str.slotMuteTitle, rackSlots, sendTargets?.[2])}
-        ${renderSlotCardHtml(3, slotStates[3], str.slotMuteTitle, rackSlots, sendTargets?.[3])}
+        ${renderSlotCardHtml(0, slotStates[0], str.slotMuteTitle, rackSlots, sendTargets?.[0], ui.busMutes?.[0])}
+        ${renderSlotCardHtml(1, slotStates[1], str.slotMuteTitle, rackSlots, sendTargets?.[1], ui.busMutes?.[1])}
+        ${renderSlotCardHtml(2, slotStates[2], str.slotMuteTitle, rackSlots, sendTargets?.[2], ui.busMutes?.[2])}
+        ${renderSlotCardHtml(3, slotStates[3], str.slotMuteTitle, rackSlots, sendTargets?.[3], ui.busMutes?.[3])}
       </div>
 
       <!-- Bottom Bar: Sync / Mod Bay + Master Limiter -->
       <div class="fx-bottom-bar">
-        ${renderSyncModBusHtml(bpm, tempoSync, str)}
+        ${renderSyncModBusHtml(bpm, tempoSync, str, ui.gates)}
         <div class="fx-limiter-strip">
           <div class="fx-lim-head">
             <span class="fx-lim-title">${str.limTitle}</span>
-            <button type="button" class="fx-lim-btn is-active" data-act="lim-toggle" title="${str.limTip}">ON</button>
+            <button type="button" class="fx-lim-btn${limOn ? ' is-active' : ''}" data-act="lim-toggle" title="${str.limTip}">${limOn ? 'ON' : 'OFF'}</button>
           </div>
           <div class="fx-lim-body">
-            <div class="fx-knob-mount" data-param="limCeiling" data-title="CEILING" data-val="-0.3dB"></div>
+            <div class="fx-knob-mount" data-param="limCeiling" data-title="CEILING" data-val="${ceilDb.toFixed(1)}dB"></div>
             <div class="fx-gr-meter-cell">
               <span class="fx-gr-lbl">GR</span>
               <div class="fx-gr-meter" id="fx-gr-bar"><span class="fx-gr-fill"></span></div>

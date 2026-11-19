@@ -22,7 +22,11 @@ export interface FxRackBridgeAdapter {
   setSendReturns?: (retA: number, retB: number, retC: number, retD: number) => void;
   setCascadeInjections?: (choToRev: number, delToRev: number) => void;
   muteSendBus?: (busIdx: number, muted: boolean) => void;
+  setMute?: (busIdx: number, muted: boolean) => void;
   setGate?: (gateIdx: number, state: number) => void;
+  setTempoSync?: (enabled: boolean) => void;
+  setLimiterEnabled?: (enabled: boolean) => void;
+  setLimiterCeilingDb?: (db: number) => void;
 }
 
 export interface MultiBusFxRackModalOptions {
@@ -51,6 +55,8 @@ export declare class MultiBusFxRackModal {
   isOpen(): boolean;
   setLocale(locale: string): void;
   setBpm(bpm: number): void;
+  setLimiterEnabled(enabled: boolean): void;
+  hydrateFromHost(dto: { fxTopology?: number; limiterEnabled?: boolean; limiterCeilingDb?: number; sendTargets?: number[]; busMutes?: boolean[] }): void;
   updateTelemetry(dto: FxRackTelemetryDto): void;
   destroy(): void;
 }

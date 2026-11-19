@@ -13,8 +13,13 @@ export class MultiBusFxRackModal {
   constructor(options = {}) {
     this.bridge = options.bridge;
     this.onSendLabelsChange = options.onSendLabelsChange;
+    this.getRackSlots = options.getRackSlots;
+    this.getSendTargets = options.getSendTargets;
+    this.onSendSlotTargetChange = options.onSendSlotTargetChange;
+    this.onOpenFaceplate = options.onOpenFaceplate;
     this.onClose = options.onClose;
     this.topology = options.initialTopology ?? 1;
+    this.sendTargets = options.initialSendTargets || [0, 1, -1, -1];
     this.bpm = options.bpm ?? 120;
     this.tempoSync = true;
     this.locale = options.locale || 'es';
@@ -35,7 +40,9 @@ export class MultiBusFxRackModal {
   }
 
   render() {
-    this.el.innerHTML = buildRackModalBodyHtml(this.topology, this.bpm, this.tempoSync, this.locale, this.slots);
+    const rackSlots = this.getRackSlots?.() || null;
+    if (this.getSendTargets) this.sendTargets = this.getSendTargets();
+    this.el.innerHTML = buildRackModalBodyHtml(this.topology, this.bpm, this.tempoSync, this.locale, this.slots, rackSlots, this.sendTargets);
     const lcdMount = this.el.querySelector('#fx-lcd-mount-point');
     this.lcd = new MultiBusFxRackLcd(lcdMount);
     this.lcd.setTopology(this.topology);
@@ -46,17 +53,16 @@ export class MultiBusFxRackModal {
   }
 
   open() {
+    this.render();
     if (!this.isOpen()) {
-      if (typeof this.el.show === 'function') this.el.show();
-      else this.el.setAttribute('open', '');
+      if (typeof this.el.show === 'function') this.el.show(); else this.el.setAttribute('open', '');
     }
     this.syncLcd();
   }
 
   close() {
     if (this.isOpen()) {
-      if (typeof this.el.close === 'function') this.el.close();
-      else this.el.removeAttribute('open');
+      if (typeof this.el.close === 'function') this.el.close(); else this.el.removeAttribute('open');
       this.onClose?.();
     }
   }
@@ -68,20 +74,30 @@ export class MultiBusFxRackModal {
     if (this.locale === locale) return;
     this.locale = locale;
     const wasOpen = this.isOpen();
-    this.render();
-    this.emitLabels();
+    this.render(); this.emitLabels();
     if (wasOpen) this.open();
   }
 
   emitLabels() {
-    const labels = {
-      sendA: findAlgorithm(this.slots[0].catId, this.slots[0].algoId).name,
-      sendB: findAlgorithm(this.slots[1].catId, this.slots[1].algoId).name,
-      sendC: findAlgorithm(this.slots[2].catId, this.slots[2].algoId).name,
-      sendD: findAlgorithm(this.slots[3].catId, this.slots[3].algoId).name,
-    };
-    this.lcd.setLabels(labels);
+    const rackSlots = this.getRackSlots?.();
+    let labels;
+    if (Array.isArray(rackSlots)) {
+      const getBay = (i) => {
+        const t = this.sendTargets[i];
+        return (t >= 0 && rackSlots[t] && rackSlots[t].engine !== 0) ? (rackSlots[t].name || rackSlots[t].algoId) : 'OFF';
+      };
+      labels = { sendA: getBay(0), sendB: getBay(1), sendC: getBay(2), sendD: getBay(3) };
+    } else {
+      labels = {
+        sendA: findAlgorithm(this.slots[0].catId, this.slots[0].algoId).name,
+        sendB: findAlgorithm(this.slots[1].catId, this.slots[1].algoId).name,
+        sendC: findAlgorithm(this.slots[2].catId, this.slots[2].algoId).name,
+        sendD: findAlgorithm(this.slots[3].catId, this.slots[3].algoId).name,
+      };
+    }
+    this.lcd?.setLabels(labels);
     this.onSendLabelsChange?.(labels);
+    return labels;
   }
 
   syncLcd() {
@@ -92,16 +108,11 @@ export class MultiBusFxRackModal {
 
   bindEvents() {
     this.el.querySelector('.fx-rack-close-btn')?.addEventListener('click', () => this.close());
-
-    // Topología 0..9
-    const topoSelect = this.el.querySelector('.fx-topo-select');
-    topoSelect?.addEventListener('change', (e) => {
+    this.el.querySelector('.fx-topo-select')?.addEventListener('change', (e) => {
       this.topology = Number(e.target.value);
       this.bridge?.setTopology?.(this.topology);
       this.syncLcd();
     });
-
-    // Mutes de slot
     this.el.querySelectorAll('.fx-slot-mute-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const slot = Number(btn.dataset.slot);
@@ -111,61 +122,57 @@ export class MultiBusFxRackModal {
         this.syncLcd();
       });
     });
-
-    // 3 Niveles en cascada: Categoría -> Algoritmo -> Preset
+    this.el.querySelectorAll('.fx-rack-bay-select').forEach((sel) => {
+      sel.addEventListener('change', (e) => {
+        const slot = Number(e.target.dataset.slot), bay = Number(e.target.value);
+        this.sendTargets[slot] = bay;
+        this.onSendSlotTargetChange?.(slot, bay);
+        this.render();
+      });
+    });
+    this.el.querySelectorAll('.fx-open-faceplate-btn').forEach((btn) => {
+      btn.addEventListener('click', () => this.onOpenFaceplate?.(Number(btn.dataset.bay)));
+    });
     this.el.querySelectorAll('.fx-cat-select').forEach((sel) => {
       sel.addEventListener('change', (e) => {
-        const slot = Number(e.target.dataset.slot);
-        const catId = e.target.value;
-        const algos = getAlgorithmsForCategory(catId);
-        this.slots[slot] = { catId, algoId: algos[0].id, presetIdx: 0 };
+        const slot = Number(e.target.dataset.slot), algos = getAlgorithmsForCategory(e.target.value);
+        this.slots[slot] = { catId: e.target.value, algoId: algos[0].id, presetIdx: 0 };
         this.bridge?.setSlotEngine?.(slot, algos[0].id);
         this.render();
       });
     });
-
     this.el.querySelectorAll('.fx-algo-select').forEach((sel) => {
       sel.addEventListener('change', (e) => {
         const slot = Number(e.target.dataset.slot);
         this.slots[slot].algoId = e.target.value;
         this.slots[slot].presetIdx = 0;
         this.bridge?.setSlotEngine?.(slot, e.target.value);
-        this.bridge?.setMacro?.(slot, 0);
         this.render();
       });
     });
-
     this.el.querySelectorAll('.fx-preset-select').forEach((sel) => {
       sel.addEventListener('change', (e) => {
         const slot = Number(e.target.dataset.slot);
-        const pIdx = Number(e.target.value);
-        this.slots[slot].presetIdx = pIdx;
-        this.bridge?.applyFxPreset?.(slot, pIdx);
+        this.slots[slot].presetIdx = Number(e.target.value);
+        this.bridge?.applyFxPreset?.(slot, Number(e.target.value));
       });
     });
-
-    // BPM & Gates
     this.bindBpmAndGates();
   }
 
   bindBpmAndGates() {
-    this.el.querySelector('[data-act="bpm-inc"]')?.addEventListener('click', () => {
-      this.bpm = Math.min(300, this.bpm + 1);
+    const stepBpm = (delta) => {
+      this.bpm = Math.max(30, Math.min(300, this.bpm + delta));
       const disp = this.el.querySelector('#fx-bpm-display');
       if (disp) disp.textContent = String(this.bpm);
       this.bridge?.setParam?.('masterTempoBpm', this.bpm);
-    });
-    this.el.querySelector('[data-act="bpm-dec"]')?.addEventListener('click', () => {
-      this.bpm = Math.max(30, this.bpm - 1);
-      const disp = this.el.querySelector('#fx-bpm-display');
-      if (disp) disp.textContent = String(this.bpm);
-      this.bridge?.setParam?.('masterTempoBpm', this.bpm);
-    });
+    };
+    this.el.querySelector('[data-act="bpm-inc"]')?.addEventListener('click', () => stepBpm(1));
+    this.el.querySelector('[data-act="bpm-dec"]')?.addEventListener('click', () => stepBpm(-1));
     this.el.querySelectorAll('.fx-gate-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const gIdx = Number(btn.dataset.gate);
         btn.classList.toggle('is-active');
-        this.bridge?.setGate?.(gIdx, btn.classList.contains('is-active') ? 1 : 0);
+        this.bridge?.setGate?.(Number(btn.dataset.gate), btn.classList.contains('is-active') ? 1 : 0);
       });
     });
   }
@@ -176,10 +183,7 @@ export class MultiBusFxRackModal {
       const grVal = this.el.querySelector('#fx-gr-val');
       if (grVal) grVal.textContent = `${dto.limiterGainReductionDb.toFixed(1)} dB`;
       const grFill = this.el.querySelector('#fx-gr-bar .fx-gr-fill');
-      if (grFill) {
-        const pct = Math.min(100, Math.max(0, Math.abs(dto.limiterGainReductionDb) * 10));
-        grFill.style.width = `${pct}%`;
-      }
+      if (grFill) grFill.style.width = `${Math.min(100, Math.max(0, Math.abs(dto.limiterGainReductionDb) * 10))}%`;
     }
     if (Array.isArray(dto.lfoMod)) {
       dto.lfoMod.forEach((val, idx) => {
@@ -189,7 +193,5 @@ export class MultiBusFxRackModal {
     }
   }
 
-  destroy() {
-    this.el.remove();
-  }
+  destroy() { this.el.remove(); }
 }

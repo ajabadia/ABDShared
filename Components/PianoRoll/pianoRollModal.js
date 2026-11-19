@@ -12,6 +12,7 @@ import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticPro
 
 export class PianoRollModal {
   constructor(options = {}) {
+    this.opts = options; this.partIndex = options.partIndex ?? 0;
     this.bridge = options.bridge; this.onPatternChange = options.onPatternChange || null;
     this.onMotionPlayback = options.onMotionPlayback || null; this.onNotePreview = options.onNotePreview || null;
     this.onClose = options.onClose || null; this.onNotice = options.onNotice || null;
@@ -22,11 +23,8 @@ export class PianoRollModal {
     this.activeTool = PR_TOOLS.PENCIL; this.notes = options.initialNotes ? [...options.initialNotes] : [];
     this.motionData = {}; this.playableRange = options.playableRange || null;
     this.drumMap = options.drumMap || DEFAULT_DRUM_MAP; this.automationTargets = options.automationTargets || DEFAULT_AUTOMATION_TARGETS;
-
-    this.el = document.createElement('dialog');
-    this.el.className = 'abd-pianoroll-dialog';
-    document.body.appendChild(this.el);
-    this.render();
+    this.el = document.createElement('dialog'); this.el.className = 'abd-pianoroll-dialog';
+    document.body.appendChild(this.el); this.render();
   }
 
   render() {
@@ -59,7 +57,6 @@ export class PianoRollModal {
 
   getTotalTicks() { return this.bars * 4 * this.ppq; }
   getStepTicks() { return this.gridRenderer?.getStepTicks() || ((this.ppq * 4) / 16); }
-
   syncData() {
     const meta = this.automationTargets.find((t) => t.id === this.target);
     const velMeta = this.automationTargets.find((t) => t.id === 'velocity' || t.isVelocity);
@@ -71,7 +68,6 @@ export class PianoRollModal {
     if (!this.isOpen()) { (typeof this.el.show === 'function') ? this.el.show() : this.el.setAttribute('open', ''); }
     requestAnimationFrame(() => requestAnimationFrame(() => this.syncData()));
   }
-
   close() {
     if (this.isOpen()) { (typeof this.el.close === 'function') ? this.el.close() : this.el.removeAttribute('open'); this.onClose?.(); }
   }
@@ -79,6 +75,7 @@ export class PianoRollModal {
   toggle() { this.isOpen() ? this.close() : this.open(); }
   isOpen() { return Boolean(this.el.open || this.el.hasAttribute('open')); }
   setLocale(loc) { this.locale = loc; this.render(); }
+  setPartIndex(idx) { this.partIndex = idx ?? 0; }
   setPlayhead(tick) { this.currentTick = tick; this.gridRenderer?.setPlayhead(tick); }
 
   setPlaying(p) {
@@ -86,25 +83,31 @@ export class PianoRollModal {
     this.el.querySelector('.abd-pr-play-btn')?.classList.toggle('is-playing', this.playing);
     this.el.querySelector('.abd-pr-stop-btn')?.classList.toggle('is-stopped', !this.playing);
   }
-
   isRecording() { return Boolean(this.recording); }
   setRecording(r) { this.recording = Boolean(r); this.el.querySelector('.abd-pr-rec-btn')?.classList.toggle('is-rec', this.recording); }
 
-  recordNoteOn(midi, vel = 100) {
+  gridTicks(g) { const q = this.ppq * 4; return g === '1/8' ? q / 8 : g === '1/32' ? q / 32 : q / 16; }
+
+  recordNoteOn(midi, vel = 100, quantizeGrid = null) {
     if (!this.recording) return;
-    if (this.playing) { this.activeRecordNotes[midi] = { startTick: this.currentTick, velocity: vel }; return; }
-    const step = this.getStepTicks();
-    this.notes = this.notes.filter((n) => !(n.midiNote === midi && n.startTick === this.currentTick));
-    this.notes.push({ midiNote: midi, startTick: this.currentTick, durationTicks: step || 24, velocity: vel });
-    this.currentTick = (this.currentTick + (step || 24)) % this.getTotalTicks();
+    const total = Math.max(1, this.getTotalTicks());
+    const g = quantizeGrid || this.inputQuantize, step = g && g !== 'off' ? this.gridTicks(g) : 0;
+    let t = this.currentTick; if (step > 0) t = Math.round(t / step) * step;
+    t = ((t % total) + total) % total;
+    if (this.playing) { this.activeRecordNotes[midi] = { startTick: t, velocity: vel, step }; return; }
+    const dur = this.getStepTicks() || 24;
+    this.notes = this.notes.filter((n) => !(n.midiNote === midi && n.startTick === t));
+    this.notes.push({ midiNote: midi, startTick: t, durationTicks: dur, velocity: vel });
+    this.currentTick = (this.currentTick + dur) % total;
     this.setPlayhead(this.currentTick); this.handleNotesUpdated(this.notes);
   }
 
   recordNoteOff(midi) {
     if (!this.recording || !this.playing || !this.activeRecordNotes[midi]) return;
-    const rec = this.activeRecordNotes[midi]; delete this.activeRecordNotes[midi];
-    let dur = this.currentTick - rec.startTick; if (dur <= 0) dur = (this.currentTick + this.getTotalTicks()) - rec.startTick;
-    dur = Math.max(this.getStepTicks() || 24, dur);
+    const total = Math.max(1, this.getTotalTicks()), rec = this.activeRecordNotes[midi]; delete this.activeRecordNotes[midi];
+    let dur = this.currentTick - rec.startTick; if (dur <= 0) dur = (this.currentTick + total) - rec.startTick;
+    const minStep = rec.step > 0 ? rec.step : (this.getStepTicks() || 24);
+    dur = Math.min(Math.max(minStep, rec.step > 0 ? Math.round(dur / rec.step) * rec.step : dur), Math.max(minStep, total - rec.startTick));
     this.notes = this.notes.filter((n) => !(n.midiNote === midi && n.startTick === rec.startTick));
     this.notes.push({ midiNote: midi, startTick: rec.startTick, durationTicks: dur, velocity: rec.velocity });
     this.handleNotesUpdated(this.notes);

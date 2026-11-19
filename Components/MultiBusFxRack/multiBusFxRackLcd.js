@@ -76,13 +76,15 @@ export class MultiBusFxRackLcd {
   }
 
   renderSlotBox(num, x, y, name, isMuted) {
+    const letters = ['A', 'B', 'C', 'D'];
+    const letter = letters[num - 1] || String(num);
     const stroke = isMuted ? 'var(--color-danger)' : 'var(--color-accent)';
     return `
       <g class="fx-lcd-slot" data-slot="${num - 1}">
-        <text x="10" y="${y + 13}" fill="${stroke}" font-size="7.5" font-family="var(--font-mono)">S${num}</text>
-        <path d="M 28 ${y + 10} L 75 ${y + 10}" fill="none" stroke="${stroke}" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="6" y="${y + 13}" fill="${stroke}" font-size="7" font-weight="bold" font-family="var(--font-mono)">ENV ${letter}</text>
+        <path d="M 38 ${y + 10} L 75 ${y + 10}" fill="none" stroke="${stroke}" stroke-width="1.2" marker-end="url(#arrow)"/>
         <rect x="${x}" y="${y}" width="160" height="20" rx="3" fill="color-mix(in srgb, var(--color-panel-surface) 85%, var(--color-bg-base))" stroke="${stroke}" stroke-width="1"/>
-        <text x="${x + 6}" y="${y + 13}" fill="var(--color-text-main)" font-size="7.5" font-weight="bold" font-family="var(--font-mono)">[FX ${num}] ${name}</text>
+        <text x="${x + 6}" y="${y + 13}" fill="var(--color-text-main)" font-size="7.5" font-weight="bold" font-family="var(--font-mono)">[${letter}] ${name}</text>
       </g>
     `;
   }

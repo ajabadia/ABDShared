@@ -12,6 +12,7 @@ export {
   TOPOLOGIES,
   getAlgorithmsForCategory,
   findAlgorithm,
+  findAlgorithmById,
   REVERB_MACROS,
   CHORUS_MACROS,
   DELAY_MODES,

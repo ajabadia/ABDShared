@@ -47,3 +47,4 @@ export * from './semanticRoles.ts';
 export * from './filterRegistry.ts';
 export * from './abdPattern.ts';
 export * from './enginePanelBridge.ts';
+export * from './fxFaceplateBridge.ts';

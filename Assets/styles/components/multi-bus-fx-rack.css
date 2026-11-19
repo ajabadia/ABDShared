@@ -18,7 +18,7 @@ dialog.fx-rack-floating-dialog {
   width: 980px;
   max-width: 96vw;
   max-height: 92vh;
-  box-shadow: var(--shadow-elevation-3, 0 24px 64px rgba(0, 0, 0, 0.8));
+  box-shadow: var(--shadow-elevation-3, 0 24px 64px rgba(var(--color-scrim-rgb), 0.8));
   overflow-y: auto;
   font-family: var(--font-sans);
 }
@@ -123,7 +123,7 @@ dialog.fx-rack-floating-dialog.is-dragging .fx-rack-head {
   border: 1px solid var(--color-panel-border);
   border-radius: var(--radius-sm, 4px);
   padding: 6px 10px;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 2px 8px rgba(var(--color-scrim-rgb), 0.6);
 }
 .fx-lcd-top-bar {
   display: flex;
@@ -185,7 +185,7 @@ dialog.fx-rack-floating-dialog.is-dragging .fx-rack-head {
   border-radius: 2px;
   cursor: pointer;
 }
-.fx-slot-mute-btn.is-muted { background: var(--color-danger); border-color: var(--color-danger); color: var(--color-text-inverse, #ffffff); }
+.fx-slot-mute-btn.is-muted { background: var(--color-danger); border-color: var(--color-danger); color: var(--color-text-inverse, var(--color-bg-base)); }
 .fx-slot-badge { font-family: var(--font-mono); font-size: 7.5px; font-weight: 800; background: var(--color-panel-border); color: var(--color-text-dim); padding: 1px 4px; border-radius: 2px; }
 .fx-select-tier-row {
   display: flex;
@@ -289,12 +289,14 @@ dialog.fx-rack-floating-dialog.is-dragging .fx-rack-head {
 .fx-gates-row { display: flex; gap: 4px; }
 .fx-gate-btn {
   appearance: none; flex: 1; background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
-  color: var(--color-text-dim); font-family: var(--font-mono); font-size: 8px; font-weight: 800; padding: 4px 2px; border-radius: 2px;
+  color: var(--color-text-main); font-family: var(--font-mono); font-size: 8.5px; font-weight: 800; padding: 4px 2px; border-radius: 2px;
   cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: all var(--transition-fast, 120ms);
 }
-.fx-gate-btn.is-active { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-inverse, #000000); }
+.fx-gate-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.fx-gate-btn.is-active { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-inverse, var(--color-bg-base)); }
 .fx-gate-led { width: 5px; height: 5px; border-radius: 50%; background: var(--color-panel-border); }
-.fx-gate-btn.is-active .fx-gate-led { background: var(--color-text-inverse, #000000); }
+.fx-gate-btn.is-active .fx-gate-led { background: var(--color-text-inverse, var(--color-bg-base)); }
 
 .fx-lfo-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
 .fx-lfo-cell { display: flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 8px; color: var(--color-text-dim); }
@@ -318,7 +320,7 @@ dialog.fx-rack-floating-dialog.is-dragging .fx-rack-head {
   appearance: none; background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
   color: var(--color-text-dim); font-family: var(--font-mono); font-size: 8px; font-weight: 800; padding: 1px 6px; border-radius: 2px; cursor: pointer;
 }
-.fx-lim-btn.is-active { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-inverse, #000000); }
+.fx-lim-btn.is-active { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-inverse, var(--color-bg-base)); }
 .fx-lim-body { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .fx-gr-meter-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .fx-gr-lbl { font-family: var(--font-mono); font-size: 7.5px; font-weight: 800; color: var(--color-text-dim); }

@@ -1,0 +1,30 @@
+Audita este proyecto JUCE + WebView2 para detectar cualquier problema que haga que la versión Standalone o VST3 funcione en mi PC de desarrollo pero muestre pantalla negra, blanca o vacía (o pierda recursos) en otro PC Windows 11.
+
+No te fíes de suposiciones: comprueba el código fuente, CMakeLists.txt, los archivos generados en build/ (si existen) y las dependencias reales del binario. Revisa obligatoriamente estos 6 puntos:
+
+1. Enlace estático de WebView2 (sin DLL externa):
+   - Verifica en CMakeLists.txt que el target del plugin/app tiene `NEEDS_WEBVIEW2 TRUE` y define `JUCE_USE_WIN_WEBVIEW2=1`, `JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1` y `JUCE_WEB_BROWSER=1` en el target real (cuidado con targets generados por `juce_add_plugin`: `<target>_Standalone` y `<target>_VST3`).
+   - Si existe un `.exe` o `.vst3` compilado, ejecuta `dumpbin /DEPENDENTS` y confirma que NO aparece `WebView2Loader.dll` como dependencia dinámica.
+
+2. `UserDataFolder` y opciones de `WinWebView2`:
+   - Comprueba que se configura `.withUserDataFolder(...)` apuntando a `juce::File::userApplicationDataDirectory` (no a la carpeta del `.exe` ni a `tempDirectory`) y que se llama explícitamente a `.createDirectory()` antes de construir el `WebBrowserComponent`.
+   - Comprueba si se define `.withBackgroundColour(...)` (opaco acorde al tema de la UI) y `.withStatusBarDisabled()`.
+
+3. Fuga de rutas locales (`__FILE__`, `localhost` o rutas de desarrollo) en Release:
+   - Busca todos los usos de `__FILE__`, `goToURL`, `localhost` o rutas relativas al repositorio en el `ResourceProvider` y en cargadores de presets/bancos/configuración.
+   - En builds Release (`!JUCE_DEBUG`), el `ResourceProvider` NUNCA debe leer desde `__FILE__` antes que de `BinaryData`: si lo hace, en mi PC siempre funcionará leyendo del repo y ocultará cualquier fallo de `BinaryData` hasta que lo abra otro usuario.
+
+4. Resolución de `BinaryData` frente al mangling de `juceaide` (`juce_add_binary_data`):
+   - Revisa cómo el `ResourceProvider` resuelve recursos embebidos. Marca como BUG CRÍTICO cualquier búsqueda que construya el nombre manualmente con `.replace("-", "_")` o similar: `juceaide` ELIMINA los guiones (`top-bar.js` -> `topbar_js`) y añade sufijos numéricos ante colisiones (`knob--.png` -> `knob_png`, `knob.png` -> `knob_png2`).
+   - Verifica que la resolución busca primero por `BinaryData::originalFilenames[]` (coincidencia de ruta/sufijo y luego basename exacto case-insensitive) ANTES de cualquier heurística de nombre aplanado.
+   - Si existe `WebUI/dist` (o carpeta web) y/o `BinaryData*.cpp` generado, ejecuta un script que extraiga TODAS las referencias `src`/`href` de `index.html`, todas las `url(...)` locales de los CSS y los imports dinámicos conocidos, y compruebe:
+     a) Si hay basenames duplicados entre subcarpetas (colisión en `juce_add_binary_data`).
+     b) Qué porcentaje de referencias resuelve realmente contra el `BinaryData` compilado con la lógica actual del `ResourceProvider` (lista cada 404).
+     c) Si faltan tipos MIME (`.js`, `.mjs`, `.css`, `.svg`, `.png`, `.webp`, `.avif`, `.woff2`, `.wasm`, `.json`).
+
+5. Recursos secundarios en distribución portable:
+   - Comprueba si bancos, presets (`.syx`, `.json`, `.xml`), calibraciones, IRs o fuentes dependen de carpetas externas o `__FILE__` sin fallback a `BinaryData` o sin copiarse al instalador.
+
+6. Informe y plan de corrección:
+   - Entrégame primero un diagnóstico punto por punto con evidencias exactas (archivos, líneas, lista de 404 detectados y salida de `dumpbin`), separando qué está bien, qué falla seguro en otro PC y qué es preventivo.
+   - Propón los cambios concretos y un test automatizado de contrato para que el problema no pueda regresar (no compiles ni hagas commits salvo que te lo pida).

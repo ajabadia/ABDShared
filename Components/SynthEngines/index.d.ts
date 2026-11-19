@@ -5,6 +5,22 @@ import type {
   EnginePanelOptions,
 } from '../../Contracts/enginePanelBridge';
 
+export interface EngineMetadata {
+  typeId: string;
+  displayName: string;
+  shortBadge: string;
+  category: string;
+  accentToken: string;
+  iconSvg: string;
+  defaultImage?: string;
+  description?: string;
+}
+
+export declare const DEFAULT_ENGINE_METADATA: Readonly<Record<string, EngineMetadata>>;
+export declare function registerEngineMetadata(typeId: string, meta: Partial<EngineMetadata>): void;
+export declare function getEngineMetadata(typeId: string): EngineMetadata;
+export declare function renderEngineCoverHtml(typeId: string, coverUrl?: string, title?: string, size?: number): string;
+
 export declare function registerEnginePanel(engineTypeId: string, factory: EnginePanelFactory): void;
 export declare function getEnginePanelFactory(engineTypeId: string): EnginePanelFactory | null;
 export declare function listRegisteredEnginePanels(): string[];
@@ -59,3 +75,7 @@ export declare function createStructuredRomplerPanel(
   bridge: EnginePanelBridge,
   options?: EnginePanelOptions
 ): StructuredRomplerPanel;
+
+export declare function buildDefaultRomplerFlatState(overrides?: Record<string, any>): Record<string, number>;
+export declare function flattenRomplerStateJson(stateJson: string, engineTypeId?: string): Record<string, number>;
+

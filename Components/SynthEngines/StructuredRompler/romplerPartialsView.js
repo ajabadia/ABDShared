@@ -13,16 +13,9 @@ import {
   applyKnobModulation, mountRomplerKnob, syncKeyMap,
 } from './romplerParamSpecs.js';
 
-const PARTIAL_KNOBS = [
-  ['coarse', ROMPLER_PARAM_SPECS.coarse], ['fine', ROMPLER_PARAM_SPECS.fine],
-  ['pw', ROMPLER_PARAM_SPECS.pw], ['level', ROMPLER_PARAM_SPECS.level],
-  ['pan', ROMPLER_PARAM_SPECS.pan], ['cutoffHz', ROMPLER_PARAM_SPECS.cutoffHz],
-  ['resonance', ROMPLER_PARAM_SPECS.resonance], ['morph', ROMPLER_PARAM_SPECS.morph],
-  ['drive', ROMPLER_PARAM_SPECS.drive], ['filterEnvOct', ROMPLER_PARAM_SPECS.filterEnvOct],
-  ['pitchEnvSemi', ROMPLER_PARAM_SPECS.pitchEnvSemi], ['amp.t1Ms', ROMPLER_PARAM_SPECS.t1Ms],
-  ['amp.t2Ms', ROMPLER_PARAM_SPECS.t2Ms], ['amp.l3', ROMPLER_PARAM_SPECS.l3],
-  ['amp.t4Ms', ROMPLER_PARAM_SPECS.t4Ms],
-];
+const OSC_KNOBS = [['coarse', ROMPLER_PARAM_SPECS.coarse], ['fine', ROMPLER_PARAM_SPECS.fine], ['pw', ROMPLER_PARAM_SPECS.pw], ['level', ROMPLER_PARAM_SPECS.level], ['pan', ROMPLER_PARAM_SPECS.pan]];
+const FILT_KNOBS = [['cutoffHz', ROMPLER_PARAM_SPECS.cutoffHz], ['resonance', ROMPLER_PARAM_SPECS.resonance], ['morph', ROMPLER_PARAM_SPECS.morph], ['drive', ROMPLER_PARAM_SPECS.drive], ['filterEnvOct', ROMPLER_PARAM_SPECS.filterEnvOct], ['pitchEnvSemi', ROMPLER_PARAM_SPECS.pitchEnvSemi]];
+const ENV_KNOBS = [['amp.t1Ms', ROMPLER_PARAM_SPECS.t1Ms], ['amp.t2Ms', ROMPLER_PARAM_SPECS.t2Ms], ['amp.l3', ROMPLER_PARAM_SPECS.l3], ['amp.t4Ms', ROMPLER_PARAM_SPECS.t4Ms]];
 
 const toPad = (v) => (Math.max(-1, Math.min(1, Number.isFinite(v) ? v : 0)) + 1) * 0.5;
 const fromPad = (n) => Math.max(-1, Math.min(1, n * 2 - 1));
@@ -70,17 +63,30 @@ export class RomplerPartialsView {
               <div data-el="p-fmode"></div>
             </div>
           </div>
-          <div class="abd-engine-card">
+          <div class="abd-engine-card abd-engine-card--vector">
             <h4 class="abd-engine-card-title">${t.vectorGlide}</h4>
-            <div class="abd-engine-row abd-engine-row--wrap abd-engine-xy-layout">
+            <div class="abd-engine-row abd-engine-xy-layout">
               <div data-el="vec-xy"></div>
-              <div class="abd-engine-flex-1 abd-engine-row abd-engine-row--wrap" data-el="vec-glide"></div>
+              <div class="abd-engine-vector-glide-ctrls" data-el="vec-glide"></div>
             </div>
           </div>
         </div>
         <div class="abd-engine-card">
           <h4 class="abd-engine-card-title">${t.partialsSection} (P${this.activePartial})</h4>
-          <div class="abd-engine-knob-grid" data-el="p-knobs"></div>
+          <div class="abd-engine-synth-sections">
+            <div class="abd-engine-synth-sub">
+              <h5 class="abd-engine-sub-title">${this.locale === 'es' ? 'Osc & Tono' : 'Osc & Tone'}</h5>
+              <div class="abd-engine-knob-row" data-el="osc-knobs"></div>
+            </div>
+            <div class="abd-engine-synth-sub">
+              <h5 class="abd-engine-sub-title">${this.locale === 'es' ? 'Filtro & Dinámica' : 'Filter & Dynamics'}</h5>
+              <div class="abd-engine-knob-row" data-el="filt-knobs"></div>
+            </div>
+            <div class="abd-engine-synth-sub">
+              <h5 class="abd-engine-sub-title">${this.locale === 'es' ? 'Envolvente Amp (ADSR)' : 'Amp ADSR'}</h5>
+              <div class="abd-engine-knob-row" data-el="env-knobs"></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -123,16 +129,9 @@ export class RomplerPartialsView {
     });
     this.track(pWave, `${pPrefix}.wave`, (v) => pWave.setValue(Math.round(v)));
 
-    const pOneShot = new Toggle(pcmRow, {
-      label: t.oneShot, value: false,
-      onChange: (on) => this.bridge.setParam(`${pPrefix}.oneShot`, on ? 1 : 0),
-    });
+    const pOneShot = new Toggle(pcmRow, { label: t.oneShot, value: false, onChange: (on) => this.bridge.setParam(`${pPrefix}.oneShot`, on ? 1 : 0) });
     this.track(pOneShot, `${pPrefix}.oneShot`, (v) => pOneShot.setValue(v >= 0.5));
-
-    const pPingPong = new Toggle(pcmRow, {
-      label: t.pingPong, value: false,
-      onChange: (on) => this.bridge.setParam(`${pPrefix}.pingPong`, on ? 1 : 0),
-    });
+    const pPingPong = new Toggle(pcmRow, { label: t.pingPong, value: false, onChange: (on) => this.bridge.setParam(`${pPrefix}.pingPong`, on ? 1 : 0) });
     this.track(pPingPong, `${pPrefix}.pingPong`, (v) => pPingPong.setValue(v >= 0.5));
 
     const fModel = new Segmented(this.paneEl.querySelector('[data-el="p-fmodel"]'), {
@@ -169,10 +168,12 @@ export class RomplerPartialsView {
     const knobOpts = { locale: this.locale, skin: this.skin, size: 38 };
     mountRomplerKnob(vg, this.bridge, 'porta.timeMs', ROMPLER_PARAM_SPECS.portaTimeMs, knobOpts, this.controls, this.keyMap);
 
-    const knobGrid = this.paneEl.querySelector('[data-el="p-knobs"]');
-    for (const [suffix, spec] of PARTIAL_KNOBS) {
-      mountRomplerKnob(knobGrid, this.bridge, `${pPrefix}.${suffix}`, spec, knobOpts, this.controls, this.keyMap);
-    }
+    const mountK = (el, list) => {
+      for (const [sfx, sp] of list) mountRomplerKnob(el, this.bridge, `${pPrefix}.${sfx}`, sp, knobOpts, this.controls, this.keyMap);
+    };
+    mountK(this.paneEl.querySelector('[data-el="osc-knobs"]'), OSC_KNOBS);
+    mountK(this.paneEl.querySelector('[data-el="filt-knobs"]'), FILT_KNOBS);
+    mountK(this.paneEl.querySelector('[data-el="env-knobs"]'), ENV_KNOBS);
   }
 
   sync(state) { syncKeyMap(this.keyMap, this.bridge, state); }

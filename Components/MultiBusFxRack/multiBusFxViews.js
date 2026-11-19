@@ -4,42 +4,23 @@
  * Strict line limit: < 200 lines.
  */
 
-import { FX_CATEGORIES, TOPOLOGIES, getAlgorithmsForCategory, findAlgorithm } from './multiBusFxRegistry.js';
+import { FX_CATEGORIES, TOPOLOGIES, getAlgorithmsForCategory, findAlgorithm, findAlgorithmById } from './multiBusFxRegistry.js';
+export { FX_CATEGORIES, TOPOLOGIES, getAlgorithmsForCategory, findAlgorithm, findAlgorithmById };
 
 export const FX_STRINGS = {
   es: {
-    title: 'RACK DE EFECTOS MULTIBUS (POLIMÓRFICO)',
-    topo: 'TOPOLOGÍA:',
-    closeTitle: 'Cerrar Rack',
-    slotMuteTitle: 'Silenciar/Bypass slot (0% CPU)',
-    tempoSyncBay: 'TEMPO & SINCRONÍA',
-    tempoSyncBtn: 'SYNC TEMPO',
-    tempoSyncTitle: 'Sincronía de tiempo BPM',
-    gatesTitle: 'COMPUERTAS RÍTMICAS (DISPATCH DINÁMICO)',
-    duckTip: 'Atenuación rítmica con bombo',
-    gateRevTip: 'Corte abrupto de cola',
-    freezeTip: 'Congela el buffer de eco en bucle',
-    killTip: 'Silencia retornos para paradas',
-    lfoTitle: 'ENTRADAS MOD LFO (BIPOLAR [-1..+1])',
-    limTitle: 'LIMITADOR MASTER',
-    limTip: 'Activar limitador de seguridad',
+    title: 'RACK DE EFECTOS MULTIBUS (POLIMÓRFICO)', topo: 'TOPOLOGÍA:', closeTitle: 'Cerrar Rack',
+    slotMuteTitle: 'Silenciar/Bypass slot (0% CPU)', tempoSyncBay: 'TEMPO & SINCRONÍA', tempoSyncBtn: 'SYNC TEMPO',
+    tempoSyncTitle: 'Sincronía de tiempo BPM', gatesTitle: 'COMPUERTAS RÍTMICAS (DISPATCH DINÁMICO)',
+    duckTip: 'Atenuación rítmica con bombo', gateRevTip: 'Corte abrupto de cola', freezeTip: 'Congela eco',
+    killTip: 'Silencia retornos', lfoTitle: 'ENTRADAS MOD LFO (BIPOLAR [-1..+1])', limTitle: 'LIMITADOR MASTER', limTip: 'Activar limitador',
   },
   en: {
-    title: 'MULTI-BUS EFFECTS RACK (POLYMORPHIC)',
-    topo: 'TOPOLOGY:',
-    closeTitle: 'Close Rack',
-    slotMuteTitle: 'Mute/Bypass slot (0% CPU)',
-    tempoSyncBay: 'TEMPO & SYNC',
-    tempoSyncBtn: 'TEMPO SYNC',
-    tempoSyncTitle: 'BPM tempo synchronization',
-    gatesTitle: 'RHYTHMIC GATES (DYNAMIC DISPATCH)',
-    duckTip: 'Rhythmic ducking with kick trigger',
-    gateRevTip: 'Abrupt tail gating',
-    freezeTip: 'Freeze echo loop buffer',
-    killTip: 'Mute all returns for stops',
-    lfoTitle: 'LFO MOD INPUTS (BIPOLAR [-1..+1])',
-    limTitle: 'SAFETY LIMITER',
-    limTip: 'Toggle safety limiter',
+    title: 'MULTI-BUS EFFECTS RACK (POLYMORPHIC)', topo: 'TOPOLOGY:', closeTitle: 'Close Rack',
+    slotMuteTitle: 'Mute/Bypass slot (0% CPU)', tempoSyncBay: 'TEMPO & SYNC', tempoSyncBtn: 'TEMPO SYNC',
+    tempoSyncTitle: 'BPM tempo sync', gatesTitle: 'RHYTHMIC GATES (DYNAMIC DISPATCH)',
+    duckTip: 'Rhythmic ducking', gateRevTip: 'Tail gating', freezeTip: 'Freeze echo',
+    killTip: 'Mute all returns', lfoTitle: 'LFO MOD INPUTS (BIPOLAR [-1..+1])', limTitle: 'SAFETY LIMITER', limTip: 'Toggle limiter',
   },
 };
 
@@ -47,7 +28,39 @@ export function getFxStrings(locale = 'es') {
   return String(locale).startsWith('es') ? FX_STRINGS.es : FX_STRINGS.en;
 }
 
-export function renderSlotCardHtml(slotIdx, state, muteTip) {
+export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay = -1) {
+  const letters = ['A', 'B', 'C', 'D'];
+  if (Array.isArray(rackSlots)) {
+    const active = rackSlots.filter((b) => b && b.engine !== 0);
+    const cur = (targetBay >= 0 && rackSlots[targetBay] && rackSlots[targetBay].engine !== 0) ? rackSlots[targetBay] : null;
+    const title = cur ? `ENVÍO ${letters[slotIdx]}: ${(cur.name || cur.algoId).toUpperCase()}` : `ENVÍO ${letters[slotIdx]}: (DESCONECTADO)`;
+    const badge = cur ? `B${targetBay + 1}` : 'OFF';
+    const opts = [
+      `<option value="-1"${targetBay === -1 ? ' selected' : ''}>-- DESCONECTADO (MUTE) --</option>`,
+      ...active.map((b) => {
+        const idx = rackSlots.indexOf(b);
+        return `<option value="${idx}"${idx === targetBay ? ' selected' : ''}>BAHÍA ${idx + 1}: ${b.name || b.algoId}</option>`;
+      }),
+    ].join('');
+    return `
+      <div class="fx-slot-card" data-slot="${slotIdx}">
+        <div class="fx-slot-head">
+          <span class="fx-slot-title">${title}</span>
+          <button type="button" class="fx-slot-mute-btn" data-act="slot-mute" data-slot="${slotIdx}" title="${muteTip}">M</button>
+          <span class="fx-slot-badge">${badge}</span>
+        </div>
+        <div class="fx-slot-body">
+          <div class="fx-select-tier-row">
+            <select class="fx-rack-bay-select" data-slot="${slotIdx}" aria-label="Efecto de Bahía" style="width:100%">${opts}</select>
+          </div>
+          <div class="fx-preset-tier-row" style="justify-content:center;">
+            ${cur ? `<button type="button" class="fx-open-faceplate-btn" data-bay="${targetBay}" style="appearance:none;display:inline-flex;align-items:center;gap:4px;background:var(--color-control-bg);border:1px solid var(--color-border-subtle);color:var(--color-accent);font-size:10px;font-weight:700;padding:3px 10px;border-radius:3px;cursor:pointer;"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Editar Carátula B${targetBay + 1}</button>` : '<span style="font-size:10px;color:var(--color-text-dim);font-family:var(--font-mono);">BUS INACTIVO (0% CPU)</span>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   const { catId, algoId, presetIdx } = state;
   const algos = getAlgorithmsForCategory(catId);
   const curAlgo = findAlgorithm(catId, algoId);
@@ -87,10 +100,10 @@ export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRIN
       <div class="fx-sync-col">
         <span class="fx-mod-title">${str.tempoSyncBay}</span>
         <div class="fx-bpm-row">
-          <button type="button" class="fx-bpm-step-btn" data-act="bpm-dec">◀</button>
+          <button type="button" class="fx-bpm-step-btn" data-act="bpm-dec" aria-label="BPM Menos"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><polygon points="15,4 7,12 15,20"/></svg></button>
           <span class="fx-bpm-val" id="fx-bpm-display">${bpm}</span>
           <span class="fx-bpm-tag">BPM</span>
-          <button type="button" class="fx-bpm-step-btn" data-act="bpm-inc">▶</button>
+          <button type="button" class="fx-bpm-step-btn" data-act="bpm-inc" aria-label="BPM Más"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><polygon points="9,4 17,12 9,20"/></svg></button>
         </div>
         <button type="button" class="fx-tempo-sync-btn${tempoSync ? ' is-active' : ''}" data-act="toggle-sync" title="${str.tempoSyncTitle}">${str.tempoSyncBtn}</button>
       </div>
@@ -108,17 +121,17 @@ export function renderSyncModBusHtml(bpm = 120, tempoSync = true, str = FX_STRIN
       <div class="fx-lfo-col">
         <span class="fx-mod-title">${str.lfoTitle}</span>
         <div class="fx-lfo-row">
-          <div class="fx-lfo-cell" data-lfo="0"><span class="fx-lfo-lbl">S1</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
-          <div class="fx-lfo-cell" data-lfo="1"><span class="fx-lfo-lbl">S2</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
-          <div class="fx-lfo-cell" data-lfo="2"><span class="fx-lfo-lbl">S3</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
-          <div class="fx-lfo-cell" data-lfo="3"><span class="fx-lfo-lbl">S4</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="0"><span class="fx-lfo-lbl">A</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="1"><span class="fx-lfo-lbl">B</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="2"><span class="fx-lfo-lbl">C</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
+          <div class="fx-lfo-cell" data-lfo="3"><span class="fx-lfo-lbl">D</span><span class="fx-lfo-meter"><span class="fx-lfo-fill"></span></span></div>
         </div>
       </div>
     </div>
   `;
 }
 
-export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotStates) {
+export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotStates, rackSlots, sendTargets) {
   const str = getFxStrings(locale);
   const topoOpts = TOPOLOGIES.map((t) => `<option value="${t.id}"${t.id === activeTopo ? ' selected' : ''}>${t.label}</option>`).join('');
 
@@ -133,17 +146,21 @@ export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotS
           <span class="fx-topo-lbl">${str.topo}</span>
           <select class="fx-topo-select" aria-label="Ruteo">${topoOpts}</select>
         </div>
-        <button type="button" class="fx-rack-close-btn" data-act="close" title="${str.closeTitle}">✕</button>
+        <button type="button" class="fx-rack-close-btn" data-act="close" title="${str.closeTitle}" aria-label="${str.closeTitle}">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
       <div class="fx-lcd-mount" id="fx-lcd-mount-point"></div>
 
       <!-- 4 Polymorphic Slots Grid -->
       <div class="fx-slots-grid">
-        ${renderSlotCardHtml(0, slotStates[0], str.slotMuteTitle)}
-        ${renderSlotCardHtml(1, slotStates[1], str.slotMuteTitle)}
-        ${renderSlotCardHtml(2, slotStates[2], str.slotMuteTitle)}
-        ${renderSlotCardHtml(3, slotStates[3], str.slotMuteTitle)}
+        ${renderSlotCardHtml(0, slotStates[0], str.slotMuteTitle, rackSlots, sendTargets?.[0])}
+        ${renderSlotCardHtml(1, slotStates[1], str.slotMuteTitle, rackSlots, sendTargets?.[1])}
+        ${renderSlotCardHtml(2, slotStates[2], str.slotMuteTitle, rackSlots, sendTargets?.[2])}
+        ${renderSlotCardHtml(3, slotStates[3], str.slotMuteTitle, rackSlots, sendTargets?.[3])}
       </div>
 
       <!-- Bottom Bar: Sync / Mod Bay + Master Limiter -->

@@ -10,6 +10,10 @@ export {
   listRegisteredEnginePanels,
   mountEnginePanel,
   EnginePanelHost,
+  DEFAULT_ENGINE_METADATA,
+  registerEngineMetadata,
+  getEngineMetadata,
+  renderEngineCoverHtml,
 } from './enginePanelRegistry.js';
 
 export { GenericEnginePanel, createGenericEnginePanel } from './genericEnginePanel.js';
@@ -30,3 +34,9 @@ export {
   ROMPLER_DRUM_TRIGGERS,
   ROMPLER_DRUM_QUICK_NOTES,
 } from './StructuredRompler/romplerParamSpecs.js';
+
+export {
+  flattenRomplerStateJson,
+  buildDefaultRomplerFlatState,
+} from './StructuredRompler/romplerStateFlatten.js';
+

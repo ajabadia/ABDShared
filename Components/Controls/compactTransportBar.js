@@ -52,9 +52,9 @@ export class CompactTransportBar {
     this.container.innerHTML = `
       <div class="abd-transport abd-transport--${this.orientation}">
         <div class="abd-transport__row abd-transport__row--main">
-          <button type="button" class="abd-transport__btn abd-transport__btn--play ${this.state.playing ? 'is-playing' : ''}" data-act="play" title="${l.play || 'Play'}"><span class="abd-transport__icon">▶</span></button>
-          <button type="button" class="abd-transport__btn abd-transport__btn--stop ${!this.state.playing ? 'is-stopped' : ''}" data-act="stop" title="${l.stop || 'Stop'}"><span class="abd-transport__icon">■</span></button>
-          <button type="button" class="abd-transport__btn abd-transport__btn--rec ${this.state.recording ? 'is-recording' : ''}" data-act="rec" title="${l.record || 'Record'}"><span class="abd-transport__icon">●</span></button>
+          <button type="button" class="abd-transport__btn abd-transport__btn--play ${this.state.playing ? 'is-playing' : ''}" data-act="play" title="${l.play || 'Play'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></button>
+          <button type="button" class="abd-transport__btn abd-transport__btn--stop ${!this.state.playing ? 'is-stopped' : ''}" data-act="stop" title="${l.stop || 'Stop'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><rect width="14" height="14" x="5" y="5" rx="1"/></svg></span></button>
+          <button type="button" class="abd-transport__btn abd-transport__btn--rec ${this.state.recording ? 'is-recording' : ''}" data-act="rec" title="${l.record || 'Record'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg></span></button>
         </div>
         <div class="abd-transport__row abd-transport__row--toggles">
           <button type="button" class="abd-transport__toggle ${this.state.looping ? 'is-active' : ''}" data-act="loop" title="${l.loop || 'Loop'}"><span class="abd-transport__led"></span><span>LOOP</span></button>
@@ -92,7 +92,7 @@ export class CompactTransportBar {
     this.updateButtons();
     this.opts.onMetro?.(this.state.metro);
     this.opts.onMetroMode?.(this.state.metroMode);
-    const notice = this.state.metroMode === 'both' ? 'METRONOME: ON (PLAY+REC) 🔔' : (this.state.metroMode === 'rec' ? 'METRONOME: REC ONLY 🔴' : 'METRONOME: OFF');
+    const notice = this.state.metroMode === 'both' ? 'METRONOME: ON (PLAY+REC)' : (this.state.metroMode === 'rec' ? 'METRONOME: REC ONLY' : 'METRONOME: OFF');
     this.opts.onNotice?.(notice);
     this.emitChange();
   }
@@ -100,21 +100,21 @@ export class CompactTransportBar {
   bindEvents() {
     this.container.querySelector('[data-act="play"]')?.addEventListener('click', () => {
       this.state.playing = true; this.updateButtons(); this.syncMetroAudio();
-      this.opts.onPlay?.(); this.opts.onNotice?.(`TRANSPORT: PLAY ▶ (${this.state.bpm.toFixed(1)} BPM)`); this.emitChange();
+      this.opts.onPlay?.(); this.opts.onNotice?.(`TRANSPORT: PLAY (${this.state.bpm.toFixed(1)} BPM)`); this.emitChange();
     });
     this.container.querySelector('[data-act="stop"]')?.addEventListener('click', () => {
       this.state.playing = false; this.state.recording = false; this.syncMetroAudio();
-      this.updateButtons(); this.opts.onStop?.(); this.opts.onNotice?.('TRANSPORT: STOP ■'); this.emitChange();
+      this.updateButtons(); this.opts.onStop?.(); this.opts.onNotice?.('TRANSPORT: STOP'); this.emitChange();
     });
     this.container.querySelector('[data-act="rec"]')?.addEventListener('click', () => {
       this.state.recording = !this.state.recording; this.syncMetroAudio();
       this.updateButtons(); this.opts.onRecord?.(this.state.recording);
-      this.opts.onNotice?.(this.state.recording ? 'TRANSPORT: REC ARMED ●' : 'TRANSPORT: REC OFF'); this.emitChange();
+      this.opts.onNotice?.(this.state.recording ? 'TRANSPORT: REC ARMED' : 'TRANSPORT: REC OFF'); this.emitChange();
     });
     this.container.querySelector('[data-act="loop"]')?.addEventListener('click', () => {
       this.state.looping = !this.state.looping; this.updateButtons();
       this.opts.onLoop?.(this.state.looping);
-      this.opts.onNotice?.(this.state.looping ? 'LOOP: ON 🔁' : 'LOOP: ONE-SHOT'); this.emitChange();
+      this.opts.onNotice?.(this.state.looping ? 'LOOP: ON' : 'LOOP: ONE-SHOT'); this.emitChange();
     });
 
     this.container.querySelector('[data-act="metro"]')?.addEventListener('click', () => this.cycleMetroMode());

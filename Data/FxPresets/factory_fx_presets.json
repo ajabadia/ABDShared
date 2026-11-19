@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "presets": {
+    "space_echo": [
+      { "name": "Classic Tape Echo", "params": { "rate": 0.45, "intensity": 0.50, "echoVol": 0.80, "bass": 0.50, "treble": 0.50 }, "mode": 3 },
+      { "name": "Dub Slapback", "params": { "rate": 0.20, "intensity": 0.70, "echoVol": 0.85, "bass": 0.60, "treble": 0.40 }, "mode": 1 },
+      { "name": "Self-Oscillation Infinity", "params": { "rate": 0.85, "intensity": 0.92, "echoVol": 0.90, "bass": 0.45, "treble": 0.65 }, "mode": 11 },
+      { "name": "Deep Ambient Space", "params": { "rate": 0.60, "intensity": 0.65, "echoVol": 0.75, "bass": 0.55, "treble": 0.55 }, "mode": 7 }
+    ],
+    "zita": [
+      { "name": "Warm Studio Hall", "params": { "decay": 0.60, "damp": 0.40, "size": 0.70, "preDelay": 0.20, "lowCut": 0.15 } },
+      { "name": "Cathedral Vastness", "params": { "decay": 0.85, "damp": 0.25, "size": 0.95, "preDelay": 0.35, "lowCut": 0.10 } },
+      { "name": "Tight Drum Plate", "params": { "decay": 0.35, "damp": 0.65, "size": 0.40, "preDelay": 0.05, "lowCut": 0.25 } },
+      { "name": "Dark Chamber", "params": { "decay": 0.50, "damp": 0.80, "size": 0.55, "preDelay": 0.15, "lowCut": 0.30 } }
+    ],
+    "bbd_chorus": [
+      { "name": "Juno Classic I", "params": { "rate": 0.35, "depth": 0.55, "width": 0.80, "noise": 0.05 }, "mode": 1 },
+      { "name": "Juno Lush II", "params": { "rate": 0.55, "depth": 0.75, "width": 0.90, "noise": 0.10 }, "mode": 2 },
+      { "name": "Dimension Hyper I+II", "params": { "rate": 0.70, "depth": 0.90, "width": 1.00, "noise": 0.15 }, "mode": 3 },
+      { "name": "Subtle Motion", "params": { "rate": 0.25, "depth": 0.35, "width": 0.60, "noise": 0.00 }, "mode": 1 }
+    ],
+    "stereo_delay": [
+      { "name": "1/8 Ping-Pong Sync", "params": { "time": 0.50, "feedback": 0.45, "damping": 0.30, "spread": 0.80 }, "pingPong": true },
+      { "name": "1/16 Dotted Dub", "params": { "time": 0.375, "feedback": 0.65, "damping": 0.50, "spread": 0.50 }, "pingPong": false },
+      { "name": "Wide Stereo Spread", "params": { "time": 0.25, "feedback": 0.30, "damping": 0.20, "spread": 1.00 }, "pingPong": true },
+      { "name": "Analog Tape Flutter", "params": { "time": 0.45, "feedback": 0.55, "damping": 0.60, "spread": 0.70 }, "pingPong": false }
+    ],
+    "saturation": [
+      { "name": "Warm Tape Glow", "params": { "drive": 0.35, "warmth": 0.60, "bias": 0.50, "level": 0.80 }, "curve": "tape" },
+      { "name": "Vintage Valve Tube", "params": { "drive": 0.55, "warmth": 0.75, "bias": 0.60, "level": 0.75 }, "curve": "tube" },
+      { "name": "Hard Clip Overdrive", "params": { "drive": 0.80, "warmth": 0.20, "bias": 0.50, "level": 0.70 }, "curve": "hard" },
+      { "name": "Subtle Mastering Warmth", "params": { "drive": 0.15, "warmth": 0.80, "bias": 0.50, "level": 0.90 }, "curve": "warm" }
+    ],
+    "flanger": [
+      { "name": "Jet Engine Sweep", "params": { "rate": 0.30, "depth": 0.80, "feedback": 0.75, "manual": 0.50 } },
+      { "name": "Liquid Metallic", "params": { "rate": 0.60, "depth": 0.50, "feedback": 0.85, "manual": 0.30 } },
+      { "name": "Slow Stereo Swirl", "params": { "rate": 0.15, "depth": 0.90, "feedback": 0.40, "manual": 0.60 } }
+    ]
+  }
+}

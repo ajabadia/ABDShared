@@ -5,7 +5,7 @@
  */
 
 import { Toggle } from '../../toggle.js';
-import { registerEnginePanel } from '../enginePanelRegistry.js';
+import { registerEnginePanel, renderEngineCoverHtml } from '../enginePanelRegistry.js';
 import { ROMPLER_I18N } from './romplerParamSpecs.js';
 import { RomplerPartialsView } from './romplerPartialsView.js';
 import { RomplerModView } from './romplerModView.js';
@@ -50,19 +50,19 @@ export class StructuredRomplerPanel {
     this.el.innerHTML = `
       <header class="abd-engine-header">
         <div class="abd-engine-title-wrap">
-          <span class="abd-engine-badge">${t.title}</span>
-          <h3 class="abd-engine-title" data-el="preset-title">${curPreset || t.title}</h3>
-        </div>
-        <div class="abd-engine-header-actions">
-          <div data-el="drum-tog"></div>
+          ${renderEngineCoverHtml(this.engineTypeId, this.bridge.getCoverUrl?.(), curPreset, 28)}
           ${presets.length ? `
-            <label class="abd-engine-field-label" for="${presetSelId}">${t.preset}</label>
+            <label class="abd-engine-field-label" for="${presetSelId}">${t.preset}:</label>
             <select id="${presetSelId}" class="abd-engine-select" data-el="preset-sel">
               ${presets.map((name, i) => `<option value="${i}" ${name === curPreset ? 'selected' : ''}>${name}</option>`).join('')}
             </select>
-          ` : ''}
+            <span class="abd-engine-preset-active" data-el="preset-title">${curPreset}</span>
+          ` : `<span class="abd-engine-title" data-el="preset-title">${curPreset || t.title}</span>`}
+        </div>
+        <div class="abd-engine-header-actions">
+          <div data-el="drum-tog"></div>
           ${typeof this.bridge.onRequestBankBrowser === 'function'
-            ? `<button type="button" class="abd-engine-btn" data-act="open-bank">${t.bank}</button>`
+            ? `<button type="button" class="abd-engine-btn" data-act="open-bank"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg> <span>${t.bank}</span></button>`
             : ''}
         </div>
       </header>

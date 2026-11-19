@@ -10,9 +10,41 @@
   background: color-mix(in srgb, var(--color-panel-surface) 40%, transparent);
   border: 1px solid var(--color-panel-border-dim); border-radius: var(--radius-sm); padding: 3px 2px;
 }
-.abd-transport--horizontal { flex-direction: row; align-items: center; gap: var(--space-2, 6px); padding: 3px 6px; width: auto; }
+.abd-transport--horizontal {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "tempo   main"
+    "toggles main";
+  align-items: center;
+  gap: var(--space-1, 4px) var(--space-3, 10px);
+  padding: 4px 6px;
+  width: 100%;
+}
 .abd-transport__row { display: flex; align-items: center; justify-content: space-between; gap: 2px; width: 100%; }
 .abd-transport--horizontal .abd-transport__row { width: auto; gap: 3px; }
+
+.abd-transport--horizontal .abd-transport__row--tempo {
+  grid-area: tempo;
+  width: 112px;
+  height: 20px;
+}
+.abd-transport--horizontal .abd-transport__row--toggles {
+  grid-area: toggles;
+  width: 112px;
+  height: 20px;
+  gap: 3px;
+}
+.abd-transport--horizontal .abd-transport__row--main {
+  grid-area: main;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--space-2, 6px);
+  height: 100%;
+  min-height: 42px;
+}
 
 .abd-transport__btn {
   appearance: none; flex: 1; height: 22px; min-width: 24px; display: inline-flex; align-items: center; justify-content: center;
@@ -22,14 +54,30 @@
 }
 .abd-transport__btn:hover { background: var(--color-panel-surface-elevated); color: var(--color-text-main); border-color: var(--color-accent); }
 
+.abd-transport--horizontal .abd-transport__btn {
+  height: 42px;
+  min-width: 50px;
+  flex: 1;
+  max-width: 90px;
+  border-radius: var(--radius-sm);
+}
+.abd-transport--horizontal .abd-transport__icon svg {
+  width: 16px;
+  height: 16px;
+}
+.abd-transport--horizontal .abd-transport__btn--stop .abd-transport__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .abd-transport__btn--play.is-playing {
   background: color-mix(in srgb, var(--color-success) 22%, var(--color-panel-surface));
   border-color: var(--color-success); color: var(--color-success); box-shadow: 0 0 6px var(--color-success);
 }
 .abd-transport__btn--stop.is-stopped {
-  background: color-mix(in srgb, var(--color-warning, #f59e0b) 18%, var(--color-panel-surface));
-  border-color: var(--color-warning, #f59e0b); color: var(--color-warning, #f59e0b);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--color-warning, #f59e0b) 40%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 18%, var(--color-panel-surface));
+  border-color: var(--color-warning); color: var(--color-warning);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--color-warning) 40%, transparent);
 }
 .abd-transport__btn--rec.is-recording {
   background: color-mix(in srgb, var(--color-danger) 25%, var(--color-panel-surface));
@@ -53,12 +101,12 @@
   border-color: var(--color-accent); color: var(--color-accent);
 }
 .abd-transport__toggle.is-active.is-rec-only {
-  background: color-mix(in srgb, var(--color-warning, #f59e0b) 25%, var(--color-panel-bg));
-  border-color: var(--color-warning, #f59e0b); color: var(--color-warning, #f59e0b);
+  background: color-mix(in srgb, var(--color-warning) 25%, var(--color-panel-bg));
+  border-color: var(--color-warning); color: var(--color-warning);
 }
 .abd-transport__led { width: 4px; height: 4px; border-radius: 50%; background: var(--color-panel-border-dim); }
 .abd-transport__toggle.is-active .abd-transport__led { background: var(--color-accent); box-shadow: 0 0 4px var(--color-accent); }
-.abd-transport__toggle.is-active.is-rec-only .abd-transport__led { background: var(--color-warning, #f59e0b); box-shadow: 0 0 4px var(--color-warning, #f59e0b); }
+.abd-transport__toggle.is-active.is-rec-only .abd-transport__led { background: var(--color-warning); box-shadow: 0 0 4px var(--color-warning); }
 .abd-transport__tag {
   font-size: 6px; font-weight: 800; padding: 0 2px; border-radius: 2px;
   background: color-mix(in srgb, var(--color-panel-surface) 80%, transparent);

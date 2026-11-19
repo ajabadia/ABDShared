@@ -60,3 +60,25 @@ export declare const REVERB_MACROS: string[];
 export declare const CHORUS_MACROS: string[];
 export declare const DELAY_MODES: string[];
 export declare const AUX_MODES: string[];
+
+export interface FxAlgorithmDef {
+  id: string;
+  name: string;
+  badge: string;
+  baseColor: string;
+  accentColor: string;
+  icon: string;
+  image?: string | null;
+  tailSec: number;
+  canDuck: boolean;
+  category?: string;
+  p1: { id: string; label: string; val: string };
+  p2: { id: string; label: string; val: string };
+  presets: string[];
+}
+
+export declare const FX_CATEGORIES: Array<{ id: string; label: string }>;
+export declare const FX_ALGORITHMS: Record<string, FxAlgorithmDef[]>;
+export declare function getAlgorithmsForCategory(catId: string): FxAlgorithmDef[];
+export declare function findAlgorithm(catId: string, algoId: string): FxAlgorithmDef;
+export declare function findAlgorithmById(algoId: string): FxAlgorithmDef;

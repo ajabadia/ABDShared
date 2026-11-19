@@ -13,7 +13,10 @@
       "default": "./Contracts/index.js"
     },
     "./contracts/*": "./Contracts/*",
-    "./components": "./Components/index.js",
+    "./components": {
+      "types": "./Components/index.d.ts",
+      "default": "./Components/index.js"
+    },
     "./components/bank/bankShell.js": {
       "types": "./Components/bank/bankShell.d.ts",
       "default": "./Components/bank/bankShell.js"
@@ -60,6 +63,10 @@
     "./components/synth-engines": {
       "types": "./Components/SynthEngines/index.d.ts",
       "default": "./Components/SynthEngines/index.js"
+    },
+    "./components/fx-faceplates": {
+      "types": "./Components/FxFaceplates/index.d.ts",
+      "default": "./Components/FxFaceplates/index.js"
     },
     "./components/scope/miniWaveScope.js": {
       "default": "./Components/Scope/miniWaveScope.js"

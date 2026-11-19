@@ -7,7 +7,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createMemoryEngineBridge } from '../Contracts/enginePanelBridge.ts';
-import { EnginePanelHost, StructuredRomplerPanel } from '../Components/SynthEngines/index.js';
+import {
+  EnginePanelHost,
+  StructuredRomplerPanel,
+  buildDefaultRomplerFlatState,
+  flattenRomplerStateJson,
+} from '../Components/SynthEngines/index.js';
 
 function makeRomplerBridge() {
   return createMemoryEngineBridge(
@@ -150,5 +155,33 @@ describe('EnginePanelHost & StructuredRomplerPanel', () => {
     const tabLabels = [...mount.querySelectorAll('.abd-engine-tab-label')].map((el) => el.textContent);
     expect(tabLabels).toEqual(['Parciales y Tono', 'Filtro 2 y LFOs', 'Batería']);
     panel.destroy();
+  });
+
+  it('flattens Rompler state JSON and builds default flat state cleanly', () => {
+    const def = buildDefaultRomplerFlatState({ kind: 'drum_map', structureMode: 1 });
+    expect(def['mode.drum']).toBe(1);
+    expect(def.structure).toBe(1);
+    expect(def['porta.legato']).toBe(1);
+
+    const json = JSON.stringify({
+      formatId: 'abd_structured_rompler_state',
+      isDrumKit: false,
+      patch: {
+        vectorX: 0.5,
+        vectorY: -0.2,
+        lfo1: { rate: 5.5, sync: true },
+        partials: [{ cutoffHz: 4500, ampEnv: { t1Ms: 12, l3: 0.8 } }],
+      },
+      drumKit: { slots: [{ midiNote: 36, level: 0.9, coarseKey: 38 }] },
+    });
+    const flat = flattenRomplerStateJson(json);
+    expect(flat['vector.x']).toBe(0.5);
+    expect(flat['lfo1.rate']).toBe(5.5);
+    expect(flat['lfo1.sync']).toBe(1);
+    expect(flat['p1.cutoffHz']).toBe(4500);
+    expect(flat['p1.amp.t1Ms']).toBe(12);
+    expect(flat['p1.amp.l3']).toBe(0.8);
+    expect(flat['drum.36.level']).toBe(0.9);
+    expect(flat['drum.36.coarseKey']).toBe(38);
   });
 });

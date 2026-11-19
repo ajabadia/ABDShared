@@ -28,6 +28,11 @@ juce::String getMimeTypeForFilename(const juce::String& filename)
     if (filename.endsWithIgnoreCase(".woff2")) return "font/woff2";
     if (filename.endsWithIgnoreCase(".json")) return "application/json";
     if (filename.endsWithIgnoreCase(".webmanifest")) return "application/manifest+json";
+    if (filename.endsWithIgnoreCase(".wasm")) return "application/wasm";
+    if (filename.endsWithIgnoreCase(".avif")) return "image/avif";
+    if (filename.endsWithIgnoreCase(".ico")) return "image/x-icon";
+    if (filename.endsWithIgnoreCase(".csv")) return "text/csv";
+    if (filename.endsWithIgnoreCase(".md")) return "text/markdown";
     return "application/octet-stream";
 }
 
@@ -58,6 +63,8 @@ juce::String normalizeResourcePath(const juce::String& url)
 
     if (path == "/" || path.isEmpty()) path = "/index.html";
     if (path.startsWith("/")) path = path.substring(1);
+    while (path.startsWith("./"))
+        path = path.substring(2);
 
     // URL-decode the path (handles spaces encoded as %20, etc.)
     return juce::URL::removeEscapeChars(path);
@@ -66,6 +73,12 @@ juce::String normalizeResourcePath(const juce::String& url)
 std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const juce::String& decodedPath,
                                                                         const BinaryAssetsCatalog& catalog)
 {
+    if (catalog.getNamedResource == nullptr
+        || catalog.namedResourceList == nullptr
+        || catalog.originalFilenames == nullptr
+        || catalog.namedResourceListSize <= 0)
+        return std::nullopt;
+
     // Let JUCE WebBrowserComponent serve its built-in frontend script
     if (decodedPath == "juce.js" || decodedPath.endsWith("/juce.js"))
         return std::nullopt;
@@ -73,6 +86,8 @@ std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const ju
     juce::String normalizedPath = decodedPath.replace("\\", "/");
     while (normalizedPath.startsWith("/"))
         normalizedPath = normalizedPath.substring(1);
+    while (normalizedPath.startsWith("./"))
+        normalizedPath = normalizedPath.substring(2);
 
     int binSize         = 0;
     const char* binData = nullptr;
@@ -89,17 +104,44 @@ std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const ju
         }
     }
 
-    // Pass 2: Flattened full-path resource identifier fallback (e.g. "abdbank_root_html")
+    // Pass 2: Exact basename match against originalFilenames BEFORE flattened-name guesses.
+    // juce_add_binary_data (juceaide) strips hyphens ('top-bar.js' -> 'topbar_js') and appends
+    // numeric suffixes on identifier collisions ('knob--.png' -> 'knob_png', 'knob.png' -> 'knob_png2'),
+    // so flattened symbol guessing breaks hyphenated filenames and picks the wrong sprite on collisions.
+    if (binData == nullptr)
+    {
+        const juce::String requestedBasename = normalizedPath.containsChar('/')
+                                                   ? normalizedPath.fromLastOccurrenceOf("/", false, false)
+                                                   : normalizedPath;
+        if (requestedBasename.isNotEmpty())
+        {
+            for (int i = 0; i < catalog.namedResourceListSize; ++i)
+            {
+                juce::String orig = juce::String::fromUTF8(catalog.originalFilenames[i]).replace("\\", "/");
+                const juce::String origBasename = orig.containsChar('/')
+                                                      ? orig.fromLastOccurrenceOf("/", false, false)
+                                                      : orig;
+                if (origBasename.equalsIgnoreCase(requestedBasename))
+                {
+                    binData = catalog.getNamedResource(catalog.namedResourceList[i], binSize);
+                    if (binData != nullptr)
+                        break;
+                }
+            }
+        }
+    }
+
+    // Pass 3: Flattened full-path resource identifier fallback (e.g. "abdbank_root_html")
     if (binData == nullptr)
     {
         juce::String resourceName = normalizedPath.replace("/", "_").replace("\\", "_")
                                                  .replace(".", "_").replace("-", "_").replace(" ", "_");
-        if (juce::CharacterFunctions::isDigit(resourceName[0]))
+        if (resourceName.isNotEmpty() && juce::CharacterFunctions::isDigit(resourceName[0]))
             resourceName = "_" + resourceName;
         binData = catalog.getNamedResource(resourceName.toRawUTF8(), binSize);
     }
 
-    // Pass 3: Basename matching for Vite-bundled assets (e.g. assets/index.css)
+    // Pass 4: Basename matching for Vite-bundled assets (e.g. assets/index.css)
     if (binData == nullptr && normalizedPath.startsWith("assets/"))
     {
         juce::String basename = normalizedPath.fromLastOccurrenceOf("/", false, false);
@@ -110,36 +152,13 @@ std::optional<juce::WebBrowserComponent::Resource> resolveEmbeddedAsset(const ju
         }
     }
 
-    // Pass 4: Root-level basename fallback (guarded against nested collisions)
+    // Pass 5: Root-level basename fallback (guarded against nested collisions)
     if (binData == nullptr && normalizedPath.length() > 0 && !normalizedPath.containsChar('/'))
     {
         juce::String flattenedName = normalizedPath.replace(".", "_").replace("-", "_").replace(" ", "_");
         if (juce::CharacterFunctions::isDigit(flattenedName[0]))
             flattenedName = "_" + flattenedName;
         binData = catalog.getNamedResource(flattenedName.toRawUTF8(), binSize);
-    }
-
-    // Pass 5: Basename match against originalFilenames. juce_add_binary_data records
-    // bare filenames, so a WebUI with nested sources (e.g. /src/mount/MountBase.js)
-    // cannot be reached by the exact/suffix passes above. Last resort only: it is
-    // the same rule the pre-bridge Scope provider used, so nothing that resolves
-    // earlier changes meaning. Ambiguous basenames resolve to the first catalog entry.
-    if (binData == nullptr)
-    {
-        const juce::String requestedBasename = normalizedPath.fromLastOccurrenceOf("/", false, false);
-        if (requestedBasename.isNotEmpty() && !requestedBasename.equalsIgnoreCase(normalizedPath))
-        {
-            for (int i = 0; i < catalog.namedResourceListSize; ++i)
-            {
-                juce::String orig = juce::String::fromUTF8(catalog.originalFilenames[i]).replace("\\", "/");
-                if (orig.fromLastOccurrenceOf("/", false, false).equalsIgnoreCase(requestedBasename))
-                {
-                    binData = catalog.getNamedResource(catalog.namedResourceList[i], binSize);
-                    if (binData != nullptr)
-                        break;
-                }
-            }
-        }
     }
 
     if (binData != nullptr)

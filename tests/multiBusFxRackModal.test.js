@@ -16,6 +16,7 @@ import {
   TOPOLOGIES,
   getAlgorithmsForCategory,
   findAlgorithm,
+  findAlgorithmById,
 } from '../Components/MultiBusFxRack/multiBusFxRegistry.js';
 
 describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
@@ -146,6 +147,14 @@ describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
     const found = findAlgorithm('delay', 'space_echo');
     expect(found.name).toBe('Space Echo RE-201');
     expect(found.badge).toBe('RE2');
+    expect(found.baseColor).toBe('#162e20');
+    expect(found.icon).toBe('wave');
+    expect(found.canDuck).toBe(true);
+    expect(found.tailSec).toBeGreaterThan(0);
     expect(found.presets.length).toBeGreaterThan(0);
+
+    const direct = findAlgorithmById('bbd_chorus');
+    expect(direct.name).toBe('Roland BBD Chorus');
+    expect(direct.category).toBe('modulation');
   });
 });

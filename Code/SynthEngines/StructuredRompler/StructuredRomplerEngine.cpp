@@ -58,7 +58,7 @@ void StructuredRomplerEngine::prepare(double sampleRate, int /*maxBlockSize*/) n
 void StructuredRomplerEngine::reset() noexcept
 {
     lastNoteSemitones_ = -1.0f;
-    filter2WasActive_ = false;
+    filter2WasActive_ = sustainPedalDown_ = false;
     controlInputs_.fill(0.0f);
     filter2L_.reset();
     filter2R_.reset();
@@ -135,7 +135,8 @@ VoiceRenderConfig StructuredRomplerEngine::buildVoiceConfig() const noexcept
     cfg.maxPartialsAllowed = patch_.maxPartialsAllowed;
     cfg.masterTuneSemitones = transportCtx_.masterTuneSemitones;
     cfg.pitchOffsetSemitones = transportCtx_.pitchBendSemitones + getControlInputOffset(ControlInputId::PitchOffset) * 12.0f;
-    cfg.portamentoEnabled = patch_.portamentoEnabled && !isDrumKit_;
+    cfg.portamentoEnabled = patch_.portamentoEnabled && !isDrumKit_ &&
+                            (!patch_.portamentoLegatoOnly || (pool_ != nullptr && pool_->hasHeldMelodicVoice(ownerSlot_)));
     cfg.portamentoTimeMs = patch_.portamentoTimeMs;
     cfg.lastNoteSemitones = lastNoteSemitones_;
     cfg.hostBpm = transportCtx_.bpm;
@@ -223,15 +224,24 @@ void StructuredRomplerEngine::noteOff(int midiNote) noexcept
 {
     if (pool_ == nullptr)
         return;
-    pool_->releaseNote(ownerSlot_, std::clamp(midiNote, 0, 127), isDrumKit_, isDrumKit_ ? &drumKit_ : nullptr);
+    pool_->releaseNote(ownerSlot_, std::clamp(midiNote, 0, 127), isDrumKit_,
+                       isDrumKit_ ? &drumKit_ : nullptr, sustainPedalDown_);
 }
 
 void StructuredRomplerEngine::allNotesOff() noexcept
 {
+    sustainPedalDown_ = false;
     if (pool_ != nullptr)
         pool_->chokeOwner(ownerSlot_);
     for (auto& slot : drumKit_.slots)
         slot.activeSounding = false;
+}
+
+void StructuredRomplerEngine::setSustainPedal(bool down) noexcept
+{
+    sustainPedalDown_ = down;
+    if (!down && !isDrumKit_ && pool_ != nullptr)
+        pool_->releaseSustainedNotes(ownerSlot_);
 }
 
 bool StructuredRomplerEngine::renderBlock(float* outL, float* outR, int numSamples) noexcept

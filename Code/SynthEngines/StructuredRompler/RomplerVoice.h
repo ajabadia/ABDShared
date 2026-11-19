@@ -64,6 +64,9 @@ public:
 
     void noteOff() noexcept;
     void forceChoke() noexcept;
+    void softChoke() noexcept;
+    void prepareForSteal() noexcept;
+    void markSustainedByPedal() noexcept { heldByKey_ = false; sustainedByPedal_ = true; }
 
     void processBlock(float* accumL,
                       float* accumR,
@@ -73,6 +76,9 @@ public:
     [[nodiscard]] bool isActive() const noexcept { return active_; }
     [[nodiscard]] bool isReleasing() const noexcept;
     [[nodiscard]] bool isHeldByKey() const noexcept { return heldByKey_; }
+    [[nodiscard]] bool isSustainedByPedal() const noexcept { return sustainedByPedal_; }
+    [[nodiscard]] bool isChoking() const noexcept { return choking_; }
+    [[nodiscard]] bool isDrumVoice() const noexcept { return isDrumVoice_; }
     [[nodiscard]] int getOwnerSlot() const noexcept { return ownerSlot_; }
     [[nodiscard]] int getMidiNote() const noexcept { return midiNote_; }
     [[nodiscard]] int getDrumSlotNote() const noexcept { return drumSlotNote_; }
@@ -85,8 +91,10 @@ private:
     struct PartialUnit
     {
         bool enabledInVoice { false };
+        bool isStereo { false };
         RomplerPartialExciter exciter {};
         RomplerFilterBank filter {};
+        RomplerFilterBank filterR {};
         RomplerEnvelope5Stage pitchEnv {};
         RomplerEnvelope5Stage filterEnv {};
         RomplerEnvelope5Stage ampEnv {};
@@ -97,24 +105,27 @@ private:
 
         void prepare(double sr) noexcept
         {
-            exciter.prepare(sr); filter.prepare(sr);
+            exciter.prepare(sr); filter.prepare(sr); filterR.prepare(sr);
             pitchEnv.prepare(sr); filterEnv.prepare(sr); ampEnv.prepare(sr);
         }
         void reset() noexcept
         {
-            enabledInVoice = false;
-            exciter.reset(); filter.reset();
+            enabledInVoice = isStereo = false;
+            exciter.reset(); filter.reset(); filterR.reset();
             pitchEnv.reset(); filterEnv.reset(); ampEnv.reset();
             cutoffOverrideHz = resOverride = releaseMsOverride = -1.0f;
         }
     };
 
+    void resetState(bool keepDeclickTail) noexcept;
     static void computeVectorWeights(float vx, float vy, std::array<float, 4>& weights) noexcept;
     static void updateLfoSettings(abd::synth::LfoAnalog& lfo, const VoiceLfoConfig& lc, double bpm, bool triggerNow) noexcept;
 
     bool active_ { false };
     bool isDrumVoice_ { false };
     bool heldByKey_ { false };
+    bool sustainedByPedal_ { false };
+    bool choking_ { false };
     int ownerSlot_ { -1 };
     int midiNote_ { -1 };
     int drumSlotNote_ { -1 };
@@ -124,6 +135,13 @@ private:
     float lastLevelEstimate_ { 0.0f };
     float voicePanOffset_ { 0.0f };
     float voiceSlotLevel_ { 1.0f };
+    float chokeGain_ { 1.0f };
+    float chokeStep_ { 0.0f };
+    float lastOutL_ { 0.0f };
+    float lastOutR_ { 0.0f };
+    float declickTailL_ { 0.0f };
+    float declickTailR_ { 0.0f };
+    float declickDecay_ { 0.985f };
     double sampleRate_ { 44100.0 };
     float currentPitchSemitones_ { 60.0f };
     float targetPitchSemitones_ { 60.0f };

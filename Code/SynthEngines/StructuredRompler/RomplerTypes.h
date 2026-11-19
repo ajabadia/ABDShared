@@ -118,6 +118,7 @@ struct PartialConfig
     std::uint8_t velHi { 127 };
     std::uint8_t filterMode { 0 }; // 0=LPF, 1=HPF, 2=BPF, 3=Bypass
     std::uint8_t velCurveIndex { 0 };
+    std::uint8_t externalRootKey { 60 };
     std::uint16_t altStartOffset { 0 };
     float loopTuneCents { 0.0f };
     bool pingPongLoop { false };
@@ -128,9 +129,11 @@ struct PartialConfig
     Env4T4L filterEnv {};
     Env4T4L pitchEnv {};
     const float* externalSampleData { nullptr };
+    const float* externalSampleDataR { nullptr };
     int externalSampleLength { 0 };
     int externalLoopStart { 0 };
     int externalLoopEnd { 0 };
+    float externalSampleRate { 44100.0f };
 };
 
 struct Stage2FilterConfig
@@ -160,6 +163,7 @@ struct DrumSlotConfig
     std::uint8_t muteGroup { 0 };
     std::uint8_t coarseKey { 60 };
     DrumTriggerMode triggerMode { DrumTriggerMode::OneShot };
+    std::uint8_t externalRootKey { 60 };
     float level { 1.0f };
     float pan { 0.0f };
     float reverbSend { 0.25f };
@@ -170,9 +174,11 @@ struct DrumSlotConfig
     float pitchKeyTrack { 0.0f };
     bool activeSounding { false };
     const float* externalSampleData { nullptr };
+    const float* externalSampleDataR { nullptr };
     int externalSampleLength { 0 };
     int externalLoopStart { 0 };
     int externalLoopEnd { 0 };
+    float externalSampleRate { 44100.0f };
 };
 
 struct DrumNoteRemapper

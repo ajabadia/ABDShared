@@ -187,4 +187,5 @@ export { GlobalLfoModal, GLOBAL_LFO_WAVES, LFO_SYNC_DIVISIONS, GLOBAL_LFO1_TARGE
 export { PianoRollModal } from './PianoRoll/pianoRollModal.js';
 export { GrooveShuffleModal } from './GrooveShuffle/grooveShuffleModal.js';
 export { GROOVE_ALGORITHMS, GROOVE_RESOLUTIONS, GROOVE_MODES, calculateGrooveTick } from './GrooveShuffle/grooveShuffleContract.js';
+export * from './SynthEngines/index.js';
 

@@ -28,7 +28,15 @@ add_library(ABDShared_StructuredRompler STATIC
     StructuredRompler/RomplerVoice.cpp
     StructuredRompler/RomplerVoiceDrum.cpp
     StructuredRompler/RomplerVoicePool.cpp
+    StructuredRompler/RomplerWavePool.cpp
     StructuredRompler/StructuredRomplerEngine.cpp
+    StructuredRompler/StructuredRomplerEnginePresets.cpp
+    StructuredRompler/RomplerParamCodec.cpp
+    StructuredRompler/RomplerPresetSerializer.cpp
+    StructuredRompler/RomplerPresetDeserialize.cpp
+    StructuredRompler/RomplerBankIndex.cpp
+    StructuredRompler/RomplerBankIndexLoader.cpp
+    StructuredRompler/RomplerBankPacker.cpp
     StructuredRompler/RomplerBankLoader.cpp
     StructuredRompler/RomplerFactoryPatches.cpp
 )
@@ -43,7 +51,12 @@ target_sources(ABDShared_StructuredRompler PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerPartialExciter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerVoice.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerVoicePool.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerWavePool.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/StructuredRomplerEngine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerParamCodec.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerPresetSerializer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerBankIndex.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerBankPacker.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerBankLoader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerBankParsers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StructuredRompler/RomplerFactoryPatches.h
@@ -73,4 +86,25 @@ if(ABDSHARED_BUILD_SYNTHENGINES_TESTS)
     target_link_libraries(ABDShared_StructuredRompler_Tests PRIVATE ABDShared::StructuredRompler)
     target_compile_features(ABDShared_StructuredRompler_Tests PRIVATE cxx_std_20)
     add_test(NAME ABDShared_StructuredRompler_Tests COMMAND ABDShared_StructuredRompler_Tests)
+
+    add_executable(ABDShared_RomplerWavePool_Tests
+        Tests/RomplerWavePoolTests.cpp
+    )
+    target_link_libraries(ABDShared_RomplerWavePool_Tests PRIVATE ABDShared::StructuredRompler)
+    target_compile_features(ABDShared_RomplerWavePool_Tests PRIVATE cxx_std_20)
+    add_test(NAME ABDShared_RomplerWavePool_Tests COMMAND ABDShared_RomplerWavePool_Tests)
+
+    add_executable(ABDShared_RomplerRefinement_Tests
+        Tests/RomplerRefinementTests.cpp
+    )
+    target_link_libraries(ABDShared_RomplerRefinement_Tests PRIVATE ABDShared::StructuredRompler)
+    target_compile_features(ABDShared_RomplerRefinement_Tests PRIVATE cxx_std_20)
+    add_test(NAME ABDShared_RomplerRefinement_Tests COMMAND ABDShared_RomplerRefinement_Tests)
+
+    add_executable(ABDShared_RomplerDspQuality_Tests
+        Tests/RomplerDspQualityTests.cpp
+    )
+    target_link_libraries(ABDShared_RomplerDspQuality_Tests PRIVATE ABDShared::StructuredRompler)
+    target_compile_features(ABDShared_RomplerDspQuality_Tests PRIVATE cxx_std_20)
+    add_test(NAME ABDShared_RomplerDspQuality_Tests COMMAND ABDShared_RomplerDspQuality_Tests)
 endif()

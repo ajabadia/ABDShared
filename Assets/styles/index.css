@@ -70,3 +70,4 @@
 @import './components/global-lfo-modal.css';     /* GlobalLfoModal: modal flotante de LFOs globales */
 @import './components/piano-roll.css';           /* PianoRollModal: secuenciador rollo de pianola y drum grid */
 @import './components/groove-shuffle.css';       /* GrooveShuffleModal: motor de groove y shuffle multialgorítmico */
+@import './components/synth-engine-panel.css';   /* EnginePanelHost & StructuredRomplerPanel */

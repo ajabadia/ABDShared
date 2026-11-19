@@ -61,8 +61,10 @@ public:
     void releaseNote(int ownerSlot,
                      int midiNote,
                      bool isDrumKit,
-                     RomplerDrumKitPatch* drumKit = nullptr) noexcept;
+                     RomplerDrumKitPatch* drumKit = nullptr,
+                     bool sustainPedalDown = false) noexcept;
 
+    void releaseSustainedNotes(int ownerSlot) noexcept;
     void chokeMuteGroup(int ownerSlot, std::uint8_t muteGroup) noexcept;
     void chokeOwner(int ownerSlot) noexcept;
 
@@ -79,6 +81,7 @@ public:
     [[nodiscard]] int getActiveVoiceCount() const noexcept;
     [[nodiscard]] int getActivePartialCount() const noexcept;
     [[nodiscard]] int getOwnerActiveVoiceCount(int ownerSlot) const noexcept;
+    [[nodiscard]] bool hasHeldMelodicVoice(int ownerSlot) const noexcept;
 
 private:
     static int countNeededPartials(const VoiceRenderConfig& cfg, bool isDrumKit, float velocity01) noexcept;

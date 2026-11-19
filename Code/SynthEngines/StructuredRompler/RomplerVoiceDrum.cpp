@@ -42,7 +42,7 @@ void RomplerVoice::noteOnDrum(int ownerSlot, int rawInputNote, int slotNote, flo
                               const DrumSlotConfig& slotCfg, const VoiceRenderConfig& cfg,
                               std::uint64_t timestamp) noexcept
 {
-    reset();
+    resetState(true);
     isDrumVoice_ = heldByKey_ = true;
     ownerSlot_ = ownerSlot;
     midiNote_ = std::clamp(rawInputNote, 0, 127);
@@ -85,12 +85,24 @@ void RomplerVoice::noteOnDrum(int ownerSlot, int rawInputNote, int slotNote, flo
         Env4T4L drumPitchEnv = pc.pitchEnv;
         const bool hasSlotSample = (slotCfg.externalSampleData && slotCfg.externalSampleLength > 0);
         const auto* extData = hasSlotSample ? slotCfg.externalSampleData : pc.externalSampleData;
+        const auto* extDataR = hasSlotSample ? slotCfg.externalSampleDataR : pc.externalSampleDataR;
         const int extLen = hasSlotSample ? slotCfg.externalSampleLength : pc.externalSampleLength;
         if (!extData || extLen <= 0)
+        {
+            u.exciter.setExternalTable(nullptr, 0, 0, 0);
             applyDrumSynthFallback(slotNote, i, drumPc, drumPitchEnv);
+        }
         else
-            u.exciter.setExternalTable(extData, extLen, hasSlotSample ? slotCfg.externalLoopStart : pc.externalLoopStart,
-                                       hasSlotSample ? slotCfg.externalLoopEnd : pc.externalLoopEnd);
+        {
+            const int lStart = hasSlotSample ? slotCfg.externalLoopStart : pc.externalLoopStart;
+            const int lEnd = hasSlotSample ? slotCfg.externalLoopEnd : pc.externalLoopEnd;
+            const float extRate = hasSlotSample ? slotCfg.externalSampleRate : pc.externalSampleRate;
+            const int extRoot = hasSlotSample ? static_cast<int>(slotCfg.externalRootKey)
+                                              : static_cast<int>(pc.externalRootKey);
+            u.exciter.setExternalTable(extData, extLen, lStart, lEnd, extDataR, extRate, extRoot);
+        }
+        u.isStereo = (drumPc.sourceKind == OscSourceKind::VaOsc && drumPc.vaWaveform == 4) ||
+                     u.exciter.hasStereoExternalTable();
 
         u.exciter.noteOn(drumPc, pitchedNote);
         u.pitchEnv.noteOn(drumPitchEnv, 1.0f, effAccent, 1.0f);

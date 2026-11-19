@@ -39,7 +39,7 @@ void RomplerPartialExciter::prepare(double sampleRate) noexcept
     reset();
 }
 
-void RomplerPartialExciter::reset() noexcept
+void RomplerPartialExciter::resetPlaybackState() noexcept
 {
     oscMain_.reset();
     oscDetuneA_.reset();
@@ -51,21 +51,44 @@ void RomplerPartialExciter::reset() noexcept
     fmModPhase_ = 0.0;
 }
 
-void RomplerPartialExciter::setExternalTable(const float* samples, int length, int loopStart, int loopEnd) noexcept
+void RomplerPartialExciter::reset() noexcept
 {
-    externalSamples_ = (samples && length > 1) ? samples : nullptr;
-    externalLen_ = externalSamples_ ? length : 0;
+    resetPlaybackState();
+    externalSamplesL_ = nullptr;
+    externalSamplesR_ = nullptr;
+    externalLen_ = 0;
+    loopStart_ = 0;
+    loopEnd_ = 0;
+    externalSampleRate_ = 44100.0;
+    externalRootHz_ = 261.625565;
+}
+
+void RomplerPartialExciter::setExternalTable(const float* samplesL,
+                                             int length,
+                                             int loopStart,
+                                             int loopEnd,
+                                             const float* samplesR,
+                                             double sourceSampleRate,
+                                             int rootKey) noexcept
+{
+    externalSamplesL_ = (samplesL != nullptr && length > 1) ? samplesL : nullptr;
+    externalSamplesR_ = (externalSamplesL_ != nullptr && samplesR != nullptr && samplesR != samplesL)
+                            ? samplesR
+                            : nullptr;
+    externalLen_ = (externalSamplesL_ != nullptr) ? length : 0;
     loopStart_ = std::clamp(loopStart, 0, std::max(0, externalLen_ - 1));
     loopEnd_ = (loopEnd > loopStart_ && loopEnd <= externalLen_) ? loopEnd : externalLen_;
+    externalSampleRate_ = (sourceSampleRate > 1000.0) ? sourceSampleRate : sampleRate_;
+    externalRootHz_ = std::max(8.0, static_cast<double>(abd::synth::DSPUtils::midiNoteToFrequency(static_cast<float>(std::clamp(rootKey, 0, 127)))));
 }
 
 void RomplerPartialExciter::noteOn(const PartialConfig& cfg, float baseMidiNote) noexcept
 {
-    reset();
+    resetPlaybackState();
     baseMidiNote_ = baseMidiNote + static_cast<float>(cfg.coarseSemitones) + (cfg.fineCents * 0.01f);
     baseFrequencyHz_ = abd::synth::DSPUtils::midiNoteToFrequency(baseMidiNote_);
 
-    if (externalSamples_ && cfg.altStartOffset > 0 && cfg.altStartOffset < externalLen_)
+    if (externalSamplesL_ != nullptr && cfg.altStartOffset > 0 && cfg.altStartOffset < externalLen_)
         tablePos_ = static_cast<double>(cfg.altStartOffset);
 
     if (cfg.sourceKind == OscSourceKind::VaOsc && cfg.vaWaveform == 4)
@@ -110,10 +133,13 @@ float RomplerPartialExciter::processVaSample(const PartialConfig& cfg, double hz
     return static_cast<float>(oscMain_.processSample());
 }
 
-float RomplerPartialExciter::processCycleSample(const PartialConfig& cfg, double hz) noexcept
+void RomplerPartialExciter::processCycleStereo(const PartialConfig& cfg, double hz, float& outL, float& outR) noexcept
 {
     if (oneShotDone_)
-        return 0.0f;
+    {
+        outL = outR = 0.0f;
+        return;
+    }
 
     if (cfg.sourceKind == OscSourceKind::Fm2Op)
     {
@@ -127,22 +153,28 @@ float RomplerPartialExciter::processCycleSample(const PartialConfig& cfg, double
             loopedOnce_ = true;
         }
         const double mod = std::sin(kTwoPi * fmModPhase_) * (0.4 + static_cast<double>(cfg.drive) * 1.6);
-        return static_cast<float>(std::sin(kTwoPi * tablePos_ + mod));
+        outL = outR = static_cast<float>(std::sin(kTwoPi * tablePos_ + mod));
+        return;
     }
 
-    const float* buf = externalSamples_ ? externalSamples_ : getSharedHarmonicCycle().data();
-    const int len = externalSamples_ ? externalLen_ : kCycleTableSize;
-    const int lStart = externalSamples_ ? loopStart_ : 0;
-    const int lEnd = externalSamples_ ? loopEnd_ : kCycleTableSize;
+    const bool hasExt = (externalSamplesL_ != nullptr);
+    const float* bufL = hasExt ? externalSamplesL_ : getSharedHarmonicCycle().data();
+    const float* bufR = hasExt ? externalSamplesR_ : nullptr;
+    const int len = hasExt ? externalLen_ : kCycleTableSize;
+    const int lStart = hasExt ? loopStart_ : 0;
+    const int lEnd = hasExt ? loopEnd_ : kCycleTableSize;
 
-    const double step = externalSamples_
-                            ? (hz / 261.625565)
+    const double step = hasExt
+                            ? ((hz / externalRootHz_) * (externalSampleRate_ / sampleRate_))
                             : (hz * static_cast<double>(len) / sampleRate_);
 
     const int i0 = std::clamp(static_cast<int>(tablePos_), 0, len - 1);
-    const int i1 = (i0 + 1 < len) ? (i0 + 1) : lStart;
+    const int i1 = (i0 + 1 < lEnd)
+                       ? (i0 + 1)
+                       : (cfg.oneShotMode ? std::min(i0 + 1, len - 1) : (cfg.pingPongLoop ? std::max(0, lEnd - 2) : lStart));
     const float frac = static_cast<float>(tablePos_ - static_cast<double>(i0));
-    const float sample = buf[i0] * (1.0f - frac) + buf[i1] * frac;
+    outL = bufL[i0] * (1.0f - frac) + bufL[i1] * frac;
+    outR = (bufR != nullptr) ? (bufR[i0] * (1.0f - frac) + bufR[i1] * frac) : outL;
 
     const double signedStep = reverseDir_ ? -step : step;
     tablePos_ += signedStep;
@@ -152,7 +184,7 @@ float RomplerPartialExciter::processCycleSample(const PartialConfig& cfg, double
         if (cfg.oneShotMode)
         {
             oneShotDone_ = true;
-            return sample;
+            return;
         }
         loopedOnce_ = true;
         if (cfg.pingPongLoop && lEnd > lStart + 1)
@@ -171,8 +203,6 @@ float RomplerPartialExciter::processCycleSample(const PartialConfig& cfg, double
         reverseDir_ = false;
         tablePos_ = static_cast<double>(lStart) + (static_cast<double>(lStart) - tablePos_);
     }
-
-    return sample;
 }
 
 void RomplerPartialExciter::processStereo(const PartialConfig& cfg, float pitchModSemitones, float& outL, float& outR) noexcept
@@ -183,11 +213,14 @@ void RomplerPartialExciter::processStereo(const PartialConfig& cfg, float pitchM
         5.0,
         sampleRate_ * 0.45);
 
-    const float mono = (cfg.sourceKind == OscSourceKind::VaOsc)
-                           ? processVaSample(cfg, tunedHz)
-                           : processCycleSample(cfg, tunedHz);
+    if (cfg.sourceKind != OscSourceKind::VaOsc)
+    {
+        processCycleStereo(cfg, tunedHz, outL, outR);
+        return;
+    }
 
-    if (cfg.sourceKind == OscSourceKind::VaOsc && cfg.vaWaveform == 4)
+    const float mono = processVaSample(cfg, tunedHz);
+    if (cfg.vaWaveform == 4)
     {
         outL = mono + static_cast<float>(oscDetuneA_.getPhase() - 0.5) * 0.04f;
         outR = mono - static_cast<float>(oscDetuneB_.getPhase() - 0.5) * 0.04f;

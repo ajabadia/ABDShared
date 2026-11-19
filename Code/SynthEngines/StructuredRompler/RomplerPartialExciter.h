@@ -28,15 +28,26 @@ public:
     void setFrequency(double hz, float loopTuneCents = 0.0f) noexcept;
 
     /** Optionally binds an external PCM/de-baked cycle buffer (must outlive voice note). Zero allocation. */
-    void setExternalTable(const float* samples, int length, int loopStart, int loopEnd) noexcept;
+    void setExternalTable(const float* samplesL,
+                          int length,
+                          int loopStart,
+                          int loopEnd,
+                          const float* samplesR = nullptr,
+                          double sourceSampleRate = 44100.0,
+                          int rootKey = 60) noexcept;
 
     void processStereo(const PartialConfig& cfg, float pitchModSemitones, float& outL, float& outR) noexcept;
 
     [[nodiscard]] bool hasFinishedOneShot() const noexcept { return oneShotDone_; }
+    [[nodiscard]] bool hasStereoExternalTable() const noexcept
+    {
+        return externalSamplesL_ != nullptr && externalSamplesR_ != nullptr;
+    }
 
 private:
+    void resetPlaybackState() noexcept;
     float processVaSample(const PartialConfig& cfg, double hz) noexcept;
-    float processCycleSample(const PartialConfig& cfg, double baseHz) noexcept;
+    void processCycleStereo(const PartialConfig& cfg, double baseHz, float& outL, float& outR) noexcept;
 
     double sampleRate_ { 44100.0 };
     float baseMidiNote_ { 60.0f };
@@ -47,10 +58,13 @@ private:
     abd::synth::OscPolyBlep oscDetuneA_ {};
     abd::synth::OscPolyBlep oscDetuneB_ {};
 
-    const float* externalSamples_ { nullptr };
+    const float* externalSamplesL_ { nullptr };
+    const float* externalSamplesR_ { nullptr };
     int externalLen_ { 0 };
     int loopStart_ { 0 };
     int loopEnd_ { 0 };
+    double externalSampleRate_ { 44100.0 };
+    double externalRootHz_ { 261.625565 };
 
     double tablePos_ { 0.0 };
     bool reverseDir_ { false };

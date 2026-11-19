@@ -298,6 +298,148 @@
   --color-scrollbar-track:        #0e0e10;
 }
 
+/* ── theme: dr5-light ── */
+/* canonical: ABDSharedAssets/styles/themes/dr5-light.css */
+/* Boss DR-5 Dr. Rhythm Section -- Cool Metallic Slate (Light Theme) */
+/* Tints ABDShared bg_neutral.webp grain & lighting via soft-light blend */
+[data-theme="dr5-light"], body.skin-dr5-light, body.theme-dr5-light {
+  --abd-bg-tint:                  #dde2e8;
+  --abd-bg-blend:                 soft-light;
+
+  --color-bg-base:                #dde2e8;
+  --color-panel-bg:               rgba(232, 236, 241, 0.85);
+  --color-panel-surface:          rgba(244, 247, 250, 0.92);
+  --color-panel-surface-elevated: rgba(255, 255, 255, 0.97);
+  --color-bg-elev:                #ffffff;
+  --color-border:                 #bcc6d1;
+  --color-scrim-rgb:              15, 23, 35;
+  --navbar-bg:                    rgba(226, 231, 237, 0.95);
+  --navbar-shadow:                0 1px 4px rgba(15, 23, 35, 0.12);
+  --color-panel-border:           rgba(30, 41, 59, 0.16);
+  --color-panel-border-strong:    rgba(180, 83, 9, 0.42);
+  --color-panel-border-dim:       rgba(30, 41, 59, 0.08);
+  --shadow-card:                  0 3px 12px rgba(15, 23, 35, 0.09);
+  --shadow-card-hover:            0 5px 18px rgba(15, 23, 35, 0.15);
+  --shadow-elevation-1:           0 2px 6px rgba(15, 23, 35, 0.12);
+  --shadow-elevation-2:           0 8px 24px rgba(15, 23, 35, 0.17);
+  --shadow-elevation-3:           0 16px 36px rgba(15, 23, 35, 0.22);
+  --shadow-inset-bevel:           inset 0 1px 1px rgba(255, 255, 255, 0.70);
+  --color-led-active:             #b45309;
+  --color-led-glow:               rgba(180, 83, 9, 0.42);
+
+  /* Boss Warm Amber / Copper Accent */
+  --color-accent:                 #b45309;
+  --color-accent-rgb:             180, 83, 9;
+  --color-accent-hover:           #d97706;
+  --color-accent-active:          #92400e;
+  --color-accent-dim:             rgba(180, 83, 9, 0.12);
+
+  --color-success:                #15803d;
+  --color-success-rgb:            21, 128, 61;
+  --color-warning:                #b45309;
+  --color-warning-rgb:            180, 83, 9;
+  --color-danger:                 #be123c;
+  --color-danger-rgb:             190, 18, 60;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
+
+  /* Typography */
+  --color-text-main:              #15181e;
+  --color-text-muted:             #475569;
+  --color-text-dim:               #64748b;
+
+  /* Classic Boss DR-5 Dark Backlit LCD */
+  --color-lcd-bg:                 #1b281c;
+  --color-lcd-text:               #b4f850;
+  --color-lcd-border:             rgba(180, 83, 9, 0.36);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #b4bfc9;
+  --color-scrollbar-thumb-hover:  #94a3b8;
+  --color-scrollbar-thumb-active: #b45309;
+  --color-scrollbar-track:        #e2e7ed;
+
+  /* Vector / Stick Pad */
+  --color-stick-pad-bg:           #d8dfe7;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #f8fafc 0%, #cbd5e1 100%);
+  --color-stick-pad-border:       rgba(30, 41, 59, 0.20);
+  --color-stick-pad-shadow:       inset 0 2px 6px rgba(15, 23, 35, 0.16);
+  --color-stick-crosshair:        rgba(180, 83, 9, 0.28);
+  --color-stick-ring:             rgba(180, 83, 9, 0.22);
+  --color-stick-pole-text:        #475569;
+}
+
+/* ── theme: dr5 ── */
+/* canonical: ABDSharedAssets/styles/themes/dr5.css */
+/* Boss DR-5 Dr. Rhythm Section -- Charcoal Slate & Amber Gold (Dark Theme) */
+/* Tints ABDShared bg_neutral.webp grain & lighting via soft-light blend */
+[data-theme="dr5"], body.skin-dr5, body.theme-dr5 {
+  --abd-bg-tint:                  #15181e;
+  --abd-bg-blend:                 soft-light;
+
+  --color-bg-base:                #15181e;
+  --color-panel-bg:               rgba(21, 24, 30, 0.88);
+  --color-panel-surface:          rgba(31, 36, 45, 0.90);
+  --color-panel-surface-elevated: rgba(42, 48, 60, 0.94);
+  --color-bg-elev:                #1f242d;
+  --color-border:                 #363e4d;
+  --color-scrim-rgb:              0, 0, 0;
+  --navbar-bg:                    rgba(18, 21, 26, 0.94);
+  --navbar-shadow:                0 2px 10px rgba(0, 0, 0, 0.50);
+  --color-panel-border:           rgba(245, 158, 11, 0.22);
+  --color-panel-border-strong:    rgba(245, 158, 11, 0.48);
+  --color-panel-border-dim:       rgba(255, 255, 255, 0.07);
+  --shadow-card:                  0 4px 16px rgba(0, 0, 0, 0.42);
+  --shadow-card-hover:            0 6px 20px rgba(0, 0, 0, 0.56);
+  --shadow-elevation-1:           0 2px 6px rgba(0, 0, 0, 0.50);
+  --shadow-elevation-2:           0 8px 24px rgba(0, 0, 0, 0.64);
+  --shadow-elevation-3:           0 16px 36px rgba(0, 0, 0, 0.82);
+  --shadow-inset-bevel:           inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  --color-led-active:             #f59e0b;
+  --color-led-glow:               rgba(245, 158, 11, 0.58);
+
+  /* Boss DR-5 Amber / Gold Pad Accent */
+  --color-accent:                 #f59e0b;
+  --color-accent-rgb:             245, 158, 11;
+  --color-accent-hover:           #fbbf24;
+  --color-accent-active:          #d97706;
+  --color-accent-dim:             rgba(245, 158, 11, 0.16);
+
+  --color-success:                #22c55e;
+  --color-success-rgb:            34, 197, 94;
+  --color-warning:                #f59e0b;
+  --color-warning-rgb:            245, 158, 11;
+  --color-danger:                 #e11d48;
+  --color-danger-rgb:             225, 29, 72;
+  --color-info:                   #38bdf8;
+  --color-info-rgb:               56, 189, 248;
+
+  /* Typography */
+  --color-text-main:              #f1f5f9;
+  --color-text-muted:             #94a3b8;
+  --color-text-dim:               #64748b;
+
+  /* Classic Boss DR-5 Olive-Green Backlit LCD */
+  --color-lcd-bg:                 #182419;
+  --color-lcd-text:               #b4f850;
+  --color-lcd-border:             rgba(180, 248, 80, 0.36);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #333c4c;
+  --color-scrollbar-thumb-hover:  #465268;
+  --color-scrollbar-thumb-active: #f59e0b;
+  --color-scrollbar-track:        #111419;
+
+  /* Vector / Stick Pad */
+  --color-stick-pad-bg:           #111419;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #232934 0%, #111419 100%);
+  --color-stick-pad-border:       rgba(245, 158, 11, 0.26);
+  --color-stick-pad-shadow:       inset 0 2px 8px rgba(0, 0, 0, 0.72);
+  --color-stick-crosshair:        rgba(245, 158, 11, 0.28);
+  --color-stick-ring:             rgba(245, 158, 11, 0.22);
+  --color-stick-pole-text:        #94a3b8;
+}
+
 /* ── theme: juno ── */
 /* canonical: ABDSharedAssets/styles/themes/juno.css */
 /* Roland Juno-106 -- Multi-Color Heritage Theme */
@@ -324,6 +466,148 @@
   --color-scrollbar-thumb-hover:  #40455a;
   --color-scrollbar-thumb-active: #555a70;
   --color-scrollbar-track:        #10121a;
+}
+
+/* ── theme: mc303-light ── */
+/* canonical: ABDSharedAssets/styles/themes/mc303-light.css */
+/* Roland MC-303 Groovebox -- Brushed Silver-Grey Alloy (Light Theme) */
+/* Inspired by the iconic 1996 silver metal faceplate tinting bg_neutral.webp */
+[data-theme="mc303-light"], body.skin-mc303-light, body.theme-mc303-light {
+  --abd-bg-tint:                  #cfd5dc;
+  --abd-bg-blend:                 soft-light;
+
+  --color-bg-base:                #cfd5dc;
+  --color-panel-bg:               rgba(222, 227, 233, 0.84);
+  --color-panel-surface:          rgba(238, 241, 245, 0.90);
+  --color-panel-surface-elevated: rgba(250, 251, 253, 0.96);
+  --color-bg-elev:                #fafbfd;
+  --color-border:                 #b6c0cc;
+  --color-scrim-rgb:              15, 23, 35;
+  --navbar-bg:                    rgba(216, 222, 229, 0.94);
+  --navbar-shadow:                0 1px 4px rgba(15, 23, 35, 0.14);
+  --color-panel-border:           rgba(30, 41, 59, 0.18);
+  --color-panel-border-strong:    rgba(217, 72, 15, 0.44);
+  --color-panel-border-dim:       rgba(30, 41, 59, 0.09);
+  --shadow-card:                  0 3px 12px rgba(15, 23, 35, 0.10);
+  --shadow-card-hover:            0 5px 18px rgba(15, 23, 35, 0.16);
+  --shadow-elevation-1:           0 2px 6px rgba(15, 23, 35, 0.12);
+  --shadow-elevation-2:           0 8px 24px rgba(15, 23, 35, 0.18);
+  --shadow-elevation-3:           0 16px 36px rgba(15, 23, 35, 0.24);
+  --shadow-inset-bevel:           inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  --color-led-active:             #d9480f;
+  --color-led-glow:               rgba(217, 72, 15, 0.45);
+
+  /* Classic Roland Orange-Red Silk-Screen & LED Accent */
+  --color-accent:                 #d9480f;
+  --color-accent-rgb:             217, 72, 15;
+  --color-accent-hover:           #e8590c;
+  --color-accent-active:          #b63a0a;
+  --color-accent-dim:             rgba(217, 72, 15, 0.13);
+
+  --color-success:                #15803d;
+  --color-success-rgb:            21, 128, 61;
+  --color-warning:                #b45309;
+  --color-warning-rgb:            180, 83, 9;
+  --color-danger:                 #dc2626;
+  --color-danger-rgb:             220, 38, 38;
+  --color-info:                   #0284c7;
+  --color-info-rgb:               2, 132, 199;
+
+  /* Typography (Industrial Graphite Silk-Screen on Silver Alloy) */
+  --color-text-main:              #161a20;
+  --color-text-muted:             #46515e;
+  --color-text-dim:               #6e7b8a;
+
+  /* Authentic MC-303 Dark Backlit LCD */
+  --color-lcd-bg:                 #1b2619;
+  --color-lcd-text:               #ff9f2e;
+  --color-lcd-border:             rgba(217, 72, 15, 0.42);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #a9b4c0;
+  --color-scrollbar-thumb-hover:  #8d9aa8;
+  --color-scrollbar-thumb-active: #d9480f;
+  --color-scrollbar-track:        #d8dde3;
+
+  /* Vector / Stick Pad */
+  --color-stick-pad-bg:           #d3dae2;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #f1f4f8 0%, #c6cfd9 100%);
+  --color-stick-pad-border:       rgba(30, 41, 59, 0.22);
+  --color-stick-pad-shadow:       inset 0 2px 6px rgba(15, 23, 35, 0.18);
+  --color-stick-crosshair:        rgba(217, 72, 15, 0.30);
+  --color-stick-ring:             rgba(217, 72, 15, 0.24);
+  --color-stick-pole-text:        #46515e;
+}
+
+/* ── theme: mc303 ── */
+/* canonical: ABDSharedAssets/styles/themes/mc303.css */
+/* Roland MC-303 Groovebox -- Graphite Titanium & Orange LED (Dark Theme) */
+/* Tints ABDShared bg_neutral.webp grain & lighting via soft-light blend */
+[data-theme="mc303"], body.skin-mc303, body.theme-mc303 {
+  --abd-bg-tint:                  #1b1f26;
+  --abd-bg-blend:                 soft-light;
+
+  --color-bg-base:                #1b1f26;
+  --color-panel-bg:               rgba(27, 31, 38, 0.86);
+  --color-panel-surface:          rgba(37, 43, 52, 0.90);
+  --color-panel-surface-elevated: rgba(48, 56, 68, 0.94);
+  --color-bg-elev:                #252b34;
+  --color-border:                 #3a4352;
+  --color-scrim-rgb:              0, 0, 0;
+  --navbar-bg:                    rgba(22, 26, 32, 0.94);
+  --navbar-shadow:                0 2px 10px rgba(0, 0, 0, 0.48);
+  --color-panel-border:           rgba(255, 106, 26, 0.24);
+  --color-panel-border-strong:    rgba(255, 106, 26, 0.50);
+  --color-panel-border-dim:       rgba(255, 255, 255, 0.08);
+  --shadow-card:                  0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-card-hover:            0 6px 20px rgba(0, 0, 0, 0.55);
+  --shadow-elevation-1:           0 2px 6px rgba(0, 0, 0, 0.48);
+  --shadow-elevation-2:           0 8px 24px rgba(0, 0, 0, 0.62);
+  --shadow-elevation-3:           0 16px 36px rgba(0, 0, 0, 0.80);
+  --shadow-inset-bevel:           inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  --color-led-active:             #ff6a1a;
+  --color-led-glow:               rgba(255, 106, 26, 0.60);
+
+  /* Roland Groovebox Orange-Red Accent */
+  --color-accent:                 #ff6a1a;
+  --color-accent-rgb:             255, 106, 26;
+  --color-accent-hover:           #ff8442;
+  --color-accent-active:          #e05308;
+  --color-accent-dim:             rgba(255, 106, 26, 0.16);
+
+  --color-success:                #22c55e;
+  --color-success-rgb:            34, 197, 94;
+  --color-warning:                #f59e0b;
+  --color-warning-rgb:            245, 158, 11;
+  --color-danger:                 #ef4444;
+  --color-danger-rgb:             239, 68, 68;
+  --color-info:                   #38bdf8;
+  --color-info-rgb:               56, 189, 248;
+
+  /* Typography */
+  --color-text-main:              #eef2f6;
+  --color-text-muted:             #9aa6b5;
+  --color-text-dim:               #687586;
+
+  /* Classic MC-303 Backlit LCD (Amber-Orange / Warm Green Contrast) */
+  --color-lcd-bg:                 #1c2419;
+  --color-lcd-text:               #ff9f2e;
+  --color-lcd-border:             rgba(255, 159, 46, 0.42);
+
+  /* Scrollbars */
+  --color-scrollbar-thumb:        #343d4b;
+  --color-scrollbar-thumb-hover:  #465265;
+  --color-scrollbar-thumb-active: #ff6a1a;
+  --color-scrollbar-track:        #151920;
+
+  /* Vector / Stick Pad */
+  --color-stick-pad-bg:           #151920;
+  --color-stick-pad-gradient:     radial-gradient(circle at 50% 50%, #262d38 0%, #14181f 100%);
+  --color-stick-pad-border:       rgba(255, 106, 26, 0.28);
+  --color-stick-pad-shadow:       inset 0 2px 8px rgba(0, 0, 0, 0.72);
+  --color-stick-crosshair:        rgba(255, 106, 26, 0.30);
+  --color-stick-ring:             rgba(255, 106, 26, 0.24);
+  --color-stick-pole-text:        #9aa6b5;
 }
 
 /* ── theme: microkorg ── */

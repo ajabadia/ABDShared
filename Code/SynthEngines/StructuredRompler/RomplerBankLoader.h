@@ -22,6 +22,7 @@ struct LoadedWave
     bool isLooping { false };
     bool isPingPong { false };
     int rootKey { 60 };
+    double sampleRate { 44100.0 };
     float fineTuneCents { 0.0f };
     float loopTuneCents { 0.0f };
     int loopStart { 0 };

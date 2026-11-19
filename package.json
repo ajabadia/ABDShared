@@ -57,6 +57,10 @@
     "./components/controls/stepButtonStrip.js": {
       "default": "./Components/Controls/stepButtonStrip.js"
     },
+    "./components/synth-engines": {
+      "types": "./Components/SynthEngines/index.d.ts",
+      "default": "./Components/SynthEngines/index.js"
+    },
     "./components/scope/miniWaveScope.js": {
       "default": "./Components/Scope/miniWaveScope.js"
     },

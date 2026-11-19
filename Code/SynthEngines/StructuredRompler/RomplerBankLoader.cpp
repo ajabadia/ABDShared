@@ -9,13 +9,27 @@ namespace abd::rompler
 
 namespace
 {
-void bindSampleRef(const LoadedWave* wave, const float*& outData, int& outLen, int& outLoopStart, int& outLoopEnd) noexcept
+template <typename TargetT>
+void bindSampleRef(const LoadedWave* wave, TargetT& dst) noexcept
 {
-    if (!wave || wave->sampleDataL.empty()) return;
-    outData = wave->sampleDataL.data();
-    outLen = static_cast<int>(wave->sampleDataL.size());
-    outLoopStart = wave->loopStart;
-    outLoopEnd = (wave->loopEnd > wave->loopStart) ? wave->loopEnd : outLen;
+    if (!wave || wave->sampleDataL.empty())
+    {
+        dst.externalSampleData = nullptr;
+        dst.externalSampleDataR = nullptr;
+        dst.externalSampleLength = 0;
+        dst.externalLoopStart = 0;
+        dst.externalLoopEnd = 0;
+        dst.externalSampleRate = 44100.0f;
+        dst.externalRootKey = 60;
+        return;
+    }
+    dst.externalSampleData = wave->sampleDataL.data();
+    dst.externalSampleDataR = wave->isStereo ? wave->sampleDataR.data() : nullptr;
+    dst.externalSampleLength = static_cast<int>(wave->sampleDataL.size());
+    dst.externalLoopStart = wave->loopStart;
+    dst.externalLoopEnd = (wave->loopEnd > wave->loopStart) ? wave->loopEnd : dst.externalSampleLength;
+    dst.externalSampleRate = static_cast<float>(wave->sampleRate > 0.0 ? wave->sampleRate : 44100.0);
+    dst.externalRootKey = static_cast<std::uint8_t>(std::clamp(wave->rootKey, 0, 127));
 }
 } // namespace
 
@@ -174,9 +188,7 @@ bool RomplerBankLoader::applyTone(int toneIndex, RomplerPatch& outPatch) const n
     for (std::size_t p = 0; p < 4; ++p)
     {
         outPatch.partials[p] = tone->partials[p];
-        bindSampleRef(findWave(tone->partialWaveIds[p]), outPatch.partials[p].externalSampleData,
-                      outPatch.partials[p].externalSampleLength, outPatch.partials[p].externalLoopStart,
-                      outPatch.partials[p].externalLoopEnd);
+        bindSampleRef(findWave(tone->partialWaveIds[p]), outPatch.partials[p]);
     }
     return true;
 }
@@ -202,8 +214,10 @@ bool RomplerBankLoader::applyDrumKit(int kitIndex, RomplerDrumKitPatch& outKit) 
         slot.triggerMode = s.triggerMode;
         slot.level = s.level;
         slot.pan = s.pan;
-        bindSampleRef(findWave(s.waveId), slot.externalSampleData, slot.externalSampleLength,
-                      slot.externalLoopStart, slot.externalLoopEnd);
+        const LoadedWave* wave = findWave(s.waveId);
+        bindSampleRef(wave, slot);
+        if (wave != nullptr)
+            slot.coarseKey = slot.externalRootKey;
     }
     return true;
 }

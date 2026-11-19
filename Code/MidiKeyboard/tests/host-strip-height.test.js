@@ -80,6 +80,15 @@ const HOSTS = [
     cssFiles: ['ABDNeuModMakr/src/styles/04-spectral-keyboard.css'],
     stripHeightPx: 98,
   },
+  {
+    // ABDMCX0X: dock colapsable del teclado en mcx-keyboard-dock.css;
+    // la franja .mcx-kbd-host declara height: 96px (el selector colapsado
+    // es compuesto y no matchea .mcx-kbd-host exacto).
+    project: 'ABDMCX0X',
+    stripSelector: '.mcx-kbd-host',
+    cssFiles: ['ABDMCX0X/WebUI/src/styles/mcx-keyboard-dock.css'],
+    stripHeightPx: 96,
+  },
 ];
 
 /** Specimen de montaje real: import del specifier + llamada al factory. */

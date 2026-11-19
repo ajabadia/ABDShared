@@ -64,10 +64,21 @@ int RomplerVoicePool::getOwnerActiveVoiceCount(int ownerSlot) const noexcept
     for (int i = 0; i < maxPolyphony_; ++i)
     {
         const auto& v = voices_[static_cast<std::size_t>(i)];
-        if (v.isActive() && v.getOwnerSlot() == ownerSlot)
+        if (v.isActive() && !v.isChoking() && v.getOwnerSlot() == ownerSlot)
             ++count;
     }
     return count;
+}
+
+bool RomplerVoicePool::hasHeldMelodicVoice(int ownerSlot) const noexcept
+{
+    for (int i = 0; i < maxPolyphony_; ++i)
+    {
+        const auto& v = voices_[static_cast<std::size_t>(i)];
+        if (v.isActive() && !v.isChoking() && !v.isDrumVoice() && v.getOwnerSlot() == ownerSlot && v.isHeldByKey())
+            return true;
+    }
+    return false;
 }
 
 int RomplerVoicePool::countNeededPartials(const VoiceRenderConfig& cfg, bool isDrumKit, float velocity01) noexcept
@@ -87,7 +98,7 @@ int RomplerVoicePool::countNeededPartials(const VoiceRenderConfig& cfg, bool isD
 int RomplerVoicePool::findStealCandidate() const noexcept
 {
     int bestIdx = -1;
-    bool bestReleasing = false;
+    int bestTier = -1; // 2=choking, 1=releasing, 0=held
     float bestLevel = (std::numeric_limits<float>::max)();
     std::uint64_t bestAge = (std::numeric_limits<std::uint64_t>::max)();
 
@@ -96,14 +107,14 @@ int RomplerVoicePool::findStealCandidate() const noexcept
         const auto& v = voices_[static_cast<std::size_t>(i)];
         if (!v.isActive())
             continue;
-        const bool rel = v.isReleasing();
+        const int tier = v.isChoking() ? 2 : (v.isReleasing() ? 1 : 0);
         const float lvl = v.getLastLevelEstimate();
         const std::uint64_t age = v.getTimestamp();
-        if (bestIdx < 0 || (rel && !bestReleasing) ||
-            (rel == bestReleasing && (lvl < bestLevel - 1e-4f || (std::abs(lvl - bestLevel) <= 1e-4f && age < bestAge))))
+        if (bestIdx < 0 || tier > bestTier ||
+            (tier == bestTier && (lvl < bestLevel - 1e-4f || (std::abs(lvl - bestLevel) <= 1e-4f && age < bestAge))))
         {
             bestIdx = i;
-            bestReleasing = rel;
+            bestTier = tier;
             bestLevel = lvl;
             bestAge = age;
         }
@@ -122,7 +133,7 @@ int RomplerVoicePool::allocateVoiceSlot(int requestedPartials, StolenVoiceInfo& 
         outStolen = { true, stolen.getOwnerSlot(), stolen.getDrumSlotNote() };
         if (voiceStolenFn_ && stolen.getOwnerSlot() >= 0)
             voiceStolenFn_(voiceStolenUserData_, stolen.getOwnerSlot(), stolen.getDrumSlotNote());
-        stolen.forceChoke();
+        stolen.prepareForSteal();
     }
 
     for (int i = 0; i < maxPolyphony_; ++i)
@@ -138,7 +149,7 @@ int RomplerVoicePool::allocateVoiceSlot(int requestedPartials, StolenVoiceInfo& 
         outStolen = { true, stolen.getOwnerSlot(), stolen.getDrumSlotNote() };
         if (voiceStolenFn_ && stolen.getOwnerSlot() >= 0)
             voiceStolenFn_(voiceStolenUserData_, stolen.getOwnerSlot(), stolen.getDrumSlotNote());
-        stolen.forceChoke();
+        stolen.prepareForSteal();
         return victim;
     }
     return 0;
@@ -179,7 +190,8 @@ RomplerVoicePool::StolenVoiceInfo RomplerVoicePool::triggerDrum(int ownerSlot,
 void RomplerVoicePool::releaseNote(int ownerSlot,
                                    int midiNote,
                                    bool isDrumKit,
-                                   RomplerDrumKitPatch* drumKit) noexcept
+                                   RomplerDrumKitPatch* drumKit,
+                                   bool sustainPedalDown) noexcept
 {
     const int mappedSlot = (isDrumKit && drumKit != nullptr)
                                ? static_cast<int>(drumKit->remapper.inputToSlot[static_cast<std::size_t>(std::clamp(midiNote, 0, 127))])
@@ -187,7 +199,13 @@ void RomplerVoicePool::releaseNote(int ownerSlot,
     for (int i = 0; i < maxPolyphony_; ++i)
     {
         auto& v = voices_[static_cast<std::size_t>(i)];
-        if (v.isActive() && v.getOwnerSlot() == ownerSlot && v.isHeldByKey() && v.getMidiNote() == midiNote)
+        if (!v.isActive() || v.isChoking() || v.getOwnerSlot() != ownerSlot || !v.isHeldByKey() || v.getMidiNote() != midiNote)
+            continue;
+        if (!isDrumKit && sustainPedalDown)
+        {
+            v.markSustainedByPedal();
+        }
+        else
         {
             v.noteOff();
             if (isDrumKit && drumKit != nullptr && mappedSlot >= 0 &&
@@ -199,6 +217,16 @@ void RomplerVoicePool::releaseNote(int ownerSlot,
     }
 }
 
+void RomplerVoicePool::releaseSustainedNotes(int ownerSlot) noexcept
+{
+    for (int i = 0; i < maxPolyphony_; ++i)
+    {
+        auto& v = voices_[static_cast<std::size_t>(i)];
+        if (v.isActive() && !v.isChoking() && v.getOwnerSlot() == ownerSlot && v.isSustainedByPedal() && !v.isHeldByKey())
+            v.noteOff();
+    }
+}
+
 void RomplerVoicePool::chokeMuteGroup(int ownerSlot, std::uint8_t muteGroup) noexcept
 {
     if (muteGroup == 0)
@@ -207,7 +235,7 @@ void RomplerVoicePool::chokeMuteGroup(int ownerSlot, std::uint8_t muteGroup) noe
     {
         auto& v = voices_[static_cast<std::size_t>(i)];
         if (v.isActive() && v.getOwnerSlot() == ownerSlot && v.getDrumMuteGroup() == muteGroup)
-            v.forceChoke();
+            v.softChoke();
     }
 }
 

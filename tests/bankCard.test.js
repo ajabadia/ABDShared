@@ -57,7 +57,9 @@ describe('bindBankCards', () =>
     expect(seen.click).toBe(5);
     card.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     expect(seen.dbl).toBe(5);
-    grid.querySelector('[data-action]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    grid.querySelector('[data-action="audition"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(seen.action).toEqual([5, 'audition']);
+    grid.querySelector('[data-action="load"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(seen.action).toEqual([5, 'load']);
     // La acción para la propagación: no cuenta como selección.
     expect(seen.click).toBe(5);

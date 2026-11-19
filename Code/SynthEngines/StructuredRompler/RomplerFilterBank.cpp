@@ -42,6 +42,7 @@ void RomplerFilterBank::reset() noexcept
     zplaneStageB_.reset();
     tcLpState_ = 0.0f;
     tcBpState_ = 0.0f;
+    coeffsValid_ = false;
 }
 
 void RomplerFilterBank::setParameters(FilterModel model,
@@ -51,13 +52,28 @@ void RomplerFilterBank::setParameters(FilterModel model,
                                       float zplaneMorph01,
                                       float drive01) noexcept
 {
+    const float maxCutoff = static_cast<float>(sampleRate_ * 0.45);
+    const float clampedCutoff = std::clamp(cutoffHz, 20.0f, std::max(200.0f, maxCutoff));
+    const float clampedRes = std::clamp(resonance01, 0.0f, 1.0f);
+    const float clampedMorph = std::clamp(zplaneMorph01, 0.0f, 1.0f);
+    const float clampedDrive = std::clamp(drive01, 0.0f, 1.0f);
+
+    if (coeffsValid_ && model == model_ && filterMode == filterMode_ &&
+        std::abs(clampedCutoff - cutoffHz_) < 1.0e-3f &&
+        std::abs(clampedRes - resonance_) < 1.0e-4f &&
+        std::abs(clampedMorph - morph_) < 1.0e-4f &&
+        std::abs(clampedDrive - drive_) < 1.0e-4f)
+    {
+        return;
+    }
+
     model_ = model;
     filterMode_ = filterMode;
-    const float maxCutoff = static_cast<float>(sampleRate_ * 0.45);
-    cutoffHz_ = std::clamp(cutoffHz, 20.0f, std::max(200.0f, maxCutoff));
-    resonance_ = std::clamp(resonance01, 0.0f, 1.0f);
-    morph_ = std::clamp(zplaneMorph01, 0.0f, 1.0f);
-    drive_ = std::clamp(drive01, 0.0f, 1.0f);
+    cutoffHz_ = clampedCutoff;
+    resonance_ = clampedRes;
+    morph_ = clampedMorph;
+    drive_ = clampedDrive;
+    coeffsValid_ = true;
 
     if (filterMode_ >= 3)
         return;
@@ -99,8 +115,8 @@ void RomplerFilterBank::setParameters(FilterModel model,
 
         case FilterModel::RolandTc6116Tvf:
         {
-            const float safeFc = std::min(cutoffHz_, static_cast<float>(sampleRate_ * 0.28));
-            tcF_ = std::clamp(2.0f * std::sin(kPi * safeFc / static_cast<float>(sampleRate_)), 0.002f, 1.55f);
+            const float safeFc = std::min(cutoffHz_, static_cast<float>(sampleRate_ * 0.33));
+            tcF_ = std::clamp(2.0f * std::sin(kPi * safeFc / static_cast<float>(sampleRate_ * 2.0)), 0.001f, 0.95f);
             const float resShaped = std::pow(resonance_, 1.15f);
             tcQInv_ = std::clamp(1.414f * (1.0f - 0.94f * resShaped), 0.06f, 1.45f);
             break;
@@ -123,9 +139,13 @@ float RomplerFilterBank::saturate20Bit(float x) noexcept
 
 float RomplerFilterBank::processTc6116Tvf(float input) noexcept
 {
-    const float hp = input - tcLpState_ - tcQInv_ * tcBpState_;
-    tcBpState_ = saturate20Bit(tcBpState_ + tcF_ * hp);
-    tcLpState_ = saturate20Bit(tcLpState_ + tcF_ * tcBpState_);
+    float hp = 0.0f;
+    for (int os = 0; os < 2; ++os)
+    {
+        hp = input - tcLpState_ - tcQInv_ * tcBpState_;
+        tcBpState_ = saturate20Bit(tcBpState_ + tcF_ * hp);
+        tcLpState_ = saturate20Bit(tcLpState_ + tcF_ * tcBpState_);
+    }
 
     if (std::abs(tcLpState_) < 1.0e-18f) tcLpState_ = 0.0f;
     if (std::abs(tcBpState_) < 1.0e-18f) tcBpState_ = 0.0f;

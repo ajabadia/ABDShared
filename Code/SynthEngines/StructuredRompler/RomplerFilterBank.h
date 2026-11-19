@@ -56,6 +56,7 @@ private:
     float tcBpState_ { 0.0f };
     float tcF_ { 0.5f };
     float tcQInv_ { 1.414f };
+    bool coeffsValid_ { false };
 };
 
 } // namespace abd::rompler

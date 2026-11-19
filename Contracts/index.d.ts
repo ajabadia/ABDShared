@@ -17,3 +17,4 @@ export declare function getContract<T = Record<string, any>>(name: string): T;
 export * from './semanticRoles';
 export * from './filterRegistry';
 export * from './abdPattern';
+export * from './enginePanelBridge';

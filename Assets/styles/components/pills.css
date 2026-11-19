@@ -49,9 +49,9 @@
   padding: 3px 12px;
   min-height: 22px;
   border-radius: 9999px;
-  border: 1px solid var(--color-panel-border, rgba(255, 255, 255, 0.12));
-  background: var(--color-panel-surface, var(--color-bg-base));
-  color: var(--color-text-muted, #7e9bb5);
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-panel-surface);
+  color: var(--color-text-muted);
   font-family: inherit;
   font-size: var(--text-sm, 11px);
   font-weight: 600;
@@ -89,7 +89,7 @@
   color: var(--color-bg-base);
   border-color: var(--color-accent);
   font-weight: 700;
-  box-shadow: 0 0 10px var(--color-accent-dim, rgba(0, 195, 255, 0.25));
+  box-shadow: 0 0 10px var(--color-accent-dim);
   transform: none;
 }
 
@@ -104,7 +104,7 @@
 [data-theme="light"] .abd-chip.active,
 [data-theme="light"] .ndb-chip.active,
 [data-theme="light"] .catalog-chip.active {
-  color: #ffffff !important;
+  color: var(--color-on-accent) !important;
 }
 
 /* Disabled State */
@@ -198,8 +198,8 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
-  background: var(--color-panel-surface-elevated, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-dim, inherit);
+  background: var(--color-panel-surface-elevated);
+  color: var(--color-text-dim);
   padding: 1px 5px;
   border-radius: 9999px;
   line-height: 1.1;
@@ -209,15 +209,15 @@
 .abd-pill.active .abd-pill__count,
 .ndb-chip.active .ndb-chip-count,
 .catalog-chip.active .catalog-chip-count {
-  background: var(--color-panel-surface-elevated, rgba(0, 0, 0, 0.25));
-  color: var(--color-text-main, #ffffff);
+  background: rgba(var(--color-scrim-rgb), 0.25);
+  color: var(--color-text-main);
   opacity: 1;
 }
 
 [data-theme="audiolab-light"] .abd-pill.active .abd-pill__count,
 [data-theme="audiolab-light"] .ndb-chip.active .ndb-chip-count {
-  background: rgba(0, 0, 0, 0.25);
-  color: #ffffff;
+  background: rgba(var(--color-scrim-rgb), 0.25);
+  color: var(--color-on-accent);
 }
 
 /* ── 6. Category & Color Modifiers ───────────────────────── */
@@ -247,45 +247,17 @@
 /* ── 7. Scoped Theme Preview Pills ──────────────────────────
    Allows theme picker buttons in Settings/NavBar to preview
    their native colors regardless of the current active theme. */
-.theme-pill-preview[data-theme="ms2000"] {
-  --theme-accent: #00c3ff;
-  --theme-bg: #0d171d;
+.theme-pill-preview {
+  --theme-accent: var(--color-accent);
+  --theme-bg: var(--color-bg-base);
   background: var(--theme-bg);
-  border-color: rgba(0, 195, 255, 0.4);
-  color: #e6f6ff;
-}
-.theme-pill-preview[data-theme="audiolab"] {
-  --theme-accent: #38bdf8;
-  --theme-bg: #0f141c;
-  background: var(--theme-bg);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #e2e8f0;
-}
-.theme-pill-preview[data-theme="audiolab-light"] {
-  --theme-accent: #007a4d;
-  --theme-bg: #ffffff;
-  background: var(--theme-bg);
-  border-color: rgba(0, 122, 77, 0.4);
-  color: #0f172a;
-}
-.theme-pill-preview[data-theme="advanced"] {
-  --theme-accent: #ff8c00;
-  --theme-bg: #140e0a;
-  background: var(--theme-bg);
-  border-color: rgba(255, 140, 0, 0.4);
-  color: #ffeedd;
-}
-.theme-pill-preview[data-theme="cz101"] {
-  --theme-accent: #ff3b30;
-  --theme-bg: #141416;
-  background: var(--theme-bg);
-  border-color: rgba(255, 59, 48, 0.4);
-  color: #f5f0ee;
+  border-color: var(--color-panel-border);
+  color: var(--color-text-main);
 }
 
 .theme-pill-preview.active {
   background: var(--theme-accent) !important;
   border-color: var(--theme-accent) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3) !important;
+  color: var(--color-on-accent) !important;
+  box-shadow: var(--shadow-elevation-1) !important;
 }

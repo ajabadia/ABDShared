@@ -34,6 +34,10 @@ export interface MultiBusFxRackModalOptions {
   initialTopology?: number;
   bpm?: number;
   locale?: string;
+  getRackSlots?: () => any[];
+  getSendTargets?: () => number[];
+  onSendSlotTargetChange?: (busIdx: number, bayIdx: number) => void;
+  onOpenFaceplate?: (bayIdx: number) => void;
   onSendLabelsChange?: (labels: { sendA: string; sendB: string; sendC: string; sendD: string }) => void;
   onClose?: () => void;
 }
@@ -49,6 +53,8 @@ export declare class MultiBusFxRackLcd {
 
 export declare class MultiBusFxRackModal {
   constructor(options?: MultiBusFxRackModalOptions);
+  render(): void;
+  emitLabels(): { sendA: string; sendB: string; sendC: string; sendD: string };
   open(): void;
   close(): void;
   toggle(): void;
@@ -56,7 +62,7 @@ export declare class MultiBusFxRackModal {
   setLocale(locale: string): void;
   setBpm(bpm: number): void;
   setLimiterEnabled(enabled: boolean): void;
-  hydrateFromHost(dto: { fxTopology?: number; limiterEnabled?: boolean; limiterCeilingDb?: number; sendTargets?: number[]; busMutes?: boolean[] }): void;
+  hydrateFromHost(dto: { fxTopology?: number; limiterEnabled?: boolean; limiterCeilingDb?: number; sendTargets?: number[]; busMutes?: boolean[]; [key: string]: any }): void;
   updateTelemetry(dto: FxRackTelemetryDto): void;
   destroy(): void;
 }

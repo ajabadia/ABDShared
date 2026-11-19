@@ -117,7 +117,7 @@ export function createDrawer({
   const closeButton = document.createElement('button');
   closeButton.type = 'button';
   closeButton.className = 'drawer__close';
-  closeButton.textContent = '✕';
+  closeButton.innerHTML = '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg>';
   closeButton.title = closeLabel;
   closeButton.setAttribute('aria-label', closeLabel);
 

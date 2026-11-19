@@ -34,7 +34,7 @@ export function buildGrooveShuffleHtml(state, locale = 'es') {
           <span class="abd-groove-badge">${partLbl}</span>
           <h2 class="abd-groove-title">${isEs ? 'MOTOR DE GROOVE & SHUFFLE' : 'GROOVE & SHUFFLE ENGINE'}</h2>
         </div>
-        <button type="button" class="abd-groove-close-btn" data-act="close" title="${isEs ? 'Cerrar' : 'Close'}">✕</button>
+        <button type="button" class="abd-groove-close-btn" data-act="close" title="${isEs ? 'Cerrar' : 'Close'}"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
       </div>
 
       <div class="abd-groove-mode-row">

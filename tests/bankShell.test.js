@@ -124,13 +124,13 @@ describe('createBankShell', () =>
       const overlay = shell.element.querySelector('[data-shell-flash]');
       expect(overlay).not.toBeNull();
       expect(overlay.querySelector('.bank-shell-flash-text').textContent).toBe('Refrescado · 10:15');
-      expect(overlay.querySelector('.bank-shell-flash-icon').textContent).toBe('✓');
+      expect(overlay.querySelector('.bank-shell-flash-icon svg')?.getAttribute('data-icon')).toBe('ok');
       expect(overlay.classList.contains('is-visible')).toBe(true);
       expect(overlay.classList.contains('is-ok')).toBe(true);
       // Un segundo aviso reutiliza el mismo nodo y cambia la clase.
       shell.flashStatus('Fallo', 'error');
       expect(shell.element.querySelectorAll('[data-shell-flash]').length).toBe(1);
-      expect(overlay.querySelector('.bank-shell-flash-icon').textContent).toBe('⚠');
+      expect(overlay.querySelector('.bank-shell-flash-icon svg')?.getAttribute('data-icon')).toBe('error');
       expect(overlay.classList.contains('is-error')).toBe(true);
       expect(overlay.classList.contains('is-ok')).toBe(false);
       // El aviso de error se oculta a los 6s.

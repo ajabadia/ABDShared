@@ -99,9 +99,9 @@ export class TrajectoryStick2D {
 
     const recorderControlsHtml = this.options.hasRecorder ? `
       <div class="stick-recorder-bar" style="display: flex; gap: 4px; align-items: center;">
-        <button type="button" class="btn btn-xs ${this.isRecording ? 'btn-danger-solid recording' : 'btn-outline'} btn-stick-rec" title="Record Vector Trajectory">● REC</button>
-        <button type="button" class="btn btn-xs ${this.isPlaying ? 'btn-primary playing' : 'btn-outline'} btn-stick-play" title="Play Recorded Loop">▶ PLAY</button>
-        <button type="button" class="btn btn-xs btn-outline btn-stick-clr" title="Clear Trajectory">✕</button>
+        <button type="button" class="btn btn-xs ${this.isRecording ? 'btn-danger-solid recording' : 'btn-outline'} btn-stick-rec" title="Record Vector Trajectory"><svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" style="vertical-align:-0.05em"><circle cx="6" cy="6" r="4.5"/></svg> REC</button>
+        <button type="button" class="btn btn-xs ${this.isPlaying ? 'btn-primary playing' : 'btn-outline'} btn-stick-play" title="Play Recorded Loop"><svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" style="vertical-align:-0.1em"><polygon points="3,2 10,6 3,10"/></svg> PLAY</button>
+        <button type="button" class="btn btn-xs btn-outline btn-stick-clr" title="Clear Trajectory"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
       </div>
     ` : '';
 

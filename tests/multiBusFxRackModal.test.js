@@ -61,7 +61,7 @@ describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
     expect(bridge.setTopology).toHaveBeenCalledWith(3);
 
     const lcdStatus = modal.el.querySelector('.fx-lcd-status');
-    expect(lcdStatus?.textContent).toContain('1 ∥ 2 ∥ 3 ∥ 4');
+    expect(lcdStatus?.textContent).toContain('1 || 2 || 3 || 4');
 
     modal.destroy();
   });
@@ -147,7 +147,7 @@ describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
     const found = findAlgorithm('delay', 'space_echo');
     expect(found.name).toBe('Space Echo RE-201');
     expect(found.badge).toBe('RE2');
-    expect(found.baseColor).toBe('#162e20');
+    expect(found.baseColor).toBe('var(--color-fx-space-bg)');
     expect(found.icon).toBe('wave');
     expect(found.canDuck).toBe(true);
     expect(found.tailSec).toBeGreaterThan(0);

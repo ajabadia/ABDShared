@@ -97,6 +97,7 @@
   --text-lg:   12px;  /* Emphasized body, inputs */
   --text-xl:   13px;  /* Section titles, LCD readouts */
   --text-2xl:  18px;  /* Large displays, close buttons */
+  --tracking-wide: 0.08em;
 
   /* =========================================================================
      5. Spacing (11-step scale)
@@ -112,6 +113,8 @@
   --space-12: 24px;
   --space-15: 30px;
   --space-20: 40px;
+  --space-xs: var(--space-2);
+  --space-sm: var(--space-3);
 
   /* =========================================================================
      6. Transitions & Animation
@@ -159,11 +162,15 @@
   /* =========================================================================
      8. Radii & Geometry
      ========================================================================= */
+  --radius-xs:      2px;
   --radius-sm:      2px;
   --radius-md:      4px;
   --radius-lg:      8px;
+  --radius-xl:      12px;
   --radius-panel:   4px;
   --radius-chassis: 6px;
+  --radius-full:    9999px;
+  --radius-round:   9999px;
 
   /* =========================================================================
      9. Shadows & Elevations (4 levels)
@@ -171,6 +178,7 @@
   --shadow-elevation-1: 0  2px  6px rgba(0, 0, 0, 0.5);
   --shadow-elevation-2: 0  8px 24px rgba(0, 0, 0, 0.65);
   --shadow-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.85);
+  --shadow-lg:          var(--shadow-elevation-2);
   --shadow-inset-bevel: inset 0 1px 1px rgba(255, 255, 255, 0.1);
 
   /* =========================================================================
@@ -415,4 +423,82 @@
   --color-cable-audio-in:  var(--color-accent);
   --color-cable-midi-out:  #c084fc;
   --color-cable-midi-in:   #22d3ee;
+}
+
+/* Hardware Chassis, FX Family & Step Palette Base Tokens */
+:root {
+  --color-fx-reverb-bg: #251b36; --color-fx-reverb-accent: #b48eff;
+  --color-fx-fdn-bg: #1d1f38; --color-fx-fdn-accent: #8ea6ff;
+  --color-fx-plate-bg: #2b2133; --color-fx-plate-accent: #e098ff;
+  --color-fx-spring-bg: #2b261b; --color-fx-spring-accent: #ffc060;
+  --color-fx-delay-bg: #1a2b36; --color-fx-delay-accent: #5ce1e6;
+  --color-fx-tape-bg: #26281e; --color-fx-tape-accent: #c5d95e;
+  --color-fx-space-bg: #162e20; --color-fx-space-accent: #4cd97b;
+  --color-fx-duck-bg: #1b2d38; --color-fx-duck-accent: #5db0e8;
+  --color-fx-chorus-bg: #1a2238; --color-fx-chorus-accent: #6da0ff;
+  --color-fx-bbd-bg: #1d223a; --color-fx-bbd-accent: #ff9040;
+  --color-fx-flanger-bg: #2b1e2c; --color-fx-flanger-accent: #ff70b0;
+  --color-fx-phaser-bg: #29202e; --color-fx-phaser-accent: #d66dff;
+  --color-fx-solina-bg: #29221b; --color-fx-solina-accent: #ffaa40;
+  --color-fx-sat-bg: #331d16; --color-fx-sat-accent: #ff6633;
+  --color-fx-shaper-bg: #361b1b; --color-fx-shaper-accent: #ff4444;
+  --color-fx-mbdist-bg: #361e14; --color-fx-mbdist-accent: #ff8833;
+  --color-fx-eq-bg: #1d2a26; --color-fx-eq-accent: #4de8aa;
+  --color-fx-filter-bg: #2e2616; --color-fx-filter-accent: #ffcc33;
+  --color-fx-shelf-bg: #1c2826; --color-fx-shelf-accent: #44d6aa;
+  --color-fx-comp-bg: #28231c; --color-fx-comp-accent: #e0c080;
+  --color-fx-gate-bg: #202228; --color-fx-gate-accent: #8899aa;
+  --color-fx-pitch-bg: #231e33; --color-fx-pitch-accent: #aa77ff;
+  --color-fx-ring-bg: #2e1c26; --color-fx-ring-accent: #ff5599;
+  --color-fx-pan-bg: #1c262e; --color-fx-pan-accent: #44aaff;
+
+  --color-step-red: #ef4444; --color-step-red-rgb: 239, 68, 68;
+  --color-step-orange: #f97316; --color-step-orange-rgb: 249, 115, 22;
+  --color-step-yellow: #f59e0b; --color-step-yellow-rgb: 245, 158, 11;
+  --color-step-sky: #38bdf8; --color-step-sky-rgb: 56, 189, 248;
+  --color-step-purple: #a855f7; --color-step-purple-rgb: 168, 85, 247;
+  --color-kbd-surface: #181818; --color-kbd-surface-hi: #28282e; --color-kbd-surface-lo: #0c0c0e;
+  --color-kbd-cap-top: #1e1e22; --color-kbd-cap-bot: #141418; --color-kbd-border: #333a47; --color-kbd-border-hi: #555a66;
+  --color-kbd-led-red-off: #3a1010; --color-kbd-led-red: #ff2233; --color-kbd-led-red-rgb: 255, 34, 51;
+  --color-kbd-led-purple-off: #1a0a2a; --color-kbd-led-purple: #aa44ff; --color-kbd-led-purple-rgb: 170, 68, 255;
+  --color-kbd-led-cyan-off: #10242a; --color-kbd-led-cyan: #00d4ff; --color-kbd-led-cyan-hi: #33ddff; --color-kbd-led-cyan-rgb: 0, 212, 255;
+  --color-kbd-led-amber-off: #2a2010; --color-kbd-led-amber: #ffaa00; --color-kbd-led-amber-hi: #ffbb33; --color-kbd-led-amber-rgb: 255, 170, 0;
+  --color-kbd-led-orange-off: #2a1a0a; --color-kbd-led-orange: #ff8800; --color-kbd-led-orange-rgb: 255, 136, 0;
+  --color-kbd-led-green-off: #1a2a1a; --color-kbd-led-green: #33cc55; --color-kbd-led-green-rgb: 51, 204, 85;
+  --color-kbd-led-green-hi: #44dd66; --color-kbd-led-green-hi-rgb: 68, 221, 102;
+  --color-step-rose: #fb7185; --color-step-rose-rgb: 251, 113, 133;
+  --color-step-crimson: #ff2e43; --color-step-crimson-hi: #ff6b78; --color-step-crimson-mid: #d4293a; --color-step-crimson-lo: #8d1420;
+  --color-step-well: #1e1419; --color-step-off-muted: #451a1a; --color-step-ink-dark: #041018;
+  --color-metal-hi: #cfd9e3; --color-metal-mid: #7d8e9e; --color-metal-lo: #465564; --color-metal-sheen: #9cb0c2; --color-metal-edge: #334150;
+  --color-knob-well: #090e15; --color-knob-collar: #1e2c3a; --color-knob-bezel-lo: #0d141f;
+  --color-led-core: #ffffff; --color-on-accent: var(--color-bg-base);
+}
+
+[data-theme="light"], [data-theme="audiolab-light"] {
+  --color-on-accent: #ffffff;
+}
+
+/* Re-evaluate semantic aliases on any themed root or dialog */
+:root, [data-theme] {
+  --color-bg-primary: var(--color-bg-base);
+  --color-bg-secondary: var(--color-panel-bg);
+  --color-surface: var(--color-panel-bg);
+  --color-surface-dim: var(--color-bg-base);
+  --color-surface-elevated: var(--color-panel-surface-elevated);
+  --color-panel: var(--color-panel-bg);
+  --color-control-bg: var(--color-panel-surface);
+  --color-input-bg: var(--color-panel-surface);
+  --color-border-strong: var(--color-panel-border-strong);
+  --color-shadow: var(--shadow-elevation-2);
+  --color-text: var(--color-text-main);
+  --color-text-primary: var(--color-text-main);
+  --color-text-secondary: var(--color-text-muted);
+  --color-text-bright: var(--color-text-main);
+  --color-text-inverse: var(--color-bg-base);
+  --color-primary: var(--color-accent);
+  --color-primary-dim: var(--color-accent-dim);
+  --color-warning-hover: color-mix(in oklab, var(--color-warning) 82%, var(--color-text-main));
+  --color-trig-off: var(--color-panel-surface);
+  --fx-base-color: var(--color-panel-bg);
+  --fx-accent-color: var(--color-accent);
 }

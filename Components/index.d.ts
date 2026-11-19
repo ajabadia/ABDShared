@@ -3,6 +3,7 @@
  * Type definitions for Universal Components & Floating Modals.
  */
 
+export * from './sharedControls';
 export * from './multiBusFxRackModal';
 export * from './globalLfoModal';
 export * from './Pads/MpcPadModal';

@@ -10,7 +10,7 @@ dialog.abd-groove-dialog {
   padding: 0; border: 1px solid var(--color-panel-border-strong);
   border-radius: var(--radius-lg, 8px); background: var(--color-panel-bg);
   color: var(--color-text-main); width: 480px; max-width: 95vw;
-  box-shadow: var(--shadow-elevation-3, 0 20px 48px rgba(0, 0, 0, 0.8));
+  box-shadow: var(--shadow-elevation-3);
   font-family: var(--font-sans); overflow: hidden;
 }
 dialog.abd-groove-dialog::backdrop { background: transparent; pointer-events: none; }

@@ -139,7 +139,7 @@ export class HardwareRoutingDiagram {
     const btn = this.element.querySelector('#btnVerifyRouting');
     if (btn) {
       btn.addEventListener('click', () => {
-        btn.textContent = '✓ Señal Verificada';
+        btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-0.125em"><polyline points="2.2,6.4 5,9.2 9.8,3.2"/></svg> Señal Verificada';
         btn.classList.add('active');
         if (typeof this.options.onVerify === 'function') {
           this.options.onVerify();

@@ -169,7 +169,7 @@ export function renderMenuItemHtml(item, activeValues, locale) {
   }
 
   const checked = isItemChecked(item, activeValues);
-  const checkMark = checked ? '<span class="nav-check">✓</span> ' : '<span class="nav-check-spacer"></span>';
+  const checkMark = checked ? '<span class="nav-check" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2.2,6.4 5,9.2 9.8,3.2"/></svg></span> ' : '<span class="nav-check-spacer"></span>';
   const iconHtml = item.iconHtml ? `<span class="nav-item-icon">${item.iconHtml}</span>` : '';
   const resolvedLabel = resolveMenuText(item, 'label', locale);
 
@@ -178,7 +178,7 @@ export function renderMenuItemHtml(item, activeValues, locale) {
     return `
       <div class="nav-item nav-has-sub" role="menuitem" aria-haspopup="true">
         <span class="nav-item-content">${checkMark}${iconHtml}${escapeHtml(resolvedLabel)}</span>
-        <span class="nav-arrow" aria-hidden="true">▸</span>
+        <span class="nav-arrow" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor"><polygon points="4,2 9.5,6 4,10"/></svg></span>
         <div class="nav-submenu" role="menu">
           ${subHtml}
         </div>

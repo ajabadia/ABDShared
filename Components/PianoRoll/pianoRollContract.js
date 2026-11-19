@@ -28,17 +28,17 @@ export const DEFAULT_AUTOMATION_TARGETS = [
   {
     id: 'velocity', label: 'Velocity / Accent', min: 1, max: 127, isVelocity: true,
     colorBands: [
-      { max: 100, colorToken: 'var(--color-accent, #ff9900)', label: 'Normal' },
-      { max: 115, colorToken: 'var(--color-warning, #f59e0b)', label: 'Accent' },
-      { max: 127, colorToken: 'var(--color-danger, #ef4444)', label: 'Hard' },
+      { max: 100, colorToken: 'var(--color-accent)', label: 'Normal' },
+      { max: 115, colorToken: 'var(--color-warning)', label: 'Accent' },
+      { max: 127, colorToken: 'var(--color-danger)', label: 'Hard' },
     ],
   },
   {
     id: 'cutoff', label: 'Filter Cutoff', min: 0, max: 1, unit: '%',
     colorBands: [
-      { max: 0.7, colorToken: 'var(--color-accent, #ff9900)', label: 'Normal' },
-      { max: 0.9, colorToken: 'var(--color-warning, #f59e0b)', label: 'Open' },
-      { max: 1.0, colorToken: 'var(--color-danger, #ef4444)', label: 'Hot' },
+      { max: 0.7, colorToken: 'var(--color-accent)', label: 'Normal' },
+      { max: 0.9, colorToken: 'var(--color-warning)', label: 'Open' },
+      { max: 1.0, colorToken: 'var(--color-danger)', label: 'Hot' },
     ],
   },
   { id: 'resonance', label: 'Filter Resonance', min: 0, max: 1, unit: '%' },
@@ -49,17 +49,17 @@ export function getPrPalette(el) {
   const s = (typeof window !== 'undefined' && typeof document !== 'undefined') ? getComputedStyle(el || document.documentElement) : null;
   const v = (name, fallback) => (s ? s.getPropertyValue(name).trim() : '') || fallback;
   return {
-    panelBg: v('--color-panel-bg', '#14171d'), panelSurface: v('--color-panel-surface', '#1e222b'),
-    surfaceElevated: v('--color-panel-surface-elevated', '#2a2f3b'), bgBase: v('--color-bg-base', '#0e1014'),
-    borderDim: v('--color-panel-border-dim', '#2b303c'), borderStrong: v('--color-panel-border-strong', '#404859'),
-    textMain: v('--color-text-main', '#e6edf3'), textDim: v('--color-text-dim', '#8b949e'),
-    textInverse: v('--color-text-inverse', '#000000'), accent: v('--color-accent', '#ff9900'),
-    accentDim: v('--color-accent-dim', '#995c00'), warning: v('--color-warning', '#f59e0b'),
-    danger: v('--color-danger', '#ef4444'), fontMono: v('--font-mono', 'monospace'),
+    panelBg: v('--color-panel-bg', 'darkslategray'), panelSurface: v('--color-panel-surface', 'darkslategray'),
+    surfaceElevated: v('--color-panel-surface-elevated', 'dimgray'), bgBase: v('--color-bg-base', 'black'),
+    borderDim: v('--color-panel-border-dim', 'dimgray'), borderStrong: v('--color-panel-border-strong', 'gray'),
+    textMain: v('--color-text-main', 'white'), textDim: v('--color-text-dim', 'gray'),
+    textInverse: v('--color-text-inverse', 'black'), accent: v('--color-accent', 'orange'),
+    accentDim: v('--color-accent-dim', 'darkorange'), warning: v('--color-warning', 'gold'),
+    danger: v('--color-danger', 'red'), fontMono: v('--font-mono', 'monospace'),
   };
 }
 
-export function resolveCssColor(token, el = null, fallback = '#ff9900') {
+export function resolveCssColor(token, el = null, fallback = 'orange') {
   if (!token) return fallback;
   const str = String(token).trim();
   if (str.startsWith('var(')) {
@@ -74,9 +74,9 @@ export function resolveCssColor(token, el = null, fallback = '#ff9900') {
 }
 
 export function resolveValueColor(targetMeta, value, el = null) {
-  let token = 'var(--color-accent, #ff9900)';
+  let token = 'var(--color-accent)';
   if (!targetMeta || !targetMeta.colorBands || !targetMeta.colorBands.length) {
-    if (targetMeta?.isVelocity) token = value > 115 ? 'var(--color-danger, #ef4444)' : (value > 100 ? 'var(--color-warning, #f59e0b)' : 'var(--color-accent, #ff9900)');
+    if (targetMeta?.isVelocity) token = value > 115 ? 'var(--color-danger)' : (value > 100 ? 'var(--color-warning)' : 'var(--color-accent)');
   } else {
     token = targetMeta.colorBands[targetMeta.colorBands.length - 1].colorToken;
     for (const b of targetMeta.colorBands) { if (value <= b.max) { token = b.colorToken; break; } }
@@ -163,7 +163,7 @@ export const PIANOROLL_I18N = {
     toolDraw: 'Lápiz (Dibujar)', toolErase: 'Borrador', octDown: 'OCT -', octUp: 'OCT +',
     quantize: 'CUANTIZAR', humanize: 'HUMANIZAR', clear: 'LIMPIAR', close: 'Cerrar',
     exportSeq: 'EXPORTAR', importSeq: 'IMPORTAR',
-    accentHint: '⚠ VEL > 100 = ROLAND ACCENT', noMotion: 'SIN MOVIMIENTO REGISTRADO',
+    accentHint: 'VEL > 100 = ROLAND ACCENT', noMotion: 'SIN MOVIMIENTO REGISTRADO',
     keyOutOfRange: 'Nota fuera del rango asignado', allRange: 'TODAS LAS NOTAS',
   },
   en: {
@@ -172,7 +172,7 @@ export const PIANOROLL_I18N = {
     toolDraw: 'Pencil (Draw)', toolErase: 'Eraser', octDown: 'OCT -', octUp: 'OCT +',
     quantize: 'QUANTIZE', humanize: 'HUMANIZE', clear: 'CLEAR', close: 'Close',
     exportSeq: 'EXPORT', importSeq: 'IMPORT',
-    accentHint: '⚠ VEL > 100 = ROLAND ACCENT', noMotion: 'NO MOTION RECORDED',
+    accentHint: 'VEL > 100 = ROLAND ACCENT', noMotion: 'NO MOTION RECORDED',
     keyOutOfRange: 'Note outside playable range', allRange: 'ALL 128 KEYS',
   },
 };

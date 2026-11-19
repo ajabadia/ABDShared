@@ -92,7 +92,11 @@ export class FxFaceplateModal {
     this.updateStatusLed(Boolean(bridge?.isBypassed?.()));
 
     const mount = this.modalEl.querySelector('#fx-faceplate-mount');
-    if (mount) this.activeInstance = mountFxFaceplate(mount, bridge, { slotIdx });
+    if (mount) {
+      mount.style.setProperty('--fx-base-color', desc.baseColor || 'var(--color-bg-secondary)');
+      mount.style.setProperty('--fx-accent-color', desc.accentColor || 'var(--color-accent)');
+      this.activeInstance = mountFxFaceplate(mount, bridge, { slotIdx });
+    }
   }
 
   bindEvents(desc) {

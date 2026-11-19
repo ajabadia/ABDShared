@@ -9,7 +9,10 @@
     "**/*.css"
   ],
   "exports": {
-    ".": "./src/keyboard.js",
+    ".": {
+      "types": "./src/keyboard.d.ts",
+      "default": "./src/keyboard.js"
+    },
     "./keyboard.css": "./src/keyboard.css"
   },
   "files": [

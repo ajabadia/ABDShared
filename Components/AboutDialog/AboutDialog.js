@@ -92,7 +92,7 @@ export class AboutDialog {
         <div class="modal-box abd-about-box abd-about-split">
           <div class="abd-about-media">
             <img src="${this.options.imageSrc}" alt="${this._escape(this.options.appName)}" class="abd-about-img" />
-            <button type="button" class="abd-btn-about-close-icon abd-btn-about-close" aria-label="Cerrar diálogo" title="Cerrar">✕</button>
+            <button type="button" class="abd-btn-about-close-icon abd-btn-about-close" aria-label="Cerrar diálogo" title="Cerrar"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
           </div>
           <div class="abd-about-content">
             ${this.options.category ? `<div class="abd-about-category">${this._escape(this.options.category)}</div>` : ''}

@@ -162,7 +162,7 @@ export function buildGlobalLfoModalHtml(bpm = 120, lfo1State = {}, lfo2State = {
         <h3 class="glfo-modal-title">${i18n.title}</h3>
         <span class="glfo-bpm-pill">${bpm} BPM</span>
       </div>
-      <button type="button" class="glfo-modal-close" data-glfo-close title="${i18n.close}">✕</button>
+      <button type="button" class="glfo-modal-close" data-glfo-close title="${i18n.close}"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
     </div>
     <div class="glfo-modal-body">
       ${renderGlobalLfoCardHtml(1, lfo1State, dests1, locale)}

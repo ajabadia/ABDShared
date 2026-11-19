@@ -4,7 +4,7 @@
  */
 /**
  * Usage:
- *   const led = new PeakLED(el, { color: '#ff4400' });
+ *   const led = new PeakLED(el, { color: 'var(--color-led-active)' });
  *   led.trigger();               // destello de 80ms (default)
  *   led.setState(true);          // modo VU: encendido fijo
  *   led.destroy();
@@ -13,8 +13,8 @@
  * @param {object} options
  *   width      px, default 32.
  *   height     px, default 17.
- *   color      lit color, default '#ff4400'.
- *   glowColor  halo color, default '#ff4400'.
+ *   color      lit color, default 'var(--color-led-active)'.
+ *   glowColor  halo color, default 'var(--color-led-glow)'.
  *   spriteUrl  sprite used when useSprite is on, default
  *              './assets/junio/re201_peak_led.png'.
  *   useSprite  paint from the sprite instead of the CSS LED, default true.
@@ -30,8 +30,8 @@ export class PeakLED {
         this.options = {
             width: options.width ?? 32,
             height: options.height ?? 17,
-            color: options.color ?? '#ff4400',
-            glowColor: options.glowColor ?? '#ff4400',
+            color: options.color ?? 'var(--color-led-active)',
+            glowColor: options.glowColor ?? 'var(--color-led-glow)',
             spriteUrl: options.spriteUrl ?? './assets/junio/re201_peak_led.png',
             useSprite: options.useSprite ?? true,
             ...options,

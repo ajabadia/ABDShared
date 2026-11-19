@@ -33,6 +33,14 @@
       "types": "./Components/bank/bankCategories.d.ts",
       "default": "./Components/bank/bankCategories.js"
     },
+    "./components/bank/bankCatalogState.js": {
+      "types": "./Components/bank/bankCatalogState.d.ts",
+      "default": "./Components/bank/bankCatalogState.js"
+    },
+    "./components/bank/bankIcons.js": {
+      "types": "./Components/bank/bankIcons.d.ts",
+      "default": "./Components/bank/bankIcons.js"
+    },
     "./components/pillSelector.js": {
       "types": "./Components/pillSelector.d.ts",
       "default": "./Components/pillSelector.js"
@@ -58,6 +66,11 @@
       "default": "./Components/Controls/stepMatrix.js"
     },
     "./components/controls/stepButtonStrip.js": {
+      "types": "./Components/Controls/stepButtonStrip.d.ts",
+      "default": "./Components/Controls/stepButtonStrip.js"
+    },
+    "./components/Controls/stepButtonStrip.js": {
+      "types": "./Components/Controls/stepButtonStrip.d.ts",
       "default": "./Components/Controls/stepButtonStrip.js"
     },
     "./components/synth-engines": {
@@ -78,7 +91,14 @@
     "./visualizers/*": "./Code/visualizers/*",
     "./scope": "./Code/Scope/WebUI/src/scope.js",
     "./scope/*": "./Code/Scope/WebUI/src/*",
-    "./diagnostic-probe": "./Code/DiagnosticProbe/WebUI/index.js",
+    "./diagnostic-probe": {
+      "types": "./Code/DiagnosticProbe/WebUI/index.d.ts",
+      "default": "./Code/DiagnosticProbe/WebUI/index.js"
+    },
+    "./diagnostic-probe/DiagnosticProbeI18n.js": {
+      "types": "./Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.d.ts",
+      "default": "./Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js"
+    },
     "./diagnostic-probe/styles": "./Code/DiagnosticProbe/WebUI/DiagnosticProbeModal.css",
     "./diagnostic-probe/*": "./Code/DiagnosticProbe/WebUI/*",
     "./formats/neuron": "./Code/NeuronFormats/index.ts",

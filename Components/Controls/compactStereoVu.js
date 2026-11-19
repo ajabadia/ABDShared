@@ -54,7 +54,7 @@ export class CompactStereoVu {
           <span class="abd-compact-vu__lbl">${this.opts.labelR}</span>
           <span class="abd-compact-vu__led is-off" data-vu-ch="r"></span>
         </div>
-        <span class="abd-compact-vu__expand" aria-hidden="true">⤢</span>
+        <span class="abd-compact-vu__expand" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7.5,2 10,2 10,4.5"/><line x1="6.5" y1="5.5" x2="10" y2="2"/><polyline points="4.5,10 2,10 2,7.5"/><line x1="5.5" y1="6.5" x2="2" y2="10"/></svg></span>
       </div>
     `;
 
@@ -75,7 +75,7 @@ export class CompactStereoVu {
             <span class="abd-compact-vu-badge">${this.opts.dialogSubtitle}</span>
             <h2 class="abd-compact-vu-title">${this.opts.dialogTitle}</h2>
           </div>
-          <button type="button" class="abd-compact-vu-close-btn" data-act="close" title="Cerrar">✕</button>
+          <button type="button" class="abd-compact-vu-close-btn" data-act="close" title="Cerrar"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
         </div>
         <div class="abd-compact-vu-body">
           <div class="abd-compact-vu-readouts">

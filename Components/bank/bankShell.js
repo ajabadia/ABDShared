@@ -351,7 +351,11 @@ export function createBankShell (options = {})
     flashStatus (message, kind)
     {
       const valid = kind === 'error' || kind === 'working' ? kind : 'ok';
-      const icons = { ok: '✓', working: '⟳', error: '⚠' };
+      const icons = {
+        ok: '<svg data-icon="ok" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2.2,6.4 5,9.2 9.8,3.2"/></svg>',
+        working: '<svg data-icon="working" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9.5 6a3.5 3.5 0 1 1-1-2.45"/><polyline points="7,2.2 9.5,3.55 8.2,6"/></svg>',
+        error: '<svg data-icon="error" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L10.8 10H1.2Z"/><line x1="6" y1="5" x2="6" y2="7.4"/><circle cx="6" cy="8.7" r="0.4" fill="currentColor"/></svg>',
+      };
       let overlay = element.querySelector('[data-shell-flash]');
       if (!overlay)
       {

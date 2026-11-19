@@ -2,7 +2,8 @@
 /* Universal 100% tokenized styles for floating modeless Groove Arpeggiator dialog (< 200 lines) */
 
 dialog.abd-arp-dialog {
-  margin: auto; padding: 0; width: min(540px, 94vw);
+  position: fixed; inset: 0; margin: auto; z-index: var(--z-modal, 9999);
+  padding: 0; width: min(540px, 94vw);
   border: 1px solid var(--color-panel-border-strong);
   border-radius: var(--radius-lg); background: var(--color-bg-base);
   color: var(--color-text-main); box-shadow: 0 20px 52px rgba(var(--color-scrim-rgb), 0.76);
@@ -17,7 +18,8 @@ dialog.abd-arp-dialog::backdrop { background: transparent; pointer-events: none;
 .abd-arp-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
   padding: var(--space-2) var(--space-4); background: var(--color-panel-surface);
-  border-bottom: 1px solid var(--color-panel-border-dim); cursor: grab; user-select: none;
+  border-bottom: 1px solid var(--color-panel-border-dim);
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
 }
 .abd-arp-head:active { cursor: grabbing; }
 

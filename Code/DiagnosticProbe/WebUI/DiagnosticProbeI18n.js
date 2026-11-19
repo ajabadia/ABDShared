@@ -87,15 +87,28 @@ export function attachDialogBackdropFallback(dialog) {
   });
 }
 
+let topFloatingZ = 10020;
+
+export function bringToFront(el) {
+  if (!el) return topFloatingZ;
+  el.style.zIndex = String(++topFloatingZ);
+  return topFloatingZ;
+}
+
 export function attachDialogDrag(dialog, handle) {
   if (!dialog || !handle) return;
+  if (!dialog.dataset.abdZBound) {
+    dialog.dataset.abdZBound = '1';
+    dialog.addEventListener('pointerdown', () => bringToFront(dialog));
+  }
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
 
   handle.addEventListener('pointerdown', (ev) => {
-    if (ev.button !== 0 || ev.target.closest('button, input, select')) return;
+    if (ev.button !== 0 || ev.target.closest('button, input, select, textarea, a')) return;
     ev.preventDefault();
+    bringToFront(dialog);
     const rect = dialog.getBoundingClientRect();
     dialog.style.margin = '0';
     dialog.style.right = 'auto';
@@ -123,10 +136,13 @@ export function attachDialogDrag(dialog, handle) {
     if (!dragging) return;
     dragging = false;
     dialog.classList.remove('is-dragging');
-    try { handle.releasePointerCapture(ev.pointerId); } catch { /* ignore */ }
+    if (ev?.pointerId !== undefined) {
+      try { handle.releasePointerCapture(ev.pointerId); } catch { /* ignore */ }
+    }
   };
   handle.addEventListener('pointerup', endDrag);
   handle.addEventListener('pointercancel', endDrag);
+  handle.addEventListener('lostpointercapture', endDrag);
 
   handle.addEventListener('dblclick', (ev) => {
     if (ev.target.closest('button, input, select')) return;

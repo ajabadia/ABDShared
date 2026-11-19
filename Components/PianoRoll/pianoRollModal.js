@@ -8,7 +8,7 @@ import { PianoRollCanvas } from './pianoRollCanvas.js';
 import { PianoRollVelocityLane } from './pianoRollVelocityLane.js';
 import { buildPianoRollModalHtml } from './pianoRollViews.js';
 import { DEFAULT_AUTOMATION_TARGETS, DEFAULT_DRUM_MAP, PR_TOOLS, transposeNotes, quantizeNotes, humanizeNotes, serializeSequence, parseSequence } from './pianoRollContract.js';
-import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class PianoRollModal {
   constructor(options = {}) {
@@ -24,6 +24,8 @@ export class PianoRollModal {
     this.motionData = {}; this.playableRange = options.playableRange || null;
     this.drumMap = options.drumMap || DEFAULT_DRUM_MAP; this.automationTargets = options.automationTargets || DEFAULT_AUTOMATION_TARGETS;
     this.el = document.createElement('dialog'); this.el.className = 'abd-pianoroll-dialog';
+    this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.isOpen()) this.close(); };
+    this.el.addEventListener('close', () => window.removeEventListener('keydown', this._onKeyDown));
     document.body.appendChild(this.el); this.render();
   }
 
@@ -66,9 +68,12 @@ export class PianoRollModal {
 
   open() {
     if (!this.isOpen()) { (typeof this.el.show === 'function') ? this.el.show() : this.el.setAttribute('open', ''); }
+    bringToFront(this.el);
+    window.addEventListener('keydown', this._onKeyDown);
     requestAnimationFrame(() => requestAnimationFrame(() => this.syncData()));
   }
   close() {
+    window.removeEventListener('keydown', this._onKeyDown);
     if (this.isOpen()) { (typeof this.el.close === 'function') ? this.el.close() : this.el.removeAttribute('open'); this.onClose?.(); }
   }
 
@@ -114,13 +119,10 @@ export class PianoRollModal {
   }
 
   setZoom(h, v) {
-    this.zoomH = Math.max(1.0, Math.min(3.0, Math.round(h * 2) / 2));
-    this.zoomV = Math.max(1.0, Math.min(2.5, Math.round(v * 4) / 4));
+    this.zoomH = Math.max(1.0, Math.min(3.0, Math.round(h * 2) / 2)); this.zoomV = Math.max(1.0, Math.min(2.5, Math.round(v * 4) / 4));
     const zh = this.el.querySelector('#pr-zoom-h'), zv = this.el.querySelector('#pr-zoom-v');
-    if (zh) zh.textContent = `${this.zoomH}x`; if (zv) zv.textContent = `${this.zoomV}x`;
-    this.syncData();
+    if (zh) zh.textContent = `${this.zoomH}x`; if (zv) zv.textContent = `${this.zoomV}x`; this.syncData();
   }
-
   setMode(mode) { if (this.mode !== mode) { this.mode = mode; this.render(); } }
   setDrumMap(map) { this.drumMap = map; this.syncData(); }
   setPlayableRange(range) { this.playableRange = range; this.render(); }
@@ -128,38 +130,25 @@ export class PianoRollModal {
   setNotes(notes) { this.notes = [...notes]; this.syncData(); }
   getNotes() { return [...this.notes]; }
   getSequence() { return { bars: this.bars, ppq: this.ppq, mode: this.mode, notes: this.notes, motion: this.motionData }; }
-
   loadSequence(seq) {
     if (!seq) return;
     if (seq.bars) this.bars = seq.bars; if (seq.ppq) this.ppq = seq.ppq; if (seq.mode) this.mode = seq.mode;
     if (seq.notes) this.notes = [...seq.notes]; if (seq.motion) this.motionData = { ...seq.motion };
     this.render(); this.handleNotesUpdated(this.notes);
   }
-
-  handleNotesUpdated(notes) {
-    this.notes = notes; this.syncData(); this.onPatternChange?.(this.getSequence());
-  }
-
+  handleNotesUpdated(notes) { this.notes = notes; this.syncData(); this.onPatternChange?.(this.getSequence()); }
   handleMotionUpdated(paramId, tick, value) {
     if (!this.motionData[paramId]) this.motionData[paramId] = [];
-    this.motionData[paramId].push({ tick, value });
-    this.motionData[paramId].sort((a, b) => a.tick - b.tick);
+    this.motionData[paramId].push({ tick, value }); this.motionData[paramId].sort((a, b) => a.tick - b.tick);
     this.syncData(); this.bridge?.recordMotion?.(paramId, tick, value);
   }
-
   exportSequenceFile() {
     const blob = new Blob([serializeSequence(this.getSequence())], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = `sequence_${Date.now()}.abdseq`; a.click(); URL.revokeObjectURL(url);
-    this.onNotice?.('Secuencia exportada con éxito (.abdseq)');
+    a.href = url; a.download = `sequence_${Date.now()}.abdseq`; a.click(); URL.revokeObjectURL(url); this.onNotice?.('Secuencia exportada con éxito (.abdseq)');
   }
-
   importSequenceFile(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const seq = parseSequence(e.target?.result); this.loadSequence(seq); this.onNotice?.(`Secuencia importada (${seq.notes.length} notas)`);
-      } catch (err) { this.onNotice?.(`Error al importar: ${err.message}`); }
-    };
+    reader.onload = (e) => { try { const seq = parseSequence(e.target?.result); this.loadSequence(seq); this.onNotice?.(`Secuencia importada (${seq.notes.length} notas)`); } catch (err) { this.onNotice?.(`Error al importar: ${err.message}`); } };
     reader.readAsText(file);
   }
 
@@ -195,5 +184,5 @@ export class PianoRollModal {
     fileInput?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) this.importSequenceFile(f); e.target.value = ''; });
   }
 
-  destroy() { this.gridRenderer?.destroy(); this.velRenderer?.destroy(); this.el.remove(); }
+  destroy() { window.removeEventListener('keydown', this._onKeyDown); this.gridRenderer?.destroy(); this.velRenderer?.destroy(); this.el.remove(); }
 }

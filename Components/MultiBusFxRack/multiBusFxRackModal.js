@@ -8,39 +8,26 @@ import { MultiBusFxRackLcd } from './multiBusFxRackLcd.js';
 import { buildRackModalBodyHtml } from './multiBusFxViews.js';
 import { findAlgorithm, getAlgorithmsForCategory } from './multiBusFxRegistry.js';
 import { bindRackExtraControls } from './multiBusFxControls.js';
-import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class MultiBusFxRackModal {
   constructor(options = {}) {
-    this.bridge = options.bridge;
-    this.onSendLabelsChange = options.onSendLabelsChange;
-    this.getRackSlots = options.getRackSlots;
-    this.getSendTargets = options.getSendTargets;
-    this.onSendSlotTargetChange = options.onSendSlotTargetChange;
-    this.onOpenFaceplate = options.onOpenFaceplate;
-    this.onClose = options.onClose;
-    this.topology = options.initialTopology ?? 1;
+    this.bridge = options.bridge; this.onSendLabelsChange = options.onSendLabelsChange;
+    this.getRackSlots = options.getRackSlots; this.getSendTargets = options.getSendTargets;
+    this.onSendSlotTargetChange = options.onSendSlotTargetChange; this.onOpenFaceplate = options.onOpenFaceplate;
+    this.onClose = options.onClose; this.topology = options.initialTopology ?? 1;
     this.sendTargets = options.initialSendTargets || [0, 1, -1, -1];
-    this.bpm = options.bpm ?? 120;
-    this.tempoSync = true;
-    this.locale = options.locale || 'es';
-    this.busMutes = [false, false, false, false];
-    this.gates = [0, 0, 0, 0];
+    this.bpm = options.bpm ?? 120; this.tempoSync = true; this.locale = options.locale || 'es';
+    this.busMutes = [false, false, false, false]; this.gates = [0, 0, 0, 0];
     this.slots = [
-      { catId: 'reverb', algoId: 'zita', presetIdx: 0 },
-      { catId: 'modulation', algoId: 'stereo_chorus', presetIdx: 0 },
-      { catId: 'delay', algoId: 'stereo_delay', presetIdx: 0 },
-      { catId: 'distortion', algoId: 'saturation', presetIdx: 0 },
+      { catId: 'reverb', algoId: 'zita', presetIdx: 0 }, { catId: 'modulation', algoId: 'stereo_chorus', presetIdx: 0 },
+      { catId: 'delay', algoId: 'stereo_delay', presetIdx: 0 }, { catId: 'distortion', algoId: 'saturation', presetIdx: 0 },
     ];
-    this.limiterEnabled = true;
-    this.limiterCeilingDb = -0.3;
-    this.limKnob = null;
-
-    this.el = document.createElement('dialog');
-    this.el.className = 'fx-rack-floating-dialog';
-    this.render();
-    document.body.appendChild(this.el);
-    this.emitLabels();
+    this.limiterEnabled = true; this.limiterCeilingDb = -0.3; this.limKnob = null;
+    this.el = document.createElement('dialog'); this.el.className = 'fx-rack-floating-dialog';
+    this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.isOpen()) this.close(); };
+    this.el.addEventListener('close', () => window.removeEventListener('keydown', this._onKeyDown));
+    this.render(); document.body.appendChild(this.el); this.emitLabels();
   }
 
   render() {
@@ -51,28 +38,21 @@ export class MultiBusFxRackModal {
       { busMutes: this.busMutes, gates: this.gates, limiterEnabled: this.limiterEnabled, limiterCeilingDb: this.limiterCeilingDb }
     );
     const lcdMount = this.el.querySelector('#fx-lcd-mount-point');
-    this.lcd = new MultiBusFxRackLcd(lcdMount);
-    this.lcd.setTopology(this.topology);
-    this.lcd.setLimiterCeiling?.(this.limiterCeilingDb);
+    this.lcd = new MultiBusFxRackLcd(lcdMount); this.lcd.setTopology(this.topology); this.lcd.setLimiterCeiling?.(this.limiterCeilingDb);
     const handle = this.el.querySelector('.fx-rack-head');
     if (handle) attachDialogDrag(this.el, handle);
-    this.bindEvents();
-    this.syncLcd();
+    this.bindEvents(); this.syncLcd();
   }
 
   open() {
     this.render();
-    if (!this.isOpen()) {
-      if (typeof this.el.show === 'function') this.el.show(); else this.el.setAttribute('open', '');
-    }
-    this.syncLcd();
+    if (!this.isOpen()) { if (typeof this.el.show === 'function') this.el.show(); else this.el.setAttribute('open', ''); }
+    bringToFront(this.el); window.addEventListener('keydown', this._onKeyDown); this.syncLcd();
   }
 
   close() {
-    if (this.isOpen()) {
-      if (typeof this.el.close === 'function') this.el.close(); else this.el.removeAttribute('open');
-      this.onClose?.();
-    }
+    window.removeEventListener('keydown', this._onKeyDown);
+    if (this.isOpen()) { if (typeof this.el.close === 'function') this.el.close(); else this.el.removeAttribute('open'); this.onClose?.(); }
   }
 
   toggle() { this.isOpen() ? this.close() : this.open(); }
@@ -80,10 +60,7 @@ export class MultiBusFxRackModal {
 
   setLocale(locale) {
     if (this.locale === locale) return;
-    this.locale = locale;
-    const wasOpen = this.isOpen();
-    this.render(); this.emitLabels();
-    if (wasOpen) this.open();
+    this.locale = locale; const wasOpen = this.isOpen(); this.render(); this.emitLabels(); if (wasOpen) this.open();
   }
 
   emitLabels() {
@@ -212,5 +189,5 @@ export class MultiBusFxRackModal {
     }
   }
 
-  destroy() { this.limKnob?.destroy?.(); this.el.remove(); }
+  destroy() { window.removeEventListener('keydown', this._onKeyDown); this.limKnob?.destroy?.(); this.el.remove(); }
 }

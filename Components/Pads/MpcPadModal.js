@@ -5,7 +5,7 @@
  */
 
 import { MpcPadMatrix } from '../Controls/MpcPadMatrix.js';
-import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class MpcPadModal {
   constructor(options = {}) {
@@ -23,10 +23,10 @@ export class MpcPadModal {
     this.el.addEventListener('close', () => {
       const wasOpen = this.opened;
       this.opened = false;
+      window.removeEventListener('keydown', this._onKeyDown);
       if (wasOpen) this.opts.onClose?.();
     });
     this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.opened) this.close(); };
-    window.addEventListener('keydown', this._onKeyDown);
 
     this.render();
   }
@@ -121,11 +121,14 @@ export class MpcPadModal {
       if (typeof this.el.show === 'function') this.el.show();
       else this.el.setAttribute('open', '');
     }
+    bringToFront(this.el);
+    window.addEventListener('keydown', this._onKeyDown);
     this.syncTheme();
     this.opts.onOpen?.(this.currentPart);
   }
 
   close() {
+    window.removeEventListener('keydown', this._onKeyDown);
     if (!this.opened) return;
     this.opened = false;
     if (this.el.open) {

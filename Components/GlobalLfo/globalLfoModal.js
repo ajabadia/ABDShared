@@ -5,7 +5,7 @@
  */
 
 import { buildGlobalLfoModalHtml, LFO_SYNC_DIVISIONS } from './globalLfoViews.js';
-import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 import { Knob } from '../knob.js';
 
 export class GlobalLfoModal {
@@ -23,6 +23,8 @@ export class GlobalLfoModal {
     this.knobs = { 1: {}, 2: {} };
     this.el = document.createElement('dialog');
     this.el.className = 'global-lfo-floating-dialog';
+    this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.isOpen()) this.close(); };
+    this.el.addEventListener('close', () => window.removeEventListener('keydown', this._onKeyDown));
     this.render();
     document.body.appendChild(this.el);
     if (typeof this.bridge?.onBpmChange === 'function') this.bridge.onBpmChange((b) => this.setBpm(b));
@@ -155,8 +157,8 @@ export class GlobalLfoModal {
 
   setBpm(bpm) { this.bpm = bpm; this.setText('.glfo-bpm-pill', `${bpm} BPM`); }
   updatePhase(idx, ph) { const dot = this.el.querySelector(`#glfo-led-${idx}`); if (dot) dot.classList.toggle('is-active', ph > 0.05); }
-  open() { if (!this.isOpen()) { if (typeof this.el.show === 'function') this.el.show(); else this.el.setAttribute('open', ''); } }
-  close() { if (this.isOpen()) { if (typeof this.el.close === 'function') this.el.close(); else this.el.removeAttribute('open'); this.onClose?.(); } }
+  open() { if (!this.isOpen()) { if (typeof this.el.show === 'function') this.el.show(); else this.el.setAttribute('open', ''); } bringToFront(this.el); window.addEventListener('keydown', this._onKeyDown); }
+  close() { window.removeEventListener('keydown', this._onKeyDown); if (this.isOpen()) { if (typeof this.el.close === 'function') this.el.close(); else this.el.removeAttribute('open'); this.onClose?.(); } }
   toggle() { this.isOpen() ? this.close() : this.open(); }
   isOpen() { return Boolean(this.el.open || this.el.hasAttribute('open')); }
 }

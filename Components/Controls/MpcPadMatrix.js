@@ -75,15 +75,10 @@ export class MpcPadMatrix {
     // Standard MPC display: Row 4 (pads 13..16) at top, down to Row 1 (pads 1..4) at bottom
     for (let row = 3; row >= 0; row--) {
       for (let col = 0; col < 4; col++) {
-        const idx = row * 4 + col;
-        const pad = document.createElement('div');
-        pad.className = 'abd-mpc-pad';
-        pad.dataset.padIndex = String(idx);
-        pad.innerHTML = `
-          <div class="abd-mpc-pad__top"><span class="abd-mpc-pad__num">${idx + 1}</span><span class="abd-mpc-pad__choke"></span></div>
-          <div class="abd-mpc-pad__center"><span class="abd-mpc-pad__name"></span></div>
-          <div class="abd-mpc-pad__bottom"><span class="abd-mpc-pad__note"></span><span class="abd-mpc-pad__vel"></span></div>
-        `;
+        const idx = row * 4 + col, pad = document.createElement('div');
+        pad.className = 'abd-mpc-pad'; pad.dataset.padIndex = String(idx);
+        pad.setAttribute('role', 'button'); pad.tabIndex = 0; pad.setAttribute('aria-pressed', 'false');
+        pad.innerHTML = `<div class="abd-mpc-pad__top"><span class="abd-mpc-pad__num">${idx + 1}</span><span class="abd-mpc-pad__choke"></span></div><div class="abd-mpc-pad__center"><span class="abd-mpc-pad__name"></span></div><div class="abd-mpc-pad__bottom"><span class="abd-mpc-pad__note"></span><span class="abd-mpc-pad__vel"></span></div>`;
         grid.appendChild(pad);
       }
     }
@@ -97,20 +92,18 @@ export class MpcPadMatrix {
     this.el.querySelector('#mpc-full-btn')?.classList.toggle('is-active', this.fullLevel);
     const octVal = this.el.querySelector('#mpc-oct-val');
     if (octVal) octVal.textContent = `OCT ${this.baseOctave}`;
-
     this.computePads();
     for (let i = 0; i < 16; i++) {
       const padEl = this.el.querySelector(`[data-pad-index="${i}"]`);
       if (!padEl) continue;
-      const d = this.padData[i];
+      const d = this.padData[i], noteLbl = `${NOTE_NAMES[d.note % 12]}${Math.floor(d.note / 12) - 1} (${d.note})`;
       padEl.querySelector('.abd-mpc-pad__name').textContent = d.name;
-      padEl.querySelector('.abd-mpc-pad__note').textContent = `${NOTE_NAMES[d.note % 12]}${Math.floor(d.note / 12) - 1} (${d.note})`;
+      padEl.querySelector('.abd-mpc-pad__note').textContent = noteLbl;
       padEl.querySelector('.abd-mpc-pad__vel').textContent = d.velText || '';
+      padEl.setAttribute('aria-label', `Pad ${i + 1}: ${d.name} (${noteLbl})`);
       const choke = padEl.querySelector('.abd-mpc-pad__choke');
-      choke.textContent = d.choke ? `CH${d.choke}` : '';
-      choke.style.display = d.choke ? 'inline-block' : 'none';
-      padEl.classList.toggle('is-root', Boolean(d.isRoot));
-      padEl.classList.toggle('is-out-of-key', Boolean(d.outOfKey));
+      choke.textContent = d.choke ? `CH${d.choke}` : ''; choke.style.display = d.choke ? 'inline-block' : 'none';
+      padEl.classList.toggle('is-root', Boolean(d.isRoot)); padEl.classList.toggle('is-out-of-key', Boolean(d.outOfKey));
     }
   }
 
@@ -154,34 +147,30 @@ export class MpcPadMatrix {
     this.el.querySelector('#mpc-scale-sel')?.addEventListener('change', (e) => { this.scale = e.target.value; this.refresh(); });
 
     const grid = this.el.querySelector('.abd-mpc-grid');
-    grid.addEventListener('pointerdown', (ev) => {
-      const padEl = ev.target.closest('.abd-mpc-pad');
-      if (!padEl) return;
-      const idx = parseInt(padEl.dataset.padIndex, 10);
-      const d = this.padData[idx];
+    const triggerPad = (padEl, clientY) => {
+      const idx = parseInt(padEl.dataset.padIndex, 10), d = this.padData[idx];
       if (!d) return;
-      this.selectedPad = idx;
-      padEl.classList.add('is-active');
+      this.selectedPad = idx; padEl.classList.add('is-active'); padEl.setAttribute('aria-pressed', 'true');
       const rect = padEl.getBoundingClientRect();
-      const vel = d.vel || (this.fullLevel ? 127 : Math.round(30 + Math.max(0, Math.min(1, 1 - (ev.clientY - rect.top) / rect.height)) * 97));
+      const vel = d.vel || (this.fullLevel || clientY === null ? 127 : Math.round(30 + Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height)) * 97));
       this.onPadTrigger?.(idx, d.note, vel, d);
-    });
-
-    const release = (ev) => {
-      const padEl = ev.target.closest('.abd-mpc-pad');
+    };
+    const releasePad = (padEl) => {
       if (!padEl) return;
-      const idx = parseInt(padEl.dataset.padIndex, 10);
-      padEl.classList.remove('is-active');
-      const d = this.padData[idx];
+      const idx = parseInt(padEl.dataset.padIndex, 10), d = this.padData[idx];
+      padEl.classList.remove('is-active'); padEl.setAttribute('aria-pressed', 'false');
       if (d) this.onPadRelease?.(idx, d.note, d);
     };
-    grid.addEventListener('pointerup', release);
-    grid.addEventListener('pointercancel', release);
+    grid.addEventListener('pointerdown', (ev) => { const p = ev.target.closest('.abd-mpc-pad'); if (p) triggerPad(p, ev.clientY); });
+    const release = (ev) => releasePad(ev.target.closest('.abd-mpc-pad'));
+    grid.addEventListener('pointerup', release); grid.addEventListener('pointercancel', release);
+    grid.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && !ev.repeat) { const p = ev.target.closest('.abd-mpc-pad'); if (p) { ev.preventDefault(); triggerPad(p, null); } } });
+    grid.addEventListener('keyup', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') releasePad(ev.target.closest('.abd-mpc-pad')); });
   }
 
   highlightPad(idx, active) {
     const el = this.el.querySelector(`[data-pad-index="${idx}"]`);
-    if (el) el.classList.toggle('is-active', Boolean(active));
+    if (el) { el.classList.toggle('is-active', Boolean(active)); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
   }
 
   setDrumKit(kit) { this.drumKit = [...kit]; this.refresh(); }

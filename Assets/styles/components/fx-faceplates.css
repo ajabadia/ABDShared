@@ -4,14 +4,15 @@
  * Strict line limit: < 200 lines. ZERO hardcoded hex/rgb colors.
  */
 
-.abd-fx-modal-backdrop {
-  position: fixed; inset: 0; z-index: 10000;
-  background: color-mix(in srgb, var(--color-bg-primary) 70%, transparent);
-  backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+dialog.abd-fx-modal-backdrop {
+  position: fixed; inset: 0; margin: auto; padding: 0; border: none; background: transparent;
+  width: min(780px, 94vw); max-height: 90vh; z-index: var(--z-modal, 10000); overflow: visible;
 }
+dialog.abd-fx-modal-backdrop[open] { display: flex; flex-direction: column; }
+dialog.abd-fx-modal-backdrop::backdrop { background: transparent; pointer-events: none; }
 
 .abd-fx-modal-window {
-  width: min(780px, 94vw); max-height: 90vh;
+  width: 100%; max-height: 90vh;
   background: var(--color-panel-surface); border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg, 8px); box-shadow: 0 16px 40px var(--color-shadow);
   display: flex; flex-direction: column; overflow: hidden;
@@ -21,8 +22,10 @@
 .abd-fx-modal-header {
   height: 42px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
   background: color-mix(in srgb, var(--color-bg-secondary) 85%, transparent);
-  border-bottom: 1px solid var(--color-border-subtle); cursor: grab; user-select: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
 }
+.abd-fx-modal-header:active { cursor: grabbing; }
 .abd-fx-modal-title-wrap { display: flex; align-items: center; gap: 8px; }
 .abd-fx-modal-badge {
   font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px;

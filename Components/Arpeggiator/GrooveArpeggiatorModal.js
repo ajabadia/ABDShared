@@ -6,7 +6,7 @@
 
 import { buildArpeggiatorHtml } from './grooveArpeggiatorViews.js';
 import { DEFAULT_ARP_STATE, ARP_MOTIFS } from './grooveArpeggiatorContract.js';
-import { attachDialogDrag } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class GrooveArpeggiatorModal {
   constructor(options = {}) {
@@ -18,9 +18,15 @@ export class GrooveArpeggiatorModal {
 
     this.el = document.createElement('dialog');
     this.el.className = 'abd-arp-dialog';
-    this.el.setAttribute('closedby', 'any');
     this.el.setAttribute('aria-label', 'Groove Arpeggiator');
     document.body.appendChild(this.el);
+    this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.opened) this.close(); };
+    this.el.addEventListener('close', () => {
+      const wasOpen = this.opened;
+      this.opened = false;
+      window.removeEventListener('keydown', this._onKeyDown);
+      if (wasOpen) this.opts.onClose?.();
+    });
 
     this.render();
   }
@@ -95,10 +101,6 @@ export class GrooveArpeggiatorModal {
         this.emitChange('latch', id);
       });
     });
-
-    window.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && this.opened) this.close();
-    });
   }
 
   syncLcd() {
@@ -120,15 +122,24 @@ export class GrooveArpeggiatorModal {
     this.opened = true;
     const badge = this.el.querySelector('#abd-arp-part-badge');
     if (badge) badge.textContent = `P${String(partIdx + 1).padStart(2, '0')}`;
-    if (!this.el.open) this.el.show();
+    if (!this.el.open) {
+      if (typeof this.el.show === 'function') this.el.show();
+      else this.el.setAttribute('open', '');
+    }
+    bringToFront(this.el);
+    window.addEventListener('keydown', this._onKeyDown);
     this.syncTheme();
     this.opts.onOpen?.(this.partIndex);
   }
 
   close() {
+    window.removeEventListener('keydown', this._onKeyDown);
     if (!this.opened) return;
     this.opened = false;
-    if (this.el.open) this.el.close();
+    if (this.el.open) {
+      if (typeof this.el.close === 'function') this.el.close();
+      else this.el.removeAttribute('open');
+    }
     this.opts.onClose?.();
   }
 
@@ -156,5 +167,8 @@ export class GrooveArpeggiatorModal {
     this.render();
   }
 
-  destroy() { this.el.remove(); }
+  destroy() {
+    window.removeEventListener('keydown', this._onKeyDown);
+    this.el.remove();
+  }
 }

@@ -25,7 +25,7 @@ namespace abd::synth
 class GrooveShuffleEngine
 {
 public:
-    static constexpr int kMaxParts = 16;
+    static constexpr int kMaxParts = 64;
 
     enum class Algorithm : uint8_t
     {

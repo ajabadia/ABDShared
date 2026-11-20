@@ -2,6 +2,9 @@
 /* Dark studio variant with glowing ice-cyan fluorescent displays */
 [data-theme="virus-snow-dark"], body.skin-virus-snow-dark, body.theme-virus-snow-dark {
   --color-bg-base:                #070d16;
+  --color-bg-base-rgb:            7, 13, 22;
+  --abd-bg-tint:                  #0e1726;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.12) 0%, rgba(7, 13, 22, 0.6) 100%);
   --color-panel-bg:               #0e1726;
   --color-panel-surface:          #142136;
   --color-panel-surface-elevated: #1b2c48;
@@ -31,6 +34,7 @@
 
   /* Typography */
   --color-text-main:              #f0f9ff;
+  --color-text-main-rgb:          240, 249, 255;
   --color-text-muted:             #7dd3fc;
   --color-text-dim:               #38bdf8;
 

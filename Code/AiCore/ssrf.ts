@@ -84,7 +84,7 @@ export function assertSafeExternalHttpsUrl(rawUrl: string): string {
 
 /**
  * Validador para endpoints HTTP locales (Ollama, LM Studio, etc.).
- * Exige protocolo http:, localhost o 127.0.0.1, sin credenciales y puerto permitido.
+ * Exige protocolo http:, loopback (localhost, 127.0.0.1 o ::1), sin credenciales y puerto permitido.
  */
 export function assertSafeLoopbackHttpUrl(
   rawUrl: string,
@@ -103,7 +103,7 @@ export function assertSafeLoopbackHttpUrl(
     throw new Error('Credentials in loopback URL are forbidden');
   }
   const h = u.hostname.toLowerCase();
-  if (h !== '127.0.0.1' && h !== 'localhost') {
+  if (h !== '127.0.0.1' && h !== 'localhost' && h !== '::1' && h !== '[::1]') {
     throw new Error(`Only 127.0.0.1 or localhost allowed for local loopback, got ${u.hostname}`);
   }
   const port = Number(u.port);

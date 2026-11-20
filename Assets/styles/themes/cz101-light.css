@@ -2,6 +2,9 @@
 /* Inspired by 1980s Japanese synth chassis with red graphic lines and matrix LCD */
 [data-theme="cz101-light"], body.skin-cz101-light, body.theme-cz101-light {
   --color-bg-base:                #e4ded4;
+  --color-bg-base-rgb:            228, 222, 212;
+  --abd-bg-tint:                  #d4cbbd;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(201, 34, 24, 0.10) 0%, rgba(228, 222, 212, 0.55) 100%);
   --color-panel-bg:               #eee8de;
   --color-panel-surface:          #faf6ee;
   --color-panel-surface-elevated: #ffffff;
@@ -31,6 +34,7 @@
 
   /* Typography (Charcoal ink on vintage ivory) */
   --color-text-main:              #221e1a;
+  --color-text-main-rgb:          34, 30, 26;
   --color-text-muted:             #5e564d;
   --color-text-dim:               #867c70;
 

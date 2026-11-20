@@ -7,7 +7,7 @@
 
 /**
  * Escapes plain text for safe HTML rendering (&, <, >).
- * @param {any} s
+ * @param {unknown} s
  * @returns {string}
  */
 export function escText(s) {
@@ -18,16 +18,17 @@ export function escText(s) {
 }
 
 /**
- * Escapes a value for safe use inside HTML attributes (escText + quotes).
- * @param {any} s
+ * Escapes a value for safe use inside HTML attributes (escText + single/double quotes).
+ * @param {unknown} s
  * @returns {string}
  */
 export function escAttr(s) {
-  return escText(s).replace(/"/g, '&quot;');
+  return escText(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /**
- * Alias kept for the `escapeHtml(...)` call sites (identical semantics:
- * text escaping plus quotes, safe for both text and attribute positions).
+ * Aliases kept for `escapeHtml(...)` and `escHtml(...)` call sites
+ * (text escaping plus quotes, safe for both text and attribute positions).
  */
 export const escapeHtml = escAttr;
+export const escHtml = escAttr;

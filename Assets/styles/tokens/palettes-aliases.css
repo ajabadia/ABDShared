@@ -73,10 +73,28 @@
   --color-step-well: #1e1419; --color-step-off-muted: #451a1a; --color-step-ink-dark: #041018;
   --color-metal-hi: #cfd9e3; --color-metal-mid: #7d8e9e; --color-metal-lo: #465564; --color-metal-sheen: #9cb0c2; --color-metal-edge: #334150;
   --color-knob-well: #090e15; --color-knob-collar: #1e2c3a; --color-knob-bezel-lo: #0d141f;
-  --color-led-core: #ffffff; --color-on-accent: var(--color-bg-base);
+  --color-led-core: #ffffff;
+  --color-led-core-rgb: 255, 255, 255;
+  --color-on-accent: var(--color-bg-base);
+
+  /* AI / Copilot violet accent palette */
+  --color-ai: #a855f7;
+  --color-ai-rgb: 168, 85, 247;
+  --color-ai-strong: #7e22ce;
+  --color-ai-bright: #c084fc;
+  --color-ai-soft: #e9d5ff;
+  --ai-glow: 0 0 10px rgba(var(--color-ai-rgb), 0.35);
 }
 
-[data-theme="light"], [data-theme="audiolab-light"] {
+[data-theme="light"],
+[data-theme="audiolab-light"],
+[data-theme="neuron-light"],
+[data-theme="neuron"],
+[data-theme="ms2000-light"],
+[data-theme="advanced-light"],
+[data-theme="cz101-light"],
+[data-theme="virus-snow"],
+[data-theme="virus-snow-light"] {
   --color-on-accent: #ffffff;
 }
 
@@ -87,6 +105,8 @@
   --color-surface: var(--color-panel-bg);
   --color-surface-dim: var(--color-bg-base);
   --color-surface-elevated: var(--color-panel-surface-elevated);
+  --color-panel-surface-hover: color-mix(in srgb, var(--color-panel-surface-elevated) 88%, var(--color-text-main) 12%);
+  --bg-tint-overlay: radial-gradient(ellipse at 50% 0%, rgba(var(--color-accent-rgb), 0.12) 0%, rgba(var(--color-bg-base-rgb), 0.52) 100%);
   --color-panel: var(--color-panel-bg);
   --color-control-bg: var(--color-panel-surface);
   --color-input-bg: var(--color-panel-surface);

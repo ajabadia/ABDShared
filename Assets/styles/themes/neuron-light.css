@@ -2,6 +2,9 @@
 /* Inspired by the Axel Hartmann Neuron Synthesizer (2002) physical hardware */
 [data-theme="neuron-light"], [data-theme="neuron"], body.skin-neuron-light, body.theme-neuron-light {
   --color-bg-base:                #dedad3;
+  --color-bg-base-rgb:            222, 218, 211;
+  --abd-bg-tint:                  #dedad3;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(217, 83, 0, 0.08) 0%, rgba(222, 218, 211, 0.5) 100%);
   --color-panel-bg:               #ebe7df;
   --color-panel-surface:          #f6f4ee;
   --color-panel-surface-elevated: #ffffff;
@@ -31,6 +34,7 @@
 
   /* Typography (High contrast charcoal on warm champagne alloy) */
   --color-text-main:              #1c1917;
+  --color-text-main-rgb:          28, 25, 23;
   --color-text-muted:             #57534e;
   --color-text-dim:               #78716c;
 

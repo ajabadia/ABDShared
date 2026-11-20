@@ -1,6 +1,9 @@
 ﻿/* Casio CZ-101 -- Vintage Red & Slate Theme */
 [data-theme="cz101"], body.skin-cz101 {
   --color-bg-base:             #141416;
+  --color-bg-base-rgb:         20, 20, 22;
+  --abd-bg-tint:               #382c22;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(255, 177, 66, 0.15) 0%, rgba(20, 14, 10, 0.45) 100%);
   --color-panel-bg:            #1c1d22;
   --color-panel-surface:       #262830;
   --color-panel-surface-elevated: #323540;
@@ -13,6 +16,7 @@
   --color-accent-active: #cc2e25;
   --color-accent-dim:    rgba(255, 59, 48, 0.15);
   --color-text-main:  #f5f0ee;
+  --color-text-main-rgb: 245, 240, 238;
   --color-text-muted: #b5a8a0;
   --color-text-dim:   #7a6e66;
   --color-lcd-bg:     #2a382b;

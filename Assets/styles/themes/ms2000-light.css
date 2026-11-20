@@ -2,6 +2,9 @@
 /* Inspired by the vintage silver/champagne casing with teal knobs and emerald LCD */
 [data-theme="ms2000-light"], body.skin-ms2000-light, body.theme-ms2000-light {
   --color-bg-base:                #dbe4ec;
+  --color-bg-base-rgb:            219, 228, 236;
+  --abd-bg-tint:                  #b4c8d8;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 122, 158, 0.14) 0%, rgba(219, 228, 236, 0.55) 100%);
   --color-panel-bg:               #e6edf4;
   --color-panel-surface:          #f2f7fb;
   --color-panel-surface-elevated: #ffffff;
@@ -31,6 +34,7 @@
 
   /* Typography (Deep navy/charcoal on cool light alloy) */
   --color-text-main:              #0a1824;
+  --color-text-main-rgb:          10, 24, 36;
   --color-text-muted:             #3b5c74;
   --color-text-dim:               #6b8a9f;
 

@@ -33,7 +33,9 @@ target_compile_options(ABDScopeCoreHeaders INTERFACE
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_compile_options(ABDScopeCoreHeaders INTERFACE /MD)
+  if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+    target_compile_options(ABDScopeCoreHeaders INTERFACE /MD)
+  endif()
 else()
   target_compile_options(ABDScopeCoreHeaders INTERFACE -fPIC)
 endif()

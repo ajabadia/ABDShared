@@ -1,6 +1,9 @@
 /* ABDAudioLab -- Scientific Dark / Nordic Theme */
 [data-theme="audiolab"], [data-theme="dark"], body.skin-audiolab, body.theme-dark, body.theme-audiolab {
   --color-bg-base:             #070a0e;
+  --color-bg-base-rgb:         7, 10, 14;
+  --abd-bg-tint:               #0b1d16;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(0, 230, 118, 0.12) 0%, rgba(6, 15, 10, 0.46) 100%);
   --color-panel-bg:            #0b1118;
   --color-panel-surface:       #121a24;
   --color-panel-surface-elevated: #1a2636;
@@ -23,6 +26,7 @@
   --color-info:          #00c3ff;
   --color-info-rgb:      0, 195, 255;
   --color-text-main:  #e8fff0;
+  --color-text-main-rgb: 232, 255, 240;
   --color-text-muted: #7eb5a0;
   --color-text-dim:   #4a8a6a;
   --color-lcd-bg:     #09140e;

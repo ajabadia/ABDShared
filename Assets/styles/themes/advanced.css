@@ -2,6 +2,9 @@
 [data-theme="advanced"], body.skin-advanced,
 [data-theme="cyberpunk"], body.skin-cyberpunk {
   --color-bg-base:             #08080c;
+  --color-bg-base-rgb:         8, 8, 12;
+  --abd-bg-tint:               #2d323b;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(148, 163, 184, 0.12) 0%, rgba(10, 12, 16, 0.48) 100%);
   --color-panel-bg:            #101018;
   --color-panel-surface:       #181824;
   --color-panel-surface-elevated: #202030;
@@ -14,6 +17,7 @@
   --color-accent-active: #cc0066;
   --color-accent-dim:    rgba(255, 0, 127, 0.15);
   --color-text-main:  #ffffff;
+  --color-text-main-rgb: 255, 255, 255;
   --color-text-muted: #8c8ca0;
   --color-text-dim:   #5a5a6e;
   --color-lcd-bg:     #0d1117;

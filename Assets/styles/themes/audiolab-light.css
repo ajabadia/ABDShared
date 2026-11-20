@@ -1,6 +1,9 @@
 /* ABDAudioLab -- Clean Light / Precision Lab Theme ("Técnica Refinada") */
 [data-theme="audiolab-light"], [data-theme="light"], body.skin-audiolab-light, body.theme-light, body.theme-audiolab-light {
   --color-bg-base:                #f8f9fa;
+  --color-bg-base-rgb:            248, 249, 250;
+  --abd-bg-tint:                  #ced4da;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(180, 190, 200, 0.3) 100%);
   --color-panel-bg:               #ffffff;
   --color-panel-surface:          #f8fafc;
   --color-panel-surface-elevated: #ffffff;
@@ -30,6 +33,7 @@
 
   /* Typography (WCAG AA compliant: text-main 16.6:1, text-muted & dim 5.9:1) */
   --color-text-main:              #1a1d20;
+  --color-text-main-rgb:          26, 29, 32;
   --color-text-muted:             #475569;
   --color-text-dim:               #475569;
 

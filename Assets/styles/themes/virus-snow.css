@@ -2,6 +2,9 @@
 /* Inspired by the Access Virus TI Snow hardware synthesizer */
 [data-theme="virus-snow"], [data-theme="virus-snow-light"], body.skin-virus-snow, body.theme-virus-snow {
   --color-bg-base:                #e7ecf1;
+  --color-bg-base-rgb:            231, 236, 241;
+  --abd-bg-tint:                  #e7ecf1;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 136, 168, 0.08) 0%, rgba(231, 236, 241, 0.5) 100%);
   --color-panel-bg:               #f5f8fa;
   --color-panel-surface:          #ffffff;
   --color-panel-surface-elevated: #ffffff;
@@ -31,6 +34,7 @@
 
   /* Typography */
   --color-text-main:              #0f172a;
+  --color-text-main-rgb:          15, 23, 42;
   --color-text-muted:             #475569;
   --color-text-dim:               #64748b;
 

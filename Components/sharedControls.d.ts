@@ -8,7 +8,8 @@ export interface KnobOptions {
   label?: string;
   skin?: string;
   bipolar?: boolean;
-  ariaLabel?: string;
+  ariaLabel?: string | null;
+  paramIndex?: number | string | null;
   format?: (normalised: number) => string;
   step?: number;
   onChange?: (normalised: number) => void;
@@ -61,8 +62,10 @@ export interface SynthNavMenuItem {
   value?: unknown;
   shortcut?: string;
   checked?: boolean;
+  disabled?: boolean;
   separator?: boolean;
   iconHtml?: string;
+  items?: SynthNavMenuItem[];
   submenu?: SynthNavMenuItem[];
 }
 
@@ -85,11 +88,12 @@ export interface SynthNavBarAboutDialog {
 }
 
 export interface SynthNavBarOptions {
-  container: HTMLElement | string;
+  container?: HTMLElement | string | null;
   locale?: 'en' | 'es' | (string & {});
-  brand?: { title?: string; subtitle?: string };
+  brand?: { title?: string; subtitle?: string; logoHtml?: string };
   brandPosition?: 'left' | 'right';
   menus?: SynthNavMenu[];
+  centerSlot?: HTMLElement | string | null;
   rightSlot?: HTMLElement | string | null;
   enableGlobalShortcuts?: boolean;
   activeValues?: Record<string, unknown> | ((action: string) => unknown);

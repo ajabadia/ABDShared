@@ -86,7 +86,10 @@
     },
     "./icons/*": "./Assets/icons/*",
     "./assets/*": "./Assets/*",
-    "./utils": "./Utils/index.js",
+    "./utils": {
+      "types": "./Utils/index.d.ts",
+      "default": "./Utils/index.js"
+    },
     "./utils/*": "./Utils/*",
     "./visualizers/*": "./Code/visualizers/*",
     "./scope": "./Code/Scope/WebUI/src/scope.js",

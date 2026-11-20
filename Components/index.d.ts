@@ -4,6 +4,7 @@
  */
 
 export * from './sharedControls';
+export * from './uiUtilities';
 export * from './multiBusFxRackModal';
 export * from './globalLfoModal';
 export * from './Pads/MpcPadModal';

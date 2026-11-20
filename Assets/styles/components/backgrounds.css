@@ -78,7 +78,7 @@
    defecto de :root se resolvio en <html> con el color base oscuro. Con esta
    regla, el elemento tematizado re-resuelve el tinte con SU color base, asi
    el fondo tintable sigue al tema en las dos convenciones. */
-[data-theme] {
+:where([data-theme]) {
   --abd-bg-tint: var(--color-bg-base, #11161d);
 }
 

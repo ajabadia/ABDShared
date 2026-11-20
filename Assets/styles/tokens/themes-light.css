@@ -23,6 +23,7 @@
 [data-theme="light"] {
   /* 1. Superficies (la profundidad se invierte: elevado = mas claro) */
   --color-bg-base:               #e8ecf1;
+  --color-bg-base-rgb:           232, 236, 241;
   --color-panel-bg:              #f7f9fc;
   --color-panel-surface:         #ffffff;
   --color-panel-surface-elevated: #ffffff;
@@ -47,6 +48,7 @@
 
   /* 4. Texto (3 niveles de enfasis) */
   --color-text-main:   #14202b;
+  --color-text-main-rgb: 20, 32, 43;
   --color-text-muted:  #47586a;
   --color-text-dim:    #6d7f90;
 
@@ -105,6 +107,7 @@
 [data-theme="audiolab-light"] {
   /* 1. Superficies (la profundidad se invierte: elevado = más claro) */
   --color-bg-base:                #f8f9fa;
+  --color-bg-base-rgb:            248, 249, 250;
   --color-panel-bg:               #ffffff;
   --color-panel-surface:          #f8fafc;
   --color-panel-surface-elevated: #ffffff;
@@ -135,6 +138,7 @@
 
   /* 4. Texto (3 niveles de énfasis) */
   --color-text-main:              #1a1d20;
+  --color-text-main-rgb:          26, 29, 32;
   --color-text-muted:             #6c757d;
   --color-text-dim:               #94a3b8;
 

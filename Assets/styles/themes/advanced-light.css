@@ -1,6 +1,9 @@
 /* Hartmann Advanced / Cyberpunk -- Precision Magenta & Platinum (Light Theme) */
 [data-theme="advanced-light"], body.skin-advanced-light, body.theme-advanced-light {
   --color-bg-base:                #edebee;
+  --color-bg-base-rgb:            237, 235, 238;
+  --abd-bg-tint:                  #d8d3dc;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(194, 0, 94, 0.10) 0%, rgba(237, 235, 238, 0.55) 100%);
   --color-panel-bg:               #f5f4f7;
   --color-panel-surface:          #fdfcff;
   --color-panel-surface-elevated: #ffffff;
@@ -30,6 +33,7 @@
 
   /* Typography (High contrast plum/charcoal on platinum) */
   --color-text-main:              #1c1722;
+  --color-text-main-rgb:          28, 23, 34;
   --color-text-muted:             #5e5468;
   --color-text-dim:               #887d94;
 

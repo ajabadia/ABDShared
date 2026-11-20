@@ -102,4 +102,25 @@ describe('StepButtonStrip (ABDShared)', () => {
     expect(pad0Btn.classList.contains('is-seq-step')).toBe(false);
     expect(container.querySelector('.abd-step-pad__btn[data-pad="2"]').classList.contains('is-seq-step')).toBe(true);
   });
+
+  it('supports modes on right in a 2-row matrix without MODE header', () => {
+    const modes = [
+      { id: 'm1', label: 'M1' }, { id: 'm2', label: 'M2' }, { id: 'm3', label: 'M3' },
+      { id: 'm4', label: 'M4' }, { id: 'm5', label: 'M5' }, { id: 'm6', label: 'M6' },
+    ];
+    ({ container, strip } = mount({ modes, modesPosition: 'right', showModeHeader: false, modeRows: 2 }));
+
+    expect(container.classList.contains('abd-step-strip--modes-right')).toBe(true);
+    expect(container.querySelector('.abd-step-strip__module-header')).toBeNull();
+    const grid = container.querySelector('.abd-step-strip__modes-grid.is-matrix');
+    expect(grid).not.toBeNull();
+    expect(grid.style.getPropertyValue('--mode-rows')).toBe('2');
+    expect(grid.style.getPropertyValue('--mode-cols')).toBe('3');
+
+    const children = Array.from(container.children);
+    const padsIdx = children.findIndex((el) => el.classList.contains('abd-step-strip__pads'));
+    const modesIdx = children.findIndex((el) => el.classList.contains('abd-step-strip__left'));
+    expect(padsIdx).toBe(0);
+    expect(modesIdx).toBe(1);
+  });
 });

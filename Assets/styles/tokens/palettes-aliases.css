@@ -87,6 +87,7 @@
 }
 
 [data-theme="light"],
+[data-theme$="-light"],
 [data-theme="audiolab-light"],
 [data-theme="neuron-light"],
 [data-theme="neuron"],

@@ -35,6 +35,9 @@ export class StepButtonStrip {
     this.padCount = options.padCount || 16;
     this.modes = options.modes || [];
     this.activeMode = options.activeMode || (this.modes[0]?.id || '');
+    this.modesPosition = options.modesPosition === 'right' ? 'right' : 'left';
+    this.showModeHeader = options.showModeHeader !== false;
+    this.modeRows = Math.max(0, Number(options.modeRows || 0));
     this.onPadClick = options.onPadClick || null;
     this.onPadDblClick = options.onPadDblClick || null;
     this.onPadLabelClick = options.onPadLabelClick || null;
@@ -55,13 +58,19 @@ export class StepButtonStrip {
 
   render() {
     this.container.classList.add('abd-step-strip');
+    this.container.classList.toggle('abd-step-strip--modes-right', this.modesPosition === 'right');
+    const isMatrix = this.modeRows >= 2 && this.modes.length > 0;
+    const cols = isMatrix ? Math.max(1, Math.ceil(this.modes.length / this.modeRows)) : 0;
+    const gridCls = `abd-step-strip__modes-grid${isMatrix ? ' is-matrix' : ''}`;
+    const gridStyle = isMatrix ? ` style="--mode-rows:${this.modeRows};--mode-cols:${cols}"` : '';
+    const hdrHtml = this.showModeHeader
+      ? `<div class="abd-step-strip__module-header"><span class="abd-step-strip__hdr-title">MODE</span></div>`
+      : '';
     const modesHtml = this.modes.length ? `
       <div class="abd-step-strip__left">
         <div class="abd-step-strip__module">
-          <div class="abd-step-strip__module-header">
-            <span class="abd-step-strip__hdr-title">MODE</span>
-          </div>
-          <div style="display: flex; gap: 3px; flex-wrap: wrap;">
+          ${hdrHtml}
+          <div class="${gridCls}"${gridStyle}>
             ${this.modes.map((m) => `
               <button type="button" class="abd-step-strip__btn ${m.id === this.activeMode ? 'is-active' : ''}"
                 data-step-mode="${m.id}" title="${m.title || m.label}">
@@ -94,7 +103,9 @@ export class StepButtonStrip {
     const supportsHint = detectHintPopoverSupport();
     const tipHtml = `<div class="abd-step-strip__popover" role="tooltip" id="${this.tooltipId}" popover="${supportsHint ? 'hint' : 'manual'}"></div>`;
 
-    this.container.innerHTML = modesHtml + padsHtml + tipHtml;
+    this.container.innerHTML = this.modesPosition === 'right'
+      ? (padsHtml + modesHtml + tipHtml)
+      : (modesHtml + padsHtml + tipHtml);
     this.tooltipEl = this.container.querySelector(`#${this.tooltipId}`);
     this.cachePadElements();
   }

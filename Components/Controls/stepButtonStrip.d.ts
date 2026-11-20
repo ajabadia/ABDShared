@@ -25,6 +25,9 @@ export interface StepButtonStripOptions {
   padCount?: number;
   modes?: StepStripModeItem[];
   activeMode?: string;
+  modesPosition?: 'left' | 'right';
+  showModeHeader?: boolean;
+  modeRows?: number;
   onPadClick?: (padIndex: number, event: MouseEvent) => void;
   onPadDblClick?: (padIndex: number, event: MouseEvent) => void;
   onPadLabelClick?: (padIndex: number, event: MouseEvent) => void;

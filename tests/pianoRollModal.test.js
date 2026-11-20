@@ -149,4 +149,36 @@ describe('PianoRollModal Universal Component', () => {
     expect(modal.notes[0].velocity).toBeGreaterThan(0);
     modal.destroy();
   });
+
+  it('invoca onOpenGroove con partIndex sin lanzar TypeError (regresión CR-10)', () => {
+    const onOpenGroove = vi.fn();
+    const modal = new PianoRollModal({ partIndex: 3, onOpenGroove });
+    modal.el.querySelector('[data-act="groove"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onOpenGroove).toHaveBeenCalledWith(3);
+
+    modal.setPartIndex(7);
+    modal.el.querySelector('[data-act="groove"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onOpenGroove).toHaveBeenCalledWith(7);
+    modal.destroy();
+  });
+
+  it('acota startTick cuantizado por debajo de totalTicks (regresión CR-10)', () => {
+    const initialNotes = [{ startTick: 380, durationTicks: 24, midiNote: 60, velocity: 100 }];
+    const modal = new PianoRollModal({ bars: 1, ppq: 96, initialNotes });
+    expect(modal.getTotalTicks()).toBe(384);
+
+    modal.el.querySelector('[data-act="quantize"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(modal.notes[0].startTick).toBeLessThan(384);
+    expect(modal.notes[0].startTick).toBe(360);
+
+    modal.setRecording(true);
+    modal.setPlaying(false);
+    modal.setPlayhead(382);
+    modal.recordNoteOn(64, 110, '1/16');
+    const recorded = modal.notes.find((n) => n.midiNote === 64);
+    expect(recorded).toBeTruthy();
+    expect(recorded.startTick).toBeGreaterThanOrEqual(0);
+    expect(recorded.startTick).toBeLessThan(384);
+    modal.destroy();
+  });
 });

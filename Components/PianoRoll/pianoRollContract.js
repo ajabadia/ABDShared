@@ -118,11 +118,13 @@ export function transposeNotes(notes, semitones, range) {
   });
 }
 
-export function quantizeNotes(notes, stepTicks, strength = 1.0) {
+export function quantizeNotes(notes, stepTicks, strength = 1.0, totalTicks = 0) {
   if (!stepTicks || stepTicks <= 0) return notes;
+  const maxTick = totalTicks > stepTicks ? totalTicks - stepTicks : Infinity;
   return notes.map((n) => {
     const nearest = Math.round(n.startTick / stepTicks) * stepTicks;
-    return { ...n, startTick: Math.max(0, Math.round(n.startTick + (nearest - n.startTick) * strength)) };
+    const clamped = Math.min(maxTick, Math.max(0, Math.round(n.startTick + (nearest - n.startTick) * strength)));
+    return { ...n, startTick: clamped };
   });
 }
 

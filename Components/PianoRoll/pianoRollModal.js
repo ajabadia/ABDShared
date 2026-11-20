@@ -175,7 +175,7 @@ export class PianoRollModal {
     on('[data-act="lane-target"]', 'change', (e) => { this.target = e.target.value; this.syncData(); });
     on('[data-act="oct-down"]', 'click', () => { this.notes = transposeNotes(this.notes, -12, this.playableRange); this.handleNotesUpdated(this.notes); });
     on('[data-act="oct-up"]', 'click', () => { this.notes = transposeNotes(this.notes, +12, this.playableRange); this.handleNotesUpdated(this.notes); });
-    on('[data-act="quantize"]', 'click', () => { this.notes = quantizeNotes(this.notes, this.getStepTicks(), 1.0); this.handleNotesUpdated(this.notes); });
+    on('[data-act="quantize"]', 'click', () => { this.notes = quantizeNotes(this.notes, this.getStepTicks(), 1.0, this.getTotalTicks()); this.handleNotesUpdated(this.notes); });
     on('[data-act="humanize"]', 'click', () => { this.notes = humanizeNotes(this.notes, 4, 8); this.handleNotesUpdated(this.notes); });
     on('[data-act="clear"]', 'click', () => { this.notes = []; this.motionData = {}; this.handleNotesUpdated(this.notes); });
     const fileInput = this.el.querySelector('.abd-pr-file-input');

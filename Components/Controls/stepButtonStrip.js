@@ -5,6 +5,15 @@
  * Family rules: framework-agnostic, zero hardcoded colors, accessible.
  */
 
+let nextTooltipUid = 1;
+
+function detectHintPopoverSupport() {
+  if (typeof document === 'undefined' || !Object.hasOwn(HTMLElement.prototype, 'popover')) return false;
+  const probe = document.createElement('div');
+  probe.setAttribute('popover', 'hint');
+  return probe.popover === 'hint';
+}
+
 export class StepButtonStrip {
   /**
    * @param {HTMLElement|string} container
@@ -33,6 +42,13 @@ export class StepButtonStrip {
 
     this.pads = [];
     this.chaserStep = -1;
+    this.tooltipId = `abd-step-tip-${nextTooltipUid++}`;
+    this.tooltipEl = null;
+    this.tooltipTrigger = null;
+    this.hideTimer = null;
+    this.boundKeyDown = (e) => {
+      if (e.key === 'Escape') this.hideTooltip();
+    };
     this.render();
     this.bindEvents();
   }
@@ -75,7 +91,11 @@ export class StepButtonStrip {
     }
     padsHtml += '</div>';
 
-    this.container.innerHTML = modesHtml + padsHtml;
+    const supportsHint = detectHintPopoverSupport();
+    const tipHtml = `<div class="abd-step-strip__popover" role="tooltip" id="${this.tooltipId}" popover="${supportsHint ? 'hint' : 'manual'}"></div>`;
+
+    this.container.innerHTML = modesHtml + padsHtml + tipHtml;
+    this.tooltipEl = this.container.querySelector(`#${this.tooltipId}`);
     this.cachePadElements();
   }
 
@@ -89,6 +109,9 @@ export class StepButtonStrip {
         bar: this.container.querySelector(`[data-bar="${i}"]`),
         labelBtn: this.container.querySelector(`[data-pad-label="${i}"]`),
         legend: this.container.querySelector(`[data-legend="${i}"]`),
+        tooltipText: '',
+        disabled: false,
+        bankColor: '',
       });
     }
   }
@@ -104,12 +127,14 @@ export class StepButtonStrip {
       }
       const padBtn = e.target.closest('.abd-step-pad__btn');
       if (padBtn) {
+        if (padBtn.disabled) return;
         const padIdx = Number(padBtn.dataset.pad) - 1;
         if (this.onPadClick) this.onPadClick(padIdx, e);
         return;
       }
       const labelBtn = e.target.closest('[data-pad-label]');
       if (labelBtn) {
+        if (labelBtn.disabled) return;
         const padIdx = Number(labelBtn.dataset.padLabel) - 1;
         if (this.onPadLabelClick) this.onPadLabelClick(padIdx, e);
       }
@@ -117,15 +142,104 @@ export class StepButtonStrip {
 
     this.container.addEventListener('dblclick', (e) => {
       const padBtn = e.target.closest('.abd-step-pad__btn');
-      if (padBtn && this.onPadDblClick) {
+      if (padBtn && !padBtn.disabled && this.onPadDblClick) {
         const padIdx = Number(padBtn.dataset.pad) - 1;
         this.onPadDblClick(padIdx, e);
       }
     });
+
+    const handleTriggerEnter = (e) => {
+      const trigger = e.target.closest('.abd-step-pad__btn, .abd-step-pad__label-btn');
+      if (!trigger || trigger.disabled) return;
+      const rawIdx = trigger.dataset.pad || trigger.dataset.padLabel;
+      const padIdx = Number(rawIdx) - 1;
+      this.showTooltipForPad(padIdx, trigger);
+    };
+
+    const handleTriggerLeave = (e) => {
+      const trigger = e.target.closest('.abd-step-pad__btn, .abd-step-pad__label-btn');
+      if (trigger) this.scheduleHideTooltip();
+    };
+
+    this.container.addEventListener('pointerenter', handleTriggerEnter, true);
+    this.container.addEventListener('focusin', handleTriggerEnter, true);
+    this.container.addEventListener('pointerleave', handleTriggerLeave, true);
+    this.container.addEventListener('focusout', handleTriggerLeave, true);
+    this.tooltipEl?.addEventListener('pointerenter', () => this.cancelHideTooltip());
+    this.tooltipEl?.addEventListener('pointerleave', () => this.scheduleHideTooltip());
+    if (typeof window !== 'undefined') window.addEventListener('keydown', this.boundKeyDown);
+  }
+
+  cancelHideTooltip() {
+    if (this.hideTimer !== null) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+  }
+
+  scheduleHideTooltip() {
+    this.cancelHideTooltip();
+    this.hideTimer = setTimeout(() => {
+      this.hideTimer = null;
+      this.hideTooltip();
+    }, 90);
+  }
+
+  showTooltipForPad(padIdx, triggerEl) {
+    const pad = this.pads[padIdx];
+    const tip = this.tooltipEl;
+    if (!pad || !tip || pad.disabled || !pad.tooltipText) return;
+    this.cancelHideTooltip();
+
+    if (this.tooltipTrigger && this.tooltipTrigger !== triggerEl) {
+      this.tooltipTrigger.removeAttribute('aria-describedby');
+    }
+    this.tooltipTrigger = triggerEl;
+    triggerEl.setAttribute('aria-describedby', this.tooltipId);
+
+    tip.textContent = pad.tooltipText;
+    if (pad.bankColor) tip.style.setProperty('--pad-bank-color', pad.bankColor);
+    else tip.style.removeProperty('--pad-bank-color');
+
+    tip.classList.add('is-js-positioned', 'is-visible');
+    if (typeof tip.showPopover === 'function') {
+      try {
+        if (!tip.matches(':popover-open')) tip.showPopover();
+      } catch { /* fallback via is-visible */ }
+    }
+
+    const tr = triggerEl.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 720;
+    const tipW = tipRect.width || 120;
+    const tipH = tipRect.height || 24;
+    const left = Math.max(6, Math.min(vw - tipW - 6, tr.left + tr.width / 2 - tipW / 2));
+    const aboveTop = tr.top - tipH - 6;
+    const top = aboveTop >= 6 ? aboveTop : Math.min(vh - tipH - 6, tr.bottom + 6);
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(top)}px`;
+  }
+
+  hideTooltip() {
+    this.cancelHideTooltip();
+    if (this.tooltipTrigger) {
+      this.tooltipTrigger.removeAttribute('aria-describedby');
+      this.tooltipTrigger = null;
+    }
+    const tip = this.tooltipEl;
+    if (!tip) return;
+    tip.classList.remove('is-visible');
+    if (typeof tip.hidePopover === 'function') {
+      try {
+        if (tip.matches(':popover-open')) tip.hidePopover();
+      } catch { /* ignore */ }
+    }
   }
 
   setMode(modeId) {
     this.activeMode = modeId;
+    this.hideTooltip();
     this.container.querySelectorAll('[data-step-mode]').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.stepMode === modeId);
     });
@@ -138,7 +252,10 @@ export class StepButtonStrip {
   setPadState(index, state = {}) {
     const pad = this.pads[index];
     if (!pad) return;
-    const { active, chaser, accent, slide, muted, solo, subval, legend, barPct } = state;
+    const {
+      active, chaser, accent, slide, muted, solo,
+      disabled, bankColor, tooltip, subval, legend, barPct,
+    } = state;
     if (active !== undefined) {
       pad.btn?.classList.toggle('is-active', !!active);
       pad.col?.classList.toggle('is-active', !!active);
@@ -148,6 +265,33 @@ export class StepButtonStrip {
     if (slide !== undefined) pad.btn?.classList.toggle('is-slide', !!slide);
     if (muted !== undefined) pad.btn?.classList.toggle('is-muted', !!muted);
     if (solo !== undefined) pad.btn?.classList.toggle('is-solo', !!solo);
+    if (disabled !== undefined) {
+      pad.disabled = !!disabled;
+      if (pad.btn) pad.btn.disabled = !!disabled;
+      if (pad.labelBtn) pad.labelBtn.disabled = !!disabled;
+      pad.col?.classList.toggle('is-disabled', !!disabled);
+      pad.btn?.classList.toggle('is-disabled', !!disabled);
+    }
+    if (bankColor !== undefined) {
+      pad.bankColor = bankColor || '';
+      if (bankColor) {
+        pad.col?.style.setProperty('--pad-bank-color', bankColor);
+        pad.col?.classList.add('has-bank-color');
+      } else {
+        pad.col?.style.removeProperty('--pad-bank-color');
+        pad.col?.classList.remove('has-bank-color');
+      }
+    }
+    if (tooltip !== undefined) {
+      pad.tooltipText = String(tooltip ?? '');
+      if ((!pad.tooltipText || pad.disabled) && (this.tooltipTrigger === pad.btn || this.tooltipTrigger === pad.labelBtn)) {
+        this.hideTooltip();
+      }
+      if (!pad.tooltipText || pad.disabled) {
+        pad.btn?.removeAttribute('aria-describedby');
+        pad.labelBtn?.removeAttribute('aria-describedby');
+      }
+    }
     if (subval !== undefined && pad.subval) pad.subval.textContent = subval;
     if (legend !== undefined && pad.legend) pad.legend.textContent = legend;
     if (barPct !== undefined && pad.bar) pad.bar.style.width = `${Math.max(0, Math.min(100, barPct))}%`;
@@ -165,6 +309,8 @@ export class StepButtonStrip {
   }
 
   destroy() {
+    this.hideTooltip();
+    if (typeof window !== 'undefined') window.removeEventListener('keydown', this.boundKeyDown);
     this.container.innerHTML = '';
   }
 }

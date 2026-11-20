@@ -11,6 +11,9 @@ export interface StepPadState {
   slide?: boolean;
   muted?: boolean;
   solo?: boolean;
+  disabled?: boolean;
+  bankColor?: string | null;
+  tooltip?: string;
   subval?: string;
   legend?: string;
   barPct?: number;

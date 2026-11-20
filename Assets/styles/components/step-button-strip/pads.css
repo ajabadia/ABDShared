@@ -109,3 +109,53 @@
 .ms2k-bottom-strip.is-value-edit-mode .ms2k-pad-btn { cursor: ns-resize; }
 .abd-step-pad__bar-fill,
 .ms2k-pad-bar-fill { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-step-red), var(--color-step-orange), var(--color-step-sky)); border-radius: 2px; transition: width 0.05s linear; }
+
+.abd-step-pad-col.has-bank-color .abd-step-pad__num { color: var(--pad-bank-color); }
+.abd-step-pad-col.has-bank-color .abd-step-pad__btn {
+  border-color: color-mix(in oklab, var(--pad-bank-color) 52%, var(--color-panel-border));
+  background: color-mix(in oklab, var(--pad-bank-color) 11%, var(--color-panel-surface));
+}
+.abd-step-pad-col.has-bank-color .abd-step-pad__btn.is-active {
+  background: color-mix(in oklab, var(--pad-bank-color) 32%, var(--color-panel-surface));
+  border-color: var(--pad-bank-color);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--pad-bank-color) 55%, transparent);
+}
+.abd-step-pad-col.has-bank-color .abd-step-pad__btn.is-active .abd-step-pad__led {
+  background: var(--color-led-core);
+  border-color: var(--pad-bank-color);
+  box-shadow: 0 0 8px var(--color-led-core), 0 0 12px var(--pad-bank-color);
+}
+.abd-step-pad-col.has-bank-color .abd-step-pad__btn.is-muted {
+  opacity: 0.42;
+  border-style: dashed;
+}
+.abd-step-pad-col.is-disabled { opacity: 0.28; }
+.abd-step-pad-col.is-disabled .abd-step-pad__btn,
+.abd-step-pad-col.is-disabled .abd-step-pad__label-btn {
+  cursor: not-allowed;
+  filter: grayscale(70%);
+}
+
+.abd-step-strip__popover {
+  display: none;
+  background: var(--color-panel-surface-elevated);
+  color: var(--color-text-main);
+  border: 1px solid var(--pad-bank-color, var(--color-panel-border-strong));
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: var(--shadow-elevation-3);
+  z-index: var(--z-tooltip, 10000);
+}
+.abd-step-strip__popover:is(:popover-open, .\:popover-open),
+.abd-step-strip__popover.is-visible {
+  display: block;
+}
+.abd-step-strip__popover.is-js-positioned {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+}

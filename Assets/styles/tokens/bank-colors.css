@@ -1,0 +1,30 @@
+/**
+ * ABDShared -- Bank Color Tokens (A..H) for 8x8 Multi-Bank UIs
+ * High-contrast hues tuned for dark panels and WCAG AA light surfaces.
+ */
+
+:root {
+  --color-bank-a: #38bdf8;
+  --color-bank-b: #f59e0b;
+  --color-bank-c: #34d399;
+  --color-bank-d: #a78bfa;
+  --color-bank-e: #fb7185;
+  --color-bank-f: #a3e635;
+  --color-bank-g: #60a5fa;
+  --color-bank-h: #e879f9;
+  --color-bank-ink: #090d14;
+}
+
+[data-theme="light"],
+[data-theme$="-light"],
+[data-theme="virus-snow"] {
+  --color-bank-a: #0369a1;
+  --color-bank-b: #b45309;
+  --color-bank-c: #047857;
+  --color-bank-d: #6d28d9;
+  --color-bank-e: #be123c;
+  --color-bank-f: #4d7c0f;
+  --color-bank-g: #1d4ed8;
+  --color-bank-h: #a21caf;
+  --color-bank-ink: #ffffff;
+}

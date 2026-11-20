@@ -1,0 +1,138 @@
+.glfo-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  box-sizing: border-box;
+  transition: opacity var(--transition-normal);
+}
+
+.glfo-card.is-muted,
+.glfo-card.is-off {
+  opacity: 0.55;
+}
+
+.glfo-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-panel-border-dim);
+  padding-bottom: 6px;
+}
+
+.glfo-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.glfo-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-panel-border);
+  transition: background 60ms ease, box-shadow 60ms ease;
+}
+
+.glfo-phase-dot.is-active {
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
+}
+
+.glfo-card-title {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--color-text-main);
+}
+
+.glfo-sub-tag {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  background: var(--color-panel-bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.glfo-head-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.glfo-mute-btn,
+.glfo-power-btn {
+  appearance: none;
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.glfo-mute-btn:hover,
+.glfo-power-btn:hover {
+  background: var(--color-panel-surface);
+  color: var(--color-text-main);
+}
+
+.glfo-mute-btn.is-active,
+.glfo-power-btn.is-off {
+  background: var(--color-panel-surface-elevated);
+  border-color: var(--color-panel-border-dim);
+  color: var(--color-text-dim);
+  opacity: 0.7;
+}
+
+.glfo-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.glfo-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glfo-lbl {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--color-text-dim);
+}
+
+.glfo-tempo-btn {
+  appearance: none;
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.glfo-tempo-btn.is-sync {
+  background: var(--color-accent-dim);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+

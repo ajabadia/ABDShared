@@ -1,29 +1,34 @@
 /**
  * @file AboutDialog.js
  * @brief Modal de diálogo "About..." universal para la suite ABDSynths.
- * 
- * Proporciona:
- * - Identidad del sintetizador (nombre, subtítulo, descripción, build).
- * - Integración reactiva con el backend C++ ABDShared::AutoUpdater (vía WebView2).
- * - Fallback automático para modo Web/WASM (consulta a GitHub Releases API).
- * - Accesibilidad completa con contrato de foco e inert (OverlayFocus).
  */
 
 import { createOverlayFocus } from '../OverlayFocus/index.js';
+import {
+  armAboutResultTimeout,
+  bindAboutDialogListeners,
+  clearAboutResultTimeout,
+  getDefaultJuceBackend,
+  queryBackendUpdateStatus,
+  startUpdateCheck,
+} from './aboutDialogUpdater.js';
+import {
+  buildSplitAboutHtml,
+  buildStandardAboutHtml,
+  cacheAboutDomRefs,
+  hideAboutActions,
+  paintAboutUpdateError,
+  paintAboutUpdateResult,
+} from './aboutDialogTemplates.js';
 
-/**
- * @typedef {Object} AboutDialogOptions
- * @property {string} [id='abd-about-dialog'] ID del elemento modal en el DOM.
- * @property {string} appName Nombre del sintetizador (ej. 'ABD CZ-101', 'ABD MS2000').
- * @property {string} [subtitle='Phase Distortion Synthesizer — Native / Web']
- * @property {string} [description='Authentic DSP hardware emulator and modern expanded engine.']
- * @property {string} [version='1.0.0']
- * @property {string|number} [buildNumber]
- * @property {string} [repo='ajabadia/ABDSynths'] Repositorio de GitHub para release checks.
- * @property {string} [manualUrl] URL del manual o repositorio.
- * @property {Function} [getJuceBackend] Función que devuelve el backend JUCE si existe.
- * @property {Function} [onClose] Callback ejecutado al cerrar el modal.
- */
+const EN_UPDATE_DICT = {
+  newVersionAvailable: 'New version available: {version}',
+  downloadVersion: 'DOWNLOAD {version}',
+  upToDate: 'You are running the latest version.',
+  updateCheckTimeout: 'The update check timed out. Check your connection and retry.',
+  updateCheckFailed: 'Could not check for updates. Check your connection and retry.',
+  retryCheck: 'RETRY',
+};
 
 export class AboutDialog {
   constructor(options = {}) {
@@ -42,13 +47,8 @@ export class AboutDialog {
       statusText: 'All Systems Nominal',
       repo: 'ajabadia/ABDSynths',
       manualUrl: 'https://github.com/ajabadia/ABDSynths',
-      getJuceBackend: () => {
-        if (typeof window !== 'undefined') {
-          return window.getJuceBackend ? window.getJuceBackend() : ((window.__JUCE__ && window.__JUCE__.backend) || (window.Juce && window.Juce.backend));
-        }
-        return null;
-      },
-      ...options
+      getJuceBackend: getDefaultJuceBackend,
+      ...options,
     };
 
     this.rootEl = null;
@@ -62,11 +62,11 @@ export class AboutDialog {
     this.resultTimeout = null;
 
     this._mount();
-    this._wireListeners();
+    bindAboutDialogListeners(this);
   }
 
   _mount() {
-    let existing = document.getElementById(this.options.id);
+    const existing = document.getElementById(this.options.id);
     if (existing) {
       this.rootEl = existing;
     } else {
@@ -84,111 +84,30 @@ export class AboutDialog {
     const dateStr = this.options.buildDate ? `(${this.options.buildDate})` : '';
     const buildFull = [buildStr, dateStr].filter(Boolean).join(' ');
     const fullVer = this.options.version.startsWith('v') ? this.options.version : `v${this.options.version}`;
-    const verLine = buildFull ? `${fullVer} • ${buildFull}` : fullVer;
 
-    if (this.options.imageSrc) {
-      // Diseño split con imagen de laboratorio analógico y tarjeta técnica (estilo SoundId / ABDAudioLab)
-      this.rootEl.innerHTML = `
-        <div class="modal-box abd-about-box abd-about-split">
-          <div class="abd-about-media">
-            <img src="${this.options.imageSrc}" alt="${this._escape(this.options.appName)}" class="abd-about-img" />
-            <button type="button" class="abd-btn-about-close-icon abd-btn-about-close" aria-label="Cerrar diálogo" title="Cerrar"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"/></svg></button>
-          </div>
-          <div class="abd-about-content">
-            ${this.options.category ? `<div class="abd-about-category">${this._escape(this.options.category)}</div>` : ''}
-            <h3 class="abd-about-title">${this._escape(this.options.appName)}</h3>
-            <p class="modal-sub abd-about-sub">${this._escape(this.options.subtitle)}</p>
-            <p class="abd-about-version-line abd-about-version">${this._escape(verLine)}</p>
-            ${this.options.details ? `<p class="abd-about-details">${this._escape(this.options.details)}</p>` : ''}
-            <p class="abd-about-copyright">${this._escape(this.options.copyright)}</p>
-            
-            <div class="abd-about-footer-row">
-              <button type="button" class="btn btn-sm abd-btn-check-updates">Check for Updates...</button>
-              <span class="abd-about-status">${this._escape(this.options.statusText)}</span>
-              <div class="abd-about-action" hidden>
-                <a class="btn-glow btn-sm btn-update-avail abd-btn-download-update" href="#" target="_blank" rel="noopener noreferrer">DOWNLOAD UPDATE</a>
-                <button type="button" class="btn-glow btn-sm abd-btn-retry-update" hidden>RETRY</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    } else {
-      // Diseño modal estándar centrado (retrocompatible con sintetizadores individuales)
-      this.rootEl.innerHTML = `
-        <div class="modal-box abd-about-box">
-          <h3 class="abd-about-title">${this._escape(this.options.appName)}</h3>
-          <p class="modal-sub abd-about-sub">${this._escape(this.options.subtitle)}</p>
-          <p class="abd-about-desc">${this._escape(this.options.description)}</p>
-          <p class="abd-about-build">${buildStr}</p>
-          
-          <div class="about-update-section abd-about-update-section">
-            <div class="about-update-row">
-              <span class="about-update-label">Version:</span>
-              <span class="about-update-val abd-about-version">${fullVer}</span>
-              <button type="button" class="btn-glow btn-sm abd-btn-check-updates">CHECK FOR UPDATES</button>
-            </div>
-            <div class="about-update-status abd-about-status"></div>
-            <div class="about-update-action abd-about-action" hidden>
-              <a class="btn-glow btn-sm btn-update-avail abd-btn-download-update" href="#" target="_blank" rel="noopener noreferrer">DOWNLOAD UPDATE</a>
-              <button type="button" class="btn-glow btn-sm abd-btn-retry-update" hidden>RETRY</button>
-            </div>
-          </div>
+    this.rootEl.innerHTML = this.options.imageSrc
+      ? buildSplitAboutHtml(this.options, fullVer, buildFull)
+      : buildStandardAboutHtml({
+          appName: this.options.appName,
+          subtitle: this.options.subtitle,
+          description: this.options.description,
+          buildStr,
+          fullVer,
+        });
 
-          <button type="button" class="btn-glow abd-btn-about-close">CLOSE</button>
-        </div>
-      `;
-    }
-
-    this.boxEl = this.rootEl.querySelector('.abd-about-box');
-    this.statusEl = this.rootEl.querySelector('.abd-about-status');
-    this.actionEl = this.rootEl.querySelector('.abd-about-action');
-    this.downloadBtn = this.rootEl.querySelector('.abd-btn-download-update');
-    this.versionTextEl = this.rootEl.querySelector('.abd-about-version');
-    this.retryBtn = this.rootEl.querySelector('.abd-btn-retry-update');
-
+    cacheAboutDomRefs(this);
     this.focusContract = createOverlayFocus({
       root: this.rootEl,
       body: this.boxEl,
       isClosed: () => this.rootEl.hidden,
-      onEscape: () => this.close()
+      onEscape: () => this.close(),
     });
     this.focusContract.attach();
     this.focusContract.setInert();
   }
 
-  _wireListeners() {
-    const closeBtns = this.rootEl.querySelectorAll('.abd-btn-about-close');
-    closeBtns.forEach(btn => btn.addEventListener('click', () => this.close()));
-
-    this.rootEl.addEventListener('click', (e) => {
-      if (e.target === this.rootEl) this.close();
-    });
-
-    const checkBtn = this.rootEl.querySelector('.abd-btn-check-updates');
-    checkBtn?.addEventListener('click', () => this.checkForUpdates());
-
-    const retryBtn = this.rootEl.querySelector('.abd-btn-retry-update');
-    retryBtn?.addEventListener('click', () => this.checkForUpdates());
-
-    const backend = this.options.getJuceBackend?.();
-    if (backend && typeof backend.addEventListener === 'function') {
-      backend.addEventListener('updateCheckResult', (data) => {
-        this.renderUpdateResult(data);
-      });
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('updateCheckResult', (e) => {
-        if (e.detail) this.renderUpdateResult(e.detail);
-      });
-    }
-  }
-
   open(triggerEl = null) {
-    if (triggerEl && this.focusContract) {
-      this.focusContract.rememberTrigger(triggerEl);
-    }
+    if (triggerEl && this.focusContract) this.focusContract.rememberTrigger(triggerEl);
     this.rootEl.hidden = false;
     this.rootEl.classList.add('active', 'is-active');
     this.focusContract?.releaseInert();
@@ -201,206 +120,42 @@ export class AboutDialog {
     this.rootEl.hidden = true;
     this.focusContract?.restoreFocus();
     this.focusContract?.setInert();
-    if (typeof this.options.onClose === 'function') {
-      this.options.onClose();
-    }
+    if (typeof this.options.onClose === 'function') this.options.onClose();
   }
 
   queryUpdateStatus() {
-    const backend = this.options.getJuceBackend?.();
-    if (backend && typeof backend.getUpdateStatus === 'function') {
-      try {
-        const res = backend.getUpdateStatus();
-        if (res && typeof res.then === 'function') {
-          res.then(data => this.renderUpdateResult(data)).catch(() => {});
-        } else if (res) {
-          this.renderUpdateResult(res);
-        }
-      } catch (err) { /* ignore */ }
-    }
+    queryBackendUpdateStatus(this.options.getJuceBackend?.(), (data) => this.renderUpdateResult(data));
   }
 
   checkForUpdates() {
     if (this.isChecking) return;
     this.isChecking = true;
-    this._clearResultTimeout();
-
+    clearAboutResultTimeout(this);
     if (this.statusEl) {
       this.statusEl.className = 'about-update-status abd-about-status warning';
       this.statusEl.textContent = 'Checking for updates...';
     }
-    this._hideActions();
-
-    const backend = this.options.getJuceBackend?.();
-
-    // Solo se delega en el backend si expone un chequeo propio. Un `emitEvent`
-    // suelto no basta: el puente no tiene handler para 'checkForUpdates', la
-    // consulta se queda muda y es justo como se acababa afirmando "al dia".
-    if (backend && typeof backend.checkForUpdates === 'function') {
-      backend.checkForUpdates();
-      this._armResultTimeout(this.options.backendResultTimeoutMs ?? 15000);
-      return;
-    }
-
-    if (typeof fetch !== 'function') {
-      if (backend && typeof backend.emitEvent === 'function') {
-        backend.emitEvent('checkForUpdates', {});
-        this._armResultTimeout(this.options.backendResultTimeoutMs ?? 15000);
-        return;
-      }
-      this.isChecking = false;
-      this.renderUpdateError('unsupported');
-      return;
-    }
-
-    const apiUrl = `https://api.github.com/repos/${this.options.repo}/releases/latest`;
-    const timeoutMs = this.options.fetchTimeoutMs ?? 10000;
-    const controller = typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = setTimeout(() => { controller?.abort(); }, timeoutMs);
-
-    fetch(apiUrl, {
-      headers: { Accept: 'application/vnd.github.v3+json' },
-      signal: controller ? controller.signal : undefined,
-    })
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then(rel => {
-        clearTimeout(timer);
-        const remoteTag = rel.tag_name || this.options.version;
-        const isNewer = this._isNewerVersion(remoteTag, this.options.version);
-        this.renderUpdateResult({
-          currentVersion: this.options.version,
-          latestVersion: remoteTag,
-          isUpdateAvailable: isNewer,
-          downloadUrl: rel.html_url || `https://github.com/${this.options.repo}/releases`
-        });
-      })
-      .catch(err => {
-        clearTimeout(timer);
-        this.isChecking = false;
-        this.renderUpdateError(err && err.name === 'AbortError' ? 'timeout' : 'network');
-      });
+    hideAboutActions(this);
+    startUpdateCheck({
+      options: this.options,
+      onResult: (data) => this.renderUpdateResult(data),
+      onError: (reason) => this.renderUpdateError(reason),
+      armTimeout: (ms) => armAboutResultTimeout(this, ms),
+    });
   }
 
   renderUpdateResult(data) {
-    // El AutoUpdater contesta checkFailed/errorMessage cuando la consulta no
-    // llego a completarse: eso es un fallo, no un "al dia".
-    if (data && data.checkFailed) {
-      this.renderUpdateError(/timeout/i.test(data.errorMessage || '') ? 'timeout' : 'network');
-      if (this.statusEl && data.errorMessage) this.statusEl.textContent = data.errorMessage;
-      return;
-    }
-
-    this._clearResultTimeout();
-    this.isChecking = false;
-    if (!this.statusEl) return;
-    const curVer = (data && data.currentVersion) || this.options.version;
-    if (this.versionTextEl) {
-      this.versionTextEl.textContent = curVer.startsWith('v') ? curVer : `v${curVer}`;
-    }
-
-    if (data && data.isUpdateAvailable) {
-      this.statusEl.className = 'about-update-status abd-about-status success';
-      this.statusEl.textContent = `New version available: ${data.latestVersion || 'latest'}`;
-      if (this.actionEl && this.downloadBtn) {
-        this.actionEl.hidden = false;
-        this.downloadBtn.hidden = false;
-        if (this.retryBtn) this.retryBtn.hidden = true;
-        this.downloadBtn.textContent = `DOWNLOAD ${data.latestVersion || 'UPDATE'}`;
-        this.downloadBtn.href = data.downloadUrl || `https://github.com/${this.options.repo}/releases/latest`;
-        this.downloadBtn.onclick = (e) => {
-          const backend = this.options.getJuceBackend?.();
-          if (backend && typeof backend.openBrowserUrl === 'function') {
-            e.preventDefault();
-            backend.openBrowserUrl(this.downloadBtn.href);
-          } else if (backend && typeof backend.emitEvent === 'function') {
-            backend.emitEvent('openBrowserUrl', this.downloadBtn.href);
-          }
-        };
-      }
-    } else {
-      this.statusEl.className = 'about-update-status abd-about-status';
-      this.statusEl.textContent = 'You are running the latest version.';
-      this._hideActions();
-    }
+    paintAboutUpdateResult(this, data, EN_UPDATE_DICT);
   }
 
-  /**
-   * Estado de fallo del chequeo (sin red, timeout, HTTP no-ok o backend mudo).
-   * Nunca se declara "al dia" cuando la consulta no ha llegado a completarse.
-   */
   renderUpdateError(reason = 'network') {
-    this._clearResultTimeout();
-    this.isChecking = false;
-    if (!this.statusEl) return;
-
-    const fallback = 'Could not check for updates. Check your connection and retry.';
-    const messages = {
-      timeout: this.options.timeoutMessage || 'The update check timed out. Check your connection and retry.',
-      network: this.options.errorMessage || fallback,
-      unsupported: this.options.errorMessage || fallback,
-    };
-
-    this.statusEl.className = 'about-update-status abd-about-status error';
-    this.statusEl.textContent = messages[reason] || fallback;
-    if (this.actionEl) this.actionEl.hidden = false;
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
-    if (this.retryBtn) {
-      this.retryBtn.hidden = false;
-      this.retryBtn.textContent = this.options.retryLabel || 'RETRY';
-    }
-  }
-
-  _hideActions() {
-    if (this.actionEl) this.actionEl.hidden = true;
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
-    if (this.retryBtn) this.retryBtn.hidden = true;
-  }
-
-  _armResultTimeout(ms) {
-    this._clearResultTimeout();
-    this.resultTimeout = setTimeout(() => {
-      this.resultTimeout = null;
-      if (!this.isChecking) return;
-      this.renderUpdateError('timeout');
-    }, ms);
-  }
-
-  _clearResultTimeout() {
-    if (this.resultTimeout) {
-      clearTimeout(this.resultTimeout);
-      this.resultTimeout = null;
-    }
-  }
-
-  _isNewerVersion(remote, local) {
-    const parse = (v) => v.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const r = parse(remote);
-    const l = parse(local);
-    const len = Math.max(r.length, l.length);
-    for (let i = 0; i < len; i++) {
-      const rv = r[i] || 0;
-      const lv = l[i] || 0;
-      if (rv !== lv) return rv > lv;
-    }
-    return false;
-  }
-
-  _escape(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    paintAboutUpdateError(this, reason, EN_UPDATE_DICT);
   }
 
   destroy() {
-    this._clearResultTimeout();
-    if (this.focusContract) {
-      this.focusContract.detach();
-    }
-    if (this.rootEl && this.rootEl.parentNode) {
-      this.rootEl.parentNode.removeChild(this.rootEl);
-    }
+    clearAboutResultTimeout(this);
+    this.focusContract?.detach();
+    if (this.rootEl && this.rootEl.parentNode) this.rootEl.parentNode.removeChild(this.rootEl);
   }
 }
 

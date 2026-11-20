@@ -1,0 +1,108 @@
+/* ---------------------------------------------------------------------------
+ * NumberBox — caja numerica con −/+ y edicion directa (BPM, canales, octavas).
+ * Portado del mueble de ABDEep (OCT −/+ + .modal-input) al contrato de familia.
+ * ------------------------------------------------------------------------- */
+.abd-numberbox {
+    max-width: 100%;
+}
+
+.abd-numberbox--labelled {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1, 2px);
+    user-select: none;
+}
+
+.abd-numberbox__label {
+    font-size: var(--text-sm, 9px);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.abd-numberbox__box {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+}
+
+.abd-numberbox__btn {
+    flex: 0 0 auto;
+    width: 22px;
+    padding: 4px 0;
+    font: inherit;
+    font-size: var(--text-base, 11px);
+    line-height: 1;
+    color: var(--color-text-muted);
+    background: var(--color-panel-surface);
+    border: 1px solid var(--color-panel-border);
+    cursor: pointer;
+    transition: var(--transition-fast, 0.15s ease);
+}
+
+.abd-numberbox__btn:hover {
+    color: var(--color-text-main);
+    background: var(--color-panel-surface-elevated);
+}
+
+.abd-numberbox__btn--decrement {
+    border-radius: var(--radius-sm, 3px) 0 0 var(--radius-sm, 3px);
+}
+
+.abd-numberbox__btn--increment {
+    border-radius: 0 var(--radius-sm, 3px) var(--radius-sm, 3px) 0;
+}
+
+.abd-numberbox__btn.is-at-edge {
+    opacity: 0.45;
+}
+
+.abd-numberbox__field {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    font: inherit;
+    font-size: var(--text-base, 11px);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-main);
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-panel-border-dim);
+    border-left: none;
+    border-right: none;
+    padding: 4px 2px;
+    outline: none;
+}
+
+.abd-numberbox__field:focus {
+    border-color: var(--color-accent);
+}
+
+.abd-numberbox__unit {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: var(--text-sm, 9px);
+    color: var(--color-text-muted);
+    padding-right: 4px;
+    background: var(--color-bg-base);
+    border-top: 1px solid var(--color-panel-border-dim);
+    border-bottom: 1px solid var(--color-panel-border-dim);
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+}
+
+.abd-numberbox__field:disabled,
+.abd-numberbox__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.abd-numberbox[data-disabled='true'] .abd-numberbox__field {
+    color: var(--color-text-muted);
+}

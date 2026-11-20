@@ -1,0 +1,140 @@
+/* =========================================================================
+   SevenSegmentDisplay
+   ========================================================================= */
+@font-face {
+    font-family: 'SevenSegment';
+    src: url('../../../assets/junio/SevenSegment.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+.abd-seven-seg {
+    display: inline-flex;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+    font-family: 'SevenSegment', monospace;
+}
+
+.abd-seven-seg__digit {
+    min-width: 0.6em;
+    text-align: center;
+}
+
+/* =========================================================================
+   SilverFilmstripKnob (RE-201 style)
+   ========================================================================= */
+.abd-silver-filmstrip-knob {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+}
+
+.abd-silver-filmstrip-knob__label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.abd-silver-filmstrip-knob__dial {
+    position: relative;
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+    overflow: hidden;
+    border-radius: 50%;
+    box-shadow: inset 0 2px 6px rgba(var(--color-scrim-rgb), 0.5), 0 2px 4px rgba(var(--color-scrim-rgb), 0.3);
+}
+
+.abd-silver-filmstrip-knob__dial:active { cursor: grabbing; }
+
+.abd-silver-filmstrip-knob__filmstrip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-repeat: no-repeat;
+    background-position: center 0%;
+    pointer-events: none;
+    transition: background-position 0ms;
+}
+
+/* =========================================================================
+   EffectLEDButton (Junio .sq buttons)
+   ========================================================================= */
+.abd-effect-led-btn {
+    width: 44px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.05s, filter 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+
+.abd-effect-led-btn:active {
+    transform: translateY(1px);
+    filter: brightness(0.85);
+}
+
+.abd-effect-led-btn--tiny {
+    width: 28px;
+    height: 20px;
+}
+
+.abd-effect-led-btn[data-active="true"] {
+    /* background-image set via JS for on/off sprites */
+}
+
+/* =========================================================================
+   PeakLED (RE-201 style)
+   ========================================================================= */
+.abd-peak-led {
+    width: 32px;
+    height: 17px;
+    opacity: 0;
+    transition: opacity 0.05s;
+}
+
+.abd-peak-led--sprite {
+    display: block;
+}
+
+.abd-peak-led--css {
+    background: var(--color-led-active);
+    border-radius: 2px;
+    box-shadow: 0 0 6px var(--color-led-glow);
+}
+
+/* =========================================================================
+   TapeEchoVisual (RE-201 tape echo SVG)
+   ========================================================================= */
+.abd-tape-echo-visual {
+    position: relative;
+    overflow: visible;
+}
+
+.abd-tape-echo-visual svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.abd-tape-echo-visual .svg-sync-hidden { display: none; }
+.abd-tape-echo-visual .svg-sync-visible { display: block; }
+.abd-tape-echo-visual .svg-bpm-hidden { display: none; }
+.abd-tape-echo-visual .svg-bpm-visible { display: block; }
+
+.abd-tape-echo-visual #peak-led { opacity: 0; transition: opacity 0.05s; }
+
+
+
+

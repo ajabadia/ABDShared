@@ -1,0 +1,130 @@
+/**
+ * ABD Pills & Chip Selectors - Unified Tokenized Architecture
+ * ===========================================================
+ * Single DRY model for pill/chip selectors, category filters, mode tabs,
+ * and option switchers across the entire ABDSynths suite.
+ *
+ * Guarantees visual consistency, shared geometry, and 100% tokenized theming.
+ */
+
+/* ── 1. Pill Group / Chips Row Container ────────────────── */
+.abd-pill-group,
+.abd-pill-row,
+.ndb-chips-row,
+.catalog-chips-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pill-group-gap, var(--space-2, 6px));
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.abd-pill-group--nowrap,
+.ndb-chips-row--nowrap {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.abd-pill-group--dense {
+  gap: 4px;
+}
+
+.abd-pill-group--xs { gap: 3px; }
+.abd-pill-group--sm { gap: 4px; }
+.abd-pill-group--md { gap: var(--space-2, 6px); }
+.abd-pill-group--lg { gap: var(--space-3, 8px); }
+
+/* ── 2. Unified Base Pill Model ──────────────────────────── */
+.abd-pill,
+.abd-chip,
+.ndb-chip,
+.catalog-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pill-gap, 6px);
+  padding: 3px 12px;
+  min-height: 22px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-panel-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-sm, 11px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-decoration: none;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* ── 3. Interactive States ───────────────────────────────── */
+.abd-pill:hover:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.abd-chip:hover:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.ndb-chip:hover:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.catalog-chip:hover:not(:disabled):not(.disabled):not([aria-disabled="true"]) {
+  border-color: var(--color-accent);
+  color: var(--color-text-main);
+  transform: translateY(-1px);
+}
+
+.abd-pill:active:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.ndb-chip:active:not(:disabled):not(.disabled):not([aria-disabled="true"]) {
+  transform: translateY(0);
+}
+
+.abd-pill.active,
+.abd-pill.is-active,
+.abd-chip.active,
+.ndb-chip.active,
+.catalog-chip.active {
+  background: var(--color-accent);
+  color: var(--color-bg-base);
+  border-color: var(--color-accent);
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--color-accent-dim);
+  transform: none;
+}
+
+/* High contrast active text for light themes (WCAG AA compliant) */
+[data-theme="audiolab-light"] .abd-pill.active,
+[data-theme="audiolab-light"] .abd-pill.is-active,
+[data-theme="audiolab-light"] .abd-chip.active,
+[data-theme="audiolab-light"] .ndb-chip.active,
+[data-theme="audiolab-light"] .catalog-chip.active,
+[data-theme="light"] .abd-pill.active,
+[data-theme="light"] .abd-pill.is-active,
+[data-theme="light"] .abd-chip.active,
+[data-theme="light"] .ndb-chip.active,
+[data-theme="light"] .catalog-chip.active {
+  color: var(--color-on-accent) !important;
+}
+
+/* Disabled State */
+.abd-pill:disabled,
+.abd-pill.disabled,
+.abd-pill[aria-disabled="true"],
+.ndb-chip:disabled,
+.ndb-chip.disabled,
+.ndb-chip[aria-disabled="true"] {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Focus outline */
+.abd-pill:focus-visible,
+.ndb-chip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+

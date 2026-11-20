@@ -1,0 +1,131 @@
+/* ABD Keyboard Buttons — octave, panic, sustain, sostenuto, soft, hold, retrig pedals.
+   Themed via --kbd-* / --color-* tokens. Zero hardcoded colors. */
+
+.kbd-octave-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border);
+  border-radius: 5px;
+  padding: 6px;
+  box-shadow: inset 0 2px 5px rgba(var(--color-scrim-rgb), 0.5), 0 2px 4px rgba(var(--color-scrim-rgb), 0.4);
+}
+
+.kbd-octave-btn {
+  background: var(--color-panel-bg);
+  border: 1px solid var(--color-panel-border);
+  color: var(--color-text-main);
+  font-family: var(--kbd-font, var(--font-mono));
+  font-size: var(--kbd-font-size, 9px);
+  font-weight: 700;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(var(--color-scrim-rgb), 0.4);
+  transition: all 0.15s ease;
+  min-width: 44px;
+}
+.kbd-octave-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.kbd-octave-btn:active {
+  background: var(--color-panel-surface);
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 3px rgba(var(--color-scrim-rgb), 0.6);
+}
+
+.kbd-octave-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-kbd-surface);
+  border: 1px solid var(--color-kbd-border);
+  box-shadow: inset 0 1px 2px rgba(var(--color-scrim-rgb), 0.6);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  will-change: background, box-shadow;
+}
+.kbd-octave-led.on { background: var(--color-led-active); box-shadow: 0 0 7px var(--color-led-glow); }
+.kbd-octave-led.blink { background: var(--color-led-active); animation: kbdBlinkLed 0.6s infinite alternate; }
+@keyframes kbdBlinkLed { 0% { opacity: 0.2; } 100% { opacity: 1; } }
+
+/* Shared hardware pedal pushbutton shell */
+.kbd-panic-btn,
+.kbd-sustain-btn,
+.kbd-sostenuto-btn,
+.kbd-soft-btn,
+.kbd-hold-btn,
+.kbd-retrig-btn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 42px;
+  min-height: 80px;
+  margin: 0 4px 0 0;
+  background: linear-gradient(to bottom, var(--color-kbd-cap-top) 0%, var(--color-kbd-cap-bot) 100%);
+  border: 1px solid var(--color-kbd-border);
+  border-radius: 0 0 5px 5px;
+  border-top: none;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 2px 4px rgba(var(--color-scrim-rgb), 0.6), 0 2px 4px rgba(var(--color-scrim-rgb), 0.4);
+  transition: background 0.1s ease, box-shadow 0.1s ease, border-color 0.15s ease;
+}
+.kbd-panic-btn { margin-left: 2px; }
+
+.kbd-panic-btn:hover,
+.kbd-sustain-btn:hover,
+.kbd-sostenuto-btn:hover,
+.kbd-soft-btn:hover,
+.kbd-hold-btn:hover,
+.kbd-retrig-btn:hover {
+  background: linear-gradient(to bottom, var(--color-kbd-surface-hi) 0%, var(--color-kbd-surface) 100%);
+  border-color: var(--color-kbd-border-hi);
+}
+
+.kbd-panic-btn:active,
+.kbd-sustain-btn:active,
+.kbd-sostenuto-btn:active,
+.kbd-soft-btn:active {
+  background: linear-gradient(to bottom, var(--color-kbd-cap-bot) 0%, var(--color-kbd-surface-lo) 100%);
+  box-shadow: inset 0 2px 6px rgba(var(--color-scrim-rgb), 0.8);
+}
+
+.kbd-panic-led,
+.kbd-sustain-led,
+.kbd-sostenuto-led,
+.kbd-soft-led,
+.kbd-hold-led,
+.kbd-retrig-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--color-kbd-surface);
+  box-shadow: inset 0 1px 2px rgba(var(--color-scrim-rgb), 0.6);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  will-change: background, box-shadow;
+}
+
+.kbd-panic-label,
+.kbd-sustain-label,
+.kbd-sostenuto-label,
+.kbd-soft-label,
+.kbd-hold-label,
+.kbd-retrig-label {
+  font-family: var(--kbd-font, var(--font-mono));
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.kbd-retrig-label { font-size: 7.5px; letter-spacing: 0.3px; }
+

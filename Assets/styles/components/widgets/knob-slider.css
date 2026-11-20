@@ -1,0 +1,164 @@
+/*
+ * ABDSharedAssets — control family styles (knob, slider, toggle).
+ *
+ * Companion of components/{knob,slider,toggle}.js. Everything is themed through
+ * the global tokens (styles/tokens.css): --color-accent, --color-panel-surface,
+ * --color-text-muted... The literal fallbacks keep the controls usable standalone
+ * (demo pages, tests) without importing the token system.
+ */
+
+/* ── Knob ──────────────────────────────────────────────────────────────────── */
+
+.abd-knob {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1, 2px);
+    user-select: none;
+}
+
+.abd-knob__label {
+    font-size: var(--text-sm, 9px);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.abd-knob__dial {
+    position: relative;
+    width: var(--abd-knob-size, 64px);
+    height: var(--abd-knob-size, 64px);
+    cursor: grab;
+    touch-action: none;   /* pointer events own the gesture */
+    outline: none;
+}
+
+.abd-knob__dial:focus-visible {
+    filter: drop-shadow(0 0 4px var(--color-accent));
+}
+
+.abd-knob__dial:active { cursor: grabbing; }
+
+.abd-knob__svg { width: 100%; height: 100%; }
+
+.abd-knob__track,
+.abd-knob__arc {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.abd-knob__track { stroke: var(--color-panel-surface-elevated); }
+
+/* dasharray/offset are set inline by knob.js from the value */
+.abd-knob__arc { stroke: var(--color-accent); }
+
+/* The REST MARK of a bipolar knob: the dot that says where zero is, so a
+   centred parameter reads as a place and not as a guess. It only exists in the
+   DOM when the knob was born with `bipolar: true` (the vector skin), which is
+   why there is no rule to hide it. It sits in the gap between the pointer tip
+   and the inner edge of the arc, not on the arc itself: painted over the band
+   it would vanish the moment the arc reached zero. Muted text colour, because
+   it is a reference mark and not a value. */
+.abd-knob__rest {
+    fill: var(--color-text-muted);
+}
+
+/* Modulation ring (telemetry): double stroke like the native LookAndFeel —
+   wide translucent halo under a thin solid arc. Colour is the theme's
+   --color-mod-ring, falling back to the accent. */
+.abd-knob__mod-halo,
+.abd-knob__mod-ring {
+    fill: none;
+    stroke: var(--color-mod-ring, var(--color-accent));
+    stroke-linecap: round;
+}
+
+.abd-knob__mod-halo { stroke-width: 8; opacity: 0.4; }
+.abd-knob__mod-ring { stroke-width: 3; }
+
+.abd-knob__pointer {
+    stroke: var(--color-text-main);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.abd-knob__value {
+    position: absolute;
+    inset: auto 0 18% 0;
+    text-align: center;
+    font-size: var(--text-2xs, 7px);
+    color: var(--color-text-dim);
+    pointer-events: none;
+}
+
+/* ── Slider ────────────────────────────────────────────────────────────────── */
+
+.abd-slider {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2, 4px);
+    user-select: none;
+}
+
+.abd-slider__label {
+    font-size: var(--text-sm, 9px);
+    color: var(--color-text-muted);
+}
+
+.abd-slider__track {
+    position: relative;
+    width: var(--abd-slider-length, 160px);
+    height: 14px;
+    background: var(--color-panel-surface-elevated);
+    border-radius: 7px;
+    cursor: pointer;
+    touch-action: none;
+    outline: none;
+}
+
+.abd-slider__track:focus-visible {
+    box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.abd-slider--vertical { flex-direction: column; }
+.abd-slider--vertical .abd-slider__track {
+    width: 14px;
+    height: var(--abd-slider-length, 160px);
+    border-radius: 7px;
+}
+
+.abd-slider__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--color-accent-dim);
+    border-radius: inherit;
+}
+
+.abd-slider__thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    background: var(--color-text-main);
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+    pointer-events: none;   /* the track handles the pointer */
+    box-shadow: 0 1px 4px rgba(var(--color-scrim-rgb), 0.5);
+}
+
+.abd-slider--vertical .abd-slider__thumb {
+    left: 50%;
+    top: auto;
+    bottom: 0;
+    transform: translate(-50%, 50%);
+}
+
+.abd-slider__value {
+    min-width: 4ch;
+    font-size: var(--text-xs, 8px);
+    color: var(--color-text-dim);
+}
+

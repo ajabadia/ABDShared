@@ -1,0 +1,173 @@
+/* ── LED Ladder ───────────────────────────────────────────────────────────── */
+
+.abd-led-ladder {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1, 2px);
+  user-select: none;
+  padding: 3px 2px;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-sm, 2px);
+  box-shadow: inset 0 1px 3px rgba(var(--color-scrim-rgb), 0.8);
+}
+
+.abd-led-ladder__arrow {
+  font-size: 7px;
+  line-height: 1;
+  color: var(--color-text-dim);
+  opacity: 0.4;
+  transition: color 0.1s ease, opacity 0.1s ease, text-shadow 0.1s ease;
+}
+
+.abd-led-ladder__arrow--active {
+  color: var(--color-accent);
+  opacity: 1;
+  text-shadow: 0 0 5px var(--color-accent);
+}
+
+.abd-led-ladder__track {
+  display: flex;
+  flex-direction: column-reverse; /* Bottom segment = index 0 */
+  gap: 2px;
+  width: var(--abd-led-width, 16px);
+}
+
+.abd-led-ladder__segment {
+  width: 100%;
+  height: var(--abd-led-height, 4px);
+  border-radius: 1px;
+  background: var(--color-panel-surface);
+  border: 1px solid rgba(var(--color-scrim-rgb), 0.5);
+  opacity: 0.35;
+  transition: opacity 0.04s ease-out, background 0.04s ease-out, box-shadow 0.04s ease-out;
+}
+
+.abd-led-ladder__segment--lit {
+  opacity: 1;
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
+}
+
+/* ── Rotary LED Knob ──────────────────────────────────────────────────────── */
+
+.abd-rotary-led {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 4px);
+  user-select: none;
+  touch-action: none;
+
+  /* Theme tokens fallback */
+  --color-rotary-bezel: var(--color-bg-base);
+  --color-rotary-bezel-stroke: var(--color-panel-border-dim);
+  --color-rotary-cap-fill: var(--color-panel-surface-elevated);
+  --color-rotary-cap-stroke: var(--color-panel-border);
+  --color-rotary-pointer: var(--color-accent);
+  --color-rotary-led-lit: var(--color-accent);
+  --color-rotary-led-lit-stroke: var(--color-accent);
+  --color-rotary-led-unlit: var(--color-panel-border-dim);
+  --color-rotary-led-unlit-stroke: var(--color-panel-border);
+}
+
+/* Light theme overrides */
+[data-theme="audiolab-light"] .abd-rotary-led,
+[data-theme="light"] .abd-rotary-led,
+body.theme-light .abd-rotary-led,
+body.skin-audiolab-light .abd-rotary-led {
+  --color-rotary-bezel: var(--color-scrollbar-track);
+  --color-rotary-bezel-stroke: var(--color-panel-border);
+  --color-rotary-cap-fill: var(--color-panel-surface-elevated);
+  --color-rotary-cap-stroke: var(--color-panel-border-strong);
+  --color-rotary-pointer: var(--color-accent);
+  --color-rotary-led-lit: var(--color-accent);
+  --color-rotary-led-lit-stroke: var(--color-accent-hover);
+  --color-rotary-led-unlit: var(--color-panel-border-dim);
+  --color-rotary-led-unlit-stroke: var(--color-panel-border);
+}
+
+.abd-rotary-led__dial {
+  position: relative;
+  cursor: grab;
+  outline: none;
+  border-radius: 50%;
+  display: block;
+}
+
+.abd-rotary-led__dial:active {
+  cursor: grabbing;
+}
+
+.abd-rotary-led__dial:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.abd-rotary-led__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.abd-rotary-led__bezel {
+  fill: var(--color-rotary-bezel);
+  stroke: var(--color-rotary-bezel-stroke);
+  stroke-width: 1px;
+}
+
+.abd-rotary-led__cap {
+  transition: transform 0.04s ease-out;
+}
+
+.abd-rotary-led__cap-body {
+  fill: var(--color-rotary-cap-fill);
+  stroke: var(--color-rotary-cap-stroke);
+  stroke-width: 1.5px;
+}
+
+.abd-rotary-led__cap-inset {
+  stroke: var(--color-rotary-bezel-stroke);
+  stroke-width: 1px;
+  opacity: 0.6;
+}
+
+.abd-rotary-led__pointer-line {
+  stroke: var(--color-rotary-pointer);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+}
+
+.abd-rotary-led__pointer-dot {
+  fill: var(--color-rotary-pointer);
+}
+
+.abd-rotary-led .led-dot {
+  fill: var(--color-rotary-led-unlit);
+  stroke: var(--color-rotary-led-unlit-stroke);
+  stroke-width: 0.5px;
+  transition: fill 0.05s ease, filter 0.05s ease;
+}
+
+.abd-rotary-led .led-dot.is-active {
+  fill: var(--color-rotary-led-lit);
+  stroke: var(--color-rotary-led-lit-stroke);
+  filter: drop-shadow(0 0 3px var(--color-rotary-led-lit));
+}
+
+.abd-rotary-led__label {
+  font-size: var(--text-2xs, 8.5px);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+.abd-rotary-led__value {
+  font-size: var(--text-xs, 10px);
+  font-weight: 700;
+  color: var(--color-accent);
+}
+

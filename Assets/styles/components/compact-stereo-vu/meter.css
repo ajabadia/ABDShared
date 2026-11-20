@@ -1,0 +1,86 @@
+/**
+ * ABDShared — compact-stereo-vu.css
+ * Canonical styling for CompactStereoVu dual-LED pill + Studio VU Dialog.
+ * Zero hardcoded colors; 100% theme tokens & accessible.
+ */
+
+.abd-compact-vu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background: color-mix(in srgb, var(--color-panel-surface) 60%, transparent);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-xs, 2px);
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.abd-compact-vu:hover,
+.abd-compact-vu:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-panel-surface-elevated);
+  outline: none;
+}
+
+.abd-compact-vu__ch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.abd-compact-vu__lbl {
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--color-text-dim);
+}
+
+.abd-compact-vu__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-panel-border-dim);
+  transition: background 0.05s ease, box-shadow 0.05s ease;
+  box-sizing: border-box;
+}
+
+.abd-compact-vu__led.is-off {
+  background: color-mix(in srgb, var(--color-panel-border-dim) 50%, transparent);
+  box-shadow: none;
+}
+
+.abd-compact-vu__led.is-low {
+  background: var(--color-success);
+  box-shadow: 0 0 5px var(--color-success);
+}
+
+.abd-compact-vu__led.is-mid {
+  background: var(--color-warning);
+  box-shadow: 0 0 6px var(--color-warning);
+}
+
+.abd-compact-vu__led.is-hot {
+  background: color-mix(in srgb, var(--color-danger) 60%, var(--color-warning));
+  box-shadow: 0 0 7px var(--color-danger);
+}
+
+.abd-compact-vu__led.is-clip {
+  background: var(--color-danger);
+  box-shadow: 0 0 8px var(--color-danger);
+}
+
+.abd-compact-vu__expand {
+  font-size: 9px;
+  color: var(--color-text-dim);
+  opacity: 0.6;
+}
+
+.abd-compact-vu:hover .abd-compact-vu__expand {
+  color: var(--color-accent);
+  opacity: 1;
+}
+

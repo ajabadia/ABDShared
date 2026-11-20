@@ -1,0 +1,63 @@
+/* ── Toggle ────────────────────────────────────────────────────────────────── */
+
+.abd-toggle {
+    appearance: none;
+    border: 1px solid var(--color-panel-border);
+    background: var(--color-panel-surface);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 9px);
+    padding: var(--space-2, 4px) var(--space-3, 8px);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+}
+
+.abd-toggle::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: var(--space-2, 4px);
+    border-radius: 50%;
+    background: var(--abd-toggle-color, var(--color-accent));
+    opacity: 0.25;
+    transition: opacity var(--transition-fast, 0.15s ease),
+                box-shadow var(--transition-fast, 0.15s ease);
+    vertical-align: middle;
+}
+
+.abd-toggle[aria-pressed="true"] {
+    color: var(--color-text-main);
+    border-color: var(--color-panel-border-strong);
+}
+
+.abd-toggle[aria-pressed="true"]::before {
+    opacity: 1;
+    box-shadow: 0 0 6px 1px var(--abd-toggle-color, var(--color-accent));
+}
+
+/* ── Toggle skin: ms2000 (token variant, extracted look of the MS2000 edits) ── */
+
+.abd-toggle--ms2000 {
+    border-radius: 3px;
+    font-family: var(--font-sans, sans-serif);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ── Toggle skin: junio (JUNiO photo sprites, 88x77 PNG on/off per color) ─── */
+
+.abd-toggle--junio {
+    width: 44px;             /* .sq geometry of the original JUNiO buttons */
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 0;            /* the sprite carries the look; hide the label */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.abd-toggle--junio::before { content: none; }   /* no CSS LED: the sprite is the LED */
+

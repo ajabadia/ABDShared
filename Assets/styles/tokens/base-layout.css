@@ -1,0 +1,75 @@
+:root {
+  /* =========================================================================
+     8. Radii & Geometry
+     ========================================================================= */
+  --radius-xs:      2px;
+  --radius-sm:      2px;
+  --radius-md:      4px;
+  --radius-lg:      8px;
+  --radius-xl:      12px;
+  --radius-panel:   4px;
+  --radius-chassis: 6px;
+  --radius-full:    9999px;
+  --radius-round:   9999px;
+
+  /* =========================================================================
+     9. Shadows & Elevations (4 levels)
+     ========================================================================= */
+  --shadow-elevation-1: 0  2px  6px rgba(0, 0, 0, 0.5);
+  --shadow-elevation-2: 0  8px 24px rgba(0, 0, 0, 0.65);
+  --shadow-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.85);
+  --shadow-lg:          var(--shadow-elevation-2);
+  --shadow-inset-bevel: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+
+  /* =========================================================================
+     10. Scrollbars
+     ========================================================================= */
+  --color-scrollbar-thumb:        var(--color-panel-surface);
+  --color-scrollbar-thumb-hover:  var(--color-accent);
+  --color-scrollbar-thumb-active: var(--color-accent);
+  --color-scrollbar-track:        var(--color-bg-base);
+  --scrollbar-width:              6px;
+  --scrollbar-thumb-radius:       3px;
+
+  /* Global theme-aware scrollbars using --color-* tokens */
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border: 1px solid var(--color-panel-border);
+    border-radius: var(--scrollbar-thumb-radius);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--color-scrollbar-thumb-active);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-panel-border) var(--color-bg-base);
+  }
+
+  /* =========================================================================
+     11. Z-Index Scale
+     ========================================================================= */
+  --z-base:     1;
+  --z-panel:    10;
+  --z-navbar:   30;
+  --z-dropdown: 50;
+  --z-modal:    100;
+  --z-overlay:  500;
+  --z-toast:    900;
+
+  /* =========================================================================
+     12. Layout Constants
+     ========================================================================= */
+  --navbar-height:       44px;
+  --module-header-height: 28px;
+  --panel-gap:           var(--space-4);
+}

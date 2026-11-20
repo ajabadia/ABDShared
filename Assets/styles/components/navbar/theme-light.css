@@ -1,0 +1,73 @@
+/* Light theme support via semantic tokens */
+[data-theme="audiolab-light"] .navbar,
+[data-theme="light"] .navbar,
+body.skin-audiolab-light .navbar,
+body.theme-light .navbar,
+body.theme-audiolab-light .navbar {
+  --navbar-bg: var(--color-panel-bg);
+  --navbar-shadow: var(--shadow-elevation-1);
+  border-bottom: 1px solid var(--color-panel-border);
+}
+
+[data-theme="audiolab-light"] .nav-menu-trigger,
+[data-theme="audiolab-light"] .menu-trigger,
+[data-theme="light"] .nav-menu-trigger,
+[data-theme="light"] .menu-trigger,
+body.skin-audiolab-light .nav-menu-trigger,
+body.theme-light .nav-menu-trigger,
+body.theme-audiolab-light .nav-menu-trigger {
+  color: var(--color-text-main);
+  font-weight: 600;
+}
+
+[data-theme="audiolab-light"] .nav-menu-trigger:hover,
+[data-theme="audiolab-light"] .nav-menu-trigger.active,
+[data-theme="audiolab-light"] .menu-trigger:hover,
+[data-theme="audiolab-light"] .menu-trigger.active,
+[data-theme="light"] .nav-menu-trigger:hover,
+[data-theme="light"] .nav-menu-trigger.active,
+body.skin-audiolab-light .nav-menu-trigger:hover,
+body.theme-audiolab-light .nav-menu-trigger:hover {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  border-color: var(--color-panel-border);
+}
+
+[data-theme="audiolab-light"] .nav-dropdown,
+[data-theme="audiolab-light"] .menu-dropdown,
+[data-theme="audiolab-light"] .nav-submenu,
+[data-theme="light"] .nav-dropdown,
+[data-theme="light"] .menu-dropdown,
+[data-theme="light"] .nav-submenu,
+body.skin-audiolab-light .nav-dropdown,
+body.theme-audiolab-light .nav-dropdown {
+  background: var(--color-panel-surface-elevated);
+  border: 1px solid var(--color-panel-border-strong);
+  box-shadow: var(--shadow-elevation-2);
+}
+
+[data-theme="audiolab-light"] .nav-item,
+[data-theme="light"] .nav-item,
+body.skin-audiolab-light .nav-item,
+body.theme-audiolab-light .nav-item {
+  color: var(--color-text-main);
+}
+
+[data-theme="audiolab-light"] .nav-item:hover,
+[data-theme="audiolab-light"] .nav-item:focus-visible,
+[data-theme="light"] .nav-item:hover,
+body.skin-audiolab-light .nav-item:hover,
+body.theme-audiolab-light .nav-item:hover {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+[data-theme="audiolab-light"] .nav-kbd,
+[data-theme="light"] .nav-kbd,
+body.skin-audiolab-light .nav-kbd,
+body.theme-audiolab-light .nav-kbd {
+  background: var(--color-panel-surface);
+  color: var(--color-text-muted);
+  border-color: var(--color-panel-border);
+}
+

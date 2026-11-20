@@ -1,0 +1,127 @@
+/* ── XYPad ─────────────────────────────────────────────────────────────────── */
+
+.abd-xypad
+{
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.abd-xypad__label
+{
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+}
+
+.abd-xypad__pad
+{
+    position: relative;
+    width: var(--abd-xypad-w, 220px);
+    height: var(--abd-xypad-h, 220px);
+    background: var(--color-bg-elev);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    touch-action: none;
+    cursor: crosshair;
+    outline: none;
+    overflow: hidden;
+}
+
+.abd-xypad__pad:focus-visible
+{
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent-dim);
+}
+
+/* Grid: subtle thirds lines. */
+.abd-xypad__grid
+{
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--color-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+    background-size: 33.34% 33.34%;
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+.abd-xypad__line
+{
+    position: absolute;
+    background: var(--color-accent-dim);
+    pointer-events: none;
+}
+
+.abd-xypad__line--v
+{
+    top: 0;
+    bottom: 0;
+    width: 1px;
+}
+
+.abd-xypad__line--h
+{
+    left: 0;
+    right: 0;
+    height: 1px;
+}
+
+.abd-xypad__thumb
+{
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg-base);
+    box-shadow: 0 0 10px var(--color-accent-dim);
+    pointer-events: none;
+    transition: left 40ms linear, top 40ms linear;
+}
+
+.abd-xypad__readout
+{
+    position: absolute;
+    right: 6px;
+    bottom: 4px;
+    font-size: 10px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: var(--color-text-dim);
+    background: var(--color-bg-base);
+    padding: 1px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+/* Corner labels (optional): what lives at each corner of the surface — a
+   morph pad names its four models, same as the native XYPad::paint. Labels
+   are display-only (pointer-events: none): the pad IS the value surface.
+   While any corner is visible the percent readout hides (the wrapper carries
+   `abd-xypad--corners`): the corners say WHAT is where, the crosshair says
+   WHERE, and the value stays readable through aria-valuetext. */
+.abd-xypad--corners .abd-xypad__readout
+{
+    display: none;
+}
+
+.abd-xypad__corner
+{
+    position: absolute;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--color-text-dim);
+    pointer-events: none;
+}
+
+.abd-xypad__corner[data-corner="tl"] { top: 4px; left: 6px; }
+.abd-xypad__corner[data-corner="tr"] { top: 4px; right: 6px; text-align: right; }
+.abd-xypad__corner[data-corner="bl"] { bottom: 4px; left: 6px; }
+.abd-xypad__corner[data-corner="br"] { bottom: 4px; right: 6px; text-align: right; }
+

@@ -1,0 +1,169 @@
+/* Sprite URLs are relative to THIS stylesheet (styles/components/widgets/), so they
+   resolve under file:// and under any static server of the package root. */
+.abd-toggle--junio[data-color="orange"] { background-image: url('../../../assets/junio/button_orange_off.png'); }
+.abd-toggle--junio[data-color="orange"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_orange_on.png'); }
+.abd-toggle--junio[data-color="red"] { background-image: url('../../../assets/junio/button_red_off.png'); }
+.abd-toggle--junio[data-color="red"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_red_on.png'); }
+.abd-toggle--junio[data-color="blue"] { background-image: url('../../../assets/junio/button_blue_off.png'); }
+.abd-toggle--junio[data-color="blue"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_blue_on.png'); }
+.abd-toggle--junio[data-color="grey"] { background-image: url('../../../assets/junio/button_grey_off.png'); }
+.abd-toggle--junio[data-color="grey"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_grey_on.png'); }
+.abd-toggle--junio[data-color="white"] { background-image: url('../../../assets/junio/button_white_off.png'); }
+.abd-toggle--junio[data-color="white"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_white_on.png'); }
+.abd-toggle--junio[data-color="yellow"] { background-image: url('../../../assets/junio/button_yellow_off.png'); }
+.abd-toggle--junio[data-color="yellow"][aria-pressed="true"] { background-image: url('../../../assets/junio/button_yellow_on.png'); }
+
+/* ── Slider skin: ms2000 (filmstrip faders from ST_Fader sprites) ──────────── */
+.abd-slider--ms2000 .abd-slider__track {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.abd-slider--ms2000 .abd-slider__fill {
+    display: none;
+}
+
+.abd-slider--ms2000 .abd-slider__track:focus-visible {
+    box-shadow: none;
+}
+
+.abd-slider--ms2000 .abd-slider__thumb {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    transform: translate(-50%, -50%);
+}
+
+.abd-slider--ms2000 .abd-slider--vertical .abd-slider__thumb {
+    transform: translate(-50%, 50%);
+}
+
+/* The thumb carries the filmstrip via inline style (spriteUrl, frames). */
+.abd-slider--ms2000 .abd-slider__thumb[data-frames] {
+    background-size: 100% auto;
+    background-position: 0 0;
+}
+
+/* ── FilmstripFader (viewport + scrolling filmstrip) ───────────────────────── */
+.abd-filmstrip-fader {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1, 2px);
+    user-select: none;
+}
+
+.abd-filmstrip-fader__label {
+    font-size: var(--text-sm, 9px);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.abd-filmstrip-fader__viewport {
+    position: relative;
+    width: var(--abd-fader-vw, 36px);
+    height: var(--abd-fader-vh, 80px);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: grab;
+    touch-action: none;
+    outline: none;
+    overflow: hidden;
+}
+
+.abd-filmstrip-fader__viewport:focus-visible {
+    box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.abd-filmstrip-fader__viewport:active {
+    cursor: grabbing;
+}
+
+.abd-filmstrip-fader--horizontal .abd-filmstrip-fader__viewport {
+    width: var(--abd-fader-vw, 140px);
+    height: var(--abd-fader-vh, 32px);
+}
+
+.abd-filmstrip-fader__sprite {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-position: center 0%;
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+.abd-filmstrip-fader__value {
+    min-width: 4ch;
+    font-size: var(--text-xs, 8px);
+    color: var(--color-text-dim);
+}
+
+
+/* --- theme switcher (infraestructura de pagina, no un control) ------------ */
+
+.abd-theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 4px);
+}
+
+.abd-theme-switcher__btn {
+  appearance: none;
+  border: 1px solid var(--color-panel-border);
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: var(--text-2xs, 7px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-md, 4px);
+  cursor: pointer;
+  transition: var(--transition-fast, 0.15s ease);
+}
+
+.abd-theme-switcher__btn:hover {
+  color: var(--color-text-main);
+  border-color: var(--color-panel-border-strong);
+}
+
+.abd-theme-switcher__btn.is-active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+.abd-theme-switcher--select {
+  appearance: none;
+  font: inherit;
+  font-size: var(--text-2xs, 7px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  background: var(--color-panel, transparent);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-md, 4px);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: var(--transition-fast, 0.15s ease);
+}
+
+.abd-theme-switcher--select:hover {
+  color: var(--color-text-main);
+  border-color: var(--color-panel-border-strong);
+}
+
+.abd-theme-switcher--select:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.abd-theme-switcher--select option {
+  background: var(--color-panel);
+  color: var(--color-text-main);
+}

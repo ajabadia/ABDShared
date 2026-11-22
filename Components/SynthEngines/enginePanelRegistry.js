@@ -23,6 +23,20 @@ export const DEFAULT_ENGINE_METADATA = Object.freeze({
     defaultImage: '/assets/engines/midi_interface.webp',
     description: 'Enrutador directo a sintetizadores y cajas de ritmos hardware vía USB/DIN MIDI.',
   },
+  mcs48_synth: {
+    typeId: 'mcs48_synth', displayName: 'MCS-48 Micro-Synth', shortBadge: 'M48',
+    category: 'vintage_cpu', accentToken: 'var(--color-warning)',
+    iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>',
+    defaultImage: '/assets/engines/mcs48_chassis.webp',
+    description: 'Emulador ciclo a ciclo de microcontrolador Intel 8048 / 8049 con síntesis de audio por DAC de 8 bits.',
+  },
+  abyssmind_synth: {
+    typeId: 'abyssmind_synth', displayName: 'AbyssMind Analog Synthesizer', shortBadge: 'ABYS',
+    category: 'analog_modeling', accentToken: 'var(--color-cat-2, #ff5533)',
+    iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l2.5-6 3 6 2.5-4 2 4"/><circle cx="7" cy="8" r="1"/></svg>',
+    defaultImage: '/assets/engines/abyssmind_chassis.webp',
+    description: 'Sintetizador analógico híbrido polifónico (DCO + VCF/HPF + BBD Chorus + Multi-FX).',
+  },
 });
 
 const engineMetadataMap = new Map(Object.entries(DEFAULT_ENGINE_METADATA));

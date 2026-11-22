@@ -76,6 +76,23 @@ export declare function createStructuredRomplerPanel(
   options?: EnginePanelOptions
 ): StructuredRomplerPanel;
 
+export declare class Mcs48EnginePanel implements EnginePanelInstance {
+  readonly engineTypeId: string;
+  readonly el: HTMLElement;
+  constructor(container: HTMLElement | string, bridge: EnginePanelBridge, options?: EnginePanelOptions);
+  syncFromBridge(): void;
+  setParamVisual(key: string, value: number): void;
+  setModulation(key: string, normDelta: number): void;
+  setLocale(locale: 'en' | 'es'): void;
+  destroy(): void;
+}
+
+export declare function createMcs48EnginePanel(
+  container: HTMLElement,
+  bridge: EnginePanelBridge,
+  options?: EnginePanelOptions
+): Mcs48EnginePanel;
+
 export declare function buildDefaultRomplerFlatState(overrides?: Record<string, any>): Record<string, number>;
 export declare function flattenRomplerStateJson(stateJson: string, engineTypeId?: string): Record<string, number>;
 

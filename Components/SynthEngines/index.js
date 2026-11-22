@@ -24,6 +24,22 @@ export {
 } from './StructuredRompler/structuredRomplerPanel.js';
 
 export {
+  Mcs48EnginePanel,
+  createMcs48EnginePanel,
+} from './Mcs48/Mcs48EnginePanel.js';
+
+export {
+  Mcs48ToolbarView,
+} from './Mcs48/mcs48ToolbarView.js';
+
+export {
+  MCS48_PARAMETERS_SPEC,
+  MCS48_PARAM_LOOKUP,
+  MCS48_VOICE_PARAMS,
+  MCS48_TELEMETRY_KEYS,
+} from './Mcs48/mcs48ParamSpecs.js';
+
+export {
   ROMPLER_I18N,
   ROMPLER_PARAM_SPECS,
   ROMPLER_STRUCTURES,

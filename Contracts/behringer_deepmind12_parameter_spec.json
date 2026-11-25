@@ -7006,5 +7006,24 @@
       "nrpnLsb": null,
       "sysex": false
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "vcf_cutoff", "label": "CUTOFF" },
+      { "paramId": "vcf_resonance", "label": "RESO" },
+      { "paramId": "vcf_env_depth", "label": "VCF ENV" },
+      { "paramId": "env1_release", "label": "RELEASE" },
+      { "paramId": "env1_attack", "label": "ATTACK" },
+      { "paramId": "env1_decay", "label": "DECAY" },
+      { "paramId": "hpf_cutoff", "label": "HPF" },
+      { "paramId": "lfo1_rate", "label": "LFO 1" },
+      { "paramId": "vcf_lfo_depth", "label": "LFO>VCF" },
+      { "paramId": "osc1_pwm_amount", "label": "PWM" }
+    ],
+    "xyPad": {
+      "x": "vcf_cutoff",
+      "y": "vcf_resonance",
+      "labels": ["RESO+", "OPEN", "RESO-", "DARK"]
+    }
+  }
 }

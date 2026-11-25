@@ -31,5 +31,22 @@
     { "id": "u_p1_tvfResonance", "name": "Upper P1 TVF Resonance", "group": "Filter", "scope": "group", "semanticRole": "FilterResonance", "type": "continuous", "min": 0, "max": 30, "default": 6, "domainMin": 0, "domainMax": 30, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 71 },
     { "id": "u_p1_tvaEnvT1", "name": "Upper P1 TVA Attack T1", "group": "Envelopes", "scope": "group", "semanticRole": "AmpEnvAttack", "type": "continuous", "min": 0, "max": 100, "default": 10, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 73 },
     { "id": "u_p1_tvaEnvT5", "name": "Upper P1 TVA Release T5", "group": "Envelopes", "scope": "group", "semanticRole": "AmpEnvRelease", "type": "continuous", "min": 0, "max": 100, "default": 45, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 72 }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "u_p1_tvfCutoff", "label": "CUTOFF" },
+      { "paramId": "u_p1_tvfResonance", "label": "RESO" },
+      { "paramId": "u_p1_tvaEnvT1", "label": "ATTACK" },
+      { "paramId": "u_p1_tvaEnvT5", "label": "RELEASE" },
+      { "paramId": "upperBalance", "label": "U/L BAL" },
+      { "paramId": "u_chorusBalance", "label": "CHORUS" },
+      { "paramId": "reverbBalance", "label": "REVERB" },
+      { "paramId": "u_highEqGain", "label": "HI EQ" }
+    ],
+    "xyPad": {
+      "x": "u_p1_tvfCutoff",
+      "y": "u_p1_tvfResonance",
+      "labels": ["RESO+", "BRIGHT", "RESO-", "WARM"]
+    }
+  }
 }

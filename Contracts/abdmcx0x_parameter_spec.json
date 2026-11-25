@@ -49,6 +49,7 @@
       "group": "PartMixer",
       "scope": "global",
       "semanticRole": "FocusedPartIndex",
+      "automatable": false,
       "type": "integer",
       "min": 0,
       "max": 15,
@@ -62,6 +63,7 @@
       "group": "PartMixer",
       "scope": "part",
       "semanticRole": "PartRouteMode",
+      "automatable": false,
       "type": "choice",
       "min": 0,
       "max": 2,
@@ -467,5 +469,24 @@
       ],
       "wire": "None"
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "tvfCutoffOffset", "label": "CUTOFF" },
+      { "paramId": "tvfResonanceOffset", "label": "RESO" },
+      { "paramId": "envAttackOffset", "label": "ATTACK" },
+      { "paramId": "envReleaseOffset", "label": "RELEASE" },
+      { "paramId": "zplaneMorph", "label": "MORPH" },
+      { "paramId": "envDecayOffset", "label": "DECAY" },
+      { "paramId": "partDrive", "label": "DRIVE" },
+      { "paramId": "partReverbSend", "label": "REVERB" },
+      { "paramId": "partChorusSend", "label": "CHORUS" },
+      { "paramId": "partLevel", "label": "LEVEL" }
+    ],
+    "xyPad": {
+      "x": "vectorX",
+      "y": "vectorY",
+      "labels": ["Y+", "X+", "Y-", "X-"]
+    }
+  }
 }

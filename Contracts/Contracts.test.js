@@ -192,4 +192,46 @@ describe('@abdsynths/contracts', () => {
     expect(getContract('roland_tb303.json').functions.flatMap((f) => f.controls)).toHaveLength(15);
     expect(getContract('emu_emax2.json').functions.flatMap((f) => f.controls)).toHaveLength(37);
   });
+
+  it('parameterSpecCatalog validates all 14 *_parameter_spec.json files, aliases and performanceDeck targets', async () => {
+    const {
+      listParameterSpecIds, getParameterSpec, resolveCanonicalSpecId,
+      findParameterById, getGroupedParameters, getParameterAutomationInterp,
+    } = await import('./parameterSpecCatalog.js');
+    const ids = listParameterSpecIds();
+    expect(ids).toHaveLength(14);
+    expect(ids).toEqual(expect.arrayContaining(['abdmcx0x', 'abdmcs48', 'casio_cz101', 'roland_juno106', 'roland_tb303']));
+    expect(resolveCanonicalSpecId('tb303_synth')).toBe('roland_tb303');
+    expect(resolveCanonicalSpecId('structured_rompler')).toBe('abdmcx0x');
+    expect(resolveCanonicalSpecId('la50_synth')).toBe('roland_d50');
+
+    for (const id of ids) {
+      const spec = getParameterSpec(id);
+      expect(spec?.id).toBe(id);
+      expect(spec.parameters.length).toBeGreaterThan(0);
+      for (const p of spec.parameters) {
+        expect(typeof p.name).toBe('string');
+        expect(p.name.length).toBeGreaterThan(0);
+        expect(typeof p.group).toBe('string');
+        expect(p.group.length).toBeGreaterThan(0);
+      }
+      if (spec.performanceDeck?.macros) {
+        for (const m of spec.performanceDeck.macros) {
+          const target = findParameterById(spec, m.paramId);
+          expect(target).not.toBeNull();
+          expect(target.automatable).not.toBe(false);
+        }
+      }
+      if (spec.performanceDeck?.xyPad) {
+        expect(findParameterById(spec, spec.performanceDeck.xyPad.x)).not.toBeNull();
+        expect(findParameterById(spec, spec.performanceDeck.xyPad.y)).not.toBeNull();
+      }
+    }
+
+    const tb = getParameterSpec('tb303_synth');
+    const mcs = getParameterSpec('mcs48_synth');
+    expect(getGroupedParameters(mcs, true).flatMap((g) => g.params).some((p) => p.id === 'diagnosticTone')).toBe(false);
+    expect(getParameterAutomationInterp(findParameterById(tb, 'wave'))).toBe('step');
+    expect(getParameterAutomationInterp(findParameterById(tb, 'cutoff'))).toBe('linear');
+  });
 });

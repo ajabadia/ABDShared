@@ -53,7 +53,8 @@
     "parameters": {
       "type": "array",
       "items": { "$ref": "#/definitions/ParameterEntry" }
-    }
+    },
+    "performanceDeck": { "$ref": "#/definitions/PerformanceDeckSpec" }
   },
   "definitions": {
     "ParameterEntry": {
@@ -196,6 +197,67 @@
         "modDestId": {
           "type": ["string", "integer", "null"],
           "description": "ID o índice en la matriz de modulación (<model>_modulation_matrix.json) si el parámetro es modulable"
+        },
+        "shortName": {
+          "type": "string",
+          "maxLength": 12,
+          "description": "Etiqueta abreviada para celdas compactas (ej. 'CUTOFF', 'RESO')"
+        },
+        "automatable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Si es false, excluye el parámetro de grabación de movimiento y del modo EDIT de PerformanceDeck"
+        },
+        "automationInterp": {
+          "type": "string",
+          "enum": ["linear", "step"],
+          "description": "Interpolación en reproducción de automatización ('step' por defecto en choice/boolean, 'linear' en continuos)"
+        }
+      }
+    },
+    "PerformanceMacroDefault": {
+      "type": "object",
+      "required": ["paramId"],
+      "properties": {
+        "paramId": { "type": "string" },
+        "label": { "type": "string", "maxLength": 14 },
+        "bipolar": { "type": "boolean" },
+        "minNorm": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxNorm": { "type": "number", "minimum": 0, "maximum": 1 },
+        "invert": { "type": "boolean" }
+      }
+    },
+    "PerformanceDeckSpec": {
+      "type": "object",
+      "properties": {
+        "macros": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "$ref": "#/definitions/PerformanceMacroDefault" }
+        },
+        "xyPad": {
+          "type": ["object", "null"],
+          "properties": {
+            "x": { "type": "string" },
+            "y": { "type": "string" },
+            "labels": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "stickLayers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
         }
       }
     }

@@ -1,5 +1,7 @@
 {
   "schemaVersion": 1,
+  "id": "roland_juno106",
+  "displayName": "Roland Juno-106",
   "model": "roland-juno106",
   "description": "Especificación exhaustiva de parámetros para Roland Juno-106",
   "totalParameters": 37,
@@ -7,6 +9,7 @@
     {
       "id": "osc1Waveform",
       "name": "Oscillator 1 Waveform",
+      "group": "Oscillators",
       "wire": "CC",
       "wireCodec": "Enum",
       "cc": 1,
@@ -23,6 +26,7 @@
     {
       "id": "osc2Waveform",
       "name": "Oscillator 2 Waveform",
+      "group": "Oscillators",
       "wire": "CC",
       "wireCodec": "Enum",
       "cc": 2,
@@ -39,6 +43,7 @@
     {
       "id": "osc1Pitch",
       "name": "Oscillator 1 Pitch",
+      "group": "Oscillators",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 64,
@@ -55,6 +60,7 @@
     {
       "id": "osc2Pitch",
       "name": "Oscillator 2 Pitch",
+      "group": "Oscillators",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 65,
@@ -71,6 +77,7 @@
     {
       "id": "lfo1Rate",
       "name": "LFO1 Rate",
+      "group": "LFO",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 20,
@@ -89,6 +96,7 @@
     {
       "id": "lfo2Rate",
       "name": "LFO2 Rate",
+      "group": "LFO",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 25,
@@ -107,6 +115,7 @@
     {
       "id": "chorusRate",
       "name": "Chorus Rate",
+      "group": "Effects",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 32,
@@ -123,6 +132,7 @@
     {
       "id": "effectDepth",
       "name": "Effect Depth",
+      "group": "Effects",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 91,
@@ -139,6 +149,7 @@
     {
       "id": "modWheel",
       "name": "Modulation Wheel",
+      "group": "Performance",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 1,
@@ -155,6 +166,7 @@
     {
       "id": "breathControl",
       "name": "Breath Control",
+      "group": "Performance",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 2,
@@ -171,6 +183,7 @@
     {
       "id": "footControl",
       "name": "Foot Control",
+      "group": "Performance",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 4,
@@ -187,6 +200,7 @@
     {
       "id": "portaSwitch",
       "name": "Portamento Switch",
+      "group": "Performance",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 65,
@@ -203,6 +217,7 @@
     {
       "id": "hold1",
       "name": "Hold 1",
+      "group": "Performance",
       "wire": "CC",
       "wireCodec": "Value",
       "cc": 66,
@@ -219,6 +234,8 @@
     {
       "id": "totalParamCount",
       "name": "Total Parameter Count",
+      "group": "Master",
+      "automatable": false,
       "wire": "None",
       "wireCodec": "None",
       "cc": -1,

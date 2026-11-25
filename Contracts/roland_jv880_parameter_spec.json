@@ -80,5 +80,24 @@
     { "id": "envReleaseOffset", "name": "Host Amp Release Offset", "group": "Envelopes", "scope": "part", "semanticRole": "AmpEnvRelease", "type": "bipolar", "min": 14, "max": 114, "default": 64, "domainMin": -50.0, "domainMax": 50.0, "unit": "normalized", "curve": "Linear", "wire": "Nrpn", "wireCodec": "Bipolar", "wireZeroCenter": 64, "nrpnMsb": 1, "nrpnLsb": 102 },
     { "id": "partReverbSend", "name": "Host Reverb Send", "group": "Effects", "scope": "part", "semanticRole": "ReverbSend", "type": "continuous", "min": 0, "max": 127, "default": 40, "domainMin": 0.0, "domainMax": 100.0, "unit": "%", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 91 },
     { "id": "partChorusSend", "name": "Host Chorus / Delay Send", "group": "Effects", "scope": "part", "semanticRole": "ChorusSend", "type": "continuous", "min": 0, "max": 127, "default": 0, "domainMin": 0.0, "domainMax": 100.0, "unit": "%", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 93 }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "toneCutoff", "label": "CUTOFF" },
+      { "paramId": "toneResonance", "label": "RESO" },
+      { "paramId": "envAttackOffset", "label": "ATTACK" },
+      { "paramId": "envDecayOffset", "label": "DECAY" },
+      { "paramId": "toneSustain", "label": "SUSTAIN" },
+      { "paramId": "reverbLevel", "label": "REVERB" },
+      { "paramId": "chorusLevel", "label": "CHORUS" },
+      { "paramId": "chorusDepth", "label": "CHO DEP" },
+      { "paramId": "analogFeel", "label": "ANALOG" },
+      { "paramId": "delayFeedback", "label": "DLY FB" }
+    ],
+    "xyPad": {
+      "x": "toneCutoff",
+      "y": "toneResonance",
+      "labels": ["RESO+", "OPEN", "RESO-", "DARK"]
+    }
+  }
 }

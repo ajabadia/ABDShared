@@ -1,5 +1,7 @@
 {
   "schemaVersion": 1,
+  "id": "casio_cz101",
+  "displayName": "Casio CZ-101",
   "model": "casio-cz101",
   "description": "Especificación exhaustiva de parámetros para Casio CZ-101",
   "totalParameters": 144,

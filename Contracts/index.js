@@ -49,3 +49,4 @@ export * from './abdPattern.ts';
 export * from './enginePanelBridge.ts';
 export * from './fxFaceplateBridge.ts';
 export * from './MidiTranslationEngine.ts';
+export * from './parameterSpecCatalog.js';

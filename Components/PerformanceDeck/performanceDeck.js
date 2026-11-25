@@ -1,186 +1,191 @@
 /**
- * ABDShared — PerformanceDeck.js
- * Universal top slide-down macro and performance deck (Nuke & MCX Groove Deck).
- * Strict line limit: < 200 lines.
+ * ABDShared — PerformanceDeck/performanceDeck.js
+ * Universal aseptic PerformanceDeck (10 knobs + XY stick, overlay | modeless, inline EDIT).
+ * Strict line limit: < 199 lines. 0 #hex colors.
  */
 
-import { Knob } from '../knob.js';
-import { TrajectoryStick2D } from '../trajectoryStick2D.js';
+import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
+import { getGroupedParameters } from '../../Contracts/parameterSpecCatalog.js';
+import {
+  applyTargetCurve, assignMacroSlot, assignXyAxis, buildDefaultPerformanceMap,
+  disableMacroSlot, setMacroSlotEnabled, setXyPadEnabled,
+} from './performanceMapStore.js';
+import {
+  bindDeckInlineEdit, buildDeckSlots, buildDeckXyState,
+  formatSlotValue, mountDeckKnobs, mountDeckStick,
+} from './performanceDeckControls.js';
+import { buildDeckShellHtml } from './performanceDeckViews.js';
+
+const TOKEN_VAR_RE = /^var\(--[a-z0-9-]+\)$/i;
 
 export class PerformanceDeck {
   constructor(container, options = {}) {
-    this.container = container;
-    this.options = options;
+    this.container = container || document.body;
+    this.options = { ...options };
     this.isOpen = false;
+    this.editMode = false;
+    this.pinned = Boolean(options.pinned);
+    this.pinLabel = options.pinLabel || '';
+    this.hasAutomationOverride = Boolean(options.hasAutomationOverride);
+    this.learnTarget = null;
+    this.spec = options.spec || null;
+    this.map = options.map || (this.spec ? buildDefaultPerformanceMap(this.spec) : null);
+    this.values = { ...(options.values || {}) };
     this.macroKnobs = new Map();
-    this.ctrlKnobs = new Map();
+    this.ctrlKnobs = this.macroKnobs;
     this.centralStick = null;
+    this.stickToolbarSlot = Object.assign(document.createElement('div'), { className: 'abd-perf-stick-toolbar-inner' });
+    this.footerSlot = Object.assign(document.createElement('div'), { className: 'abd-perf-footer-inner' });
+    this._onKeyDown = (ev) => { if (ev.key === 'Escape' && this.isOpen) this.close(); };
 
+    const isModeless = this.options.layout === 'modeless';
+    this.el = document.createElement(isModeless ? 'dialog' : 'section');
+    this.el.className = `abd-perf-deck ${isModeless ? 'abd-perf-deck--modeless' : 'abd-perf-deck--overlay'}`;
+    if (isModeless) {
+      this.el.addEventListener('close', () => {
+        const wasOpen = this.isOpen; this.isOpen = false;
+        window.removeEventListener('keydown', this._onKeyDown);
+        if (wasOpen) this.options.onClose?.();
+      });
+    }
+    this.container.appendChild(this.el);
     this.render();
-    this.bindEvents();
+    this.bindRootEvents();
+  }
+
+  _updateMap(nextMap, reason) {
+    this.map = nextMap;
+    this.render();
+    this.options.onMapChange?.(this.map, reason);
   }
 
   render() {
-    this.el = document.createElement('div');
-    this.el.className = 'abd-perf-deck';
-    const title = this.options.title || 'PERFORMANCE DECK';
-    const badge = this.options.badge || 'MACRO';
-    const caption = this.options.caption || 'Vector Stick, 4 Macros & Physical Expression';
-    const curVoices = this.options.voiceLimit ?? 16;
+    for (const item of this.macroKnobs.values()) item.knob.destroy();
+    this.macroKnobs.clear();
+    this.centralStick?.destroy();
+    this.centralStick = null;
+    this.stickToolbarSlot.remove();
+    this.footerSlot.remove();
 
-    const macros = this.options.macros || [
-      { id: 1, name: 'MACRO 1', label: 'CUTOFF', value: 0.5 },
-      { id: 2, name: 'MACRO 2', label: 'RESO', value: 0.3 },
-      { id: 3, name: 'MACRO 3', label: 'ENV SPEED', value: 0.5 },
-      { id: 4, name: 'MACRO 4', label: 'VECTOR MIX', value: 0.5 },
-    ];
+    const accent = String(this.options.accentColorVar || '');
+    if (TOKEN_VAR_RE.test(accent)) this.el.style.setProperty('--perf-accent', accent);
+    else this.el.style.removeProperty('--perf-accent');
 
-    const controllers = this.options.controllers || [
-      { id: 0, name: 'AFTERTOUCH', shortName: 'AT', destLabel: 'VCF Cutoff', depth: 0 },
-      { id: 1, name: 'MOD WHEEL', shortName: 'MOD', destLabel: 'LFO 1 Depth', depth: 0 },
-      { id: 2, name: 'BREATH', shortName: 'BRTH', destLabel: 'VCA Level', depth: 0 },
-      { id: 3, name: 'FOOT', shortName: 'FOOT', destLabel: 'Drive Amt', depth: 0 },
-      { id: 4, name: 'EXPRESSION', shortName: 'EXPR', destLabel: 'Master Vol', depth: 0 },
-      { id: 5, name: 'PITCH BEND', shortName: 'BEND', destLabel: 'Pitch +/-2', depth: 0 },
-    ];
+    const slots = buildDeckSlots(this.map, this.spec, this.values, this.options);
+    const xyState = buildDeckXyState(this.map, this.values, this.options);
+    const grouped = this.spec ? getGroupedParameters(this.spec, true) : [];
+    const uiState = { domPrefix: this.options.domPrefix || '', editMode: this.editMode, pinned: this.pinned, pinLabel: this.pinLabel, hasAutomationOverride: this.hasAutomationOverride, learnTarget: this.learnTarget };
+    this.el.innerHTML = buildDeckShellHtml(this.options, uiState, slots, xyState, grouped);
 
-    this.el.innerHTML = `
-      <div class="abd-perf-deck-header">
-        <div class="abd-perf-deck-title-group">
-          <span class="abd-perf-deck-badge">${badge}</span>
-          <span class="abd-perf-deck-title">${title}</span>
-          <span class="abd-perf-deck-caption">${caption}</span>
-        </div>
-        <div class="abd-perf-deck-actions">
-          ${this.options.hasVoiceLimit !== false ? `
-          <div class="abd-perf-deck-pill">
-            <span>VOICES:</span>
-            <button type="button" class="btn btn-xs btn-outline" data-act="v-dec">−</button>
-            <span class="stat-num" data-el="v-val">${String(curVoices).padStart(2, '0')}</span>
-            <button type="button" class="btn btn-xs btn-outline" data-act="v-inc">+</button>
-          </div>` : ''}
-          ${this.options.onEdit ? `<button type="button" class="btn btn-xs btn-outline" data-act="edit">Edit</button>` : ''}
-          <button type="button" class="btn btn-xs btn-outline" data-act="close">✕ Close</button>
-        </div>
-      </div>
-      <div class="abd-perf-deck-body">
-        <div class="abd-perf-main-grid">
-          <div class="abd-perf-wing-col">
-            ${this.renderMacroCardHtml(macros[1] || macros[0])}
-            ${this.renderMacroCardHtml(macros[0])}
-          </div>
-          <div class="abd-perf-center-hub">
-            <div class="abd-perf-stick-mount" style="min-width: 180px; min-height: 180px;"></div>
-          </div>
-          <div class="abd-perf-wing-col">
-            ${this.renderMacroCardHtml(macros[2] || macros[0])}
-            ${this.renderMacroCardHtml(macros[3] || macros[1] || macros[0])}
-          </div>
-        </div>
-        <div class="abd-perf-ctrls-row">
-          ${controllers.map((c) => `
-            <div class="abd-perf-ctrl-card" data-ctrl-id="${c.id}">
-              <span class="abd-perf-ctrl-name">${c.shortName || c.name}</span>
-              <div class="abd-perf-ctrl-knob-mount" id="perf-ctrl-knob-${c.id}"></div>
-              <span class="stat-num" id="perf-ctrl-val-${c.id}" style="font-size: 10px;">${c.depth > 0 ? '+' : ''}${Math.round(c.depth * 100)}%</span>
-              <span class="abd-perf-ctrl-dest" title="${c.destLabel || ''}">${c.destLabel || '---'}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-
-    this.container.appendChild(this.el);
-    this.mountControls(macros, controllers);
-  }
-
-  renderMacroCardHtml(m) {
-    if (!m) return '';
-    return `
-      <div class="abd-perf-card" data-macro-id="${m.id}">
-        <span class="abd-perf-macro-title">${m.label || m.name}</span>
-        <div id="perf-macro-knob-${m.id}"></div>
-        <span class="abd-perf-macro-value" id="perf-macro-val-${m.id}">${m.fmt ? m.fmt(m.value) : Math.round(m.value * 100) + '%'}</span>
-      </div>
-    `;
-  }
-
-  mountControls(macros, controllers) {
-    for (const m of macros) {
-      const mount = this.el.querySelector(`#perf-macro-knob-${m.id}`);
-      if (!mount) continue;
-      const numEl = this.el.querySelector(`#perf-macro-val-${m.id}`);
-      const min = m.min ?? 0, max = m.max ?? 1;
-      const norm = (m.value - min) / (max - min);
-      const knob = new Knob(mount, {
-        size: 38, value: norm, bipolar: Boolean(m.bipolar),
-        onChange: (v) => {
-          const raw = min + v * (max - min);
-          const txt = m.fmt ? m.fmt(raw) : `${Math.round(raw * 100)}%`;
-          if (numEl) numEl.textContent = txt;
-          this.options.onMacroChange?.(m.id, raw, txt);
-        },
-      });
-      this.macroKnobs.set(m.id, { knob, numEl, def: m });
+    const tbMount = this.el.querySelector('[data-slot="stick-toolbar"]');
+    if (tbMount) { tbMount.appendChild(this.stickToolbarSlot); tbMount.hidden = !this.options.hasStickToolbar && !this.stickToolbarSlot.childNodes.length; }
+    const fMount = this.el.querySelector('[data-slot="footer"]');
+    if (fMount) { fMount.appendChild(this.footerSlot); fMount.hidden = !this.options.hasFooterSlot && !this.footerSlot.childNodes.length; }
+    if (this.options.layout === 'modeless') {
+      const handle = this.el.querySelector('[data-drag-handle]');
+      if (handle) attachDialogDrag(this.el, handle);
     }
 
-    const stickMount = this.el.querySelector('.abd-perf-stick-mount');
-    if (stickMount) {
-      this.centralStick = new TrajectoryStick2D(stickMount, {
-        size: 180, hasRecorder: true,
-        labels: this.options.stickLabels || { north: 'Y+', south: 'Y−', east: 'X+', west: 'X−' },
-        labelsPerLayer: this.options.stickLabelsPerLayer,
-        onPositionChange: (layer, coord) => this.options.onStickChange?.(layer, coord),
-      });
-    }
-
-    for (const c of controllers) {
-      const mount = this.el.querySelector(`#perf-ctrl-knob-${c.id}`);
-      if (!mount) continue;
-      const numEl = this.el.querySelector(`#perf-ctrl-val-${c.id}`);
-      const knob = new Knob(mount, {
-        size: 30, value: (c.depth + 1) / 2, bipolar: true,
-        onChange: (v) => {
-          const depth = -1 + v * 2;
-          const txt = `${depth > 0 ? '+' : ''}${Math.round(depth * 100)}%`;
-          if (numEl) numEl.textContent = txt;
-          this.options.onControllerDepthChange?.(c.id, depth);
-        },
-      });
-      this.ctrlKnobs.set(c.id, { knob, numEl });
-    }
-  }
-
-  bindEvents() {
-    this.el.addEventListener('click', (e) => {
-      const act = e.target.closest('[data-act]')?.dataset.act;
-      if (!act) return;
-      if (act === 'close') this.close();
-      else if (act === 'edit') this.options.onEdit?.();
-      else if (act === 'v-dec' || act === 'v-inc') {
-        const cur = this.options.voiceLimit ?? 16;
-        const max = this.options.maxVoices ?? 64;
-        const n = Math.max(1, Math.min(max, cur + (act === 'v-inc' ? 1 : -1)));
-        this.setVoiceLimit(n);
-      }
+    this.macroKnobs = mountDeckKnobs(this.el, slots, {
+      onSlotDragStart: (idx, slot) => this.options.onSlotDragStart?.(idx, slot.target?.paramId),
+      onSlotDragEnd: (idx, slot) => this.options.onSlotDragEnd?.(idx, slot.target?.paramId),
+      onSlotChange: (idx, norm, raw, txt, slot) => {
+        if (this.map && slot.target) {
+          this.values[slot.target.paramId] = norm;
+          this.options.onParamChange?.(slot.target.paramId, applyTargetCurve(norm, slot.target), idx, txt);
+        } else if (idx < 4) this.options.onMacroChange?.(slot.id, raw, txt);
+        else this.options.onControllerDepthChange?.(slot.id, raw);
+      },
+    });
+    this.centralStick = mountDeckStick(this.el, xyState, this.options, {
+      onStickLayerChange: (layer) => this.options.onStickLayerChange?.(layer),
+      onStickDragStart: () => this.options.onStickDragStart?.(),
+      onStickDragEnd: () => this.options.onStickDragEnd?.(),
+      onStickChange: (layer, coord) => {
+        if (this.map && xyState.enabled) {
+          if (xyState.x) { this.values[xyState.x.paramId] = coord.x; this.options.onParamChange?.(xyState.x.paramId, applyTargetCurve(coord.x, xyState.x), -1, ''); }
+          if (xyState.y) { this.values[xyState.y.paramId] = coord.y; this.options.onParamChange?.(xyState.y.paramId, applyTargetCurve(coord.y, xyState.y), -2, ''); }
+        }
+        this.options.onStickChange?.(layer, coord);
+      },
     });
   }
 
-  setVoiceLimit(voices) {
-    this.options.voiceLimit = voices;
-    const vEl = this.el.querySelector('[data-el="v-val"]');
-    if (vEl) vEl.textContent = String(voices).padStart(2, '0');
-    this.options.onVoiceLimitChange?.(voices);
+  bindRootEvents() {
+    this.el.addEventListener('click', (e) => {
+      const actEl = e.target.closest('[data-act]');
+      const act = actEl?.dataset.act;
+      if (!act) return;
+      if (act === 'close') this.close();
+      else if (act === 'edit') (this.options.inlineEdit ? this.setEditMode(!this.editMode) : this.options.onEdit?.());
+      else if (act === 'toggle-pin') { this.setPinned(!this.pinned); this.options.onPinChange?.(this.pinned); }
+      else if (act === 're-enable-auto') { this.setAutomationOverride(false); this.options.onReEnableAuto?.(); }
+      else if (act === 'v-dec' || act === 'v-inc') this.setVoiceLimit(Math.max(1, Math.min(this.options.maxVoices ?? 64, (this.options.voiceLimit ?? 16) + (act === 'v-inc' ? 1 : -1))));
+      else if (act === 'learn-slot') { const i = Number(actEl.dataset.slot); this.setLearnTarget(this.learnTarget?.kind === 'macro' && this.learnTarget.slotIdx === i ? null : { kind: 'macro', slotIdx: i }); }
+      else if (act === 'learn-xy') { const a = actEl.dataset.axis; this.setLearnTarget(this.learnTarget?.kind === 'xy' && this.learnTarget.axis === a ? null : { kind: 'xy', axis: a }); }
+      else if (act === 'toggle-slot' && this.map) { const i = Number(actEl.dataset.slot); this._updateMap(setMacroSlotEnabled(this.map, i, !this.map.macros[i]?.enabled), 'toggle-slot'); }
+      else if (act === 'toggle-xy' && this.map) this._updateMap(setXyPadEnabled(this.map, !this.map.xyPad?.enabled), 'toggle-xy');
+    });
+    bindDeckInlineEdit(this.el, {
+      onAssignMacro: (idx, id) => this.map && this._updateMap(id ? assignMacroSlot(this.map, idx, { paramId: id, min: 0, max: 1, invert: false }, null, this.spec) : disableMacroSlot(this.map, idx), 'assign-macro'),
+      onUpdateMacroRange: (idx) => {
+        const tgt = this.map?.macros?.[idx]?.targets?.[0];
+        if (!this.map || !tgt) return;
+        const valOf = (attr) => Number(this.el.querySelector(`[data-edit-${attr}="${idx}"]`)?.value ?? 0) / 100;
+        const inv = Boolean(this.el.querySelector(`[data-edit-inv="${idx}"]`)?.checked);
+        this._updateMap(assignMacroSlot(this.map, idx, { paramId: tgt.paramId, min: valOf('min'), max: valOf('max'), invert: inv }, this.map.macros[idx].label, this.spec), 'edit-range');
+      },
+      onAssignXy: (axis, id) => this.map && this._updateMap(assignXyAxis(this.map, axis, id ? { paramId: id, min: 0, max: 1, invert: false } : null, this.spec), 'assign-xy'),
+      onPresetAction: (action) => this.options.onPresetAction?.(action, this.map),
+    });
   }
 
-  open() { this.isOpen = true; this.el.classList.add('is-open'); }
-  close() { this.isOpen = false; this.el.classList.remove('is-open'); this.options.onClose?.(); }
-  toggle() { if (this.isOpen) this.close(); else this.open(); }
-
-  destroy() {
-    for (const item of this.macroKnobs.values()) item.knob.destroy();
-    for (const item of this.ctrlKnobs.values()) item.knob.destroy();
-    this.centralStick?.destroy();
-    this.el.remove();
+  getStickToolbarSlot() { const tb = this.el.querySelector('[data-slot="stick-toolbar"]'); if (tb) tb.hidden = false; return this.stickToolbarSlot; }
+  getFooterSlot() { const f = this.el.querySelector('[data-slot="footer"]'); if (f) f.hidden = false; return this.footerSlot; }
+  setEditMode(enabled) { this.editMode = Boolean(enabled); if (!this.editMode) this.learnTarget = null; this.render(); }
+  setLearnTarget(target) { this.learnTarget = target || null; this.options.onLearnTargetChange?.(this.learnTarget); this.render(); }
+  completeLearn(paramId) {
+    if (!this.learnTarget || !this.map || !paramId) return false;
+    const next = this.learnTarget.kind === 'macro'
+      ? assignMacroSlot(this.map, this.learnTarget.slotIdx, { paramId, min: 0, max: 1, invert: false }, null, this.spec)
+      : assignXyAxis(this.map, this.learnTarget.axis, { paramId, min: 0, max: 1, invert: false }, this.spec);
+    this.learnTarget = null; this.options.onLearnTargetChange?.(null); this._updateMap(next, 'learn'); return true;
   }
+  setEngineContext(ctx = {}) {
+    ['badge', 'title', 'caption', 'accentColorVar'].forEach((k) => { if (ctx[k] !== undefined) this.options[k] = ctx[k]; });
+    if (ctx.spec !== undefined) this.spec = ctx.spec;
+    if (ctx.map !== undefined) this.map = ctx.map; else if (ctx.spec && !this.map) this.map = buildDefaultPerformanceMap(ctx.spec);
+    if (ctx.values !== undefined) this.values = { ...ctx.values };
+    if (ctx.pinLabel !== undefined) this.pinLabel = ctx.pinLabel;
+    this.render();
+  }
+  setSlotValue(slotIdx, norm01, formatted = null) {
+    const item = this.macroKnobs.get(slotIdx); if (!item) return;
+    item.knob.setValue(norm01); if (item.valEl) item.valEl.textContent = formatted ?? formatSlotValue(item.slot, norm01);
+  }
+  updateMacro(macroId, value) { const m = [...this.macroKnobs.values()].find((x) => x.slot.index < 4 && x.slot.id === macroId); if (m) this.setSlotValue(m.slot.index, (value - m.slot.min) / (m.slot.max - m.slot.min || 1)); }
+  updateControllerDepth(ctrlId, depth) { const c = [...this.macroKnobs.values()].find((x) => x.slot.index >= 4 && x.slot.id === ctrlId); if (c) this.setSlotValue(c.slot.index, (depth + 1) / 2); }
+  setStickPosition(layer, x, y) { this.centralStick?.setPosition(layer, x, y, false); }
+  setStickLabels(labels, perLayer = null) { if (perLayer) this.centralStick?.setAllLayerLabels(perLayer); else if (labels) this.centralStick?.setLabels(labels); }
+  setStickLayer(layer) { this.centralStick?.selectLayer(layer); }
+  setVoiceLimit(voices) { this.options.voiceLimit = voices; const v = this.el.querySelector('[data-el="v-val"]'); if (v) v.textContent = String(voices).padStart(2, '0'); this.options.onVoiceLimitChange?.(voices); }
+  setPinned(pinned, label = null) { this.pinned = Boolean(pinned); if (label !== null) this.pinLabel = label; const b = this.el.querySelector('[data-act="toggle-pin"]'); if (b) { b.classList.toggle('is-active', this.pinned); b.textContent = this.pinLabel || (this.pinned ? 'PIN' : 'FOLLOW'); } }
+  setAutomationOverride(hasOverride) { this.hasAutomationOverride = Boolean(hasOverride); const b = this.el.querySelector('[data-act="re-enable-auto"]'); if (b) b.hidden = !this.hasAutomationOverride; }
+  syncTheme() { const theme = document.documentElement.getAttribute('data-theme'); if (theme) this.el.setAttribute('data-theme', theme); }
+  open() {
+    this.isOpen = true; this.syncTheme();
+    if (this.options.layout === 'modeless') {
+      if (!this.el.open) (typeof this.el.show === 'function' ? this.el.show() : this.el.setAttribute('open', ''));
+      bringToFront(this.el); window.addEventListener('keydown', this._onKeyDown);
+    } else this.el.classList.add('is-open');
+  }
+  close() {
+    if (!this.isOpen) return;
+    this.isOpen = false; window.removeEventListener('keydown', this._onKeyDown);
+    if (this.options.layout === 'modeless') { if (this.el.open) (typeof this.el.close === 'function' ? this.el.close() : this.el.removeAttribute('open')); }
+    else this.el.classList.remove('is-open');
+    this.options.onClose?.();
+  }
+  toggle() { this.isOpen ? this.close() : this.open(); }
+  destroy() { window.removeEventListener('keydown', this._onKeyDown); for (const item of this.macroKnobs.values()) item.knob.destroy(); this.macroKnobs.clear(); this.centralStick?.destroy(); this.el.remove(); }
 }

@@ -58,5 +58,23 @@
     { "id": "envAttackOffset", "name": "Host TVA Attack Offset", "group": "Envelopes", "scope": "part", "semanticRole": "AmpEnvAttack", "type": "bipolar", "min": 14, "max": 114, "default": 64, "domainMin": -30.0, "domainMax": 30.0, "unit": "normalized", "curve": "Linear", "wire": "Nrpn", "wireCodec": "Bipolar", "wireZeroCenter": 64, "nrpnMsb": 1, "nrpnLsb": 99 },
     { "id": "envReleaseOffset", "name": "Host TVA Release Offset", "group": "Envelopes", "scope": "part", "semanticRole": "AmpEnvRelease", "type": "bipolar", "min": 14, "max": 114, "default": 64, "domainMin": -30.0, "domainMax": 30.0, "unit": "normalized", "curve": "Linear", "wire": "Nrpn", "wireCodec": "Bipolar", "wireZeroCenter": 64, "nrpnMsb": 1, "nrpnLsb": 102 },
     { "id": "partReverbSend", "name": "Host Reverb Send", "group": "Effects", "scope": "part", "semanticRole": "ReverbSend", "type": "bipolar", "min": 14, "max": 114, "default": 64, "domainMin": -1.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Bipolar", "wireZeroCenter": 64, "cc": 91, "description": "revSend*50 se suma a reverbBalance (La50SoundEngine.cpp:76)." }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "partialTvfCutoff", "label": "CUTOFF" },
+      { "paramId": "partialTvfResonance", "label": "RESO" },
+      { "paramId": "partialTvfEnvDepth", "label": "ENV DEP" },
+      { "paramId": "partialTvaRelease", "label": "RELEASE" },
+      { "paramId": "partialTvaAttack", "label": "ATTACK" },
+      { "paramId": "partialPulseWidth", "label": "PW" },
+      { "paramId": "partialLfoRate", "label": "LFO RATE" },
+      { "paramId": "partialLfoDepth", "label": "LFO DEP" },
+      { "paramId": "reverbBalance", "label": "REVERB" }
+    ],
+    "xyPad": {
+      "x": "partialTvfCutoff",
+      "y": "partialTvfResonance",
+      "labels": ["RESO+", "BRIGHT", "RESO-", "WARM"]
+    }
+  }
 }

@@ -14,6 +14,7 @@ export * from './GrooveShuffle/grooveShuffleModal';
 export * from './GrooveShuffle/grooveShuffleContract';
 export * from './FxFaceplates/index';
 export * from './CoverPopup/coverPopup';
+export * from './PerformanceDeck/performanceDeck';
 
 export interface PianoRollModalOptions {
   partIndex?: number;

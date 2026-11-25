@@ -51,5 +51,24 @@
     { "id": "chorus", "name": "Stereo Voice Chorus", "group": "Effects", "scope": "global", "semanticRole": "PartChorusSend", "type": "continuous", "min": 0, "max": 127, "default": 0, "domainMin": 0.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 93, "nrpnMsb": 2, "nrpnLsb": 34 },
     { "id": "keyboardMode", "name": "Keyboard Mode", "group": "Voice", "scope": "global", "semanticRole": "VoicePolyMode", "type": "choice", "min": 0, "max": 3, "default": 0, "domainMin": 0, "domainMax": 3, "unit": "enum", "choices": ["Poly", "Mono", "Solo", "Multi"], "curve": "Linear", "wire": "Nrpn", "wireCodec": "Enum", "nrpnMsb": 2, "nrpnLsb": 35 },
     { "id": "controlEnable", "name": "Control Enable", "group": "Voice", "scope": "global", "semanticRole": "VoiceControlEnable", "type": "choice", "min": 0, "max": 1, "default": 1, "domainMin": 0, "domainMax": 1, "unit": "enum", "choices": ["Off", "On"], "curve": "Linear", "wire": "Nrpn", "wireCodec": "Enum", "nrpnMsb": 2, "nrpnLsb": 36 }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "filterCutoff", "label": "CUTOFF" },
+      { "paramId": "filterQ", "label": "RESO" },
+      { "paramId": "filterEnvAmount", "label": "FLT ENV" },
+      { "paramId": "ampRelease", "label": "RELEASE" },
+      { "paramId": "ampAttack", "label": "ATTACK" },
+      { "paramId": "ampDecay", "label": "DECAY" },
+      { "paramId": "lfoRate", "label": "LFO RATE" },
+      { "paramId": "lfoToFilter", "label": "LFO>FLT" },
+      { "paramId": "chorus", "label": "CHORUS" },
+      { "paramId": "voiceTune", "label": "TUNE" }
+    ],
+    "xyPad": {
+      "x": "filterCutoff",
+      "y": "filterQ",
+      "labels": ["Q+", "OPEN", "Q-", "DARK"]
+    }
+  }
 }

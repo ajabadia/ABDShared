@@ -12,6 +12,10 @@
       "types": "./Contracts/index.d.ts",
       "default": "./Contracts/index.js"
     },
+    "./contracts/parameter-catalog": {
+      "types": "./Contracts/parameterSpecCatalog.d.ts",
+      "default": "./Contracts/parameterSpecCatalog.js"
+    },
     "./contracts/*": "./Contracts/*",
     "./components": {
       "types": "./Components/index.d.ts",
@@ -124,7 +128,11 @@
       "types": "./Components/CopilotShell/index.d.ts",
       "default": "./Components/CopilotShell/index.js"
     },
-    "./components/copilot/*": "./Components/CopilotShell/*"
+    "./components/copilot/*": "./Components/CopilotShell/*",
+    "./components/performance-map": {
+      "types": "./Components/PerformanceDeck/performanceMapStore.d.ts",
+      "default": "./Components/PerformanceDeck/performanceMapStore.js"
+    }
   },
   "files": [
     "Code",

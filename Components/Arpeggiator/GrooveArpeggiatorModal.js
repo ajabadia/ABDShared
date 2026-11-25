@@ -34,12 +34,27 @@ export class GrooveArpeggiatorModal {
   render() {
     this.el.innerHTML = buildArpeggiatorHtml({ ...this.state, partIndex: this.partIndex }, this.locale);
     const handle = this.el.querySelector('.abd-arp-head');
-    if (handle) attachDialogDrag(this.el, handle);
+    if (handle) {
+      attachDialogDrag(this.el, handle);
+      if (!handle.querySelector('[data-act="print-seq"]')) {
+        const printBtn = document.createElement('button');
+        printBtn.type = 'button';
+        printBtn.className = 'abd-arp-print-btn';
+        printBtn.dataset.act = 'print-seq';
+        printBtn.title = 'Print -> SEQ';
+        printBtn.textContent = 'Print -> SEQ';
+        printBtn.style.cssText = 'font-size:10px;padding:2px 6px;margin-left:auto';
+        handle.appendChild(printBtn);
+      }
+    }
     this.bindEvents();
   }
 
   bindEvents() {
     this.el.querySelector('[data-act="close"]')?.addEventListener('click', () => this.close());
+    this.el.querySelector('[data-act="print-seq"]')?.addEventListener('click', () => {
+      this.opts.onPrintToSeq?.(this.partIndex, { ...this.state });
+    });
 
     // Power Toggle
     this.el.querySelector('[data-act="toggle-power"]')?.addEventListener('click', () => {

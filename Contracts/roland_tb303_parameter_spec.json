@@ -36,5 +36,22 @@
     { "id": "wave", "name": "VCO Waveform", "group": "Oscillators", "scope": "global", "semanticRole": "Osc1Waveform", "type": "choice", "min": 0, "max": 1, "default": 0, "domainMin": 0, "domainMax": 1, "unit": "enum", "choices": ["SAW", "SQR"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 70, "nrpnMsb": 3, "nrpnLsb": 12 },
     { "id": "driveType", "name": "Overdrive Topology", "group": "Effects", "scope": "global", "semanticRole": "FilterDrive", "type": "choice", "min": 0, "max": 2, "default": 1, "domainMin": 0, "domainMax": 2, "unit": "enum", "choices": ["OFF", "SOFT", "RAT"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 83, "nrpnMsb": 3, "nrpnLsb": 13 },
     { "id": "portaSwitch", "name": "Slide Always Mode", "group": "Pitch", "scope": "global", "semanticRole": "PortamentoSwitch", "type": "choice", "min": 0, "max": 1, "default": 0, "domainMin": 0, "domainMax": 1, "unit": "enum", "choices": ["Legato", "Always"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 65, "nrpnMsb": 3, "nrpnLsb": 14 }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      { "paramId": "cutoff", "label": "CUTOFF" },
+      { "paramId": "resonance", "label": "RESO" },
+      { "paramId": "envMod", "label": "ENV MOD" },
+      { "paramId": "decay", "label": "DECAY" },
+      { "paramId": "accent", "label": "ACCENT" },
+      { "paramId": "drive", "label": "DRIVE" },
+      { "paramId": "slide", "label": "SLIDE" },
+      { "paramId": "accentDecay", "label": "ACC DEC" }
+    ],
+    "xyPad": {
+      "x": "cutoff",
+      "y": "resonance",
+      "labels": ["RESO+", "OPEN", "RESO-", "DARK"]
+    }
+  }
 }

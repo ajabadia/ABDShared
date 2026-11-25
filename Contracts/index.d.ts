@@ -20,3 +20,4 @@ export * from './abdPattern';
 export * from './enginePanelBridge';
 export * from './fxFaceplateBridge';
 export * from './MidiTranslationEngine';
+export * from './parameterSpecCatalog';

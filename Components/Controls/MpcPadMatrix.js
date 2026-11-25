@@ -1,13 +1,13 @@
 /**
  * ABDShared — MpcPadMatrix.js
  * Universal 4x4 Tactile MPC Pad Matrix Component.
- * Supports Drum Kit, Chromatic In-Key, Scale Chords, and 16-Levels (Vel / Tune).
+ * Supports Drum Kit, Chromatic In-Key, Scale Chords, and 16-Levels (Vel/Tune/Cut/Dec/Att).
  * Strict line limit: < 200 lines.
  */
 
 import {
   SCALE_DEGREES, NOTE_NAMES, DEFAULT_DRUM_KIT,
-  buildScaleChordPads, build16LevelTable,
+  buildScaleChordPads, build16LevelTable, LEVEL16_TYPES, level16Label,
 } from './mpcPadPerformHelpers.js';
 
 export { SCALE_DEGREES, NOTE_NAMES, DEFAULT_DRUM_KIT };
@@ -23,7 +23,7 @@ export class MpcPadMatrix {
     this.inKey = options.inKey ?? true;
     this.fullLevel = options.fullLevel ?? true;
     this.selectedPad = 0;
-    this.level16Type = options.level16Type === 'tuning' ? 'tuning' : 'velocity';
+    this.level16Type = LEVEL16_TYPES.includes(options.level16Type) ? options.level16Type : 'velocity';
     this.drumKit = options.drumKit ? [...options.drumKit] : [...DEFAULT_DRUM_KIT];
     this.onPadTrigger = options.onPadTrigger || null;
     this.onPadRelease = options.onPadRelease || null;

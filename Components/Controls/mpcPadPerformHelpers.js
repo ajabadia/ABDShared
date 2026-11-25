@@ -1,7 +1,7 @@
 /**
  * ABDShared — Controls/mpcPadPerformHelpers.js
- * Chord generator, 16-Levels Velocity/Tuning builders and Note Repeat timing helpers.
- * Strict line limit: < 120 lines.
+ * Chord generator, 16-Levels (Vel/Tune/Cut/Dec/Att) builders and Note Repeat timing helpers.
+ * Strict line limit: < 200 lines.
  */
 
 export const SCALE_DEGREES = {
@@ -55,20 +55,31 @@ export function buildScaleChordPads({ scale, rootNote, baseOctave }) {
   return pads;
 }
 
+export const LEVEL16_TYPES = ['velocity', 'tuning', 'cutoff', 'decay', 'attack'];
+
+const LEVEL16_LABELS = { velocity: 'VEL', tuning: 'TUNE', cutoff: 'CUT', decay: 'DEC', attack: 'ATT' };
+
+export function level16Label(type) { return LEVEL16_LABELS[type] || LEVEL16_LABELS.velocity; }
+
+/** 16 pads; legacy vel/tune fields kept, new modes add modKey + modNorm (0..1). */
 export function build16LevelTable({ src, type = 'velocity' }) {
+  const mode = LEVEL16_TYPES.includes(type) ? type : 'velocity';
+  const srcNote = src.note ?? 36;
   const pads = [];
-  if (type === 'tuning') {
-    for (let i = 0; i < 16; i++) {
-      const semi = i - 7;
-      const note = Math.max(0, Math.min(127, (src.note ?? 36) + semi));
-      const sign = semi > 0 ? '+' : '';
-      pads.push({ note, name: src.name, velText: `${sign}${semi}st`, isRoot: semi === 0 });
-    }
-    return pads;
-  }
   for (let i = 0; i < 16; i++) {
-    const vel = Math.round(8 + (i / 15) * 119);
-    pads.push({ note: src.note, name: src.name, vel, velText: `V:${vel}`, isRoot: i === 15 });
+    const modNorm = i / 15;
+    const base = { note: srcNote, name: src.name, modKey: mode, modNorm };
+    if (mode === 'tuning') {
+      const semi = i - 7;
+      const sign = semi > 0 ? '+' : '';
+      pads.push({ ...base, note: Math.max(0, Math.min(127, srcNote + semi)), velText: `${sign}${semi}st`, isRoot: semi === 0 });
+    } else if (mode === 'velocity') {
+      const vel = Math.round(8 + modNorm * 119);
+      pads.push({ ...base, vel, velText: `V:${vel}`, isRoot: i === 15 });
+    } else {
+      const pct = Math.round(modNorm * 100);
+      pads.push({ ...base, velText: `${level16Label(mode)} ${pct}%`, isRoot: i === 0 });
+    }
   }
   return pads;
 }

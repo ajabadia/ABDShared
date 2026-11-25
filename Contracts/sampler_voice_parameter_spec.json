@@ -865,5 +865,59 @@
       "curve": "Linear",
       "wire": "None"
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      {
+        "paramId": "filterCutoffHz",
+        "label": "CUTOFF"
+      },
+      {
+        "paramId": "filterResonance",
+        "label": "RESO"
+      },
+      {
+        "paramId": "filterEnvDepthCents",
+        "label": "FLT ENV"
+      },
+      {
+        "paramId": "ampEnvReleaseSec",
+        "label": "RELEASE"
+      },
+      {
+        "paramId": "ampEnvAttackSec",
+        "label": "ATTACK"
+      },
+      {
+        "paramId": "ampEnvDecaySec",
+        "label": "DECAY"
+      },
+      {
+        "paramId": "lfo1RateHz",
+        "label": "LFO RATE"
+      },
+      {
+        "paramId": "lfo1FilterDepthCents",
+        "label": "LFO>FLT"
+      },
+      {
+        "paramId": "masterPan",
+        "label": "PAN"
+      },
+      {
+        "paramId": "masterVolumeDb",
+        "label": "VOLUME"
+      }
+    ],
+    "xyPad": {
+      "x": "filterCutoffHz",
+      "y": "filterResonance",
+      "labels": [
+        "RESO+",
+        "OPEN",
+        "RESO-",
+        "DARK"
+      ]
+    }
+  }
 }

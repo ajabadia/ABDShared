@@ -7989,5 +7989,73 @@
       "nrpnLsb": 60,
       "sysex": true
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      {
+        "paramId": "FilterFreq",
+        "label": "CUTOFF"
+      },
+      {
+        "paramId": "FilterReso",
+        "label": "RESO"
+      },
+      {
+        "paramId": "BlenderAmount",
+        "label": "BLEND"
+      },
+      {
+        "paramId": "R1AmpEnvR",
+        "label": "RELEASE"
+      },
+      {
+        "paramId": "R1AmpEnvA",
+        "label": "ATTACK"
+      },
+      {
+        "paramId": "R1AmpEnvD",
+        "label": "DECAY"
+      },
+      {
+        "paramId": "LFORate",
+        "label": "LFO RATE"
+      },
+      {
+        "paramId": "LFODepth",
+        "label": "LFO DEP"
+      },
+      {
+        "paramId": "SlicerDepth",
+        "label": "SLICER"
+      },
+      {
+        "paramId": "R1Volume",
+        "label": "R1 VOL"
+      }
+    ],
+    "xyPad": {
+      "x": "FilterFreq",
+      "y": "FilterReso",
+      "labels": [
+        "RESO+",
+        "OPEN",
+        "RESO-",
+        "DARK"
+      ]
+    },
+    "stickLayers": [
+      {
+        "id": "l1",
+        "label": "L1"
+      },
+      {
+        "id": "l2",
+        "label": "L2"
+      },
+      {
+        "id": "l3",
+        "label": "L3"
+      }
+    ]
+  }
 }

@@ -1503,6 +1503,7 @@ target_link_libraries(ABD<SYNTH> PRIVATE WebUIAssets)
 - [ ] `getNumPrograms()` returns ≥ 1
 - [ ] `getProgramName()` returns actual preset name
 - [ ] `beginChangeGesture()` / `endChangeGesture()` on all UI interactions (contrato completo: [PARAMETER_GESTURES.md](../integration/PARAMETER_GESTURES.md))
+- [ ] Block `"performanceDeck"` declared in `Contracts/<modelo>_parameter_spec.json` (`macros[0..10]`, `xyPad | null`, `automatable`) and registered in `Contracts/parameterSpecCatalog.js` (ver guía [INTEGRACION_PERFORMANCE_DECK.md](../integration/INTEGRACION_PERFORMANCE_DECK.md))
 - [ ] `updateHostDisplay()` on program changes
 - [ ] No hardcoded development paths in production code
 - [ ] No `DBG()` or logging in audio thread

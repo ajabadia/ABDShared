@@ -249,5 +249,51 @@
       "unit": "count",
       "smoothing": "Linear"
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      {
+        "paramId": "effectDepth",
+        "label": "FX DEPTH"
+      },
+      {
+        "paramId": "chorusRate",
+        "label": "CHORUS"
+      },
+      {
+        "paramId": "lfo1Rate",
+        "label": "LFO 1"
+      },
+      {
+        "paramId": "lfo2Rate",
+        "label": "LFO 2"
+      },
+      {
+        "paramId": "osc1Pitch",
+        "label": "OSC1 PTCH"
+      },
+      {
+        "paramId": "osc2Pitch",
+        "label": "OSC2 PTCH"
+      },
+      {
+        "paramId": "modWheel",
+        "label": "MOD WHL"
+      },
+      {
+        "paramId": "breathControl",
+        "label": "BREATH"
+      }
+    ],
+    "xyPad": {
+      "x": "chorusRate",
+      "y": "effectDepth",
+      "labels": [
+        "FX+",
+        "FAST",
+        "FX-",
+        "SLOW"
+      ]
+    }
+  }
 }

@@ -6562,5 +6562,59 @@
       },
       "scope": "global"
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      {
+        "paramId": "filterCutoff",
+        "label": "CUTOFF"
+      },
+      {
+        "paramId": "filterResonance",
+        "label": "RESO"
+      },
+      {
+        "paramId": "filterEg1Int",
+        "label": "EG1 INT"
+      },
+      {
+        "paramId": "eg2Release",
+        "label": "RELEASE"
+      },
+      {
+        "paramId": "eg2Attack",
+        "label": "ATTACK"
+      },
+      {
+        "paramId": "eg2Decay",
+        "label": "DECAY"
+      },
+      {
+        "paramId": "ampDistortion",
+        "label": "DRIVE"
+      },
+      {
+        "paramId": "lfo1Freq",
+        "label": "LFO 1"
+      },
+      {
+        "paramId": "unisonDetune",
+        "label": "DETUNE"
+      },
+      {
+        "paramId": "portamentoTime",
+        "label": "GLIDE"
+      }
+    ],
+    "xyPad": {
+      "x": "filterCutoff",
+      "y": "filterResonance",
+      "labels": [
+        "RESO+",
+        "OPEN",
+        "RESO-",
+        "DARK"
+      ]
+    }
+  }
 }

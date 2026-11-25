@@ -36,7 +36,8 @@ Núcleo C++20 RT-Safe (ISoundEngine + filtros compartidos en DspCore)
 Todo motor integrado **debe** publicar dos ficheros JSON validados en `Contracts/`:
 1. **`Contracts/<modelo>_parameter_spec.json`** (`parameter_dictionary.schema.json`, `schemaVersion: "2.0.0"`):
    - Declara `topology` (`"fixed" | "multi_part" | "hierarchical_sampler"`), `engineId`, `wireTopology` (`cc`, `nrpn`, `sysex`, `domainTargets`) y los `parameters[]` completos.
-   - Cada entrada fija rango wire (`min`/`max`/`wireZeroCenter`), `wire`, `wireCodec`, `cc`/`nrpnMsb`/`nrpnLsb`, rango físico DSP (`domainMin`, `domainMax`, `unit` dentro del enum canónico), ley matemática (`curve: "Linear" | "Exp" | "Pow" | "SymBipolar" | "Lut"`, con `curveP0`/`curveP1` o `lutId`) y `semanticRole`.
+   - Cada entrada fija rango wire (`min`/`max`/`wireZeroCenter`), `wire`, `wireCodec`, `cc`/`nrpnMsb`/`nrpnLsb`, rango físico DSP (`domainMin`, `domainMax`, `unit` dentro del enum canónico), ley matemática (`curve: "Linear" | "Exp" | "Pow" | "SymBipolar" | "Lut"`, con `curveP0`/`curveP1` o `lutId`), `semanticRole`, y opcionalmente `shortName` (máx. 10 caracteres), `automatable` (`false` en parámetros globales no automatizables) y `automationInterp` (`"linear" | "step"`).
+   - **Configuración obligatoria para `PerformanceDeck` (Nuke Aséptico):** declarar el bloque raíz `"performanceDeck"` con `macros` (`0..10` asignaciones `{ paramId, label?, minNorm?, maxNorm?, invert?, bipolar? }`), `xyPad` (`{ x, y, labels?: [N, E, S, W] } | null`) y `stickLayers` si aplica, y registrar el contrato + alias (`<typeId> -> <modelo>`) en `Contracts/parameterSpecCatalog.js`. Los slots no declarados quedan deshabilitados (`—`) sin duplicar el slot 0. Guía detallada: [`INTEGRACION_PERFORMANCE_DECK.md`](INTEGRACION_PERFORMANCE_DECK.md).
 2. **`Contracts/<modelo>.json`** (`hardware_profile.schema.json`, `schemaVersion: "2.0"`, `"isSoftsynth": true`):
    - Hidratado automáticamente por `abd::synth::HardwareProfileHydrator` en runtime y por `McxHardwareBridge` sin tablas CC/NRPN hardcodeadas en C++.
    - **Prohibido tocar `Contracts/fx-effects.json`**.
@@ -72,23 +73,25 @@ Todo motor integrado **debe** publicar dos ficheros JSON validados en `Contracts
 1. [ ] Núcleo DSP C++20 compilado sin JUCE, RT-safe, auto-sleep verified y `< 300` líneas por archivo.
 2. [ ] Filtros de circuito propios promovidos a `Code/DspCore/` verificando `abd::dsp::IsFilterStage<T>`.
 3. [ ] Tests C++ unitarios en `Code/SynthEngines/Tests/` verificando notas, silenciamiento, presets y serialización JSON.
-4. [ ] Contratos `<modelo>_parameter_spec.json` y `<modelo>.json` creados en `Contracts/` y validados por esquema.
+4. [ ] Contratos `<modelo>_parameter_spec.json` (con `"performanceDeck"`, `automatable` y registro en `Contracts/parameterSpecCatalog.js`) y `<modelo>.json` creados en `Contracts/` y validados por esquema.
 5. [ ] `getControlInputDescriptors()` con `SemanticRoleHash` y alias físicos completos en `setParamByKey`/`getParamByKey`.
 6. [ ] `<motor>ParamSpecs.js` con capa `Wire ↔ Normalized ↔ Domain`, `<motor>Types.d.ts` y exports en `Components/SynthEngines/index.js`.
 7. [ ] `<Motor>EnginePanel.js` con `EngineHeaderBar` + `EnginePresetBrowser`, `Knob`/`Segmented`/`Toggle`/`RomplerWavePicker`, paridad `N/N`, `< 200` líneas por fichero y `0` `#hex`.
 8. [ ] Alta en `Common/unifiedEngineControlSpecs.js`, `McxEngineRegistry`, `McxParamRouter.h` y `McxHardwareInbound.cpp`.
 9. [ ] Carátula `.webp` única instalada en `Assets/models/`, `enginePanelRegistry.js` y `MODEL_COVERS` del host.
-10. [ ] Vitest en verde (`Contracts/Contracts.test.js` + `tests/<motor>EnginePanel.test.js`).
+10. [ ] Vitest en verde (`Contracts/Contracts.test.js`, `tests/performanceMapStore.test.js` y `tests/<motor>EnginePanel.test.js`).
 
 ---
 
 ## 4. Motores Activos en `ABDShared/Code/SynthEngines/` (`2026-11-25`)
 
-| Engine Type ID | CMake Target (`ABDShared::*`) | Spec & Perfil en `Contracts/` | Panel Canónico WebUI | Paridad Controles |
-| :--- | :--- | :--- | :--- | :--- |
-| `structured_rompler` | `StructuredRompler` | `abdmcx0x_parameter_spec.json` / `abd_mcx0x.json` | `StructuredRomplerPanel` | Completa + PCM/Drum |
-| `mcs48_synth` | `Mcs48Synth` | `abdmcs48_parameter_spec.json` | `Mcs48EnginePanel` | Completa (12/12) |
-| `la50_synth` / `cm32_synth` | `LinearArithmetic` | `roland_d50_parameter_spec.json` / `roland_cm32l_parameter_spec.json` / `roland_d50.json` / `roland_mt32.json` | `La50EnginePanel` | Completa + DT1 |
-| `jv880_synth` | `StructuredRompler` | `roland_jv880_parameter_spec.json` / `roland_sc55.json` | `StructuredRomplerPanel` | Completa + DT1 `0x46` |
-| `tb303_synth` | `Tb303Synth` | `roland_tb303_parameter_spec.json` / `roland_tb303.json` | `Tb303EnginePanel` | `15/15` + `DspTb303DiodeLadder` |
-| `emax_synth` | `EmaxSynth` | `emu_emax2_parameter_spec.json` / `emu_emax2.json` | `EmaxEnginePanel` | `37/37` + `DspEmaxHChipFilter` |
+| Engine Type ID | CMake Target (`ABDShared::*`) | Spec & Perfil en `Contracts/` | Panel Canónico WebUI | `PerformanceDeck` | Paridad Controles |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `structured_rompler` | `StructuredRompler` | `abdmcx0x_parameter_spec.json` / `abd_mcx0x.json` | `StructuredRomplerPanel` | 10 macros + XY | Completa + PCM/Drum |
+| `mcs48_synth` | `Mcs48Synth` | `abdmcs48_parameter_spec.json` | `Mcs48EnginePanel` | 6 macros (`xyPad: null`) | Completa (12/12) |
+| `la50_synth` | `LinearArithmetic` | `roland_d50_parameter_spec.json` / `roland_d50.json` | `La50EnginePanel` | 8 macros + XY | Completa + DT1 |
+| `cm32_synth` | `LinearArithmetic` | `roland_cm32l_parameter_spec.json` / `roland_mt32.json` | `La50EnginePanel` | 9 macros + XY | Completa + DT1 |
+| `jv880_synth` | `StructuredRompler` | `roland_jv880_parameter_spec.json` / `roland_sc55.json` | `StructuredRomplerPanel` | 10 macros + XY | Completa + DT1 `0x46` |
+| `tb303_synth` | `Tb303Synth` | `roland_tb303_parameter_spec.json` / `roland_tb303.json` | `Tb303EnginePanel` | 8 macros + XY | `15/15` + `DspTb303DiodeLadder` |
+| `emax_synth` | `EmaxSynth` | `emu_emax2_parameter_spec.json` / `emu_emax2.json` | `EmaxEnginePanel` | 10 macros + XY | `37/37` + `DspEmaxHChipFilter` |
+| `abyssmind_synth` | *(DeepMind)* | `behringer_deepmind12_parameter_spec.json` | *(Panel DeepMind)* | 10 macros + XY | 232 params CDD v2.0 |

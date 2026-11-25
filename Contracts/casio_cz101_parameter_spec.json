@@ -2596,5 +2596,59 @@
       "smoothing": "Linear",
       "group": "System"
     }
-  ]
+  ],
+  "performanceDeck": {
+    "macros": [
+      {
+        "paramId": "DCW_DECAY",
+        "label": "DCW DEC"
+      },
+      {
+        "paramId": "LINE_MIX",
+        "label": "LINE MIX"
+      },
+      {
+        "paramId": "DCA_ATTACK",
+        "label": "ATTACK"
+      },
+      {
+        "paramId": "DCA_RELEASE",
+        "label": "RELEASE"
+      },
+      {
+        "paramId": "DCW_ATTACK",
+        "label": "DCW ATT"
+      },
+      {
+        "paramId": "DCA_DECAY",
+        "label": "DECAY"
+      },
+      {
+        "paramId": "OSC2_DETUNE",
+        "label": "DETUNE"
+      },
+      {
+        "paramId": "GLIDE",
+        "label": "GLIDE"
+      },
+      {
+        "paramId": "LFO_RATE",
+        "label": "LFO RATE"
+      },
+      {
+        "paramId": "LFO_DEPTH",
+        "label": "LFO DEP"
+      }
+    ],
+    "xyPad": {
+      "x": "LINE_MIX",
+      "y": "DCW_DECAY",
+      "labels": [
+        "BRIGHT",
+        "LINE 2",
+        "WARM",
+        "LINE 1"
+      ]
+    }
+  }
 }

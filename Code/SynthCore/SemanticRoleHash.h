@@ -74,6 +74,7 @@ namespace role
     inline constexpr std::uint64_t kOscHardSync           = hashSemanticRole("OscHardSync");
     inline constexpr std::uint64_t kOscRingMod            = hashSemanticRole("OscRingMod");
     inline constexpr std::uint64_t kOscFmCrossMod         = hashSemanticRole("OscFmCrossMod");
+    inline constexpr std::uint64_t kOscKeyTrack           = hashSemanticRole("OscKeyTrack");
     inline constexpr std::uint64_t kNoiseLevel            = hashSemanticRole("NoiseLevel");
 
     // --- Filters ---

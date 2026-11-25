@@ -5,7 +5,7 @@
  */
 
 import { MpcPadMatrix } from '../Controls/MpcPadMatrix.js';
-import { ROLL_DIVISIONS, resolveRollIntervalMs } from '../Controls/mpcPadPerformHelpers.js';
+import { ROLL_DIVISIONS, resolveRollIntervalMs, LEVEL16_TYPES, level16Label } from '../Controls/mpcPadPerformHelpers.js';
 import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class MpcPadModal {
@@ -15,6 +15,7 @@ export class MpcPadModal {
     this.locale = options.locale || 'es';
     this.inputQuantize = options.inputQuantize || '1/16';
     this.rollDiv = 'off';
+    this.level16Type = LEVEL16_TYPES.includes(options.level16Type) ? options.level16Type : 'velocity';
     this.bpm = options.bpm || 120;
     this.opened = false;
     this.matrix = null;
@@ -43,6 +44,8 @@ export class MpcPadModal {
       .map((q) => `<option value="${q}"${this.inputQuantize === q ? ' selected' : ''}>${q === 'off' ? 'OFF' : q}</option>`).join('');
     const rollOpts = ROLL_DIVISIONS
       .map((r) => `<option value="${r}"${this.rollDiv === r ? ' selected' : ''}>${r === 'off' ? 'OFF' : r}</option>`).join('');
+    const lvlOpts = LEVEL16_TYPES
+      .map((t) => `<option value="${t}"${this.level16Type === t ? ' selected' : ''}>${level16Label(t)}</option>`).join('');
 
     this.el.innerHTML = `
       <div class="abd-pad-shell">
@@ -53,6 +56,10 @@ export class MpcPadModal {
             <span class="abd-pad-sub" id="abd-pad-subtitle">DRUM / CHROMATIC</span>
           </div>
           <div class="abd-pad-head-right">
+            <div class="abd-pad-quantize-box" title="16-Levels modulation">
+              <span class="abd-pad-quantize-lbl">16L:</span>
+              <select class="abd-pad-quantize-sel" id="abd-pad-16lvl-sel" aria-label="16 Levels mode">${lvlOpts}</select>
+            </div>
             <div class="abd-pad-quantize-box" title="Note Repeat / Roll">
               <span class="abd-pad-quantize-lbl">ROLL:</span>
               <select class="abd-pad-quantize-sel" id="abd-pad-roll-sel" aria-label="Note Repeat Roll">${rollOpts}</select>
@@ -80,6 +87,7 @@ export class MpcPadModal {
       this.matrix = new MpcPadMatrix(slot, {
         mode: this.opts.mode || 'drum', fullLevel: this.opts.fullLevel ?? true,
         drumKit: this.opts.drumKit, scale: this.opts.scale, rootNote: this.opts.rootNote, baseOctave: this.opts.baseOctave,
+        level16Type: this.level16Type, onLevel16TypeChange: (t) => this.syncLevel16Type(t),
         onPadTrigger: (idx, note, vel, meta) => this.handleMatrixTrigger(idx, note, vel, meta),
         onPadRelease: (idx, note, meta) => this.handleMatrixRelease(idx, note, meta),
       });
@@ -89,6 +97,7 @@ export class MpcPadModal {
 
   handleMatrixTrigger(idx, note, vel, meta) {
     this.opts.onPadTrigger?.(this.currentPart, idx, note, vel, meta, this.inputQuantize);
+    this.opts.onPadParamPreview?.(this.currentPart, { note, modKey: meta?.modKey ?? 'velocity', modNorm: meta?.modNorm ?? 0, vel });
     this.updateSubBadge(idx, note, meta?.name);
     const ms = resolveRollIntervalMs(this.rollDiv, this.bpm);
     const key = `${idx}:${note}`;
@@ -129,23 +138,25 @@ export class MpcPadModal {
   }
 
   updateSubBadge(idx, note, name) {
-    const sub = this.el.querySelector('#abd-pad-subtitle');
-    if (sub && name) sub.textContent = `PAD ${String(idx + 1).padStart(2, '0')}: ${name} (${note})`;
+    const sub = this.el.querySelector('#abd-pad-subtitle'); if (sub && name) sub.textContent = `PAD ${String(idx + 1).padStart(2, '0')}: ${name} (${note})`;
   }
 
   bindEvents() {
     this.el.querySelector('[data-act="close"]')?.addEventListener('click', () => this.close());
-    this.el.querySelector('#abd-pad-quantize-sel')?.addEventListener('change', (e) => {
-      this.inputQuantize = e.target.value; this.opts.onInputQuantizeChange?.(this.inputQuantize);
-    });
-    this.el.querySelector('#abd-pad-roll-sel')?.addEventListener('change', (e) => {
-      this.rollDiv = e.target.value; if (this.rollDiv === 'off') this.stopAllRolls();
-    });
+    this.el.querySelector('#abd-pad-quantize-sel')?.addEventListener('change', (e) => { this.inputQuantize = e.target.value; this.opts.onInputQuantizeChange?.(this.inputQuantize); });
+    this.el.querySelector('#abd-pad-roll-sel')?.addEventListener('change', (e) => { this.rollDiv = e.target.value; if (this.rollDiv === 'off') this.stopAllRolls(); });
+    this.el.querySelector('#abd-pad-16lvl-sel')?.addEventListener('change', (e) => this.setLevel16Type(e.target.value));
   }
 
   setBpm(bpm) { const next = Number(bpm); if (Number.isFinite(next) && next >= 20) this.bpm = Math.min(300, next); }
   getInputQuantize() { return this.inputQuantize; }
   setInputQuantize(q) { this.inputQuantize = q; const sel = this.el.querySelector('#abd-pad-quantize-sel'); if (sel) sel.value = q; }
+  getLevel16Type() { return this.level16Type; }
+  syncLevel16Type(t) { this.level16Type = t; const sel = this.el.querySelector('#abd-pad-16lvl-sel'); if (sel) sel.value = t; }
+  setLevel16Type(t) {
+    if (!LEVEL16_TYPES.includes(t)) return;
+    this.level16Type = t; const sel = this.el.querySelector('#abd-pad-16lvl-sel'); if (sel) sel.value = t; this.matrix?.setLevel16Type(t);
+  }
 
   open(partIdx = this.currentPart) {
     this.currentPart = partIdx; this.opened = true;

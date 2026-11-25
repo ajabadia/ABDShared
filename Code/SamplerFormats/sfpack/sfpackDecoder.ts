@@ -68,6 +68,20 @@ export function parseSfPackHeader(buffer: ArrayBufferLike): SfPackHeader {
   };
 }
 
+/** Stable messages: the import UI retries on exactly these two errors. */
+export const SFPACK_PASSWORD_REQUIRED = 'SFPack: archive is encrypted, password required';
+export const SFPACK_WRONG_PASSWORD = 'SFPack: wrong password';
+
+/** True when the archive is encrypted and no password was supplied. */
+export function isSfPackPasswordRequired(error: unknown): boolean {
+  return error instanceof Error && error.message === SFPACK_PASSWORD_REQUIRED;
+}
+
+/** True when the supplied password failed the header check word. */
+export function isSfPackWrongPassword(error: unknown): boolean {
+  return error instanceof Error && error.message === SFPACK_WRONG_PASSWORD;
+}
+
 /**
  * Parse the container into its INFO/pdta payloads and decoded PCM.
  *
@@ -81,8 +95,8 @@ export function decodeSfPack(buffer: ArrayBufferLike, password?: string): Decode
 
   let key = 0;
   if ((header.flags & FLAG_PASSWORD) !== 0) {
-    if (password === undefined) throw new Error('SFPack: archive is encrypted, password required');
-    if (passwordCheck(password) !== header.check) throw new Error('SFPack: wrong password');
+    if (password === undefined) throw new Error(SFPACK_PASSWORD_REQUIRED);
+    if (passwordCheck(password) !== header.check) throw new Error(SFPACK_WRONG_PASSWORD);
     key = passwordKey(password);
   }
 

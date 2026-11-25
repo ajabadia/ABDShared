@@ -27,6 +27,7 @@ export class MpcPadMatrix {
     this.drumKit = options.drumKit ? [...options.drumKit] : [...DEFAULT_DRUM_KIT];
     this.onPadTrigger = options.onPadTrigger || null;
     this.onPadRelease = options.onPadRelease || null;
+    this.onLevel16TypeChange = options.onLevel16TypeChange || null;
     this.padData = [];
     this.render(); this.bindEvents(); this.refresh();
   }
@@ -42,7 +43,7 @@ export class MpcPadMatrix {
           <button type="button" class="abd-mpc-btn" data-mode="chromatic">CHROM</button>
           <button type="button" class="abd-mpc-btn" data-mode="chords">CHORDS</button>
           <button type="button" class="abd-mpc-btn" data-mode="16_levels">16 LVL</button>
-          <button type="button" class="abd-mpc-btn" id="mpc-lvl16-type" title="Toggle 16-Levels Velocity / Tuning">VEL</button>
+          <button type="button" class="abd-mpc-btn" id="mpc-lvl16-type" title="Cycle 16-Levels VEL/TUNE/CUT/DEC/ATT">VEL</button>
         </div>
         <div class="abd-mpc-toolbar__group" id="mpc-chrom-controls">
           <select class="abd-mpc-select" id="mpc-root-sel">${rootOpts}</select>
@@ -79,7 +80,7 @@ export class MpcPadMatrix {
     const lvl16Btn = this.el.querySelector('#mpc-lvl16-type');
     if (lvl16Btn) {
       lvl16Btn.style.display = this.mode === '16_levels' ? 'inline-flex' : 'none';
-      lvl16Btn.textContent = this.level16Type === 'tuning' ? 'TUNE' : 'VEL';
+      lvl16Btn.textContent = level16Label(this.level16Type);
       lvl16Btn.classList.toggle('is-active', this.mode === '16_levels');
     }
     this.el.querySelector('#mpc-full-btn')?.classList.toggle('is-active', this.fullLevel);
@@ -130,7 +131,7 @@ export class MpcPadMatrix {
       const btn = ev.target.closest('button');
       if (!btn) return;
       if (btn.dataset.mode) { this.mode = btn.dataset.mode; this.refresh(); }
-      else if (btn.id === 'mpc-lvl16-type') { this.level16Type = this.level16Type === 'velocity' ? 'tuning' : 'velocity'; this.refresh(); }
+      else if (btn.id === 'mpc-lvl16-type') { this.level16Type = LEVEL16_TYPES[(LEVEL16_TYPES.indexOf(this.level16Type) + 1) % LEVEL16_TYPES.length]; this.onLevel16TypeChange?.(this.level16Type); this.refresh(); }
       else if (btn.id === 'mpc-inkey-btn') { this.inKey = !this.inKey; this.refresh(); }
       else if (btn.id === 'mpc-full-btn') { this.fullLevel = !this.fullLevel; this.refresh(); }
       else if (btn.id === 'mpc-oct-up') { this.baseOctave = Math.min(8, this.baseOctave + 1); this.refresh(); }
@@ -167,6 +168,6 @@ export class MpcPadMatrix {
   }
   setDrumKit(kit) { this.drumKit = [...kit]; this.refresh(); }
   setMode(mode) { this.mode = mode; this.refresh(); }
-  setLevel16Type(t) { this.level16Type = t === 'tuning' ? 'tuning' : 'velocity'; this.refresh(); }
+  setLevel16Type(t) { this.level16Type = LEVEL16_TYPES.includes(t) ? t : 'velocity'; this.onLevel16TypeChange?.(this.level16Type); this.refresh(); }
   destroy() { this.el.innerHTML = ''; }
 }

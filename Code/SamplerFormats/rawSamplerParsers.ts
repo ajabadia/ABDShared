@@ -33,7 +33,12 @@ import {
 import { parseSliceFile, parseWavSliceCues, type ParsedSliceMarker } from './SliceFileParser.ts';
 import { decompressRx2Audio, isRx2Buffer } from './DwopDecompressor.ts';
 import { decompressSfArk, isSfArkBuffer } from './sfark/sfarkDecoder.ts';
-import { decompressSfPack, isSfPackBuffer } from './sfpack/sfpackDecoder.ts';
+import {
+  decompressSfPack,
+  isSfPackBuffer,
+  isSfPackPasswordRequired,
+  isSfPackWrongPassword,
+} from './sfpack/sfpackDecoder.ts';
 import type {
   CrossfadeCurve,
   DahdsrEnvelope,
@@ -1878,7 +1883,7 @@ export function isSf2Buffer(data: ArrayBuffer): boolean {
 }
 
 export { isSfArkBuffer, decompressSfArk };
-export { isSfPackBuffer, decompressSfPack };
+export { isSfPackBuffer, decompressSfPack, isSfPackPasswordRequired, isSfPackWrongPassword };
 
 export function parseSf2PresetToUniversal(
   buffer: ArrayBuffer,
@@ -2271,21 +2276,23 @@ export async function listZipSamplerPrograms(
   if (lower.endsWith('.sfpack') || (typeof data !== 'string' && isSfPackBuffer(data))) {
     try {
       const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
-      const sf2Data = decompressSfPack(rawBytes.buffer as ArrayBuffer);
+      const sf2Data = decompressSfPack(rawBytes.buffer);
       const sf2Name = cleanBasename(filename).replace(/\.sfpack$/i, '.sf2');
       const innerProgs = await listZipSamplerPrograms(sf2Name, sf2Data.buffer as ArrayBuffer);
       return innerProgs.map((p) => ({
         ...p,
         detail: `SFPack -> ${p.detail}`,
       }));
-    } catch {
+    } catch (error) {
       return [
         {
           id: '0',
           index: 0,
           name: cleanBasename(filename).replace(/\.sfpack$/i, ''),
           format: 'sf2',
-          detail: 'SFPack Compressed SoundFont (.sfpack)',
+          detail: isSfPackPasswordRequired(error)
+            ? 'SFPack Compressed SoundFont (.sfpack, password protected)'
+            : 'SFPack Compressed SoundFont (.sfpack)',
         },
       ];
     }
@@ -2858,7 +2865,9 @@ export async function parseUniversalSampler(
   data: ArrayBuffer | string,
   zipEntriesOrDecodedWav?: Map<string, Uint8Array> | ArrayBuffer,
   decodedWavBufferOrProgramPath?: ArrayBuffer | string,
-  selectedProgramPath?: string
+  selectedProgramPath?: string,
+  /** Archive password, only read by the encrypted `.sfpack` branch. */
+  password?: string
 ): Promise<ParsedSamplerPreset> {
   const lower = filename.toLowerCase();
   const zipEntries = zipEntriesOrDecodedWav instanceof Map ? zipEntriesOrDecodedWav : undefined;
@@ -3964,15 +3973,15 @@ export async function parseUniversalSampler(
     const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
     const decompressedSf2 = await decompressSfArk(rawBytes);
     const sf2Name = cleanBasename(filename).replace(/\.sfark$/i, '.sf2');
-    return parseUniversalSampler(sf2Name, decompressedSf2.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath);
+    return parseUniversalSampler(sf2Name, decompressedSf2.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath, password);
   }
 
   // Compressed SoundFont (.sfpack, Megota SFPack, native TypeScript)
   if (lower.endsWith('.sfpack') || (typeof data !== 'string' && isSfPackBuffer(data))) {
     const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
-    const sf2Data = decompressSfPack(rawBytes.buffer as ArrayBuffer);
+    const sf2Data = decompressSfPack(rawBytes.buffer, password);
     const sf2Name = cleanBasename(filename).replace(/\.sfpack$/i, '.sf2');
-    return parseUniversalSampler(sf2Name, sf2Data.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath);
+    return parseUniversalSampler(sf2Name, sf2Data.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath, password);
   }
 
 

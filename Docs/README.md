@@ -91,6 +91,7 @@ Cada documento declara en su cabecera **Tipo**, **Alcance** y **Estado**. Los ti
 | Documento | Tipo | Estado | Nota |
 |---|---|---|---|
 | [INTEGRATION_GUIDE.md](integration/INTEGRATION_GUIDE.md) | Índice maestro | ✅ | Punto de entrada: CMake, WebUI, componentes y contratos |
+| [INTEGRACION_PERFORMANCE_DECK.md](integration/INTEGRACION_PERFORMANCE_DECK.md) | Guía de componente | ✅ | Superficie universal aséptica `PerformanceDeck` (CDD v2.0, modos `overlay`/`modeless`, `EDIT`/`LEARN`, `.abdperf.json` y motion sin saltos) |
 | [BANK_MANAGER_INTEGRATION.md](integration/BANK_MANAGER_INTEGRATION.md) | Guía | 🟡 | Contratos, CMake y pasos; el **PASO 6** no se renderiza (vallas escapadas) |
 | [BUILD_AND_PACKAGING_GUIDE.md](integration/BUILD_AND_PACKAGING_GUIDE.md) | Guía | 🟡 | Parcialmente superada según [`ADR-003`](decisions/ADR-003-2026-integration-puente-telemetria.md) §2.8: credenciales en CLI, WiX 3, generador fijado y binario no universal |
 | [COVER_POPUP_INTEGRATION.md](integration/COVER_POPUP_INTEGRATION.md) | Guía | ✅ | Hover preview (`role="tooltip"`) y modal ampliado de carátulas y frontales 19'' |

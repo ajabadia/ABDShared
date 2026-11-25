@@ -1,0 +1,88 @@
+/* ─────────────────────────────────────────────────────────
+   ABD TrajectoryStick2D — Decorative <NUKE> Orb Variant (.is-nuke-orb)
+   100% Design Tokens (0 #hex literals). Supports --perf-accent override.
+   ───────────────────────────────────────────────────────── */
+
+.is-nuke-orb .stick-outer-ring {
+  position: relative;
+}
+
+.is-nuke-orb .stick-orb-bezel-svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 88%;
+  height: 88%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.is-nuke-orb .stick-orb-bezel-outer,
+.is-nuke-orb .stick-orb-tick {
+  stroke: var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent))));
+  opacity: 0.78;
+}
+
+.is-nuke-orb .stick-orb-bezel-inner,
+.is-nuke-orb .stick-orb-tick-diag {
+  stroke: var(--color-panel-border-strong);
+  opacity: 0.85;
+}
+
+.is-nuke-orb .stick-pad-circle {
+  flex-shrink: 0;
+  z-index: 2;
+  border: 2px solid var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent)))) !important;
+  outline: 3px solid var(--color-panel-surface-elevated);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-elevation-2), inset 0 0 24px var(--color-bg-base) !important;
+}
+
+.is-nuke-orb .stick-orb-ring-1,
+.is-nuke-orb .stick-orb-ring-2,
+.is-nuke-orb .stick-orb-diag {
+  stroke: var(--perf-accent, var(--color-accent));
+  opacity: 0.24;
+}
+
+.is-nuke-orb .stick-orb-ring-3 {
+  stroke: var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent))));
+  opacity: 0.38;
+}
+
+.is-nuke-orb .stick-trail-path {
+  stroke: var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent)))) !important;
+}
+
+.is-nuke-orb .stick-target-ring {
+  width: 44px !important;
+  height: 44px !important;
+  border: 1.5px dashed var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent)))) !important;
+  opacity: 0.55;
+}
+
+.is-nuke-orb .stick-puck {
+  width: 28px !important;
+  height: 28px !important;
+  background: var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent)))) !important;
+  border: 2px solid var(--color-text-main) !important;
+  box-shadow: 0 0 14px var(--perf-accent, var(--color-accent-amber, var(--color-warning, var(--color-accent)))), var(--shadow-elevation-2) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.is-nuke-orb .stick-puck-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-bg-base);
+  border: 1.5px solid var(--color-text-main);
+  pointer-events: none;
+}
+
+.is-nuke-orb .pole-n { top: 0; }
+.is-nuke-orb .pole-s { bottom: 0; }
+.is-nuke-orb .pole-w { left: 0; }
+.is-nuke-orb .pole-e { right: 0; }

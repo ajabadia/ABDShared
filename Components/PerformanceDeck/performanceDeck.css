@@ -3,6 +3,7 @@
  * Universal aseptic PerformanceDeck (overlay + modeless), preserving classic silhouette.
  * Strict line limit: < 195 lines. Zero #hex colors (100% design tokens).
  */
+@import './performanceParamPicker.css';
 
 .abd-perf-deck {
   background: var(--color-panel-bg, var(--color-surface));
@@ -90,6 +91,7 @@ dialog.abd-perf-deck--modeless:not([open]) { display: none; }
 
 .abd-perf-edit-bar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
   padding: 4px var(--space-3);
@@ -97,16 +99,14 @@ dialog.abd-perf-deck--modeless:not([open]) { display: none; }
   border-bottom: 1px solid var(--color-panel-border-dim, var(--color-border));
 }
 
-.abd-perf-deck-body {
-  padding: var(--space-2) var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  overflow-y: auto;
-  min-height: 0;
-  flex: 1;
+.abd-perf-edit-hint {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--perf-accent, var(--color-accent));
 }
 
+.abd-perf-deck-body { padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); overflow-y: auto; min-height: 0; flex: 1; }
 .abd-perf-main-grid { display: grid; grid-template-columns: 152px minmax(340px, 1fr) 152px; gap: var(--space-2); align-items: stretch; }
 .abd-perf-wing-col { display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-1); width: 152px; }
 
@@ -124,18 +124,9 @@ dialog.abd-perf-deck--modeless:not([open]) { display: none; }
 }
 
 .abd-perf-card.is-disabled { opacity: 0.38; pointer-events: none; }
-.abd-perf-card.is-learning { border-color: var(--perf-accent, var(--color-accent)); box-shadow: 0 0 0 1px var(--perf-accent, var(--color-accent)); }
+.abd-perf-card.is-learning, .abd-perf-center-hub.is-learning { border-color: var(--perf-accent, var(--color-accent)); box-shadow: 0 0 0 1px var(--perf-accent, var(--color-accent)); }
 
-.abd-perf-knob-empty {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-dim);
-  font-family: var(--font-mono);
-}
-
+.abd-perf-knob-empty { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--color-text-dim); font-family: var(--font-mono); }
 .abd-perf-macro-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-text-dim); text-transform: uppercase; }
 .abd-perf-macro-value { font-family: var(--font-mono); font-size: 10.5px; color: var(--perf-accent, var(--color-accent)); }
 
@@ -167,18 +158,23 @@ dialog.abd-perf-deck--modeless:not([open]) { display: none; }
   border-radius: var(--radius-sm);
 }
 
-.abd-perf-stick-mount { min-width: 180px; min-height: 180px; display: flex; align-items: center; justify-content: center; }
+.abd-perf-stick-mount { min-width: 210px; min-height: 210px; display: flex; align-items: center; justify-content: center; }
+.abd-perf-stick-mount .trajectory-stick-card { background: transparent; border: none; box-shadow: none; padding: 0; }
 .abd-perf-stick-mount.is-disabled { opacity: 0.4; pointer-events: none; }
 .abd-perf-xy-off { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-dim); letter-spacing: 0.08em; }
-
 .abd-perf-sec-section { display: flex; flex-direction: column; gap: var(--space-1); }
 .abd-perf-sec-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .abd-perf-sec-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-2); }
 
-.abd-perf-edit-row, .abd-perf-xy-edit { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: 2px; }
-.abd-perf-edit-select { width: 100%; font-size: 9.5px; padding: 2px 4px; background: var(--color-panel-bg, var(--color-surface)); color: var(--color-text-main); border: 1px solid var(--color-panel-border); border-radius: var(--radius-sm); }
-.abd-perf-edit-actions, .abd-perf-edit-range, .abd-perf-xy-axis { display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap; }
-.abd-perf-range-in { width: 38px; font-size: 9px; padding: 1px 2px; background: var(--color-panel-bg, var(--color-surface)); color: var(--color-text-main); border: 1px solid var(--color-panel-border); border-radius: var(--radius-sm); }
-.abd-perf-inv-lbl { font-size: 9px; display: inline-flex; align-items: center; gap: 2px; color: var(--color-text-dim); }
+.abd-perf-deck.is-editing .abd-perf-knob-mount,
+.abd-perf-deck.is-editing .abd-perf-stick-mount { pointer-events: none; }
+.abd-perf-card.is-edit-target, .abd-perf-center-hub.is-edit-target { cursor: pointer; pointer-events: auto; opacity: 1; border-color: var(--perf-accent, var(--color-accent)); }
+.abd-perf-card.is-edit-target.is-slot-off { border-style: dashed; opacity: 0.78; }
+.abd-perf-card.is-edit-target .abd-perf-macro-title, .abd-perf-card.is-edit-target .abd-perf-target-pill, .abd-perf-xy-edit-chip { color: var(--perf-accent, var(--color-accent)); animation: abd-perf-edit-pulse 1.5s ease-in-out infinite; }
+.abd-perf-xy-edit-chip { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; }
+.abd-perf-card.is-edit-target:hover, .abd-perf-center-hub.is-edit-target:hover { box-shadow: 0 0 0 1px var(--perf-accent, var(--color-accent)); }
+@keyframes abd-perf-edit-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .abd-perf-card.is-edit-target *, .abd-perf-xy-edit-chip { animation: none; } }
+
 .abd-perf-auto-btn.is-active, .abd-perf-pin-btn.is-active { border-color: var(--perf-accent, var(--color-accent)); color: var(--perf-accent, var(--color-accent)); }
 .abd-perf-footer-slot { border-top: 1px solid var(--color-panel-border-dim, var(--color-border)); padding-top: var(--space-1); }

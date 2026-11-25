@@ -1,20 +1,20 @@
 /**
  * ABDShared — PerformanceDeck/performanceDeckControls.js
- * Mounts 10 aseptic Knobs, central TrajectoryStick2D & inline EDIT event wiring.
- * Strict line limit: < 155 lines. 0 #hex colors.
+ * Mounts 10 aseptic Knobs, central TrajectoryStick2D & preset bar wiring.
+ * Strict line limit: < 140 lines. 0 #hex colors.
  */
 
-import { findParameterById } from '../../Contracts/parameterSpecCatalog.js';
-import { PERF_MACRO_COUNT } from './performanceMapStore.js';
+import { findParameterById, getGroupedParameters } from '../../Contracts/parameterSpecCatalog.js';
+import {
+  PERF_MACRO_COUNT, assignMacroSlot, assignXyAxis,
+  disableMacroSlot, setMacroSlotEnabled, setXyPadEnabled,
+} from './performanceMapStore.js';
 import { Knob } from '../knob.js';
 import { TrajectoryStick2D } from '../trajectoryStick2D.js';
 
 export function formatSlotValue(slot, norm01) {
-  const min = slot.min ?? 0;
-  const max = slot.max ?? 1;
-  const raw = min + norm01 * (max - min);
-  if (typeof slot.fmt === 'function') return slot.fmt(raw);
-  return `${Math.round(raw * 100)}%`;
+  const min = slot.min ?? 0, max = slot.max ?? 1, raw = min + norm01 * (max - min);
+  return typeof slot.fmt === 'function' ? slot.fmt(raw) : `${Math.round(raw * 100)}%`;
 }
 
 export function buildDeckSlots(map, spec, values, options) {
@@ -53,15 +53,19 @@ export function buildDeckSlots(map, spec, values, options) {
   });
 }
 
-export function buildDeckXyState(map, values, options) {
+export function buildDeckXyState(map, values, options, spec = null) {
   if (map) {
     const xy = map.xyPad || { enabled: false, x: null, y: null, labels: ['Y+', 'X+', 'Y-', 'X-'] };
+    const xSpec = (xy.x && spec) ? findParameterById(spec, xy.x.paramId) : null;
+    const ySpec = (xy.y && spec) ? findParameterById(spec, xy.y.paramId) : null;
     return {
       ...xy,
+      xName: xSpec?.shortName || xSpec?.name || xy.x?.paramId || '—',
+      yName: ySpec?.shortName || ySpec?.name || xy.y?.paramId || '—',
       coord: { x: xy.x ? (values[xy.x.paramId] ?? 0.5) : 0.5, y: xy.y ? (values[xy.y.paramId] ?? 0.5) : 0.5 },
     };
   }
-  return { enabled: options.hasXyPad !== false, x: null, y: null, labels: ['Y+', 'X+', 'Y-', 'X-'], coord: { x: 0.5, y: 0.5 } };
+  return { enabled: options.hasXyPad !== false, x: null, y: null, xName: 'X', yName: 'Y', labels: ['Y+', 'X+', 'Y-', 'X-'], coord: { x: 0.5, y: 0.5 } };
 }
 
 export function mountDeckKnobs(rootEl, slots, callbacks) {
@@ -78,10 +82,7 @@ export function mountDeckKnobs(rootEl, slots, callbacks) {
       onDragStart: () => callbacks.onSlotDragStart?.(slot.index, slot),
       onDragEnd: () => callbacks.onSlotDragEnd?.(slot.index, slot),
       onChange: (norm) => {
-        const min = slot.min ?? 0;
-        const max = slot.max ?? 1;
-        const raw = min + norm * (max - min);
-        const txt = formatSlotValue(slot, norm);
+        const min = slot.min ?? 0, max = slot.max ?? 1, raw = min + norm * (max - min), txt = formatSlotValue(slot, norm);
         if (valEl) valEl.textContent = txt;
         callbacks.onSlotChange?.(slot.index, norm, raw, txt, slot);
       },
@@ -124,20 +125,72 @@ export function mountDeckStick(rootEl, xyState, opts, callbacks) {
 }
 
 export function bindDeckInlineEdit(rootEl, handlers) {
-  rootEl.addEventListener('change', (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLElement)) return;
-    if (t.dataset.editParam !== undefined) {
-      handlers.onAssignMacro?.(Number(t.dataset.editParam), t.value);
-    } else if (t.dataset.editMin !== undefined || t.dataset.editMax !== undefined || t.dataset.editInv !== undefined) {
-      const idx = Number(t.dataset.editMin ?? t.dataset.editMax ?? t.dataset.editInv);
-      handlers.onUpdateMacroRange?.(idx);
-    } else if (t.dataset.editXy !== undefined) {
-      handlers.onAssignXy?.(t.dataset.editXy, t.value);
-    }
-  });
   rootEl.addEventListener('click', (e) => {
     const presetAct = e.target.closest?.('[data-preset-act]')?.dataset.presetAct;
     if (presetAct) handlers.onPresetAction?.(presetAct);
+  });
+}
+
+export function openDeckSlotPicker(deck, slotIdx) {
+  if (!deck.map) return;
+  const ms = deck.map.macros[slotIdx] || { index: slotIdx, enabled: false, label: '', targets: [] };
+  deck.picker.open({
+    target: { kind: 'macro', slotIdx },
+    title: `SLOT ${slotIdx + 1} — ${ms.label || 'PARAMETER'}`,
+    enabled: Boolean(ms.enabled && ms.targets?.[0]),
+    currentTarget: ms.targets?.[0] || null,
+    groupedParams: deck.spec ? getGroupedParameters(deck.spec, true) : [],
+    learning: deck.learnTarget?.kind === 'macro' && deck.learnTarget.slotIdx === slotIdx,
+    accentColorVar: deck.options.accentColorVar,
+    onLearn: (tgt) => deck.setLearnTarget(tgt),
+    onToggleEnabled: () => {
+      if (!deck.map) return;
+      deck._updateMap(setMacroSlotEnabled(deck.map, slotIdx, !deck.map.macros[slotIdx]?.enabled), 'toggle-slot');
+      const cur = deck.map.macros[slotIdx];
+      deck.picker.refresh({ enabled: Boolean(cur?.enabled && cur?.targets?.[0]), currentTarget: cur?.targets?.[0] || null });
+    },
+    onUpdateRange: ({ min, max, invert }) => {
+      const cur = deck.map?.macros?.[slotIdx], curTgt = cur?.targets?.[0];
+      if (!deck.map || !curTgt) return;
+      deck._updateMap(assignMacroSlot(deck.map, slotIdx, { paramId: curTgt.paramId, min, max, invert }, cur.label, deck.spec), 'edit-range');
+      deck.picker.refresh({ currentTarget: deck.map.macros[slotIdx]?.targets?.[0] || null });
+    },
+    onSelectParam: (id) => {
+      if (!deck.map) return;
+      deck._updateMap(id ? assignMacroSlot(deck.map, slotIdx, { paramId: id, min: 0, max: 1, invert: false }, null, deck.spec) : disableMacroSlot(deck.map, slotIdx), 'assign-macro');
+    },
+  });
+}
+
+export function openDeckXyPicker(deck, axis = 'x') {
+  if (!deck.map) return;
+  const xy = deck.map.xyPad || { enabled: false, x: null, y: null };
+  deck.picker.open({
+    target: { kind: 'xy', axis },
+    title: 'XY VECTOR PAD',
+    enabled: Boolean(xy.enabled),
+    xyState: xy,
+    groupedParams: deck.spec ? getGroupedParameters(deck.spec, true) : [],
+    learning: deck.learnTarget?.kind === 'xy' && deck.learnTarget.axis === axis,
+    accentColorVar: deck.options.accentColorVar,
+    onLearn: (tgt) => deck.setLearnTarget(tgt),
+    onSwitchXyAxis: (nextAx) => deck.picker.refresh({ learning: deck.learnTarget?.kind === 'xy' && deck.learnTarget.axis === nextAx }),
+    onToggleEnabled: () => {
+      if (!deck.map) return;
+      deck._updateMap(setXyPadEnabled(deck.map, !deck.map.xyPad?.enabled), 'toggle-xy');
+      deck.picker.refresh({ enabled: Boolean(deck.map.xyPad?.enabled), xyState: deck.map.xyPad });
+    },
+    onUpdateRange: ({ min, max, invert }, tgt) => {
+      const ax = tgt?.axis || 'x', cur = deck.map?.xyPad?.[ax];
+      if (!deck.map || !cur) return;
+      deck._updateMap(assignXyAxis(deck.map, ax, { paramId: cur.paramId, min, max, invert }, deck.spec), 'assign-xy');
+      deck.picker.refresh({ xyState: deck.map.xyPad });
+    },
+    onSelectParam: (id, tgt) => {
+      const ax = tgt?.axis || 'x';
+      if (!deck.map) return;
+      deck._updateMap(assignXyAxis(deck.map, ax, id ? { paramId: id, min: 0, max: 1, invert: false } : null, deck.spec), 'assign-xy');
+      deck.picker.refresh({ enabled: Boolean(deck.map.xyPad?.enabled), xyState: deck.map.xyPad });
+    },
   });
 }

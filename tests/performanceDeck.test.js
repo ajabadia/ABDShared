@@ -136,7 +136,7 @@ describe('PerformanceDeck UI component (Bloque B)', () => {
     deck.destroy();
   });
 
-  it('handles inline EDIT, LEARN, ON/OFF, range updates and preset actions', () => {
+  it('handles clean EDIT pulse mode, grouped searchable picker, LEARN, ON/OFF, range and XY edit', () => {
     const host = document.createElement('div');
     const onMap = vi.fn();
     const onPreset = vi.fn();
@@ -150,8 +150,9 @@ describe('PerformanceDeck UI component (Bloque B)', () => {
       map: buildDefaultPerformanceMap(mcsSpec),
     });
     mcsDeck.el.querySelector('[data-act="edit"]')?.click();
-    const firstSelectHtml = mcsDeck.el.querySelector('[data-edit-param="0"]')?.innerHTML ?? '';
-    expect(firstSelectHtml).not.toContain('diagnosticTone');
+    mcsDeck.el.querySelector('[data-edit-slot="0"]')?.click();
+    const pickerListHtml = mcsDeck.picker.dialog.querySelector('.abd-perf-picker-list')?.innerHTML ?? '';
+    expect(pickerListHtml).not.toContain('diagnosticTone');
     mcsDeck.destroy();
 
     const deck = new PerformanceDeck(host, {
@@ -164,22 +165,44 @@ describe('PerformanceDeck UI component (Bloque B)', () => {
     });
     deck.el.querySelector('[data-act="edit"]')?.click();
     expect(deck.editMode).toBe(true);
+    expect(deck.el.classList.contains('is-editing')).toBe(true);
+    expect(deck.el.querySelectorAll('select')).toHaveLength(0);
+    expect(deck.el.querySelector('[data-slot-card="8"]')?.classList.contains('is-edit-target')).toBe(true);
 
-    const sel = deck.el.querySelector('[data-edit-param="8"]');
-    sel.value = 'volume';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    deck.el.querySelector('[data-edit-slot="8"]')?.click();
+    expect(deck.picker.isOpen).toBe(true);
+    const searchIn = deck.picker.dialog.querySelector('.abd-perf-picker-search');
+    searchIn.value = 'vol';
+    searchIn.dispatchEvent(new Event('input', { bubbles: true }));
+    deck.picker.dialog.querySelector('.abd-perf-picker-item[data-param-id="volume"]')?.click();
+    expect(deck.picker.isOpen).toBe(false);
     expect(onMap).toHaveBeenLastCalledWith(expect.objectContaining({
       macros: expect.arrayContaining([expect.objectContaining({ index: 8, enabled: true })]),
     }), 'assign-macro');
 
-    deck.el.querySelector('[data-act="toggle-slot"][data-slot="8"]')?.click();
+    deck.el.querySelector('[data-edit-slot="8"]')?.click();
+    const minIn = deck.picker.dialog.querySelector('[data-picker-min]');
+    minIn.value = '15';
+    minIn.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(deck.map.macros[8].targets[0].min).toBeCloseTo(0.15, 2);
+
+    deck.picker.dialog.querySelector('[data-picker-act="toggle-enabled"]')?.click();
     expect(onMap.mock.calls.at(-1)?.[1]).toBe('toggle-slot');
 
-    deck.el.querySelector('[data-act="learn-slot"][data-slot="9"]')?.click();
+    deck.el.querySelector('[data-edit-slot="9"]')?.click();
+    deck.picker.dialog.querySelector('[data-picker-act="learn"]')?.click();
+    expect(deck.picker.isOpen).toBe(false);
     expect(deck.el.querySelector('[data-slot-card="9"]')?.classList.contains('is-learning')).toBe(true);
     expect(deck.completeLearn('drive')).toBe(true);
     expect(deck.map.macros[9].targets[0].paramId).toBe('drive');
     expect(onMap.mock.calls.at(-1)?.[1]).toBe('learn');
+
+    deck.el.querySelector('[data-edit-xy-hub]')?.click();
+    deck.picker.dialog.querySelector('[data-picker-axis="y"]')?.click();
+    deck.picker.dialog.querySelector('.abd-perf-picker-item[data-param-id="cutoff"]')?.click();
+    expect(onMap.mock.calls.at(-1)?.[1]).toBe('assign-xy');
+    deck.picker.dialog.querySelector('[data-picker-act="toggle-enabled"]')?.click();
+    expect(onMap.mock.calls.at(-1)?.[1]).toBe('toggle-xy');
 
     deck.el.querySelector('[data-preset-act="save-preset"]')?.click();
     expect(onPreset).toHaveBeenCalledWith('save-preset', deck.map);

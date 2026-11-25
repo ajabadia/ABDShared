@@ -1,0 +1,175 @@
+/**
+ * ABDShared — performanceParamPicker.css
+ * Grouped & searchable parameter picker dialog for PerformanceDeck EDIT mode.
+ * Strict line limit: < 140 lines. Zero #hex colors.
+ */
+
+dialog.abd-perf-picker {
+  position: fixed;
+  margin: 0;
+  padding: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 480px);
+  max-height: 76vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-panel-bg, var(--color-surface));
+  color: var(--color-text-main, var(--color-text));
+  border: 1px solid var(--color-panel-border-strong, var(--color-border));
+  border-top: 2px solid var(--perf-accent, var(--color-accent));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation-3);
+  overflow: hidden;
+  z-index: 160;
+}
+
+dialog.abd-perf-picker:not([open]) { display: none; }
+
+.abd-perf-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-panel-surface, var(--color-surface-dim));
+  border-bottom: 1px solid var(--color-panel-border-dim, var(--color-border));
+  cursor: move;
+}
+
+.abd-perf-picker-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--perf-accent, var(--color-accent));
+}
+
+.abd-perf-picker-actions, .abd-perf-picker-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.abd-perf-picker-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-panel-surface-elevated, var(--color-surface-dim));
+  border-bottom: 1px solid var(--color-panel-border-dim, var(--color-border));
+}
+
+.abd-perf-picker-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 10px;
+  color: var(--color-text-dim);
+  flex-wrap: wrap;
+}
+
+.abd-perf-picker-num {
+  width: 48px;
+  font-size: 10px;
+  padding: 2px 4px;
+  background: var(--color-panel-bg, var(--color-surface));
+  color: var(--color-text-main);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-sm);
+}
+
+.abd-perf-picker-inv { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; }
+
+.abd-perf-picker-search {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  padding: 5px 8px;
+  background: var(--color-panel-bg, var(--color-surface));
+  color: var(--color-text-main);
+  border: 1px solid var(--color-panel-border-strong, var(--color-border));
+  border-radius: var(--radius-sm);
+}
+
+.abd-perf-picker-search:focus {
+  outline: none;
+  border-color: var(--perf-accent, var(--color-accent));
+}
+
+.abd-perf-picker-groups {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+
+.abd-perf-picker-chip {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-bg, var(--color-surface));
+  color: var(--color-text-dim);
+  border: 1px solid var(--color-panel-border);
+  cursor: pointer;
+}
+
+.abd-perf-picker-chip.is-active {
+  color: var(--perf-accent, var(--color-accent));
+  border-color: var(--perf-accent, var(--color-accent));
+}
+
+.abd-perf-picker-list {
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.abd-perf-picker-group-head {
+  position: sticky;
+  top: 0;
+  padding: 4px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  background: var(--color-panel-surface, var(--color-surface-dim));
+  border-bottom: 1px solid var(--color-panel-border-dim, var(--color-border));
+}
+
+.abd-perf-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 5px 8px;
+  font-size: 11px;
+  text-align: left;
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.abd-perf-picker-item:hover {
+  background: var(--color-panel-surface-elevated, var(--color-surface-dim));
+  border-color: var(--color-panel-border);
+}
+
+.abd-perf-picker-item.is-selected {
+  border-color: var(--perf-accent, var(--color-accent));
+  color: var(--perf-accent, var(--color-accent));
+}
+
+.abd-perf-picker-meta { font-family: var(--font-mono); font-size: 9.5px; color: var(--color-text-dim); }
+.abd-perf-picker-empty { padding: var(--space-3); text-align: center; font-size: 11px; color: var(--color-text-dim); }

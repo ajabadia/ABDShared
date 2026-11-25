@@ -13,5 +13,6 @@
 @import './widgets/drawer.css';
 @import './widgets/junio-re201.css';
 @import './widgets/trajectory-stick.css';
+@import './widgets/trajectory-stick-orb.css';
 @import './widgets/led-ladder-rotary.css';
 @import './widgets/stereo-vu.css';

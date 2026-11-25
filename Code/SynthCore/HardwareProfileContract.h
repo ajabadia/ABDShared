@@ -39,6 +39,8 @@ struct SemanticControlBinding
     std::uint8_t controlNumber { 0 }; // CC number or NRPN MSB
     std::uint8_t subNumber { 0 };     // NRPN LSB
     std::string sysexAddress;
+    std::array<std::uint8_t, 4> sysexAddrBytes {};
+    std::uint8_t sysexAddrLen { 0 };
 
     float wireMin { 0.0f };
     float wireMax { 127.0f };

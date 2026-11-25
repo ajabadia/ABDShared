@@ -118,6 +118,21 @@ export class SpectrumRenderer extends BaseRenderer {
     }
     ctx.stroke();
 
+    // 7. Optional Filter Overlay Hook (e.g. VCF frequency response, cutoff line, resonance peak)
+    if (typeof options.filterOverlay === 'function') {
+      options.filterOverlay(ctx, {
+        width: w,
+        height: h,
+        minFreq: MIN_FREQ,
+        maxFreq: MAX_FREQ,
+        minDb,
+        maxDb,
+        logMinFreq: LOG_MIN_FREQ,
+        logMaxFreq: LOG_MAX_FREQ,
+        logRange: LOG_RANGE,
+      });
+    }
+
     ctx.restore();
   }
 

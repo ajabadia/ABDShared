@@ -181,4 +181,18 @@ describe('PianoRollModal Universal Component', () => {
     expect(recorded.startTick).toBeLessThan(384);
     modal.destroy();
   });
+
+  it('soporta 1/8T, 1/64, fuerza Quantize, preset Humanize y modo Replace', () => {
+    const modal = new PianoRollModal({ initialNotes: [{ startTick: 10, durationTicks: 24, midiNote: 60, velocity: 100 }] });
+    expect(modal.gridTicks('1/8T')).toBe(32);
+    expect(modal.gridTicks('1/64')).toBe(6);
+    const qs = modal.el.querySelector('[data-act="quantize-strength"]');
+    qs.value = '0.5'; qs.dispatchEvent(new Event('change', { bubbles: true }));
+    modal.el.querySelector('[data-act="quantize"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(modal.notes[0].startTick).toBe(5);
+    modal.setRecordMode('replace'); modal.setRecording(true); modal.recordNoteOn(72, 110);
+    expect(modal.notes).toHaveLength(1);
+    expect(modal.notes[0].midiNote).toBe(72);
+    modal.destroy();
+  });
 });

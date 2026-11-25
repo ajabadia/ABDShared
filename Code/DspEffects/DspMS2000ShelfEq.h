@@ -56,13 +56,13 @@ public:
 
     void setLowFreqIndex(int index) noexcept
     {
-        lowFreqHz_ = ms2000LowFreqForIndex(index);
+        lowFreqHz_ = MS2000EqProfile::lowFreqs[std::clamp(index, 0, MS2000EqProfile::numPositions - 1)];
         updateCoefficients();
     }
 
     void setHighFreqIndex(int index) noexcept
     {
-        highFreqHz_ = ms2000HighFreqForIndex(index);
+        highFreqHz_ = MS2000EqProfile::highFreqs[std::clamp(index, 0, MS2000EqProfile::numPositions - 1)];
         updateCoefficients();
     }
 

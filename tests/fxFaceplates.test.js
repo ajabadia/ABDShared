@@ -15,6 +15,11 @@ import {
   BbdChorusFaceplate,
   StereoDelayFaceplate,
   SaturationFaceplate,
+  FlangerFaceplate,
+  MidasEqFaceplate,
+  FairCompFaceplate,
+  MoodFilterFaceplate,
+  RolandLa50FxFaceplate,
   GenericFxFaceplate,
 } from '../Components/FxFaceplates/index.js';
 
@@ -41,7 +46,7 @@ describe('FxFaceplates & FxFaceplateModal', () => {
 
     const generic = getFxDescriptor('unknown_custom_fx');
     expect(generic.algoId).toBe('unknown_custom_fx');
-    expect(generic.badge).toBe('REV'); // fallback category
+    expect(generic.badge).toBe('FX'); // fallback category
   });
 
   it('mounts bespoke faceplates based on bridge descriptor', () => {
@@ -78,16 +83,65 @@ describe('FxFaceplates & FxFaceplateModal', () => {
     expect(container.querySelector('.abd-sat-faceplate')).toBeTruthy();
     fp5.destroy();
 
+    const flgBridge = createMemoryFxBridge(getFxDescriptor('flanger'), { rate: 0.5 });
+    const fp6 = mountFxFaceplate(container, flgBridge);
+    expect(fp6).toBeInstanceOf(FlangerFaceplate);
+    expect(container.querySelector('.abd-flanger-faceplate')).toBeTruthy();
+    fp6.destroy();
+
+    const eqBridge = createMemoryFxBridge(getFxDescriptor('midas_eq'), { midGain: 0.6 });
+    const fp7 = mountFxFaceplate(container, eqBridge);
+    expect(fp7).toBeInstanceOf(MidasEqFaceplate);
+    expect(container.querySelector('.abd-midas-eq-faceplate')).toBeTruthy();
+    fp7.destroy();
+
+    const compBridge = createMemoryFxBridge(getFxDescriptor('fair_comp'), { thresh: 0.5 });
+    const fp8 = mountFxFaceplate(container, compBridge);
+    expect(fp8).toBeInstanceOf(FairCompFaceplate);
+    expect(container.querySelector('.abd-fair-comp-faceplate')).toBeTruthy();
+    fp8.destroy();
+
+    const moodBridge = createMemoryFxBridge(getFxDescriptor('mood_filter'), { cutoff: 0.7 });
+    const fp9 = mountFxFaceplate(container, moodBridge);
+    expect(fp9).toBeInstanceOf(MoodFilterFaceplate);
+    expect(container.querySelector('.abd-mood-filter-faceplate')).toBeTruthy();
+    fp9.destroy();
+
+    for (const [id, cls] of [
+      ['roland_boss_reverb', '.abd-roland-boss-reverb-faceplate'],
+      ['roland_mt32_reverb', '.abd-roland-mt32-reverb-faceplate'],
+      ['roland_multi_chorus', '.abd-roland-multi-chorus-faceplate'],
+      ['roland_tone_eq', '.abd-roland-tone-eq-faceplate'],
+      ['roland_jv_reverb', '.abd-roland-jv-reverb-faceplate'],
+      ['roland_jv_chorus', '.abd-roland-jv-chorus-faceplate'],
+      ['roland_gs_delay', '.abd-roland-gs-delay-faceplate'],
+      ['ms2000_chorus_flanger', '.abd-ms2000-choflg-faceplate'],
+      ['ms2000_ensemble', '.abd-ms2000-ensemble-faceplate'],
+      ['ms2000_phaser', '.abd-ms2000-phaser-faceplate'],
+      ['ms2000_delay', '.abd-ms2000-delay-faceplate'],
+      ['ms2000_distortion', '.abd-ms2000-distortion-faceplate'],
+      ['ms2000_eq', '.abd-ms2000-eq-faceplate'],
+      ['neuron_silver_filter', '.abd-neuron-silver-filter-faceplate'], ['neuron_silver_freq', '.abd-neuron-silver-freq-faceplate'],
+      ['neuron_silver_time', '.abd-neuron-silver-time-faceplate'], ['neuron_slicer', '.abd-neuron-slicer-faceplate'],
+      ['golana_reverb', '.abd-golana-reverb-faceplate'], ['iterum_delay', '.abd-iterum-delay-faceplate'],
+      ['re201_wdf', '.abd-re201-wdf-faceplate'], ['kr106_chorus', '.abd-kr106-chorus-faceplate'],
+    ]) {
+      const fp = mountFxFaceplate(container, createMemoryFxBridge(getFxDescriptor(id)));
+      expect(fp).toBeInstanceOf(RolandLa50FxFaceplate);
+      expect(container.querySelector(cls)).toBeTruthy();
+      fp.destroy();
+    }
+
     const genericBridge = createMemoryFxBridge({
       algoId: 'weird_ringmod', name: 'Weird RingMod', category: 'pitch', badge: 'RNG',
       baseColor: '#201020', accentColor: '#ff2288', icon: 'zap', tailSec: 0.1, canDuck: false,
       presets: ['Preset A'], params: [{ key: 'carrier', label: 'CARRIER', defaultValue: 0.5 }],
     });
-    const fp6 = mountFxFaceplate(container, genericBridge);
-    expect(fp6).toBeInstanceOf(GenericFxFaceplate);
+    const fp10 = mountFxFaceplate(container, genericBridge);
+    expect(fp10).toBeInstanceOf(GenericFxFaceplate);
     expect(container.querySelector('.abd-generic-fx-faceplate')).toBeTruthy();
-    fp6.destroy();
-  });
+    fp10.destroy();
+  }, 15000);
 
   it('manages modal dialog lifecycle: open, preset change, bypass, ducking and close', () => {
     const modal = new FxFaceplateModal();
@@ -108,9 +162,15 @@ describe('FxFaceplates & FxFaceplateModal', () => {
     expect(bridge.isBypassed()).toBe(true);
     expect(bypassBtn?.textContent?.trim()).toBe('BYPASS (0% CPU)');
 
-    // Ducking button
+    // Ducking button & depth slider
     const duckBtn = document.querySelector('#fx-modal-duck');
     expect(duckBtn?.classList.contains('is-active')).toBe(true);
+    const duckAmt = document.querySelector('#fx-modal-duck-amt');
+    if (duckAmt) {
+      duckAmt.value = '0.85';
+      duckAmt.dispatchEvent(new Event('input'));
+      expect(bridge.getDucking().amount).toBeCloseTo(0.85, 2);
+    }
     duckBtn?.dispatchEvent(new MouseEvent('click'));
     expect(bridge.getDucking().enabled).toBe(false);
 
@@ -119,7 +179,7 @@ describe('FxFaceplates & FxFaceplateModal', () => {
     if (presetSelect) {
       presetSelect.value = '1';
       presetSelect.dispatchEvent(new Event('change'));
-      expect(bridge.getPresetName()).toBe('Reverb+Delay 4');
+      expect(bridge.getPresetName()).toBe('2: Echo 2 (H2)');
     }
 
     modal.close();

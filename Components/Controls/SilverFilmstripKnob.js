@@ -37,11 +37,11 @@ export class SilverFilmstripKnob {
         this.options = {
             variant: options.variant ?? 'preset', // 'preset' | 'normal'
             value: options.value ?? 0,
-            size: options.size ?? (options.variant === 'preset' ? 100 : 60),
+            size: options.size ?? (options.variant === 'preset' ? 100 : 52),
             label: options.label ?? '',
             spriteUrl: options.spriteUrl ?? this._defaultSpriteUrl(options.variant),
             frames: options.frames ?? (options.variant === 'preset' ? 12 : 31),
-            frameSize: options.frameSize ?? (options.variant === 'preset' ? 100 : 60),
+            frameSize: options.frameSize ?? 128,
             onChange: options.onChange ?? null,
             onDragStart: options.onDragStart ?? null,
             onDragEnd: options.onDragEnd ?? null,
@@ -101,9 +101,9 @@ export class SilverFilmstripKnob {
             outline: none;
             overflow: hidden;
             border-radius: 50%;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
         `;
 
+        const scale = size / frameSize;
         // Filmstrip element — the actual sprite that scrolls
         this.filmstrip = document.createElement('div');
         this.filmstrip.className = 'abd-silver-filmstrip-knob__filmstrip';
@@ -111,12 +111,12 @@ export class SilverFilmstripKnob {
             position: absolute;
             top: 0;
             left: 0;
-            width: ${frameSize}px;
-            height: ${frameSize * frames}px;
+            width: ${size}px;
+            height: ${size}px;
             background-image: url('${spriteUrl}');
             background-repeat: no-repeat;
-            background-size: ${frameSize}px ${frameSize * frames}px;
-            background-position: center 0%;
+            background-size: ${size}px ${frameSize * frames * scale}px;
+            background-position: center 0px;
             pointer-events: none;
             transition: background-position 0ms; /* instant for drag */
         `;
@@ -144,9 +144,10 @@ export class SilverFilmstripKnob {
     }
 
     render() {
-        const { frames, frameSize } = this.options;
+        const { frames, frameSize, size } = this.options;
+        const scale = size / frameSize;
         const frame = Math.round(this.value * (frames - 1));
-        const yOffset = frame * frameSize;
+        const yOffset = frame * frameSize * scale;
         this.filmstrip.style.backgroundPosition = `center -${yOffset}px`;
     }
 

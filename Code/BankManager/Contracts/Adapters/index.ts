@@ -10,6 +10,8 @@ export { BehringerDm12ImportAdapter, BehringerDm12ExportAdapter, BehringerDm12Ha
 export { BehringerPro800ImportAdapter, BehringerPro800ExportAdapter, BehringerPro800HardwareLink } from './behringerPro800Adapter';
 export { BehringerDm12HardwareLink as BehringerDeepMind12HardwareLink } from './behringerDm12Adapter';
 export { RolandAiraImportAdapter, RolandAiraExportAdapter, RolandAiraHardwareLink } from './rolandAiraAdapter';
+export { RolandD50ImportAdapter, RolandD50ExportAdapter, RolandD50HardwareLink } from './rolandD50Adapter';
+export { RolandCm32ImportAdapter, RolandCm32ExportAdapter, RolandCm32HardwareLink } from './rolandCm32Adapter';
 export {
   JsonContractImportAdapter,
   JsonContractExportAdapter,
@@ -26,6 +28,8 @@ import { CasioCzImportAdapter, CasioCzExportAdapter, CasioCzHardwareLink } from 
 import { BehringerDm12ImportAdapter, BehringerDm12ExportAdapter, BehringerDm12HardwareLink } from './behringerDm12Adapter';
 import { BehringerPro800ImportAdapter, BehringerPro800ExportAdapter, BehringerPro800HardwareLink } from './behringerPro800Adapter';
 import { RolandAiraImportAdapter, RolandAiraExportAdapter, RolandAiraHardwareLink } from './rolandAiraAdapter';
+import { RolandD50ImportAdapter, RolandD50ExportAdapter, RolandD50HardwareLink } from './rolandD50Adapter';
+import { RolandCm32ImportAdapter, RolandCm32ExportAdapter, RolandCm32HardwareLink } from './rolandCm32Adapter';
 import { allJsonImportAdapters, allJsonExportAdapters } from './jsonContractAdapter';
 import type { ImportAdapter } from '../ImportAdapter';
 import type { ExportAdapter } from '../ExportAdapter';
@@ -38,7 +42,9 @@ export const allImportAdapters: ImportAdapter[] = [
   new YamahaDx7ImportAdapter(),
   new CasioCzImportAdapter(),
   new BehringerDm12ImportAdapter(),
-  new BehringerPro800ImportAdapter()
+  new BehringerPro800ImportAdapter(),
+  new RolandD50ImportAdapter(),
+  new RolandCm32ImportAdapter()
 ];
 
 export const allExportAdapters: ExportAdapter[] = [
@@ -48,7 +54,9 @@ export const allExportAdapters: ExportAdapter[] = [
   new YamahaDx7ExportAdapter(),
   new CasioCzExportAdapter(),
   new BehringerDm12ExportAdapter(),
-  new BehringerPro800ExportAdapter()
+  new BehringerPro800ExportAdapter(),
+  new RolandD50ExportAdapter(),
+  new RolandCm32ExportAdapter()
 ];
 
 export const allHardwareLinks: HardwareLinkContract[] = [
@@ -58,7 +66,9 @@ export const allHardwareLinks: HardwareLinkContract[] = [
   new YamahaDx7HardwareLink(),
   new CasioCzHardwareLink(),
   new BehringerDm12HardwareLink(),
-  new BehringerPro800HardwareLink()
+  new BehringerPro800HardwareLink(),
+  new RolandD50HardwareLink(),
+  new RolandCm32HardwareLink()
 ];
 
 export function getImportAdapter(modelId: string): ImportAdapter | undefined {

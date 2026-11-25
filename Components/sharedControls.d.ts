@@ -8,6 +8,7 @@ export interface KnobOptions {
   label?: string;
   skin?: string;
   bipolar?: boolean;
+  disabled?: boolean;
   ariaLabel?: string | null;
   paramIndex?: number | string | null;
   format?: (normalised: number) => string;
@@ -19,7 +20,9 @@ export interface KnobOptions {
 }
 
 export declare class Knob {
+  disabled: boolean;
   constructor(container: HTMLElement | string, options?: KnobOptions);
+  setDisabled(disabled: boolean): void;
   setValue(value: number): void;
   getValue(): number;
   setModulation(modAmount: number): void;
@@ -105,6 +108,7 @@ export interface SynthNavBarInstance {
   setActiveValues(activeValues: Record<string, unknown> | ((action: string) => unknown)): void;
   setLocale(locale: 'en' | 'es' | (string & {})): void;
   setMenus(menus: SynthNavMenu[]): void;
+  closeDropdown?(): void;
   destroy(): void;
 }
 
@@ -113,6 +117,7 @@ export declare class SynthNavBar {
   setActiveValues(activeValues: Record<string, unknown> | ((action: string) => unknown)): void;
   setLocale(locale: 'en' | 'es' | (string & {})): void;
   setMenus(menus: SynthNavMenu[]): void;
+  closeDropdown?(): void;
   destroy(): void;
 }
 

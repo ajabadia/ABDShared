@@ -8,17 +8,18 @@
 import { classifyBankCategory } from './bankCategories.js';
 
 export const CATEGORY_32_PALETTE = [
-  // 0..9: Standard V1 Catalog
-  { slot: 0, catClass: 'cat-0', name: 'General / Neutral', hex: '#868e96', darkHex: '#adb5bd' },
-  { slot: 1, catClass: 'cat-1', name: 'Strings / Solo', hex: '#20c997', darkHex: '#0ca678' },
-  { slot: 2, catClass: 'cat-2', name: 'Bells / World', hex: '#6bcb77', darkHex: '#2f9e44' },
-  { slot: 3, catClass: 'cat-3', name: 'Bass / Pluck', hex: '#ff922b', darkHex: '#d9480f' },
-  { slot: 4, catClass: 'cat-4', name: 'Pads / Showcase', hex: '#4d96ff', darkHex: '#1971c2' },
-  { slot: 5, catClass: 'cat-5', name: 'Keys / Organ', hex: '#ffd93d', darkHex: '#e67700' },
-  { slot: 6, catClass: 'cat-6', name: 'Winds / Vocal', hex: '#cc5de8', darkHex: '#9c36b5' },
-  { slot: 7, catClass: 'cat-7', name: 'Textures / FX', hex: '#00c3ff', darkHex: '#0090bd' },
-  { slot: 8, catClass: 'cat-8', name: 'Arp / Loops', hex: '#748ffc', darkHex: '#4263eb' },
-  { slot: 9, catClass: 'cat-9', name: 'Rhythm / Drums', hex: '#ff6b9d', darkHex: '#d6336c' },
+  // 0..9: Parameter Sets inmutables de Hartmann Neuron (CATEGORY_0_9).
+  // Los nombres son el literal musical EN canónico; los colores no cambian.
+  { slot: 0, catClass: 'cat-0', name: 'Synth & Leads', hex: '#868e96', darkHex: '#adb5bd' },
+  { slot: 1, catClass: 'cat-1', name: 'Strings & Ensemble', hex: '#20c997', darkHex: '#0ca678' },
+  { slot: 2, catClass: 'cat-2', name: 'Bells & Mallets', hex: '#6bcb77', darkHex: '#2f9e44' },
+  { slot: 3, catClass: 'cat-3', name: 'Bass & Plucked', hex: '#ff922b', darkHex: '#d9480f' },
+  { slot: 4, catClass: 'cat-4', name: 'Warm Pads & Choirs', hex: '#4d96ff', darkHex: '#1971c2' },
+  { slot: 5, catClass: 'cat-5', name: 'Keys, Pianos & Organs', hex: '#ffd93d', darkHex: '#e67700' },
+  { slot: 6, catClass: 'cat-6', name: 'Winds & Brass', hex: '#cc5de8', darkHex: '#9c36b5' },
+  { slot: 7, catClass: 'cat-7', name: 'Motion Pads & Atmos', hex: '#00c3ff', darkHex: '#0090bd' },
+  { slot: 8, catClass: 'cat-8', name: 'Drums, Perc & Loops', hex: '#748ffc', darkHex: '#4263eb' },
+  { slot: 9, catClass: 'cat-9', name: 'SFX, Drones & Exp.', hex: '#ff6b9d', darkHex: '#d6336c' },
 
   // 10..19: Acoustic / Electroacoustic Sub-families
   { slot: 10, catClass: 'cat-10', name: 'Cyber Cyan', hex: '#00f2fe', darkHex: '#00acc1' },

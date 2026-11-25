@@ -987,18 +987,23 @@ export function preflightExpandedModelForAxionik(
 // Used by both ABDNeuModMakr and ABDAxionikVS BankDrawer
 // ─────────────────────────────────────────────────────────
 
+/**
+ * Taxonomía AxionikDB alineada 1:1 con los Parameter Sets 0..9 de Hartmann Neuron.
+ * Los `defaultParamSet` son IDs inmutables; el literal multiliteral canónico vive en
+ * ABDShared/Components/bank/bankCategories.js (CATEGORY_0_9).
+ */
 export const AXIONIK_CATEGORIES = [
-  { id: 'vocal-choir', name: 'Vocal & Choir', defaultParamSet: 5 },
+  { id: 'vocal-choir', name: 'Vocal & Choir', defaultParamSet: 4 },
   { id: 'drums-perc', name: 'Drums & Percussion Kit', defaultParamSet: 8 },
   { id: 'orchestral-strings', name: 'Orchestral & Strings', defaultParamSet: 1 },
-  { id: 'acoustic-pianos', name: 'Keyboards & Acoustic Pianos', defaultParamSet: 2 },
-  { id: 'electric-pianos', name: 'Electric Pianos & Tines', defaultParamSet: 2 },
-  { id: 'bass-low-end', name: 'Bass & Low End', defaultParamSet: 4 },
+  { id: 'acoustic-pianos', name: 'Keyboards & Acoustic Pianos', defaultParamSet: 5 },
+  { id: 'electric-pianos', name: 'Electric Pianos & Tines', defaultParamSet: 5 },
+  { id: 'bass-low-end', name: 'Bass & Low End', defaultParamSet: 3 },
   { id: 'plucked-ethnic', name: 'Plucked & Ethnic / World', defaultParamSet: 3 },
-  { id: 'brass-horns', name: 'Brass & Horns', defaultParamSet: 1 },
-  { id: 'woodwinds-reeds', name: 'Woodwinds & Reeds', defaultParamSet: 1 },
-  { id: 'mallets-chromatic', name: 'Mallets & Chromatic Perc', defaultParamSet: 7 },
-  { id: 'pads-atmospheres', name: 'Pads & Atmospheres', defaultParamSet: 6 },
+  { id: 'brass-horns', name: 'Brass & Horns', defaultParamSet: 6 },
+  { id: 'woodwinds-reeds', name: 'Woodwinds & Reeds', defaultParamSet: 6 },
+  { id: 'mallets-chromatic', name: 'Mallets & Chromatic Perc', defaultParamSet: 2 },
+  { id: 'pads-atmospheres', name: 'Pads & Atmospheres', defaultParamSet: 7 },
   { id: 'synth-leads', name: 'Synth Leads & Solos', defaultParamSet: 0 },
   { id: 'sfx-cinematic', name: 'SFX, Drones & Cinematic', defaultParamSet: 9 },
   { id: 'arps-sequences', name: 'Arpeggiated & Sequences', defaultParamSet: 8 },

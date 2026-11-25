@@ -7,9 +7,9 @@
 dialog.abd-pianoroll-dialog {
   position: fixed; inset: 0; margin: auto; z-index: var(--z-modal, 9999);
   padding: 0; border: 1px solid var(--color-panel-border-strong);
-  border-radius: var(--radius-lg, 8px); background: var(--color-panel-bg);
+  border-radius: var(--radius-lg, 8px); background: var(--color-bg-base);
   color: var(--color-text-main); width: 990px; max-width: 96vw; max-height: 92vh;
-  box-shadow: var(--shadow-elevation-3, 0 16px 48px var(--color-panel-border-dim));
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85);
   overflow-y: auto; font-family: var(--font-sans);
 }
 dialog.abd-pianoroll-dialog::backdrop { background: transparent; backdrop-filter: none; pointer-events: none; }

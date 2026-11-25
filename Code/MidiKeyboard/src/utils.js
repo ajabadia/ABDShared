@@ -71,6 +71,7 @@ export const SCALE_INTERVALS = {
   pentatonicMinor: [0, 3, 5, 7, 10],
   blues:           [0, 3, 5, 6, 7, 10],
   wholeTone:       [0, 2, 4, 6, 8, 10],
+  diminished:      [0, 1, 3, 4, 6, 7, 9, 10],
   chromatic:       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   japanese:        [0, 1, 5, 7, 8],
   arabian:         [0, 2, 4, 5, 6, 8, 10],

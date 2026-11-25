@@ -51,19 +51,24 @@ public:
     [[nodiscard]] WaveHandle getPartialWaveHandle(int partialIndex) const noexcept;
     void setDrumSlotWaveHandle(int midiNote, WaveHandle handle) noexcept;
     [[nodiscard]] WaveHandle getDrumSlotWaveHandle(int midiNote) const noexcept;
+    void assignManagedPartialWaveHandle(int partialIndex, WaveHandle handle) noexcept;
+    void assignManagedDrumSlotWaveHandle(int midiNote, WaveHandle handle) noexcept;
     void clearWaveHandleBindings() noexcept;
 
     // ISoundEngine interface
     void prepare(double sampleRate, int maxBlockSize) noexcept override;
     void reset() noexcept override;
 
-    [[nodiscard]] const char* getEngineTypeId() const noexcept override { return "structured_rompler"; }
-    [[nodiscard]] const char* getEngineDisplayName() const noexcept override { return "ABD Structured Rompler"; }
-    [[nodiscard]] bool supportsDrumMode() const noexcept override { return true; }
+    [[nodiscard]] const char* getEngineTypeId() const noexcept override { return jv880Mode_ ? "jv880_synth" : "structured_rompler"; }
+    [[nodiscard]] const char* getEngineDisplayName() const noexcept override { return jv880Mode_ ? "ABD Super JV-880" : "ABD Structured Rompler"; }
+    [[nodiscard]] bool supportsDrumMode() const noexcept override { return !jv880Mode_; }
     [[nodiscard]] abd::engines::EngineDescriptor getDescriptor() const noexcept override;
 
     [[nodiscard]] int getFactoryPresetCount() const noexcept override;
     [[nodiscard]] const char* getFactoryPresetName(int index) const noexcept override;
+    [[nodiscard]] int getFactoryPresetCategory(int index) const noexcept override;
+    [[nodiscard]] bool isFactoryPresetDrumMode(int index) const noexcept override;
+    [[nodiscard]] bool isActiveStateDrumMode() const noexcept override { return isDrumKit_; }
     bool loadFactoryPreset(int index) noexcept override;
     [[nodiscard]] const char* getCurrentPresetName() const noexcept override;
     void setCurrentPresetName(const char* name) noexcept;
@@ -95,6 +100,8 @@ public:
 
     void setDrumMode(bool isDrumKit) noexcept;
     [[nodiscard]] bool isDrumMode() const noexcept { return isDrumKit_; }
+    void configureAsJv880() noexcept;
+    [[nodiscard]] bool isJv880Mode() const noexcept { return jv880Mode_; }
 
     [[nodiscard]] float getControlInputOffset(ControlInputId id) const noexcept;
 
@@ -106,6 +113,7 @@ private:
     double sampleRate_ { 44100.0 };
 
     bool isDrumKit_ { false };
+    bool jv880Mode_ { false };
     bool sustainPedalDown_ { false };
     float lastNoteSemitones_ { -1.0f };
     bool filter2WasActive_ { false };

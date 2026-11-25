@@ -43,7 +43,7 @@ void RomplerVoice::resetState(bool keepDeclickTail) noexcept
     active_ = heldByKey_ = sustainedByPedal_ = choking_ = isGliding_ = false;
     ownerSlot_ = midiNote_ = drumSlotNote_ = -1;
     drumMuteGroup_ = 0;
-    lastLevelEstimate_ = voicePanOffset_ = lastOutL_ = lastOutR_ = 0.0f;
+    lastLevelEstimate_ = voicePanOffset_ = voiceChorusSend_ = lastOutL_ = lastOutR_ = 0.0f;
     if (!keepDeclickTail) declickTailL_ = declickTailR_ = 0.0f;
     voiceSlotLevel_ = chokeGain_ = glideCoeff_ = 1.0f;
     chokeStep_ = 0.0f;
@@ -244,7 +244,8 @@ void RomplerVoice::processBlock(float* accumL, float* accumR, int numSamples, co
             if (!u.enabledInVoice) continue;
             const auto idx = static_cast<std::size_t>(i);
             float pL = 0.7f, pR = 0.7f;
-            RomplerLutTables::panGains(std::clamp(cfg.partials[idx].pan + cfg.partPan + voicePanOffset_ + lfoPan, -1.0f, 1.0f), pL, pR);
+            const float cSpread = (isDrumVoice_ && voiceChorusSend_ > 0.001f) ? (((i & 1) ? 1.0f : -1.0f) * voiceChorusSend_ * 0.35f) : 0.0f;
+            RomplerLutTables::panGains(std::clamp(cfg.partials[idx].pan + cfg.partPan + voicePanOffset_ + cSpread + lfoPan, -1.0f, 1.0f), pL, pR);
             const float gain = amp[idx] * cfg.partLevel * voiceSlotLevel_;
             if (u.isStereo)
             {

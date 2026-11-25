@@ -116,7 +116,7 @@ export function detectPitchYinMpm(
       const y1 = cmnd[chosenTau - 1];
       const y2 = cmnd[chosenTau];
       const y3 = cmnd[chosenTau + 1];
-      const denom = 2 * (2 * y2 - y1 - y3);
+      const denom = 2 * (y1 + y3 - 2 * y2);
       const delta = Math.abs(denom) > 1.0e-9 ? clamp((y1 - y3) / denom, -0.5, 0.5) : 0;
       const f0 = sampleRate / (chosenTau + delta);
       const harmonicity = clamp(1.0 - Math.min(1.0, y2), 0, 1);

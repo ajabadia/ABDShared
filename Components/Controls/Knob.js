@@ -23,6 +23,7 @@ export class Knob {
       ariaLabel: null,
       skin: 'vector',
       bipolar: false,
+      disabled: false,
       step: 0.01,
       format: (v) => `${Math.round(v * 100)}%`,
       onChange: null,
@@ -33,6 +34,7 @@ export class Knob {
     };
 
     this.value = clamp01(this.options.value);
+    this.disabled = Boolean(this.options.disabled);
     this.dragDetach = null;
     this.modAmount = 0;
     this.notices = createContinuousNotices({
@@ -43,6 +45,7 @@ export class Knob {
 
     this.buildDom();
     this.attachInteraction();
+    this.setDisabled(this.disabled);
     this.render();
   }
 
@@ -52,8 +55,9 @@ export class Knob {
 
   attachInteraction() {
     this.dragDetach = attachDrag(this.dial, {
-      onDelta: (turns) => clamp01(this.value + turns * 0.75),
+      onDelta: (turns) => (this.disabled ? this.value : clamp01(this.value + turns * 0.75)),
       onValue: (newValue) => {
+        if (this.disabled) return;
         const previous = this.value;
         this.value = newValue;
         this.render();
@@ -63,17 +67,20 @@ export class Knob {
         }
       },
       onDragStart: () => {
+        if (this.disabled) return;
         this.notices.begin(this.value);
         this.options.onDragStart?.();
       },
       onDragEnd: () => {
+        if (this.disabled) return;
         this.notices.end(this.value);
         this.options.onDragEnd?.();
       },
-      onStep: (direction) => clamp01(this.value + direction * this.options.step),
+      onStep: (direction) => (this.disabled ? this.value : clamp01(this.value + direction * this.options.step)),
     });
 
     this.dial.addEventListener('dblclick', () => {
+      if (this.disabled) return;
       const previous = this.value;
       this.value = clamp01(this.options.value ?? 0);
       this.render();
@@ -82,6 +89,13 @@ export class Knob {
         announceSettled(this.options.onSettled, previous, this.value);
       }
     });
+  }
+
+  setDisabled(disabled) {
+    this.disabled = Boolean(disabled);
+    this.wrapper.classList.toggle('is-disabled', this.disabled);
+    this.dial.setAttribute('aria-disabled', this.disabled ? 'true' : 'false');
+    this.dial.tabIndex = this.disabled ? -1 : 0;
   }
 
   setModulation(modAmount) {

@@ -3305,5 +3305,50 @@ describe('MidiKeyboard multizone & extended controls', () => {
 
     kbd.destroy();
   });
+
+  it('disables unassigned keys visually & functionally via setPlayableNotes and updates on octave shift', () => {
+    const onNoteOn = vi.fn();
+    document.body.innerHTML = '<div id="kbd-playable" style="width:900px;height:140px"></div>';
+    const kbd = createKeyboard({
+      containerId: 'kbd-playable',
+      onNoteOn,
+      config: { numOctaves: 2, startNote: 36, fixedOctaves: true, enableQwerty: false, enableResizeObserver: false },
+    });
+
+    const key36 = document.querySelector('#kbd-playable [data-note="36"]');
+    const key37 = document.querySelector('#kbd-playable [data-note="37"]');
+    const key38 = document.querySelector('#kbd-playable [data-note="38"]');
+    const key48 = document.querySelector('#kbd-playable [data-note="48"]');
+
+    kbd.setPlayableNotes([36, 38]);
+    expect(kbd.getPlayableNotes()).toEqual([36, 38]);
+    expect(key36.classList.contains('kbd-key-assigned')).toBe(true);
+    expect(key36.classList.contains('kbd-key-disabled')).toBe(false);
+    expect(key37.classList.contains('kbd-key-disabled')).toBe(true);
+    expect(key37.getAttribute('aria-disabled')).toBe('true');
+    expect(key38.classList.contains('kbd-key-assigned')).toBe(true);
+
+    // Unassigned key blocks pointer trigger; assigned key fires onNoteOn
+    key37.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    expect(onNoteOn).not.toHaveBeenCalled();
+    key36.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+    expect(onNoteOn).toHaveBeenCalledWith(36, expect.any(Number));
+    key36.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+
+    // Octave shift recalculates disabled state against actual MIDI note (key48 - 12 = 36 -> assigned)
+    kbd.setOctave(-1);
+    expect(key36.classList.contains('kbd-key-disabled')).toBe(true);
+    expect(key48.classList.contains('kbd-key-assigned')).toBe(true);
+
+    // clearPlayableNotes restores chromatic mode
+    kbd.clearPlayableNotes();
+    expect(kbd.getPlayableNotes()).toBeNull();
+    expect(key36.classList.contains('kbd-key-disabled')).toBe(false);
+    expect(key37.hasAttribute('aria-disabled')).toBe(false);
+    key37.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }));
+    expect(onNoteOn).toHaveBeenCalledTimes(2);
+
+    kbd.destroy();
+  });
 });
 

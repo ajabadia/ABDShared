@@ -71,7 +71,13 @@ enum class ControlInputId : std::uint16_t
     Lfo2Depth = 15,
     PitchOffset = 16,
     AmpLevel = 17,
-    Count = 18
+    DrumKeyPitch = 18,
+    DrumKeyLevel = 19,
+    DrumKeyPan = 20,
+    DrumKeyReverbSend = 21,
+    DrumKeyChorusSend = 22,
+    DrumKeyDelaySend = 23,
+    Count = 24
 };
 
 struct Env4T4L
@@ -168,6 +174,7 @@ struct DrumSlotConfig
     float pan { 0.0f };
     float reverbSend { 0.25f };
     float chorusSend { 0.0f };
+    float delaySend { 0.0f };
     float cutoffHzOverride { 14000.0f };
     float resonanceOverride { 0.1f };
     float decayMs { 280.0f };

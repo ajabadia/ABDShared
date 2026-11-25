@@ -33,6 +33,7 @@ export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay
   if (Array.isArray(rackSlots)) {
     const active = rackSlots.filter((b) => b && b.engine !== 0);
     const cur = (targetBay >= 0 && rackSlots[targetBay] && rackSlots[targetBay].engine !== 0) ? rackSlots[targetBay] : null;
+    const def = cur ? findAlgorithmById(cur.algoId || cur.name) : null;
     const title = cur ? `ENVÍO ${letters[slotIdx]}: ${(cur.name || cur.algoId).toUpperCase()}` : `ENVÍO ${letters[slotIdx]}: (DESCONECTADO)`;
     const badge = cur ? `B${targetBay + 1}` : 'OFF';
     const opts = [
@@ -42,23 +43,34 @@ export function renderSlotCardHtml(slotIdx, state, muteTip, rackSlots, targetBay
         return `<option value="${idx}"${idx === targetBay ? ' selected' : ''}>BAHÍA ${idx + 1}: ${b.name || b.algoId}</option>`;
       }),
     ].join('');
-    return `
-      <div class="fx-slot-card" data-slot="${slotIdx}">
+    const thumbHtml = def?.image
+      ? `<div class="fx-bay-thumb-wrap abd-cover-trigger" tabindex="0" data-bay="${targetBay}" data-algo-id="${cur?.algoId || def?.id || ''}" data-slot="${slotIdx}"><img src="${def.image}" class="fx-bay-thumb" alt="${badge}" /></div>`
+      : '';
+    const visualModule = `
+      <div class="fx-bay-visual-module">
+        <div class="fx-bay-visual-left">
+          <span class="fx-bay-visual-led${cur ? ' is-active' : ''}"></span>
+          ${thumbHtml}
+          <div class="fx-bay-name-wrap">
+            <span class="fx-bay-name-main">${cur ? (cur.name || def?.name || 'EFECTO') : 'DESCONECTADO'}</span>
+            <span class="fx-bay-name-sub">${cur ? `${badge} // ${def?.badge || 'FX'}` : '0% CPU // MUTE'}</span>
+          </div>
+        </div>
+        ${cur ? `<button type="button" class="fx-bay-faceplate-btn fx-open-faceplate-btn" data-bay="${targetBay}" title="Ver Carátula 19''">▶ FACEPLATE</button>` : ''}
+      </div>`;
+    return `<div class="fx-slot-card" data-slot="${slotIdx}">
         <div class="fx-slot-head">
           <span class="fx-slot-title">${title}</span>
           <button type="button" class="fx-slot-mute-btn${isMuted ? ' is-muted' : ''}" data-act="slot-mute" data-slot="${slotIdx}" title="${muteTip}">M</button>
           <span class="fx-slot-badge">${badge}</span>
         </div>
         <div class="fx-slot-body">
-          <div class="fx-select-tier-row">
-            <select class="fx-rack-bay-select" data-slot="${slotIdx}" aria-label="Efecto de Bahía" style="width:100%">${opts}</select>
-          </div>
-          <div class="fx-preset-tier-row" style="justify-content:center;">
-            ${cur ? `<button type="button" class="fx-open-faceplate-btn" data-bay="${targetBay}" style="appearance:none;display:inline-flex;align-items:center;gap:4px;background:var(--color-control-bg);border:1px solid var(--color-border-subtle);color:var(--color-accent);font-size:10px;font-weight:700;padding:3px 10px;border-radius:3px;cursor:pointer;"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Editar Carátula B${targetBay + 1}</button>` : '<span style="font-size:10px;color:var(--color-text-dim);font-family:var(--font-mono);">BUS INACTIVO (0% CPU)</span>'}
+          ${visualModule}
+          <div class="fx-select-tier-row" style="margin-top:6px;">
+            <select class="fx-rack-bay-select fx-bay-picker-select" data-slot="${slotIdx}" aria-label="Efecto de Bahía">${opts}</select>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
   const { catId, algoId, presetIdx } = state;
@@ -138,18 +150,10 @@ export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotS
   return `
     <div class="fx-rack-modal-card">
       <div class="fx-rack-head">
-        <div class="fx-rack-title-wrap">
-          <span class="fx-rack-badge">DSP</span>
-          <h2 class="fx-rack-title">${str.title}</h2>
-        </div>
-        <div class="fx-rack-topo-bar">
-          <span class="fx-topo-lbl">${str.topo}</span>
-          <select class="fx-topo-select" aria-label="Ruteo">${topoOpts}</select>
-        </div>
+        <div class="fx-rack-title-wrap"><span class="fx-rack-badge">DSP</span><h2 class="fx-rack-title">${str.title}</h2></div>
+        <div class="fx-rack-topo-bar"><span class="fx-topo-lbl">${str.topo}</span><select class="fx-topo-select" aria-label="Ruteo">${topoOpts}</select></div>
         <button type="button" class="fx-rack-close-btn" data-act="close" title="${str.closeTitle}" aria-label="${str.closeTitle}">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -181,6 +185,7 @@ export function buildRackModalBodyHtml(activeTopo, bpm, tempoSync, locale, slotS
           </div>
         </div>
       </div>
+      ${ui.sidechainBarHtml || ''}
     </div>
   `;
 }

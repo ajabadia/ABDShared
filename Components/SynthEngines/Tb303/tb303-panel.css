@@ -1,0 +1,97 @@
+/**
+ * ABDShared — Components/SynthEngines/Tb303/tb303-panel.css
+ * Panel TB-303 Devilfish tokenizado (100% CSS custom properties, 0 colores hex).
+ * Strict line limit: < 200 lines.
+ */
+
+.tb303-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-main);
+  font-family: var(--font-sans, inherit);
+}
+
+.tb303-panel [hidden] {
+  display: none;
+}
+
+.tb303-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tb303-led {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--color-panel-border);
+  background: var(--color-surface-sunken, var(--color-panel-surface));
+  color: var(--color-text-dim);
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.tb303-led.is-lit {
+  color: var(--color-cat-1, var(--color-accent));
+  border-color: var(--color-cat-1, var(--color-accent));
+  background: var(--color-accent-subtle, var(--color-panel-surface));
+}
+
+.tb303-stage-grid:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tb303-section {
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tb303-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-panel-border-dim, var(--color-panel-border));
+}
+
+.tb303-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.tb303-switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tb303-knobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.tb303-knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

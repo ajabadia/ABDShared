@@ -3,4 +3,8 @@
  * Barrel index preserving exact cascade order across Multi-Bus FX Rack partials (< 200 lines each).
  */
 @import './multi-bus-fx-rack/shell-lcd.css';
+@import './multi-bus-fx-rack/bay-module.css';
 @import './multi-bus-fx-rack/slots-footer.css';
+@import './multi-bus-fx-rack/sidechain-bar.css';
+@import './fx-picker.css';
+

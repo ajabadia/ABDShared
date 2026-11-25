@@ -4,7 +4,7 @@
  * Strict line limit: < 200 lines. 100% tokenized.
  */
 
-import { GRID_DIVISIONS, BAR_CHOICES, DEFAULT_AUTOMATION_TARGETS, SWING_PRESETS, PIANOROLL_I18N, PR_TOOLS, midiToNoteName } from './pianoRollContract.js';
+import { GRID_DIVISIONS, BAR_CHOICES, DEFAULT_AUTOMATION_TARGETS, SWING_PRESETS, QUANTIZE_STRENGTHS, HUMANIZE_PRESETS, PIANOROLL_I18N, PR_TOOLS, midiToNoteName } from './pianoRollContract.js';
 
 const SVG_PLAY = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
 const SVG_STOP = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>';
@@ -27,6 +27,9 @@ export function buildPianoRollModalHtml(state, locale = 'es', targets = null) {
   const barOpts = BAR_CHOICES.map((b) => `<option value="${b}"${b === state.bars ? ' selected' : ''}>${b} ${loc === 'es' ? 'COMP' : 'BARS'}</option>`).join('');
   const gridOpts = GRID_DIVISIONS.map((g) => `<option value="${g.id}"${g.id === state.grid ? ' selected' : ''}>${g.label}</option>`).join('');
   const swingOpts = SWING_PRESETS.map((s) => `<option value="${s.id}"${s.id === state.swing ? ' selected' : ''}>${s.label}</option>`).join('');
+  const qStrengthOpts = QUANTIZE_STRENGTHS.map((q) => `<option value="${q.id}"${Number(q.id) === (state.quantizeStrength ?? 1) ? ' selected' : ''}>${q.label}</option>`).join('');
+  const humOpts = HUMANIZE_PRESETS.map((h) => `<option value="${h.id}"${h.id === (state.humanizePreset || 'medium') ? ' selected' : ''}>${h.label}</option>`).join('');
+  const midiBtn = state.onExportMidi ? `<button type="button" class="abd-pr-btn" data-act="export-midi" title="Exportar MIDI (.mid)">${SVG_EXPORT} <span>MIDI</span></button>` : '';
   const activeTargets = targets && targets.length ? targets : DEFAULT_AUTOMATION_TARGETS;
   const targetOpts = activeTargets.map((t) => `<option value="${t.id}"${t.id === state.target ? ' selected' : ''}>${t.label}</option>`).join('');
 
@@ -94,7 +97,10 @@ export function buildPianoRollModalHtml(state, locale = 'es', targets = null) {
           <button type="button" class="abd-pr-btn" data-act="oct-down" title="${i18n.octDown}">-OCT</button>
           <button type="button" class="abd-pr-btn" data-act="oct-up" title="${i18n.octUp}">+OCT</button>
           <button type="button" class="abd-pr-btn" data-act="quantize" title="${i18n.quantize}">${i18n.quantize}</button>
+          <select class="abd-pr-select" data-act="quantize-strength" title="Quantize Strength">${qStrengthOpts}</select>
           <button type="button" class="abd-pr-btn" data-act="humanize" title="${i18n.humanize}">${i18n.humanize}</button>
+          <select class="abd-pr-select" data-act="humanize-preset" title="Humanize Preset">${humOpts}</select>
+          ${midiBtn}
           <button type="button" class="abd-pr-btn" data-act="export" title="${i18n.exportSeq}">${SVG_EXPORT} <span>${i18n.exportSeq}</span></button>
           <button type="button" class="abd-pr-btn" data-act="import" title="${i18n.importSeq}">${SVG_IMPORT} <span>${i18n.importSeq}</span></button>
           <input type="file" class="abd-pr-file-input" style="display:none" accept=".abdseq,.json" />

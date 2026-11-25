@@ -4,12 +4,15 @@
  * Strict line limit: < 200 lines. 100% tokenized.
  */
 
+import { Knob } from '../../Controls/Knob.js';
+
 export class StereoDelayFaceplate {
   constructor(container, bridge, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
     this.bridge = bridge;
     this.options = options;
     this.algoId = 'stereo_delay';
+    this.knobs = new Map();
     this.el = document.createElement('div');
     this.el.className = 'abd-fx-chassis-shell abd-delay-faceplate';
     this.render();
@@ -30,27 +33,51 @@ export class StereoDelayFaceplate {
       <div class="abd-fx-controls-grid">
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">DELAY TIME</span>
-          <input type="range" class="abd-fx-slider" data-param="time" min="0" max="1" step="0.01" value="0.5" />
-          <span class="abd-fx-knob-val" id="val-time">1/8 Dotted</span>
+          <div class="abd-fx-knob-mount" id="mount-time"></div>
+          <span class="abd-fx-knob-val" id="val-time">350 ms</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">FEEDBACK</span>
-          <input type="range" class="abd-fx-slider" data-param="fb" min="0" max="1" step="0.01" value="0.45" />
+          <div class="abd-fx-knob-mount" id="mount-fb"></div>
           <span class="abd-fx-knob-val" id="val-fb">45%</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">HF DAMPING</span>
-          <input type="range" class="abd-fx-slider" data-param="damp" min="0" max="1" step="0.01" value="0.3" />
+          <div class="abd-fx-knob-mount" id="mount-damp"></div>
           <span class="abd-fx-knob-val" id="val-damp">6.0 kHz</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">STEREO SPREAD</span>
-          <input type="range" class="abd-fx-slider" data-param="spread" min="0" max="1" step="0.01" value="0.8" />
+          <div class="abd-fx-knob-mount" id="mount-spread"></div>
           <span class="abd-fx-knob-val" id="val-spread">80%</span>
         </div>
       </div>
     `;
     this.container.appendChild(this.el);
+
+    const params = [
+      { key: 'time', defaultVal: 0.5, fmt: (v) => `${Math.round(20 + v * 980)} ms` },
+      { key: 'fb', defaultVal: 0.45, fmt: (v) => `${Math.round(v * 100)}%` },
+      { key: 'damp', defaultVal: 0.3, fmt: (v) => `${(1 + (1 - v) * 15).toFixed(1)} kHz` },
+      { key: 'spread', defaultVal: 0.8, fmt: (v) => `${Math.round(v * 100)}%` },
+    ];
+
+    params.forEach((p) => {
+      const mount = this.el.querySelector(`#mount-${p.key}`);
+      if (mount) {
+        const knob = new Knob(mount, {
+          size: 52,
+          value: p.defaultVal,
+          format: p.fmt,
+          onChange: (v) => {
+            this.bridge.setParam(p.key, v);
+            const valEl = this.el.querySelector(`#val-${p.key}`);
+            if (valEl) valEl.textContent = p.fmt(v);
+          },
+        });
+        this.knobs.set(p.key, knob);
+      }
+    });
   }
 
   bindEvents() {
@@ -64,18 +91,6 @@ export class StereoDelayFaceplate {
         }
       });
     });
-
-    this.el.querySelectorAll('.abd-fx-slider').forEach((slider) => {
-      slider.addEventListener('input', (e) => {
-        const key = (e.target).dataset.param;
-        const val = parseFloat((e.target).value);
-        if (key) {
-          this.bridge.setParam(key, val);
-          const valEl = this.el.querySelector(`#val-${key}`);
-          if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
-        }
-      });
-    });
   }
 
   syncFromBridge() {
@@ -85,25 +100,31 @@ export class StereoDelayFaceplate {
     this.el.querySelector('#btn-sync')?.classList.toggle('is-active', isSync);
     this.el.querySelector('#btn-pingpong')?.classList.toggle('is-active', isPingPong);
 
-    ['time', 'fb', 'damp', 'spread'].forEach((key) => {
+    const fmts = {
+      time: (v) => `${Math.round(20 + v * 980)} ms`,
+      fb: (v) => `${Math.round(v * 100)}%`,
+      damp: (v) => `${(1 + (1 - v) * 15).toFixed(1)} kHz`,
+      spread: (v) => `${Math.round(v * 100)}%`,
+    };
+
+    this.knobs.forEach((knob, key) => {
       const val = st[key] ?? 0.5;
-      const input = this.el.querySelector(`.abd-fx-slider[data-param="${key}"]`);
-      if (input) input.value = String(val);
+      knob.setValue(val);
       const valEl = this.el.querySelector(`#val-${key}`);
-      if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
+      if (valEl && fmts[key]) valEl.textContent = fmts[key](val);
     });
   }
 
   setParamVisual(key, value) {
-    const input = this.el.querySelector(`.abd-fx-slider[data-param="${key}"]`);
-    if (input) input.value = String(value);
-    const valEl = this.el.querySelector(`#val-${key}`);
-    if (valEl) valEl.textContent = `${Math.round(value * 100)}%`;
+    const knob = this.knobs.get(key);
+    if (knob) knob.setValue(value);
   }
 
   setLocale(_locale) {}
 
   destroy() {
+    this.knobs.forEach((k) => k.destroy?.());
+    this.knobs.clear();
     this.el.remove();
   }
 }

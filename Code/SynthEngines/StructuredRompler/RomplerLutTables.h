@@ -11,6 +11,8 @@ namespace abd::rompler
 /**
  * @brief Clean-room ROM-equivalent lookup tables and velocity/pan curves
  * for the Structured Rompler engine (zero runtime ROM dependency).
+ * Verified MC-303 IC7 ROM offsets: kEnvRate2935=0xF85A, kPanCurve2CCC=0xFBF1 (129 B),
+ * kLogAtten2D4D=0xFC72, kTvfKfDepth2ECD=0xFDF2, kTvfVelSens2EF7=0xFE1C, kTvfEnvDepth2F0D=0xFE32.
  */
 struct RomplerLutTables
 {

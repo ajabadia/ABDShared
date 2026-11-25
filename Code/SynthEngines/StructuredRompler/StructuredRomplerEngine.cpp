@@ -29,7 +29,13 @@ constexpr std::array<EngineControlInputDescriptor, StructuredRomplerEngine::kNum
     { static_cast<std::uint16_t>(ControlInputId::Lfo1Depth),        "lfo1_depth",       "LFO 1 Depth",       role::kLfo1Depth,                                 -1.0f, 1.0f,  1.0f  },
     { static_cast<std::uint16_t>(ControlInputId::Lfo2Depth),        "lfo2_depth",       "LFO 2 Depth",       abd::synth::hashSemanticRole("Lfo2Depth"),        -1.0f, 1.0f,  1.0f  },
     { static_cast<std::uint16_t>(ControlInputId::PitchOffset),      "pitch_offset",     "Pitch Offset",      abd::synth::hashSemanticRole("PitchOffset"),      -1.0f, 1.0f,  12.0f },
-    { static_cast<std::uint16_t>(ControlInputId::AmpLevel),         "amp_level",        "Part Level",        role::kPartVolume,                                -1.0f, 1.0f,  1.0f  }
+    { static_cast<std::uint16_t>(ControlInputId::AmpLevel),         "amp_level",        "Part Level",        role::kPartVolume,                                -1.0f, 1.0f,  1.0f  },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyPitch),     "drum_pitch",       "Drum Pitch",        role::kDrumKeyPitch,                              -1.0f, 1.0f,  12.0f },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyLevel),     "drum_level",       "Drum Level",        role::kDrumKeyLevel,                              -1.0f, 1.0f,  1.0f  },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyPan),       "drum_pan",         "Drum Pan",          role::kDrumKeyPan,                                -1.0f, 1.0f,  1.0f  },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyReverbSend),"drum_reverb_send", "Drum Reverb Send",  role::kDrumKeyReverbSend,                         -1.0f, 1.0f,  1.0f  },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyChorusSend),"drum_chorus_send", "Drum Chorus Send",  role::kDrumKeyChorusSend,                         -1.0f, 1.0f,  1.0f  },
+    { static_cast<std::uint16_t>(ControlInputId::DrumKeyDelaySend), "drum_delay_send",  "Drum Delay Send",   role::kDrumKeyDelaySend,                          -1.0f, 1.0f,  1.0f  }
 } };
 } // namespace
 

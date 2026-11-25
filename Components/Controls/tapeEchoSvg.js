@@ -5,7 +5,7 @@ export function buildTapeEchoSvg(width, height) {
     <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" style="width: 100%; height: 100%; display: block;">
       <rect id="peak-led" x="2" y="4" width="32" height="17" fill="none" stroke="none" opacity="0" />
       <path id="tape-path" d="M 28 38 Q 60 30 95 42 L 135 42 Q 165 30 192 38" fill="none" stroke="var(--color-text-dim)" stroke-width="2.5" stroke-dasharray="4 3"/>
-      <g id="reel-left">
+      <g id="reel-left" style="transform-origin: 28px 48px;">
         <circle cx="28" cy="48" r="22" fill="var(--color-bg-base)" stroke="var(--color-border)" stroke-width="1.5"/>
         <circle cx="28" cy="48" r="7" fill="var(--color-panel-surface)" stroke="var(--color-border-subtle)" stroke-width="1"/>
         <circle cx="28" cy="48" r="3" fill="var(--color-text-dim)"/>
@@ -14,7 +14,7 @@ export function buildTapeEchoSvg(width, height) {
         <line x1="14" y1="34" x2="42" y2="62" stroke="var(--color-border)" stroke-width="1.5"/>
         <line x1="14" y1="62" x2="42" y2="34" stroke="var(--color-border)" stroke-width="1.5"/>
       </g>
-      <g id="reel-right">
+      <g id="reel-right" style="transform-origin: 192px 48px;">
         <circle cx="192" cy="48" r="22" fill="var(--color-bg-base)" stroke="var(--color-border)" stroke-width="1.5"/>
         <circle cx="192" cy="48" r="7" fill="var(--color-panel-surface)" stroke="var(--color-border-subtle)" stroke-width="1"/>
         <circle cx="192" cy="48" r="3" fill="var(--color-text-dim)"/>
@@ -30,7 +30,7 @@ export function buildTapeEchoSvg(width, height) {
         <rect id="head-h3" x="123" y="30" width="5" height="16" rx="1" fill="var(--color-text-dim)" stroke="var(--color-border)" stroke-width="0.5"/>
         <text x="115" y="58" text-anchor="middle" fill="var(--color-text-dim)" font-family="monospace" font-size="6">H1 H2 H3</text>
       </g>
-      <circle id="capstan" cx="152" cy="48" r="5" fill="var(--color-panel-surface)" stroke="var(--color-text-dim)" stroke-width="1"/>
+      <circle id="capstan" cx="152" cy="48" r="5" fill="var(--color-panel-surface)" stroke="var(--color-text-dim)" stroke-width="1" style="transform-origin: 152px 48px;"/>
       <circle cx="162" cy="48" r="3.5" fill="var(--color-panel-bg)" stroke="var(--color-border)" stroke-width="0.8"/>
       <circle cx="52" cy="42" r="3" fill="var(--color-panel-bg)" stroke="var(--color-border)" stroke-width="0.8"/>
       <circle cx="170" cy="42" r="3" fill="var(--color-panel-bg)" stroke="var(--color-border)" stroke-width="0.8"/>

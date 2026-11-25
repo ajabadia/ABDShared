@@ -48,3 +48,4 @@ export * from './filterRegistry.ts';
 export * from './abdPattern.ts';
 export * from './enginePanelBridge.ts';
 export * from './fxFaceplateBridge.ts';
+export * from './MidiTranslationEngine.ts';

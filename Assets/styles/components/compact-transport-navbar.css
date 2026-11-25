@@ -1,0 +1,114 @@
+/**
+ * ABDShared — compact-transport-navbar.css
+ * Single-row MPC-inspired navbar transport layout (BAR:BEAT:TICK, TC, SWG, TAP).
+ * Uses .abd-transport.abd-transport--navbar specificity so base .abd-transport rules never override.
+ * Strict line limit: < 140 lines. Zero hardcoded #hex colors.
+ */
+
+.abd-transport.abd-transport--navbar {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 2px 6px;
+  background: color-mix(in srgb, var(--color-panel-bg) 72%, transparent);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-md, 6px);
+}
+.abd-transport.abd-transport--navbar .abd-transport__group {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 3px;
+  padding-right: 6px;
+  border-right: 1px solid var(--color-panel-border-dim);
+  flex-shrink: 0;
+}
+.abd-transport.abd-transport--navbar .abd-transport__group:last-child {
+  padding-right: 0;
+  border-right: none;
+}
+.abd-transport.abd-transport--navbar .abd-transport__toggle {
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 5px;
+  font-size: 8.5px;
+  white-space: nowrap;
+}
+.abd-transport__chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border-dim);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
+}
+.abd-transport__chip:hover { border-color: var(--color-accent); color: var(--color-text-main); }
+.abd-transport__chip.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-text-main);
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-panel-surface));
+}
+.abd-transport__chip-key { font-size: 7.5px; color: var(--color-accent); letter-spacing: 0.04em; }
+.abd-transport__chip-val { font-variant-numeric: tabular-nums; }
+
+.abd-transport__clock {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-main);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.abd-transport__clock:hover { border-color: var(--color-accent); }
+.abd-transport__clock-cell { display: inline-flex; align-items: baseline; gap: 2px; }
+.abd-transport__clock-cell small { font-size: 6.5px; font-weight: 700; color: var(--color-text-dim); letter-spacing: 0.04em; }
+.abd-transport__clock-cell strong { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--color-accent); }
+.abd-transport__clock-sep { font-size: 10px; color: var(--color-text-dim); }
+
+.abd-transport.abd-transport--navbar .abd-transport__tempo-display { flex: 0 0 auto; min-width: 58px; white-space: nowrap; }
+.abd-transport__tap-btn {
+  appearance: none;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-main);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.abd-transport__tap-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.abd-transport.abd-transport--navbar .abd-transport__btn {
+  flex: 0 0 auto;
+  width: 26px;
+  min-width: 26px;
+  height: 24px;
+}

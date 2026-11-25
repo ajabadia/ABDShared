@@ -5,8 +5,9 @@
 export interface MpcPadModalOptions {
   partIndex?: number;
   locale?: 'en' | 'es';
-  mode?: 'drum' | 'chromatic' | '16_levels';
+  mode?: 'drum' | 'chromatic' | 'chords' | '16_levels';
   inputQuantize?: string;
+  bpm?: number;
   fullLevel?: boolean;
   drumKit?: Array<{ note: number; name: string; choke?: number }>;
   scale?: string;
@@ -30,6 +31,7 @@ export declare class MpcPadModal {
   highlightNote(midiNote: number, active: boolean): void;
   getInputQuantize(): string;
   setInputQuantize(q: string): void;
+  setBpm(bpm: number): void;
   setLocale(locale: 'en' | 'es'): void;
   destroy(): void;
 }

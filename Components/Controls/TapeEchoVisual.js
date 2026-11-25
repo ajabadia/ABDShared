@@ -52,6 +52,7 @@ export class TapeEchoVisual {
     this.reelLeftEl = this.wrapper.querySelector('#reel-left');
     this.reelRightEl = this.wrapper.querySelector('#reel-right');
     this.capstanEl = this.wrapper.querySelector('#capstan');
+    this._updateHeadVisuals();
   }
 
   startAnimation() {
@@ -66,24 +67,24 @@ export class TapeEchoVisual {
     if (this.reelRightEl) this.reelRightEl.style.transform = `rotate(${-this.reelRotation}deg)`;
     if (this.capstanEl) this.capstanEl.style.transform = `rotate(${this.reelRotation * 2}deg)`;
 
+    this._updateHeadVisuals();
+    requestAnimationFrame(() => this._animate());
+  }
+
+  _updateHeadVisuals() {
     this.headEls.forEach((head, i) => {
       if (!head) return;
-      if (this.headStates[i]) {
-        head.style.fill = 'var(--color-led-active)';
-        head.style.filter = 'drop-shadow(0 0 4px var(--color-led-glow))';
-      } else {
-        head.style.fill = 'var(--color-text-dim)';
-        head.style.filter = 'none';
-      }
+      const active = !!this.headStates[i];
+      head.classList.toggle('head-active', active);
+      head.style.fill = active ? 'var(--color-led-active, #10b981)' : 'var(--color-text-dim, #555)';
+      head.style.filter = active ? 'drop-shadow(0 0 5px var(--color-led-glow, rgba(16, 185, 129, 0.85)))' : 'none';
     });
-
-    requestAnimationFrame(() => this._animate());
   }
 
   triggerPeak(duration = 60) {
     if (!this.peakLedEl) return;
     this.peakLedEl.style.opacity = '1';
-    this.peakLedEl.style.fill = 'var(--color-led-active)';
+    this.peakLedEl.style.fill = 'var(--color-led-active, #10b981)';
     clearTimeout(this._peakTimeout);
     this._peakTimeout = setTimeout(() => {
       if (this.peakLedEl) this.peakLedEl.style.opacity = '0';
@@ -92,6 +93,27 @@ export class TapeEchoVisual {
 
   setHeadActive(index, active) {
     this.headStates[index] = !!active;
+    this._updateHeadVisuals();
+  }
+
+  setHeads(...args) {
+    let heads = args;
+    if (Array.isArray(args[0])) heads = args[0];
+    this.headStates[0] = !!heads[0];
+    this.headStates[1] = !!heads[1];
+    this.headStates[2] = !!heads[2];
+    this._updateHeadVisuals();
+  }
+
+  setMode(modeIdx) {
+    const idx = Math.min(11, Math.max(0, Math.round(modeIdx)));
+    const mapping = [
+      [true, false, false], [false, true, false], [false, false, true],
+      [true, true, false], [true, false, false], [false, true, false],
+      [false, false, true], [true, true, false], [true, false, true],
+      [false, true, true], [true, true, true], [false, false, false],
+    ];
+    this.setHeads(mapping[idx] || [true, false, false]);
   }
 
   setSyncEnabled(enabled) {
@@ -101,14 +123,23 @@ export class TapeEchoVisual {
       this.svgSyncEl.classList.toggle('svg-sync-visible', enabled);
       this.svgSyncEl.textContent = enabled ? `SYNC ${this._divisionName()}` : '';
     }
+    if (this.svgBpmEl) {
+      this.svgBpmEl.classList.toggle('svg-bpm-hidden', !enabled);
+      this.svgBpmEl.classList.toggle('svg-bpm-visible', enabled);
+    }
   }
 
   setBPM(bpm) {
     this.bpm = bpm;
     if (this.svgBpmEl) {
       this.svgBpmEl.classList.toggle('svg-bpm-hidden', !this.syncEnabled);
+      this.svgBpmEl.classList.toggle('svg-bpm-visible', this.syncEnabled);
       this.svgBpmEl.textContent = `${bpm} BPM`;
     }
+  }
+
+  setBpm(bpm) {
+    this.setBPM(bpm);
   }
 
   setSyncDivision(index) {

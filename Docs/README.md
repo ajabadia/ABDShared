@@ -93,8 +93,13 @@ Cada documento declara en su cabecera **Tipo**, **Alcance** y **Estado**. Los ti
 | [INTEGRATION_GUIDE.md](integration/INTEGRATION_GUIDE.md) | Índice maestro | ✅ | Punto de entrada: CMake, WebUI, componentes y contratos |
 | [BANK_MANAGER_INTEGRATION.md](integration/BANK_MANAGER_INTEGRATION.md) | Guía | 🟡 | Contratos, CMake y pasos; el **PASO 6** no se renderiza (vallas escapadas) |
 | [BUILD_AND_PACKAGING_GUIDE.md](integration/BUILD_AND_PACKAGING_GUIDE.md) | Guía | 🟡 | Parcialmente superada según [`ADR-003`](decisions/ADR-003-2026-integration-puente-telemetria.md) §2.8: credenciales en CLI, WiX 3, generador fijado y binario no universal |
+| [COVER_POPUP_INTEGRATION.md](integration/COVER_POPUP_INTEGRATION.md) | Guía | ✅ | Hover preview (`role="tooltip"`) y modal ampliado de carátulas y frontales 19'' |
+| [DIAGNOSTIC_PROBE_INTEGRATION_GUIDE.md](integration/DIAGNOSTIC_PROBE_INTEGRATION_GUIDE.md) | Guía | ✅ | Sonda diagnóstica 440 Hz (`ABDShared::DiagnosticProbe`) |
+| [FX_FACEPLATES_AND_MODAL_INTEGRATION.md](integration/FX_FACEPLATES_AND_MODAL_INTEGRATION.md) | Guía y catálogo | ✅ | Rack multibus, carátulas 19'' y catálogo completo de los 72 efectos (`1..73`) + motores dedicados |
+| [LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md](integration/LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md) | Guía | ✅ | Motor LA-32 (`la50_synth`), D-50/MT-32 y efectos reutilizables Roland |
 | [KEYBED_WEBVIEW2_INTEGRATION.md](integration/KEYBED_WEBVIEW2_INTEGRATION.md) | Guía | 🟡 | Teclado compartido; falta cerrar `pointercancel`/`blur` y watchdog nativo |
 | [PARAMETER_GESTURES.md](integration/PARAMETER_GESTURES.md) | Contrato de suite | ✅ | Un arrastre = un gesto del host, de punta a punta |
+| [SYNTH_ENGINE_INTEGRATION_GUIDE.md](integration/SYNTH_ENGINE_INTEGRATION_GUIDE.md) | Procedimiento | ✅ | Checklist oficial de 4 capas asépticas y 10 pasos para integrar motores `ISoundEngine` |
 | [SCOPE_INTEGRATION_GUIDE.md](integration/SCOPE_INTEGRATION_GUIDE.md) | Guía | 🟡 | `ScopeCore` y taps SPSC; falta fijar techo de trama y decimación |
 | [THREE_TIER_HARDWARE_ARCHITECTURE.md](integration/THREE_TIER_HARDWARE_ARCHITECTURE.md) | Guía | 🟡 | Contratos JSON → drivers → fachadas. Numeración y rutas de contratos corregidas el 2026-11-10; la prosa aún nombra repositorios fusionados |
 | [WASM_DSP_BUILD_GUIDE.md](integration/WASM_DSP_BUILD_GUIDE.md) | Guía | 🟡 | Ya prohíbe copiar JUCE y exige `DspSources.cmake`; falta el gate de paridad en CI |

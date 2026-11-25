@@ -159,6 +159,9 @@ SemanticControlBinding hydrateControl(const json::JsonValue& ctrl, const std::st
     else if (b.method == ControlWireMethod::SysEx)
     {
         b.sysexAddress = ctrl.getString("sysexAddress");
+        const auto addr = parseHexBytes(b.sysexAddress);
+        b.sysexAddrLen = static_cast<std::uint8_t>(std::min<std::size_t>(addr.size(), 4u));
+        for (std::size_t i = 0; i < b.sysexAddrLen; ++i) b.sysexAddrBytes[i] = addr[i];
     }
 
     float minV = static_cast<float>(ctrl.getNumber("minVal", 0.0));
@@ -266,7 +269,8 @@ std::size_t HardwareProfileHydrator::loadDirectory(const std::string& directoryP
     {
         if (!entry.is_regular_file(ec)) continue;
         const std::string fn = entry.path().filename().string();
-        if (fn.size() < 6 || fn.rfind(".json") != fn.size() - 5 || fn.find(".schema.json") != std::string::npos)
+        if (fn.size() < 6 || fn.rfind(".json") != fn.size() - 5 || fn.find(".schema.json") != std::string::npos
+            || fn.find("_parameter_spec.json") != std::string::npos || fn.find("_modulation_matrix.json") != std::string::npos)
             continue;
         UniversalHardwareProfile prof;
         if (hydrateFromJsonFile(entry.path().string(), prof, applyGmFallbacks, nullptr))

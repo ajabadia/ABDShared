@@ -2,39 +2,48 @@
  * ABDShared — CompactTransportBar.js
  * ===================================
  * Canonical transport control bar for synthesizers, grooveboxes and workstations.
- * Provides Play, Stop, Record, Loop, Metronome with Triple-Mode (Off, Both, Rec)
- * and Tempo with Tap-Tempo and Wheel. Built-in aseptic WebAudio MetronomeClicker.
- * Strict line limit: < 200 lines. Zero external dependencies.
+ * Strict line limit: < 200 lines. Zero window.prompt/alert. Zero dependencies.
  */
 
 import { MetronomeClicker } from './metronomeClicker.js';
+import {
+  buildTransportHtml,
+  formatBarBeatTick,
+  formatQuantizeLabel,
+  openInlineTempoEditor,
+  syncTransportButtons,
+} from './compactTransportBarViews.js';
+
+const QUANTIZE_CYCLE = [0, 8, 16, 32];
 
 export class CompactTransportBar {
   constructor(container, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
     if (!this.container) throw new Error('CompactTransportBar: invalid container');
-
     this.opts = options;
     this.minBpm = options.minBpm ?? 20.0;
     this.maxBpm = options.maxBpm ?? 300.0;
-    this.orientation = options.orientation === 'horizontal' ? 'horizontal' : 'vertical';
-
+    this.orientation = ['horizontal', 'navbar'].includes(options.orientation) ? options.orientation : 'vertical';
     const initMode = options.initialMetroMode || (options.initialMetro ? 'both' : 'off');
     this.state = {
       playing: Boolean(options.initialPlaying),
+      paused: Boolean(options.initialPaused),
       recording: Boolean(options.initialRecording),
       looping: options.initialLooping !== undefined ? Boolean(options.initialLooping) : true,
       metro: initMode !== 'off',
       metroMode: initMode,
+      countInBars: Math.max(0, Math.min(2, Number(options.initialCountInBars ?? 0))),
+      recordMode: options.initialRecordMode === 'replace' ? 'replace' : 'overdub',
+      quantizeSteps: Number(options.initialQuantizeSteps ?? 16),
+      swingPct: Math.max(50, Math.min(75, Math.round(options.initialSwingPct ?? 50))),
+      tick: 0,
       bpm: Math.max(this.minBpm, Math.min(this.maxBpm, options.initialBpm ?? 120.0)),
     };
-
     this.tapHistory = [];
     this.enableAudioMetro = options.enableAudioMetronome !== false;
     this.clicker = this.enableAudioMetro ? new MetronomeClicker({
       onTick: (b, isDown) => this.opts.onMetroClick?.(b, isDown),
     }) : null;
-
     this.render();
     this.bindEvents();
     this.syncMetroAudio();
@@ -47,31 +56,7 @@ export class CompactTransportBar {
   }
 
   render() {
-    const l = this.opts.labels || {};
-    const tag = this.state.metroMode === 'rec' ? 'REC' : (this.state.metroMode === 'both' ? 'ON' : '');
-    this.container.innerHTML = `
-      <div class="abd-transport abd-transport--${this.orientation}">
-        <div class="abd-transport__row abd-transport__row--main">
-          <button type="button" class="abd-transport__btn abd-transport__btn--play ${this.state.playing ? 'is-playing' : ''}" data-act="play" title="${l.play || 'Play'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></button>
-          <button type="button" class="abd-transport__btn abd-transport__btn--stop ${!this.state.playing ? 'is-stopped' : ''}" data-act="stop" title="${l.stop || 'Stop'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><rect width="14" height="14" x="5" y="5" rx="1"/></svg></span></button>
-          <button type="button" class="abd-transport__btn abd-transport__btn--rec ${this.state.recording ? 'is-recording' : ''}" data-act="rec" title="${l.record || 'Record'}"><span class="abd-transport__icon"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg></span></button>
-        </div>
-        <div class="abd-transport__row abd-transport__row--toggles">
-          <button type="button" class="abd-transport__toggle ${this.state.looping ? 'is-active' : ''}" data-act="loop" title="${l.loop || 'Loop'}"><span class="abd-transport__led"></span><span>LOOP</span></button>
-          <button type="button" class="abd-transport__toggle ${this.state.metro ? 'is-active' : ''} ${this.state.metroMode === 'rec' ? 'is-rec-only' : ''}" data-act="metro" title="${this.getMetroTitle()}">
-            <span class="abd-transport__led"></span><span>METRO</span><span class="abd-transport__tag">${tag}</span>
-          </button>
-        </div>
-        <div class="abd-transport__row abd-transport__row--tempo">
-          <button type="button" class="abd-transport__step-btn" data-act="dec" title="-1 BPM">−</button>
-          <div class="abd-transport__tempo-display" data-act="tap" title="Click para Tap Tempo / Doble click para editar">
-            <span class="abd-transport__tempo-num">${this.state.bpm.toFixed(1)}</span>
-            <span class="abd-transport__tempo-unit">BPM</span>
-          </div>
-          <button type="button" class="abd-transport__step-btn" data-act="inc" title="+1 BPM">+</button>
-        </div>
-      </div>
-    `;
+    this.container.innerHTML = buildTransportHtml(this.state, { ...this.opts, orientation: this.orientation }, this.getMetroTitle());
     this.updateButtons();
   }
 
@@ -84,59 +69,78 @@ export class CompactTransportBar {
   }
 
   cycleMetroMode() {
-    if (this.state.metroMode === 'off') this.state.metroMode = 'both';
-    else if (this.state.metroMode === 'both') this.state.metroMode = 'rec';
-    else this.state.metroMode = 'off';
+    this.state.metroMode = this.state.metroMode === 'off' ? 'both' : (this.state.metroMode === 'both' ? 'rec' : 'off');
     this.state.metro = this.state.metroMode !== 'off';
-    this.syncMetroAudio();
-    this.updateButtons();
-    this.opts.onMetro?.(this.state.metro);
-    this.opts.onMetroMode?.(this.state.metroMode);
-    const notice = this.state.metroMode === 'both' ? 'METRONOME: ON (PLAY+REC)' : (this.state.metroMode === 'rec' ? 'METRONOME: REC ONLY' : 'METRONOME: OFF');
-    this.opts.onNotice?.(notice);
+    this.syncMetroAudio(); this.updateButtons();
+    this.opts.onMetro?.(this.state.metro); this.opts.onMetroMode?.(this.state.metroMode);
+    this.opts.onNotice?.(`METRONOME: ${this.state.metroMode.toUpperCase()}`); this.emitChange();
+  }
+
+  cycleQuantize() {
+    const idx = QUANTIZE_CYCLE.indexOf(this.state.quantizeSteps);
+    const next = QUANTIZE_CYCLE[(idx + 1) % QUANTIZE_CYCLE.length];
+    this.setQuantizeSteps(next);
+    this.opts.onQuantizeChange?.(next);
+    this.opts.onNotice?.(`TC QUANTIZE: ${formatQuantizeLabel(next)}`);
     this.emitChange();
   }
 
   bindEvents() {
-    this.container.querySelector('[data-act="play"]')?.addEventListener('click', () => {
-      this.state.playing = true; this.updateButtons(); this.syncMetroAudio();
+    const onAll = (act, fn) => this.container.querySelectorAll(`[data-act="${act}"]`).forEach((el) => el.addEventListener('click', fn));
+    onAll('rtz', () => { this.setPosition(0); this.opts.onReturnToZero?.(); this.opts.onNotice?.('TRANSPORT: RTZ'); this.emitChange(); });
+    onAll('rew', () => { this.opts.onRewind?.(); this.opts.onNotice?.('TRANSPORT: REW -1 BAR'); this.emitChange(); });
+    onAll('ff', () => { this.opts.onForward?.(); this.opts.onNotice?.('TRANSPORT: FF +1 BAR'); this.emitChange(); });
+    onAll('play', () => {
+      this.state.playing = true; this.state.paused = false; this.updateButtons(); this.syncMetroAudio();
       this.opts.onPlay?.(); this.opts.onNotice?.(`TRANSPORT: PLAY (${this.state.bpm.toFixed(1)} BPM)`); this.emitChange();
     });
-    this.container.querySelector('[data-act="stop"]')?.addEventListener('click', () => {
-      this.state.playing = false; this.state.recording = false; this.syncMetroAudio();
+    onAll('pause', () => {
+      this.state.playing = false; this.state.paused = true; this.syncMetroAudio();
+      this.updateButtons(); this.opts.onPause?.(); this.opts.onNotice?.('TRANSPORT: PAUSE'); this.emitChange();
+    });
+    onAll('stop', () => {
+      this.state.playing = false; this.state.paused = false; this.state.recording = false; this.syncMetroAudio();
       this.updateButtons(); this.opts.onStop?.(); this.opts.onNotice?.('TRANSPORT: STOP'); this.emitChange();
     });
-    this.container.querySelector('[data-act="rec"]')?.addEventListener('click', () => {
+    onAll('rec', () => {
       this.state.recording = !this.state.recording; this.syncMetroAudio();
       this.updateButtons(); this.opts.onRecord?.(this.state.recording);
       this.opts.onNotice?.(this.state.recording ? 'TRANSPORT: REC ARMED' : 'TRANSPORT: REC OFF'); this.emitChange();
     });
-    this.container.querySelector('[data-act="loop"]')?.addEventListener('click', () => {
+    onAll('loop', () => {
       this.state.looping = !this.state.looping; this.updateButtons();
-      this.opts.onLoop?.(this.state.looping);
-      this.opts.onNotice?.(this.state.looping ? 'LOOP: ON' : 'LOOP: ONE-SHOT'); this.emitChange();
+      this.opts.onLoop?.(this.state.looping); this.opts.onNotice?.(this.state.looping ? 'LOOP: ON' : 'LOOP: ONE-SHOT'); this.emitChange();
     });
-
-    this.container.querySelector('[data-act="metro"]')?.addEventListener('click', () => this.cycleMetroMode());
-    this.container.querySelector('[data-act="dec"]')?.addEventListener('click', () => this.stepTempo(-1));
-    this.container.querySelector('[data-act="inc"]')?.addEventListener('click', () => this.stepTempo(+1));
+    onAll('countin', () => {
+      this.state.countInBars = (this.state.countInBars + 1) % 3;
+      this.updateButtons(); this.opts.onCountInChange?.(this.state.countInBars);
+      this.opts.onNotice?.(this.state.countInBars > 0 ? `COUNT-IN: ${this.state.countInBars} BAR(S)` : 'COUNT-IN: OFF'); this.emitChange();
+    });
+    onAll('recmode', () => {
+      this.state.recordMode = this.state.recordMode === 'overdub' ? 'replace' : 'overdub';
+      this.updateButtons(); this.opts.onRecordModeChange?.(this.state.recordMode);
+      this.opts.onNotice?.(`REC MODE: ${this.state.recordMode.toUpperCase()}`); this.emitChange();
+    });
+    onAll('metro', () => this.cycleMetroMode());
+    onAll('tc', () => this.cycleQuantize());
+    onAll('swing', () => { this.opts.onOpenGroove?.(); });
+    this.container.querySelector('[data-act="swing"]')?.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.setSwingPct(this.state.swingPct + (e.deltaY < 0 ? 1 : -1));
+      this.opts.onSwingChange?.(this.state.swingPct);
+      this.emitChange();
+    }, { passive: false });
+    onAll('dec', () => this.stepTempo(-1));
+    onAll('inc', () => this.stepTempo(+1));
+    onAll('tap-btn', () => this.handleTap());
 
     const display = this.container.querySelector('.abd-transport__tempo-display');
-    display?.addEventListener('click', () => this.handleTap());
+    display?.addEventListener('click', (e) => { if (!e.target?.classList?.contains('abd-transport__tempo-input')) this.handleTap(); });
     display?.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const delta = e.deltaY < 0 ? (e.shiftKey ? 0.1 : 1.0) : (e.shiftKey ? -0.1 : -1.0);
-      this.setTempo(this.state.bpm + delta);
+      this.setTempo(this.state.bpm + (e.deltaY < 0 ? (e.shiftKey ? 0.1 : 1.0) : (e.shiftKey ? -0.1 : -1.0)));
     }, { passive: false });
-
-    display?.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      const input = prompt('Tempo BPM:', this.state.bpm.toFixed(1));
-      if (input != null) {
-        const val = parseFloat(input);
-        if (!isNaN(val)) this.setTempo(val);
-      }
-    });
+    display?.addEventListener('dblclick', (e) => { e.stopPropagation(); openInlineTempoEditor(this, display); });
   }
 
   handleTap() {
@@ -147,49 +151,43 @@ export class CompactTransportBar {
     if (this.tapHistory.length >= 2) {
       let sum = 0;
       for (let i = 1; i < this.tapHistory.length; ++i) sum += (this.tapHistory[i] - this.tapHistory[i - 1]);
-      const avgMs = sum / (this.tapHistory.length - 1);
-      this.setTempo(Math.round((60000 / avgMs) * 10) / 10);
-      this.opts.onTapTempo?.(this.state.bpm);
-      this.opts.onNotice?.(`TAP TEMPO: ${this.state.bpm.toFixed(1)} BPM`);
+      this.setTempo(Math.round((60000 / (sum / (this.tapHistory.length - 1))) * 10) / 10);
+      this.opts.onTapTempo?.(this.state.bpm); this.opts.onNotice?.(`TAP TEMPO: ${this.state.bpm.toFixed(1)} BPM`);
     } else this.opts.onNotice?.('TAP TEMPO...');
   }
 
   stepTempo(delta) { this.setTempo(Math.round(this.state.bpm + delta)); }
-
+  updateTempoDisplay() { const el = this.container.querySelector('.abd-transport__tempo-num'); if (el) el.textContent = this.state.bpm.toFixed(1); }
   setTempo(val) {
-    const clamped = Math.max(this.minBpm, Math.min(this.maxBpm, Math.round(val * 10) / 10));
-    this.state.bpm = clamped; this.clicker?.setBpm(clamped);
-    const numEl = this.container.querySelector('.abd-transport__tempo-num');
-    if (numEl) numEl.textContent = clamped.toFixed(1);
-    this.opts.onTempoChange?.(clamped); this.emitChange();
+    this.state.bpm = Math.max(this.minBpm, Math.min(this.maxBpm, Math.round(val * 10) / 10));
+    this.clicker?.setBpm(this.state.bpm); this.updateTempoDisplay();
+    this.opts.onTempoChange?.(this.state.bpm); this.emitChange();
   }
-
-  setPlaying(p) { this.state.playing = Boolean(p); this.syncMetroAudio(); this.updateButtons(); this.emitChange(); }
+  setPosition(tick, ppq = 96) {
+    this.state.tick = Math.max(0, Math.floor(tick));
+    const pos = formatBarBeatTick(this.state.tick, ppq);
+    const barEl = this.container.querySelector('[data-role="clock-bar"]');
+    const beatEl = this.container.querySelector('[data-role="clock-beat"]');
+    const tickEl = this.container.querySelector('[data-role="clock-tick"]');
+    if (barEl) barEl.textContent = pos.bar;
+    if (beatEl) beatEl.textContent = pos.beat;
+    if (tickEl) tickEl.textContent = pos.tick;
+  }
+  setQuantizeSteps(steps) { this.state.quantizeSteps = Number(steps ?? 0); this.updateButtons(); }
+  setSwingPct(pct) { this.state.swingPct = Math.max(50, Math.min(75, Math.round(Number(pct ?? 50)))); this.updateButtons(); }
+  setPlaying(p) { this.state.playing = Boolean(p); if (this.state.playing) this.state.paused = false; this.syncMetroAudio(); this.updateButtons(); this.emitChange(); }
+  setPaused(p) { this.state.paused = Boolean(p); if (this.state.paused) this.state.playing = false; this.syncMetroAudio(); this.updateButtons(); this.emitChange(); }
   setRecording(r) { this.state.recording = Boolean(r); this.syncMetroAudio(); this.updateButtons(); this.emitChange(); }
   setLooping(l) { this.state.looping = Boolean(l); this.updateButtons(); this.emitChange(); }
+  setCountInBars(b) { this.state.countInBars = Math.max(0, Math.min(2, Number(b ?? 0))); this.updateButtons(); this.emitChange(); }
+  setRecordMode(m) { this.state.recordMode = m === 'replace' ? 'replace' : 'overdub'; this.updateButtons(); this.emitChange(); }
   setMetro(m) { this.setMetroMode(m ? 'both' : 'off'); }
-  setMetroMode(mode) {
-    this.state.metroMode = (mode === 'rec' || mode === 'both') ? mode : 'off';
-    this.state.metro = this.state.metroMode !== 'off';
-    this.syncMetroAudio(); this.updateButtons(); this.emitChange();
-  }
-
+  setMetroMode(mode) { this.state.metroMode = (mode === 'rec' || mode === 'both') ? mode : 'off'; this.state.metro = this.state.metroMode !== 'off'; this.syncMetroAudio(); this.updateButtons(); this.emitChange(); }
   playMetroClick(isDownbeat = false) { this.clicker?.playClick(isDownbeat); }
 
   updateButtons() {
-    const q = (s) => this.container.querySelector(s);
-    q('.abd-transport__btn--play')?.classList.toggle('is-playing', this.state.playing);
-    q('.abd-transport__btn--stop')?.classList.toggle('is-stopped', !this.state.playing);
-    q('.abd-transport__btn--rec')?.classList.toggle('is-recording', this.state.recording);
-    q('[data-act="loop"]')?.classList.toggle('is-active', this.state.looping);
-    const mBtn = q('[data-act="metro"]');
-    mBtn?.classList.toggle('is-active', this.state.metro);
-    mBtn?.classList.toggle('is-rec-only', this.state.metroMode === 'rec');
-    mBtn?.setAttribute('title', this.getMetroTitle());
-    const tagEl = this.container.querySelector('.abd-transport__tag');
-    if (tagEl) tagEl.textContent = this.state.metroMode === 'rec' ? 'REC' : (this.state.metroMode === 'both' ? 'ON' : '');
+    syncTransportButtons(this.container, this.state, this.getMetroTitle());
   }
-
   emitChange() { this.opts.onTransportChange?.({ ...this.state }); }
   getState() { return { ...this.state }; }
   destroy() { this.clicker?.destroy(); this.container.innerHTML = ''; }

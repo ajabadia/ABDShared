@@ -1,0 +1,120 @@
+/**
+ * ABDShared — Components/SynthEngines/Emax/emax-panel.css
+ * Estilos canónicos tokenizados del panel Emax II (100% custom properties, 0 colores hex).
+ * Strict line limit: < 200 lines.
+ */
+
+.emax-panel {
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+}
+
+.emax-panel [hidden] {
+  display: none;
+}
+
+.emax-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emax-telemetry {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  background: var(--color-panel-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.emax-telemetry-cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.emax-telemetry-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs, 10px);
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.emax-telemetry-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.emax-stage-pane:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.emax-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.emax-top-card {
+  gap: var(--space-2);
+}
+
+.emax-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+
+.emax-menu-view {
+  gap: var(--space-2);
+}
+
+.emax-menu-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emax-menu-nav-btn {
+  min-inline-size: 2.25rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.emax-menu-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emax-menu-select {
+  min-inline-size: 10.5rem;
+  font-family: var(--font-mono);
+}
+
+.emax-menu-title {
+  margin-inline-start: auto;
+  color: var(--color-accent);
+}
+
+.emax-param-row {
+  position: relative;
+}
+
+.emax-param-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

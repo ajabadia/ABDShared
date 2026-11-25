@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "2.0",
+  "id": "emu_emax2",
+  "aliases": ["emu-emax2", "emax_synth", "emax2", "emu-emax"],
+  "displayName": "E-mu Emax II Digital Sampling System",
+  "description": "Perfil aséptico del reproductor E-mu Emax II: 88 zonas, filtro H-Chip Q2.14, envolventes AHDSR de voz/filtro, LFO, matriz de velocidad y stereo voice chorus.",
+  "deviceType": "AUTOMATED_NRPN",
+  "category": "Vintage Sampler / Player",
+  "brand": "E-mu",
+  "brandLogo": "",
+  "modelImage": "models/emu-emax2.webp",
+  "isSoftsynth": true,
+  "midiIdentification": {
+    "manufacturer": "E-mu Systems",
+    "manufacturerIdHex": "18",
+    "model": "Emax II",
+    "modelIdHex": "04",
+    "portNameMatches": ["Emax II", "EMAX", "Emax"]
+  },
+  "functions": [
+    {
+      "id": "voice_and_amp",
+      "name": "00 Change Voice & Amp AHDSR",
+      "blockType": "TimeDynamic",
+      "controls": [
+        { "index": 1, "name": "Voice Layer Mode", "semanticRole": "Osc1Waveform", "type": "Knob", "controlMethod": "NRPN", "nrpn": 256, "minVal": 0.0, "maxVal": 99.0, "defaultVal": 0.0, "unit": "enum" },
+        { "index": 2, "name": "Voice Fine Tune", "semanticRole": "Osc1FineTune", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 21, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "cents" },
+        { "index": 3, "name": "Voice Level", "semanticRole": "Osc1Level", "type": "Knob", "controlMethod": "NRPN", "nrpn": 258, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 127.0, "unit": "ratio" },
+        { "index": 4, "name": "Voice Delay", "semanticRole": "AmpEnvDelay", "type": "Knob", "controlMethod": "NRPN", "nrpn": 259, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ms" },
+        { "index": 5, "name": "Fixed Pitch", "semanticRole": "OscKeyTrack", "type": "Toggle", "controlMethod": "NRPN", "nrpn": 260, "minVal": 0.0, "maxVal": 1.0, "defaultVal": 0.0, "unit": "enum" },
+        { "index": 6, "name": "Amp Attack", "semanticRole": "AmpEnvAttack", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 73, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 6.0, "unit": "s" },
+        { "index": 7, "name": "Amp Hold", "semanticRole": "AmpEnvHold", "type": "Knob", "controlMethod": "NRPN", "nrpn": 262, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 38.0, "unit": "s" },
+        { "index": 8, "name": "Amp Decay", "semanticRole": "AmpEnvDecay", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 75, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "s" },
+        { "index": 9, "name": "Amp Sustain", "semanticRole": "AmpEnvSustain", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 79, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 89.0, "unit": "ratio" },
+        { "index": 10, "name": "Amp Release", "semanticRole": "AmpEnvRelease", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 72, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 38.0, "unit": "s" }
+      ]
+    },
+    {
+      "id": "hchip_filter",
+      "name": "13 Filter Setup & 14 Filter AHDSR",
+      "blockType": "SpectrumFilter",
+      "controls": [
+        { "index": 1, "name": "Filter Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 74, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 95.0, "unit": "Hz" },
+        { "index": 2, "name": "Filter Q", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 71, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 25.0, "unit": "ratio" },
+        { "index": 3, "name": "Filter Env Amount", "semanticRole": "FilterEnvDepth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 80, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 95.0, "unit": "ratio" },
+        { "index": 4, "name": "Filter Env Track", "semanticRole": "FilterKeyTrack", "type": "Knob", "controlMethod": "NRPN", "nrpn": 269, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 5, "name": "Filter Attack", "semanticRole": "FilterEnvAttack", "type": "Knob", "controlMethod": "NRPN", "nrpn": 270, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 6.0, "unit": "s" },
+        { "index": 6, "name": "Filter Hold", "semanticRole": "FilterEnvHold", "type": "Knob", "controlMethod": "NRPN", "nrpn": 271, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 38.0, "unit": "s" },
+        { "index": 7, "name": "Filter Decay", "semanticRole": "FilterEnvDecay", "type": "Knob", "controlMethod": "NRPN", "nrpn": 272, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "s" },
+        { "index": 8, "name": "Filter Sustain", "semanticRole": "FilterEnvSustain", "type": "Knob", "controlMethod": "NRPN", "nrpn": 273, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 89.0, "unit": "ratio" },
+        { "index": 9, "name": "Filter Release", "semanticRole": "FilterEnvRelease", "type": "Knob", "controlMethod": "NRPN", "nrpn": 274, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 38.0, "unit": "s" }
+      ]
+    },
+    {
+      "id": "lfo_modulation",
+      "name": "15 LFO Setup & 16 LFO to",
+      "blockType": "CyclicModulator",
+      "controls": [
+        { "index": 1, "name": "LFO Rate", "semanticRole": "Lfo1Rate", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 76, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 32.0, "unit": "Hz" },
+        { "index": 2, "name": "LFO Delay", "semanticRole": "Lfo1Delay", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 78, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "s" },
+        { "index": 3, "name": "LFO Variation", "semanticRole": "Lfo1Variation", "type": "Knob", "controlMethod": "NRPN", "nrpn": 277, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 4, "name": "LFO to Pitch", "semanticRole": "Lfo1Depth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 77, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ratio" },
+        { "index": 5, "name": "LFO to Filter", "semanticRole": "FilterLfoDepth", "type": "Knob", "controlMethod": "NRPN", "nrpn": 279, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ratio" },
+        { "index": 6, "name": "LFO to Tremolo", "semanticRole": "TremoloDepth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 92, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ratio" },
+        { "index": 7, "name": "LFO to Pan", "semanticRole": "Lfo1PanDepth", "type": "Knob", "controlMethod": "NRPN", "nrpn": 281, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ratio" }
+      ]
+    },
+    {
+      "id": "velocity_and_output",
+      "name": "17-22 Velocity Matrix, Pan, Chorus & Mode",
+      "blockType": "AmplitudeGain",
+      "controls": [
+        { "index": 1, "name": "Velocity to Level", "semanticRole": "AmpEnvVelocity", "type": "Knob", "controlMethod": "NRPN", "nrpn": 282, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 2, "name": "Velocity to Cutoff", "semanticRole": "FilterEnvVelocity", "type": "Knob", "controlMethod": "NRPN", "nrpn": 283, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 3, "name": "Velocity to Q", "semanticRole": "FilterVelResonance", "type": "Knob", "controlMethod": "NRPN", "nrpn": 284, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 4, "name": "Velocity to Pitch", "semanticRole": "ModSlot2Amount", "type": "Knob", "controlMethod": "NRPN", "nrpn": 285, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 5, "name": "Velocity to Amp Attack", "semanticRole": "AmpEnvVelAttack", "type": "Knob", "controlMethod": "NRPN", "nrpn": 286, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 6, "name": "Velocity to Filter Attack", "semanticRole": "FilterEnvVelAttack", "type": "Knob", "controlMethod": "NRPN", "nrpn": 287, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 7, "name": "Velocity to Pan", "semanticRole": "PartVelPan", "type": "Knob", "controlMethod": "NRPN", "nrpn": 288, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "ratio" },
+        { "index": 8, "name": "Panning", "semanticRole": "PartPan", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 10, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "pan" },
+        { "index": 9, "name": "Chorus", "semanticRole": "PartChorusSend", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 93, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 0.0, "unit": "ratio" },
+        { "index": 10, "name": "Keyboard Mode", "semanticRole": "VoicePolyMode", "type": "Segmented", "controlMethod": "NRPN", "nrpn": 291, "minVal": 0.0, "maxVal": 3.0, "defaultVal": 0.0, "unit": "enum", "options": ["Poly", "Mono", "Solo", "Multi"] },
+        { "index": 11, "name": "Control Enable", "semanticRole": "VoiceControlEnable", "type": "Toggle", "controlMethod": "NRPN", "nrpn": 292, "minVal": 0.0, "maxVal": 1.0, "defaultVal": 1.0, "unit": "enum" }
+      ]
+    }
+  ]
+}

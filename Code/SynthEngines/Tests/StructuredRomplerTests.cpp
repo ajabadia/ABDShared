@@ -1,3 +1,4 @@
+#include "StructuredRompler/RomplerBankIndex.h"
 #include "StructuredRompler/RomplerBankLoader.h"
 #include "StructuredRompler/RomplerFactoryPatches.h"
 #include "StructuredRompler/StructuredRomplerEngine.h"
@@ -243,22 +244,51 @@ int main()
 
     // Test 7: .abdbank ZIP loading via RomplerBankLoader
     {
-        const std::string manifest =
-            R"({"schemaVersion":"1.0.0","formatId":"abd_structured_rompler","bankName":"TestBank","author":"ABDSynths","wavePool":[{"id":"w_0000","name":"sine_wave","sourceKind":"pcm_zone","playMode":"forward","rootKey":60,"loopStartFrame":0,"loopEndFrame":512}],"tones":[{"id":"t0","name":"Sine Tone"}]})";
+        const std::string manifest = R"({"schemaVersion":"1.0.0","formatId":"abd_structured_rompler","bankName":"TestBank","author":"ABDSynths","wavePool":[{"id":"w_0000","name":"sine_wave","sourceKind":"pcm_zone","playMode":"forward","rootKey":60,"loopStartFrame":0,"loopEndFrame":512}],"tones":[{"id":"t0","name":"Sine Tone"}]})";
         const auto wav = buildTestPcmWav(1024);
         std::vector<std::uint8_t> zip;
         appendZipEntry(zip, "manifest.json", reinterpret_cast<const std::uint8_t*>(manifest.data()), manifest.size());
         appendZipEntry(zip, "waves/w_0000.wav", wav.data(), wav.size());
-
         RomplerBankLoader loader;
         const bool loaded = loader.loadFromMemory(zip.data(), zip.size());
         auto eng = std::make_unique<StandaloneStructuredRomplerEngine>();
         eng->prepare(44100.0, kBlock);
-        const bool applied = loaded && loader.applyTone(0, *eng);
-        eng->noteOn(60, 0.9f, 0.0f);
-        const bool active = applied && eng->renderBlock(bufL.data(), bufR.data(), kBlock);
+        const bool active = loaded && loader.applyTone(0, *eng) && (eng->noteOn(60, 0.9f, 0.0f), eng->renderBlock(bufL.data(), bufR.data(), kBlock));
         check(loaded && loader.getWaveCount() == 1 && active && allFinite(bufL) && computeRms(bufL, bufR) > 1e-3f,
               "T7: RomplerBankLoader parses .abdbank ZIP + 16-bit WAV and renders PCM audio");
+    }
+
+    // Test 8: RomplerBankIndex per-partial & drum-slot wave assignment + factory category metadata
+    {
+        const std::string manifest = R"({"schemaVersion":"1.0.0","formatId":"abd_structured_rompler","bankId":"test_idx","bankName":"Test Index","wavePool":[{"id":"w_0000","name":"Sine Wave","sourceKind":"pcm_zone","playMode":"forward","rootKey":60},{"id":"w_0001","name":"Snare Wave","sourceKind":"pcm_zone","playMode":"oneshot","rootKey":38}],"tones":[{"id":"t0","name":"Sine Tone","categoryId":4,"structureMode":0}],"drumKits":[{"id":"k0","name":"Test Kit","categoryId":8,"slots":[]}]})";
+        const auto wav = buildTestPcmWav(512);
+        std::vector<std::uint8_t> zip;
+        appendZipEntry(zip, "manifest.json", reinterpret_cast<const std::uint8_t*>(manifest.data()), manifest.size());
+        appendZipEntry(zip, "waves/w_0000.wav", wav.data(), wav.size());
+        appendZipEntry(zip, "waves/w_0001.wav", wav.data(), wav.size());
+
+        RomplerBankIndex idx;
+        auto eng = std::make_unique<StandaloneStructuredRomplerEngine>();
+        eng->prepare(44100.0, kBlock);
+        const bool okIdx = idx.indexFromMemory(zip.data(), zip.size());
+        const bool okP = okIdx && idx.assignWaveToPartialOnDemand(0, 1, *eng);
+        const bool okSwap = okIdx && idx.assignWaveToPartialOnDemand(1, 1, *eng);
+        const bool okDrum = okIdx && idx.assignWaveToDrumSlotOnDemand(1, 38, *eng);
+        const bool okMeta = okIdx && idx.getTone(0)->categoryId == 4 && idx.getDrumKit(0)->categoryId == 8 &&
+                            eng->getFactoryPresetCategory(16) == 8 && eng->isFactoryPresetDrumMode(16) &&
+                            eng->isActiveStateDrumMode();
+        std::size_t descCount = 0; const auto* ctrlDescs = eng->getControlInputDescriptors(descCount);
+        float dSend = 0.0f, lfoT = -1.0f;
+        const bool okDelay = eng->setParamByKey("drum.36.delaySend", 0.72f) && eng->getParamByKey("drum.36.delaySend", dSend) && std::abs(dSend - 0.72f) < 1e-4f && ctrlDescs != nullptr && descCount == 24;
+        const bool okLfoT = eng->setParamByKey("lfo1.target", 5.0f) && eng->getParamByKey("lfo1.target", lfoT) && std::abs(lfoT - 3.0f) < 1e-4f;
+        eng->setParamByKey("drum.38.reverbSend", 1.0f); eng->setParamByKey("drum.38.chorusSend", 1.0f); eng->setParamByKey("drum.38.delaySend", 0.5f);
+        eng->noteOn(38, 0.9f, 0.0f); (void)eng->renderBlock(bufL.data(), bufR.data(), kBlock);
+        double lrDiff = 0.0; for (int i = 0; i < kBlock; ++i) lrDiff += std::abs(bufL[i] - bufR[i]);
+        check(okP && okSwap && okDrum && okMeta && okDelay && okLfoT && lrDiff > 1e-3 && eng->wavePool().getLoadedWaveCount() == 1,
+              "T8: RomplerBankIndex + drum sends/stereo + lfo1.target clamp(0..3) + 24 descriptors pass cleanly");
+        eng->configureAsJv880(); eng->noteOn(60, 0.9f, 0.0f); (void)eng->renderBlock(bufL.data(), bufR.data(), kBlock);
+        check(std::string(eng->getEngineTypeId()) == "jv880_synth" && !eng->supportsDrumMode() && eng->getFactoryPresetCount() == 64 && computeRms(bufL, bufR) > 1e-3f,
+              "T9: configureAsJv880 activates jv880_synth (64 Preset A tones) and renders audio");
     }
 
     std::cout << "\nSummary: " << gPassed << " passed, " << gFailed << " failed.\n";

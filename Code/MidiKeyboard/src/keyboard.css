@@ -91,6 +91,7 @@
    ══════════════════════════════════════════════════════════════ */
 .kbd-white-key {
   flex: 1;
+  min-width: var(--kbd-key-min-width, 18px);
   background: linear-gradient(to bottom,
     var(--kbd-ivory-top, var(--kbd-white-top, #fdfcf8)) 0%,
     var(--kbd-ivory-base, var(--kbd-white-base, #ffffff)) 40%,
@@ -384,6 +385,35 @@
   opacity: 1;
   filter: none;
   transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PLAYABLE NOTES / UNASSIGNED KEY DISABLING (Drums, Maps, Zones)
+   ══════════════════════════════════════════════════════════════ */
+.kbd-white-key.kbd-key-disabled {
+  background: var(--kbd-disabled-white-bg, linear-gradient(180deg, #565d68 0%, #3d434d 100%)) !important;
+  color: var(--kbd-disabled-text, #9aa3b0);
+  opacity: var(--kbd-disabled-opacity, 0.45);
+  filter: grayscale(0.85);
+  cursor: not-allowed;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.kbd-black-key.kbd-key-disabled {
+  background: var(--kbd-disabled-black-bg, linear-gradient(180deg, #1b1e24 0%, #101216 100%)) !important;
+  opacity: var(--kbd-disabled-opacity, 0.35);
+  filter: grayscale(0.85);
+  cursor: not-allowed;
+}
+.kbd-white-key.kbd-key-disabled:hover,
+.kbd-black-key.kbd-key-disabled:hover {
+  filter: grayscale(0.85);
+  transform: none;
+}
+.kbd-white-key.kbd-key-assigned {
+  box-shadow: inset 0 -3px 0 var(--kbd-assigned-color, var(--color-accent, #00ccff));
+}
+.kbd-black-key.kbd-key-assigned {
+  box-shadow: inset 0 -2px 0 var(--kbd-assigned-color, var(--color-accent, #00ccff));
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -32,6 +32,8 @@ import {
 } from '../NeuronFormats/index.ts';
 import { parseSliceFile, parseWavSliceCues, type ParsedSliceMarker } from './SliceFileParser.ts';
 import { decompressRx2Audio, isRx2Buffer } from './DwopDecompressor.ts';
+import { decompressSfArk, isSfArkBuffer } from './sfark/sfarkDecoder.ts';
+import { decompressSfPack, isSfPackBuffer } from './sfpack/sfpackDecoder.ts';
 import type {
   CrossfadeCurve,
   DahdsrEnvelope,
@@ -63,6 +65,10 @@ import {
   listEmuDiskPrograms,
   parseEmuDiskProgram,
 } from './EmuDiskFormat.ts';
+import {
+  importSf2PresetToNative,
+  listSf2Presets,
+} from './Sf2Parser.ts';
 import {
   isRolandDiskImage,
   listRolandDiskPrograms,
@@ -1865,6 +1871,75 @@ export function parseDlsPreset(
   };
 }
 
+export function isSf2Buffer(data: ArrayBuffer): boolean {
+  if (data.byteLength < 12) return false;
+  const v = new DataView(data);
+  return v.getUint32(0, false) === 0x52494646 && v.getUint32(8, false) === 0x7366626b;
+}
+
+export { isSfArkBuffer, decompressSfArk };
+export { isSfPackBuffer, decompressSfPack };
+
+export function parseSf2PresetToUniversal(
+  buffer: ArrayBuffer,
+  presetIndex = 0,
+  fallbackName = 'SF2Preset'
+): ParsedSamplerPreset {
+  const sf2 = importSf2PresetToNative(buffer, presetIndex);
+  const audioBuffers = new Map<string, ArrayBuffer>();
+  for (const f of sf2.audioFiles) {
+    audioBuffers.set(f.name, f.buffer);
+  }
+  const regions: ParsedImportRegion[] = sf2.extendedRegions.map((r, idx) => ({
+    id: r.id || `sf2_reg_${idx + 1}`,
+    sampleName: r.sampleName,
+    samplePath: r.sampleName,
+    rootKey: r.rootKey,
+    lowKey: r.lowKey,
+    highKey: r.highKey,
+    lowVel: r.lowVel,
+    highVel: r.highVel,
+    detuneCents: r.detune,
+    volumeDb: r.volume,
+    pan: r.pan,
+    loopMode: r.loopMode,
+    loopStart: r.loopStart,
+    loopEnd: r.loopEnd,
+    loops: r.loops,
+    muteGroup: r.muteGroup,
+  }));
+  return {
+    format: 'sf2',
+    formatLabel: 'SoundFont 2 (.sf2)',
+    presetName: sf2.presetName || fallbackName,
+    modelName: sf2.modelName || fallbackName,
+    detectedCategory: sf2.detectedCategory,
+    suggestedParameterSet: sf2.suggestedParameterSet,
+    regions,
+    audioBuffers,
+    envelope: sf2.articulation?.ampEnv
+      ? {
+          attack: sf2.articulation.ampEnv.attackSec,
+          decay: sf2.articulation.ampEnv.decaySec,
+          sustain: sf2.articulation.ampEnv.sustainLevel,
+          release: sf2.articulation.ampEnv.releaseSec,
+          delay: sf2.articulation.ampEnv.delaySec,
+          hold: sf2.articulation.ampEnv.holdSec,
+        }
+      : undefined,
+    filter: sf2.articulation?.filter
+      ? {
+          enabled: sf2.articulation.filter.enabled,
+          type: sf2.articulation.filter.type,
+          cutoffHz: sf2.articulation.filter.cutoffHz,
+          resonanceDb: sf2.articulation.filter.resonanceDb,
+        }
+      : undefined,
+    articulation: sf2.articulation,
+    metadata: sf2.metadata,
+  };
+}
+
 // ─────────────────────────────────────────────────────────
 // 5. Linear Sample Chains Parser (Octatrack / SP-404 / OP-1)
 // ─────────────────────────────────────────────────────────
@@ -2120,6 +2195,101 @@ export async function listZipSamplerPrograms(
   data: ArrayBuffer
 ): Promise<ArchiveSamplerProgramInfo[]> {
   const lower = filename.toLowerCase();
+
+  // Direct vintage E-mu file formats (.exb, .e4b, .esi)
+  if (lower.endsWith('.exb') || lower.endsWith('.e4b') || lower.endsWith('.esi')) {
+    try {
+      const emuProgs = listEmuDiskPrograms(data);
+      if (emuProgs.length > 0) return emuProgs;
+    } catch {
+      // Fallback
+    }
+    return [
+      {
+        id: cleanBasename(filename),
+        index: 0,
+        name: cleanBasename(filename).replace(/\.[^.]+$/, ''),
+        format: 'emu_disk',
+        detail: 'E-mu Bank (.exb/.e4b/.esi)',
+      },
+    ];
+  }
+
+  // Direct SoundFont 2 (.sf2)
+  if (lower.endsWith('.sf2') || (typeof data !== 'string' && isSf2Buffer(data))) {
+    try {
+      const sf2Progs = listSf2Presets(data);
+      if (sf2Progs.length > 0) {
+        return sf2Progs.map((p) => ({
+          id: String(p.index),
+          index: p.index,
+          name: p.name,
+          format: 'sf2' as const,
+          detail: `SoundFont 2 (Bank ${p.bank}:${p.presetNumber}, ${p.regionCount} zones)`,
+          regionCount: p.regionCount,
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+    return [
+      {
+        id: '0',
+        index: 0,
+        name: cleanBasename(filename).replace(/\.sf2$/i, ''),
+        format: 'sf2',
+        detail: 'SoundFont 2 (.sf2)',
+      },
+    ];
+  }
+
+  // Compressed SoundFont (.sfark)
+  if (lower.endsWith('.sfark') || (typeof data !== 'string' && isSfArkBuffer(new Uint8Array(data)))) {
+    try {
+      const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+      const sf2Data = await decompressSfArk(rawBytes);
+      const sf2Name = cleanBasename(filename).replace(/\.sfark$/i, '.sf2');
+      const innerProgs = await listZipSamplerPrograms(sf2Name, sf2Data.buffer as ArrayBuffer);
+      return innerProgs.map((p) => ({
+        ...p,
+        detail: `sfArk -> ${p.detail}`,
+      }));
+    } catch {
+      return [
+        {
+          id: '0',
+          index: 0,
+          name: cleanBasename(filename).replace(/\.sfark$/i, ''),
+          format: 'sf2',
+          detail: 'sfArk Compressed SoundFont (.sfark)',
+        },
+      ];
+    }
+  }
+
+  // Compressed SoundFont (.sfpack, Megota SFPack, native TypeScript)
+  if (lower.endsWith('.sfpack') || (typeof data !== 'string' && isSfPackBuffer(data))) {
+    try {
+      const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+      const sf2Data = decompressSfPack(rawBytes.buffer as ArrayBuffer);
+      const sf2Name = cleanBasename(filename).replace(/\.sfpack$/i, '.sf2');
+      const innerProgs = await listZipSamplerPrograms(sf2Name, sf2Data.buffer as ArrayBuffer);
+      return innerProgs.map((p) => ({
+        ...p,
+        detail: `SFPack -> ${p.detail}`,
+      }));
+    } catch {
+      return [
+        {
+          id: '0',
+          index: 0,
+          name: cleanBasename(filename).replace(/\.sfpack$/i, ''),
+          format: 'sf2',
+          detail: 'SFPack Compressed SoundFont (.sfpack)',
+        },
+      ];
+    }
+  }
 
   // Vintage Sampler Disk Images (.iso, .img, .dsk, .out, .hda, .efe, .ede)
   if (typeof data !== 'string') {
@@ -2408,6 +2578,14 @@ export async function listZipSamplerPrograms(
         name: base.replace(/\.sfz$/i, ''),
         format: 'sfz',
         detail: 'SFZ Instrument',
+      });
+    } else if (nLower.endsWith('.sf2')) {
+      programs.push({
+        id: norm,
+        index: programs.length,
+        name: base.replace(/\.sf2$/i, ''),
+        format: 'sf2',
+        detail: 'SoundFont 2 (.sf2)',
       });
     } else if (nLower.endsWith('.adv')) {
       programs.push({
@@ -2769,6 +2947,12 @@ export async function parseUniversalSampler(
       isMultiLayer: regions.some((r) => r.lowVel > 1 || r.highVel < 127),
       sourceFormat: 'abdsmpl',
     };
+  }
+
+  // Direct vintage E-mu file formats (.exb, .e4b, .esi)
+  if (lower.endsWith('.exb') || lower.endsWith('.e4b') || lower.endsWith('.esi')) {
+    const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+    return parseEmuDiskProgram(bytes, targetProgramPath || cleanBasename(filename), zipEntries);
   }
 
   // 0. Vintage Sampler Disk Images (Akai, E-mu, Roland, Ensoniq, Yamaha, Casio, MPC)
@@ -3768,11 +3952,29 @@ export async function parseUniversalSampler(
     return parseDlsPreset(buf, instIdx, cleanBasename(filename).replace(/\.dls$/i, ''));
   }
 
-  // Direct vintage file formats (standalone files)
-  if (lower.endsWith('.exb') || lower.endsWith('.e4b') || lower.endsWith('.esi')) {
-    const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
-    return parseEmuDiskProgram(bytes, targetProgramPath || cleanBasename(filename), zipEntries);
+  // SoundFont 2 (.sf2)
+  if (lower.endsWith('.sf2') || (typeof data !== 'string' && isSf2Buffer(data))) {
+    const buf = (typeof data === 'string' ? new TextEncoder().encode(data).buffer : data) as ArrayBuffer;
+    const instIdx = targetProgramPath ? parseInt(targetProgramPath, 10) || 0 : 0;
+    return parseSf2PresetToUniversal(buf, instIdx, cleanBasename(filename).replace(/\.sf2$/i, ''));
   }
+
+  // Compressed SoundFont (.sfark)
+  if (lower.endsWith('.sfark') || (typeof data !== 'string' && isSfArkBuffer(new Uint8Array(data)))) {
+    const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+    const decompressedSf2 = await decompressSfArk(rawBytes);
+    const sf2Name = cleanBasename(filename).replace(/\.sfark$/i, '.sf2');
+    return parseUniversalSampler(sf2Name, decompressedSf2.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath);
+  }
+
+  // Compressed SoundFont (.sfpack, Megota SFPack, native TypeScript)
+  if (lower.endsWith('.sfpack') || (typeof data !== 'string' && isSfPackBuffer(data))) {
+    const rawBytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+    const sf2Data = decompressSfPack(rawBytes.buffer as ArrayBuffer);
+    const sf2Name = cleanBasename(filename).replace(/\.sfpack$/i, '.sf2');
+    return parseUniversalSampler(sf2Name, sf2Data.buffer as ArrayBuffer, zipEntries, decodedWavBufferOrProgramPath, selectedProgramPath);
+  }
+
 
   if (lower.endsWith('.akp') || (typeof data !== 'string' && isAkpData(data))) {
     const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);

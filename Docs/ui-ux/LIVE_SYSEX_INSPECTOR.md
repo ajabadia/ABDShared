@@ -31,6 +31,7 @@ interface LiveSysExInspectorOptions {
   onClose?: () => void;         // Callback al cerrar/ocultar
   onExport?: (blob, name) => void;
   onByteEdited?: (payload: { index: number; previous: number; value: number; buffer: Uint8Array }) => void;
+  describeByte?: (index: number, value: number, buffer: Uint8Array) => string | { name: string; group?: string; detail?: string } | null;
 }
 
 class LiveSysExInspector {
@@ -154,9 +155,10 @@ off();                         // baja de la suscripción
 
 `setByte()` **no modifica nada** si la validación falla: devuelve `reason`/`message` y muestra el motivo en el pie. Si pasa, actualiza el búfer, dispara el pulso `sysex-pulse` del byte y notifica a los suscriptores. Escribir el mismo valor devuelve `changed: false` y no emite (ni anima).
 
-### 5.3 Interacción en la rejilla
+### 5.3 Interacción en la rejilla e Inspección Semántica
 
 * **Clic** (o `Enter`/`F2` con la celda enfocada) abre un campo en línea con el valor hex actual seleccionado.
+* **Inspección semántica (`describeByte`)**: Al hacer clic o pasar el puntero (`pointerover`) sobre cualquier celda de byte, el pie (`footer`) actualiza la información descriptiva en tiempo real (nombre de parámetro, bloque/grupo funcional y valor decodificado en Hz/ms/%/enum según el contrato del sintetizador). Los tooltips nativos (`title`) de cada celda se enriquecen con esta misma información.
 * `Enter` aplica; `Escape` cancela y restaura; el `blur` cancela.
 * Un valor no válido (`FF`, texto, vacío) **no se escribe**: el campo queda abierto marcado en rojo y el motivo aparece en el pie.
 * `SOF` y `EOX` se pintan bloqueados (`cursor: not-allowed`) y no abren editor.

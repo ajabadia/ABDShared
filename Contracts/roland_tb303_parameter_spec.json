@@ -1,0 +1,40 @@
+{
+  "$schema": "./parameter_dictionary.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "roland_tb303",
+  "displayName": "Roland TB-303 Devilfish Acid Bassline Parameter Spec",
+  "topology": "fixed",
+  "totalParameters": 15,
+  "engineId": "tb303_synth",
+  "wireTopology": {
+    "cc": {
+      "mapped": [5, 7, 20, 21, 22, 65, 70, 71, 74, 75, 79, 80, 81, 82, 83],
+      "source": "ABDShared/Components/SynthEngines/Tb303/tb303ParamSpecs.js"
+    },
+    "nrpn": { "msb": 3, "lsbRange": "0..14", "order": "CC99=3 -> CC98=idx -> CC6=0..127" },
+    "sysex": {
+      "format": "Roland DT1 (0x12)",
+      "modelId": "0x7D 0x03",
+      "frameTemplate": "F0 41 10 00 03 12 00 03 <idx> <val7> <checksum> F7",
+      "note": "Control aséptico primario vía MIDI CC / NRPN; los parámetros del núcleo se mapean por semanticRole."
+    },
+    "domainTargets": { "source": "ABDShared/Code/SynthEngines/Tb303/Tb303SoundEngine.cpp:112-162" }
+  },
+  "parameters": [
+    { "id": "tuningA4", "name": "Tuning A4", "group": "Pitch", "scope": "global", "semanticRole": "MasterTuneCents", "type": "continuous", "min": 0, "max": 127, "default": 64, "domainMin": 400.0, "domainMax": 480.0, "unit": "Hz", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 22, "nrpnMsb": 3, "nrpnLsb": 0 },
+    { "id": "coarse", "name": "Coarse Tune", "group": "Pitch", "scope": "global", "semanticRole": "Osc1CoarseTune", "type": "bipolar", "min": 0, "max": 127, "default": 64, "domainMin": -24.0, "domainMax": 24.0, "unit": "st", "curve": "SymBipolar", "wire": "CC", "wireCodec": "Bipolar", "wireZeroCenter": 64, "cc": 20, "nrpnMsb": 3, "nrpnLsb": 1 },
+    { "id": "fine", "name": "Fine Tune", "group": "Pitch", "scope": "global", "semanticRole": "Osc1FineTune", "type": "bipolar", "min": 0, "max": 127, "default": 64, "domainMin": -100.0, "domainMax": 100.0, "unit": "cents", "curve": "SymBipolar", "wire": "CC", "wireCodec": "Bipolar", "wireZeroCenter": 64, "cc": 21, "nrpnMsb": 3, "nrpnLsb": 2 },
+    { "id": "cutoff", "name": "VCF Cutoff Frequency", "group": "Filter", "scope": "global", "semanticRole": "FilterCutoff", "type": "continuous", "min": 0, "max": 127, "default": 56, "domainMin": 314.0, "domainMax": 2394.0, "unit": "Hz", "curve": "Exp", "curveP0": 314.0, "curveP1": 2.031325, "wire": "CC", "wireCodec": "Value", "cc": 74, "nrpnMsb": 3, "nrpnLsb": 3, "modDestId": "cutoff_offset" },
+    { "id": "resonance", "name": "VCF Resonance", "group": "Filter", "scope": "global", "semanticRole": "FilterResonance", "type": "continuous", "min": 0, "max": 127, "default": 74, "domainMin": 0.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 71, "nrpnMsb": 3, "nrpnLsb": 4, "modDestId": "resonance_offset" },
+    { "id": "envMod", "name": "Env Mod Depth", "group": "Filter", "scope": "global", "semanticRole": "FilterEnvDepth", "type": "continuous", "min": 0, "max": 127, "default": 83, "domainMin": 0.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 80, "nrpnMsb": 3, "nrpnLsb": 5, "modDestId": "env_mod_offset" },
+    { "id": "decay", "name": "VCF / VCA Decay", "group": "Envelopes", "scope": "global", "semanticRole": "AmpEnvDecay", "type": "continuous", "min": 0, "max": 127, "default": 53, "domainMin": 200.0, "domainMax": 2000.0, "unit": "ms", "curve": "Exp", "curveP0": 200.0, "curveP1": 2.302585, "wire": "CC", "wireCodec": "Value", "cc": 75, "nrpnMsb": 3, "nrpnLsb": 6, "modDestId": "decay_offset" },
+    { "id": "accent", "name": "Accent Intensity", "group": "Envelopes", "scope": "global", "semanticRole": "ModSlot1Amount", "type": "continuous", "min": 0, "max": 127, "default": 86, "domainMin": 0.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 79, "nrpnMsb": 3, "nrpnLsb": 7, "modDestId": "accent_offset" },
+    { "id": "accentDecay", "name": "Accent Sweep Decay", "group": "Envelopes", "scope": "global", "semanticRole": "FilterEnvDecay", "type": "continuous", "min": 0, "max": 127, "default": 52, "domainMin": 30.0, "domainMax": 3000.0, "unit": "ms", "curve": "Exp", "curveP0": 30.0, "curveP1": 4.60517, "wire": "CC", "wireCodec": "Value", "cc": 81, "nrpnMsb": 3, "nrpnLsb": 8 },
+    { "id": "slide", "name": "Slide Glide Time", "group": "Pitch", "scope": "global", "semanticRole": "PortamentoGlideTime", "type": "continuous", "min": 0, "max": 127, "default": 21, "domainMin": 2.0, "domainMax": 360.0, "unit": "ms", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 5, "nrpnMsb": 3, "nrpnLsb": 9, "modDestId": "slide_offset" },
+    { "id": "drive", "name": "Overdrive Gain", "group": "Effects", "scope": "global", "semanticRole": "DistortionDrive", "type": "continuous", "min": 0, "max": 127, "default": 18, "domainMin": 0.0, "domainMax": 1.0, "unit": "normalized", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 82, "nrpnMsb": 3, "nrpnLsb": 10, "modDestId": "drive_offset" },
+    { "id": "volume", "name": "Master Volume", "group": "Master", "scope": "global", "semanticRole": "PartVolume", "type": "continuous", "min": 0, "max": 127, "default": 110, "domainMin": -60.0, "domainMax": 0.0, "unit": "dB", "curve": "Linear", "wire": "CC", "wireCodec": "Value", "cc": 7, "nrpnMsb": 3, "nrpnLsb": 11 },
+    { "id": "wave", "name": "VCO Waveform", "group": "Oscillators", "scope": "global", "semanticRole": "Osc1Waveform", "type": "choice", "min": 0, "max": 1, "default": 0, "domainMin": 0, "domainMax": 1, "unit": "enum", "choices": ["SAW", "SQR"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 70, "nrpnMsb": 3, "nrpnLsb": 12 },
+    { "id": "driveType", "name": "Overdrive Topology", "group": "Effects", "scope": "global", "semanticRole": "FilterDrive", "type": "choice", "min": 0, "max": 2, "default": 1, "domainMin": 0, "domainMax": 2, "unit": "enum", "choices": ["OFF", "SOFT", "RAT"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 83, "nrpnMsb": 3, "nrpnLsb": 13 },
+    { "id": "portaSwitch", "name": "Slide Always Mode", "group": "Pitch", "scope": "global", "semanticRole": "PortamentoSwitch", "type": "choice", "min": 0, "max": 1, "default": 0, "domainMin": 0, "domainMax": 1, "unit": "enum", "choices": ["Legato", "Always"], "curve": "Linear", "wire": "CC", "wireCodec": "Enum", "cc": 65, "nrpnMsb": 3, "nrpnLsb": 14 }
+  ]
+}

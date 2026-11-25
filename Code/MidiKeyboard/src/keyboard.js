@@ -16,12 +16,17 @@ import {
   applyVelocityCurve, SCALE_INTERVALS, isInScale, snapToScale,
   applyIvoryTexture, applyVintageWear, getQwertyLabelForNote,
 } from './utils.js';
+import {
+  TRANSPOSE_ANCHOR_NOTE, computeTransposeFromNote, computeEffectiveScaleRoot,
+  createKeyboardLiveTranspose,
+} from './liveTranspose.js';
 
 // Shared filmstrip wheel component (ABDSharedAssets) — single source of truth
 import { createWheel } from '@abdsynths/shared/components/wheel.js';
 
-// Re-export CZ101_PRESET so existing consumers don't break
+// Re-export CZ101_PRESET and live transpose helpers so hosts share a single source of truth
 export { CZ101_PRESET } from './utils.js';
+export { TRANSPOSE_ANCHOR_NOTE, computeTransposeFromNote, computeEffectiveScaleRoot };
 
 /**
  * Create a fully functional keyboard component.
@@ -57,6 +62,12 @@ export function createKeyboard(deps = {}) {
     retrigBtnId = null,
     sostenutoBtnId = null,
     softPedalBtnId = null,
+    transposeBtnId = null,
+    transposeValId = null,
+    transposeLedId = null,
+    onTransposeChange = null,
+    onTransposeArmChange = null,
+    onTransposeNotice = null,
     config = {}
   } = deps;
 
@@ -67,6 +78,9 @@ export function createKeyboard(deps = {}) {
     // recalculan por ancho disponible (ABDEep 4 octavas desde C2, CZ101 sus
     // 49 teclas). Sin esto, el keybed se re-acomoda por ancho.
     fixedOctaves: config.fixedOctaves ?? false,
+    minKeyWidth: config.minKeyWidth ?? 20,
+    maxKeyWidth: config.maxKeyWidth ?? 44,
+    targetKeyWidth: config.targetKeyWidth ?? (config.minKeyWidth && config.minKeyWidth >= 24 ? 32 : 26),
     maxOctaveShift: config.maxOctaveShift ?? 3,
     velocitySource: config.velocitySource ?? 'fixed',
     velocityCurve: config.velocityCurve ?? 'normal',
@@ -152,8 +166,22 @@ export function createKeyboard(deps = {}) {
       setRetrigInterval() {}, getRetrigInterval: () => 800,
       setQwertyLabels() {}, getQwertyLabels: () => false, toggleQwertyLabels() {},
       setZones() {}, setActiveZone() {}, getZones: () => [], getActiveZone: () => 0,
+      setPlayableNotes() {}, getPlayableNotes: () => null, clearPlayableNotes() {},
+      setScaleFilter() {}, disableScaleFilter() {}, setScaleSnapMode() {}, getScaleFilter: () => null,
+      setTranspose() {}, getTranspose: () => 0, toggleTransposeArm() {}, isTransposeArmed: () => false,
+      interceptTransposeNoteOn: () => false,
     };
   }
+
+  const _liveTranspose = createKeyboardLiveTranspose({
+    buttonEl: transposeBtnId ? document.getElementById(transposeBtnId) : null,
+    valEl: transposeValId ? document.getElementById(transposeValId) : null,
+    ledEl: transposeLedId ? document.getElementById(transposeLedId) : null,
+    anchorNote: cfg.transposeAnchorNote ?? TRANSPOSE_ANCHOR_NOTE,
+    onTransposeChange,
+    onArmChange: onTransposeArmChange,
+    onNotice: onTransposeNotice,
+  });
 
   let _keysWrapper = null;
 
@@ -216,9 +244,9 @@ export function createKeyboard(deps = {}) {
 
   // Responsive octave count calculation based on available width
   function calculateResponsiveLayout(width) {
-    const minKeyW = 20;
-    const maxKeyW = 36;
-    const targetW = 26;
+    const minKeyW = cfg.minKeyWidth ?? 20;
+    const maxKeyW = cfg.maxKeyWidth ?? 44;
+    const targetW = cfg.targetKeyWidth ?? (minKeyW >= 24 ? 32 : 26);
     const candidates = [
       { octaves: 4, startNote: 36 }, // 49 keys, 29 white
       { octaves: 3, startNote: 48 }, // 37 keys, 22 white
@@ -238,7 +266,7 @@ export function createKeyboard(deps = {}) {
         }
       }
     }
-    if (width > 1250) return { octaves: 5, startNote: 24 };
+    if (width > 1250 && (1250 / 36) >= minKeyW) return { octaves: 5, startNote: 24 };
     if (bestDiff < 9999) return best;
     if (width < 450) return { octaves: 2, startNote: 48 };
     if (width < 680) return { octaves: 3, startNote: 48 };
@@ -248,6 +276,9 @@ export function createKeyboard(deps = {}) {
 
   function renderKeybed() {
     container.classList.add('kbd-piano-keys');
+    if (cfg.minKeyWidth) {
+      container.style.setProperty('--kbd-key-min-width', `${cfg.minKeyWidth}px`);
+    }
     container.classList.toggle('kbd-hide-qwerty-labels', !_showQwertyLabels || !cfg.enableQwerty);
     if (!_keysWrapper) {
       _keysWrapper = container.querySelector('.kbd-keys-wrapper');
@@ -278,6 +309,7 @@ export function createKeyboard(deps = {}) {
     }
     _keysWrapper.appendChild(createKeyElement(cfg.startNote + cfg.numOctaves * 12, false));
     applyZoneVisuals();
+    applyPlayableNotesVisuals();
   }
 
   function createKeyElement(midiNote, isBlack) {
@@ -388,6 +420,9 @@ export function createKeyboard(deps = {}) {
           return;
         }
       }
+
+      if (_liveTranspose.interceptNoteOn(actualNote)) return;
+      if (!isNotePlayable(actualNote)) return;
 
       // Scale filter: check if note is in scale
       let noteToPlay = actualNote;
@@ -596,6 +631,7 @@ export function createKeyboard(deps = {}) {
     const maxSemitones = cfg.maxOctaveShift * 12;
     octaveShift = Math.max(-maxSemitones, Math.min(maxSemitones, octaveShift + delta * 12));
     updateOctaveLEDs();
+    applyPlayableNotesVisuals();
     const oct = octaveShift / 12;
     if (cfg.enableAccessibility) announce(`Octave shift ${oct > 0 ? '+' : ''}${oct}`);
     if (onOctaveChange) onOctaveChange(oct);
@@ -641,11 +677,13 @@ export function createKeyboard(deps = {}) {
 
     const key = e.key.toLowerCase();
     if (QWERTY_MAP[key] !== undefined && !qwertyActive.has(key)) {
-      qwertyActive.add(key);
       const midiNote = cfg.startNote + QWERTY_MAP[key];
 
-      // Scale filter: check if note is in scale
+      // Scale filter & playable notes guard: check if note is enabled/in scale
       let noteToPlay = Math.max(0, Math.min(127, midiNote + octaveShift));
+      if (_liveTranspose.interceptNoteOn(noteToPlay)) return;
+      if (!isNotePlayable(noteToPlay)) return;
+      qwertyActive.add(key);
       if (_scaleEnabled) {
         const intervals = SCALE_INTERVALS[_scaleType] || SCALE_INTERVALS.major;
         if (!isInScale(noteToPlay, _scaleRoot, intervals)) {
@@ -1062,6 +1100,8 @@ export function createKeyboard(deps = {}) {
     const baseNote = Number(midiNote);
     if (Number.isNaN(baseNote)) return;
     let noteToPlay = Math.max(0, Math.min(127, baseNote + octaveShift));
+    if (_liveTranspose.interceptNoteOn(noteToPlay)) return;
+    if (!isNotePlayable(noteToPlay)) return;
     if (_scaleEnabled) {
       const intervals = SCALE_INTERVALS[_scaleType] || SCALE_INTERVALS.major;
       if (!isInScale(noteToPlay, _scaleRoot, intervals)) {
@@ -1305,6 +1345,51 @@ export function createKeyboard(deps = {}) {
     _scaleType = type;
     if (root !== undefined) _scaleRoot = root;
     applyScaleVisuals();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  PLAYABLE NOTES — disable/dim keys without assigned sound
+  // ══════════════════════════════════════════════════════════════
+
+  let _playableNotes = Array.isArray(cfg.playableNotes) || cfg.playableNotes instanceof Set
+    ? new Set(Array.from(cfg.playableNotes, Number).filter((n) => Number.isFinite(n)))
+    : null;
+
+  function isNotePlayable(actualNote) {
+    return _playableNotes === null || _playableNotes.has(actualNote);
+  }
+
+  function applyPlayableNotesVisuals() {
+    const keys = getAllKeyElements();
+    if (!keys || keys.length === 0) return;
+    keys.forEach((keyEl) => {
+      const midi = parseInt(keyEl.dataset.note, 10);
+      const actualNote = Math.max(0, Math.min(127, midi + octaveShift));
+      if (_playableNotes === null) {
+        keyEl.classList.remove('kbd-key-disabled', 'kbd-key-assigned');
+        if (keyEl.getAttribute('aria-disabled') === 'true') keyEl.removeAttribute('aria-disabled');
+      } else if (_playableNotes.has(actualNote)) {
+        keyEl.classList.remove('kbd-key-disabled');
+        keyEl.classList.add('kbd-key-assigned');
+        keyEl.removeAttribute('aria-disabled');
+      } else {
+        keyEl.classList.add('kbd-key-disabled');
+        keyEl.classList.remove('kbd-key-assigned');
+        keyEl.setAttribute('aria-disabled', 'true');
+      }
+    });
+  }
+
+  function setPlayableNotes(notes) {
+    if (notes === null || notes === undefined) {
+      _playableNotes = null;
+    } else {
+      _playableNotes = new Set(Array.from(notes, Number).filter((n) => Number.isFinite(n)));
+      for (const [baseNote, entry] of Array.from(activeKeys.entries())) {
+        if (!_playableNotes.has(entry.actualNote)) _fullyReleaseNote(baseNote, true);
+      }
+    }
+    applyPlayableNotesVisuals();
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1645,8 +1730,8 @@ export function createKeyboard(deps = {}) {
       chevron.setAttribute('aria-label', 'Collapse keyboard');
       chevron.setAttribute('title', 'Collapse/Expand keyboard');
       chevron.innerHTML = `<span class="kbd-collapse-chevron">▾</span>`;
-      chevron.addEventListener('click', toggleCollapse);
-      chevron.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(); } });
+      chevron.addEventListener('click', (e) => { e.stopPropagation(); toggleCollapse(); });
+      chevron.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleCollapse(); } });
       container.appendChild(chevron);
     }
 
@@ -1667,6 +1752,7 @@ export function createKeyboard(deps = {}) {
 
     setupAccessibility();
     applyScaleVisuals();
+    applyPlayableNotesVisuals();
 
     // ResizeObserver
     let _lastWidth = 0, _lastHeight = 0;
@@ -1687,6 +1773,7 @@ export function createKeyboard(deps = {}) {
               if (cfg.enableAccessibility) setupAccessibility();
               applyScaleVisuals();
               applyZoneVisuals();
+              applyPlayableNotesVisuals();
             }
           }
         }
@@ -1704,6 +1791,8 @@ export function createKeyboard(deps = {}) {
     setOctave: (oct) => {
       octaveShift = Math.max(-cfg.maxOctaveShift * 12, Math.min(cfg.maxOctaveShift * 12, oct * 12));
       updateOctaveLEDs();
+      applyPlayableNotesVisuals();
+      applyScaleVisuals();
       if (cfg.enableAccessibility) announce(`Octave shift ${oct > 0 ? '+' : ''}${oct}`);
       if (onOctaveChange) onOctaveChange(oct);
     },
@@ -1776,15 +1865,27 @@ export function createKeyboard(deps = {}) {
       if (startNote !== undefined) cfg.startNote = startNote;
       renderKeybed();
       applyScaleVisuals();
+      applyPlayableNotesVisuals();
     },
+    // Playable notes API (disable/dim unassigned MIDI notes)
+    setPlayableNotes,
+    getPlayableNotes: () => (_playableNotes ? Array.from(_playableNotes).sort((a, b) => a - b) : null),
+    clearPlayableNotes: () => setPlayableNotes(null),
     // Multizone mapping API
     setZones,
     setActiveZone,
     getZones,
     getActiveZone,
     getActiveNotes: () => Array.from(activeKeys.values()).map(n => n.actualNote),
+    // Live Transpose API (MC-303 Hold/Latch + Reset)
+    setTranspose: (st, emit = false) => _liveTranspose.setTranspose(st, emit),
+    getTranspose: () => _liveTranspose.getTranspose(),
+    toggleTransposeArm: () => _liveTranspose.toggleArmed(),
+    isTransposeArmed: () => _liveTranspose.isArmed(),
+    interceptTransposeNoteOn: (midiNote) => _liveTranspose.interceptNoteOn(midiNote),
     destroy: () => {
       destroyed = true;
+      _liveTranspose.destroy();
       _stopRetrigLoop();
       if (_pressureRafId) cancelAnimationFrame(_pressureRafId);
       if (_resizeObserver) { _resizeObserver.disconnect(); _resizeObserver = null; }

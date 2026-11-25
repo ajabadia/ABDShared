@@ -39,7 +39,7 @@ function classifyFromDescriptors(
     category = 'Drums & Percussion Kit';
     paramSet = 8;
     confidence = 0.88;
-    rationale = `Rhythmic multi-transient pattern (${transientDensityHz.toFixed(1)} onsets/s) -> Set 8 (Arp / Loop Factory)`;
+    rationale = `Rhythmic multi-transient pattern (${transientDensityHz.toFixed(1)} onsets/s) -> Set 8 (Loop Factory / Drums, Perc & Loops)`;
   } else if (isPercussiveOrNoise) {
     if (attackMs <= 35 && sustainRatio < 0.35) {
       category = 'Drums & Percussion Kit';
@@ -50,24 +50,24 @@ function classifyFromDescriptors(
       category = 'SFX & Experimental';
       paramSet = 9;
       confidence = 0.82;
-      rationale = `Inharmonic / noise-rich texture (flatness ${spectralFlatness.toFixed(2)}) -> Set 9 (SFX & Experimental)`;
+      rationale = `Inharmonic / noise-rich texture (flatness ${spectralFlatness.toFixed(2)}) -> Set 9 (Multipurpose / SFX, Drones & Exp.)`;
     }
   } else if (inharmonicityB >= 0.00055 && attackMs <= 50) {
     category = 'Mallets & Bells';
-    paramSet = 7;
+    paramSet = 2; // Neuron 2 = Plucked & Bells
     confidence = 0.87;
-    rationale = `High partial stiffness (B=${inharmonicityB.toFixed(5)}) + fast attack (${attackMs} ms) -> Set 7 (Mallets & Bells)`;
+    rationale = `High partial stiffness (B=${inharmonicityB.toFixed(5)}) + fast attack (${attackMs} ms) -> Set 2 (Plucked & Bells)`;
   } else if (detectedF0Hz > 24 && detectedF0Hz < 115 && harmonicity >= 0.65 && attackMs <= 85) {
     category = 'Bass';
-    paramSet = 4;
+    paramSet = 3; // Neuron 3 = Plucked & Picked
     confidence = 0.85;
-    rationale = `Low fundamental (${detectedF0Hz.toFixed(1)} Hz) with strong harmonic core -> Set 4 (Bass)`;
+    rationale = `Low fundamental (${detectedF0Hz.toFixed(1)} Hz) with strong harmonic core -> Set 3 (Bass & Plucked)`;
   } else if (attackMs <= 35 && sustainRatio < 0.48) {
     if (inharmonicityB >= 0.00015 || spectralCentroidHz < 1800) {
       category = 'Keyboards';
-      paramSet = 2;
+      paramSet = 5; // Neuron 5 = Piano etc.
       confidence = 0.81;
-      rationale = `Percussive keyboard envelope (${attackMs} ms attack, B=${inharmonicityB.toFixed(5)}) -> Set 2 (Keyboards)`;
+      rationale = `Percussive keyboard envelope (${attackMs} ms attack, B=${inharmonicityB.toFixed(5)}) -> Set 5 (Piano etc.)`;
     } else {
       category = 'Plucked';
       paramSet = 3;
@@ -77,32 +77,32 @@ function classifyFromDescriptors(
   } else if (attackMs >= 140 && sustainRatio >= 0.55) {
     if (spectralCentroidHz < 1600) {
       category = 'Pads & Textures';
-      paramSet = 6;
+      paramSet = 4; // Neuron 4 = Carpet Shop
       confidence = 0.84;
-      rationale = `Slow swell (${attackMs} ms attack) + warm sustained body -> Set 6 (Pads & Textures)`;
+      rationale = `Slow swell (${attackMs} ms attack) + warm sustained body -> Set 4 (Carpet Shop / Warm Pads & Choirs)`;
     } else {
       category = 'Strings';
       paramSet = 1;
       confidence = 0.82;
-      rationale = `Bowed slow attack (${attackMs} ms) + bright harmonic sustain (${spectralCentroidHz} Hz) -> Set 1 (Strings / Soloist)`;
+      rationale = `Bowed slow attack (${attackMs} ms) + bright harmonic sustain (${spectralCentroidHz} Hz) -> Set 1 (Stringed / Bowed)`;
     }
   } else if (harmonicity >= 0.7 && sustainRatio >= 0.5) {
     if (spectralCentroidHz >= 750 && spectralCentroidHz <= 2400) {
       category = 'Winds & Brass';
-      paramSet = 1;
+      paramSet = 6; // Neuron 6 = Woodwinds
       confidence = 0.84;
-      rationale = `High harmonicity (${Math.round(harmonicity * 100)}%) + sustained reed/brass formant (${spectralCentroidHz} Hz) -> Set 1 (Winds & Brass)`;
+      rationale = `High harmonicity (${Math.round(harmonicity * 100)}%) + sustained reed/brass formant (${spectralCentroidHz} Hz) -> Set 6 (Woodwinds / Winds & Brass)`;
     } else {
       category = 'Strings';
       paramSet = 1;
       confidence = 0.8;
-      rationale = `Sustained harmonic profile (${Math.round(harmonicity * 100)}% harmonicity) -> Set 1 (Strings & Soloist)`;
+      rationale = `Sustained harmonic profile (${Math.round(harmonicity * 100)}% harmonicity) -> Set 1 (Stringed / Bowed)`;
     }
   } else {
     category = 'Synth & Neutral';
     paramSet = 0;
     confidence = 0.72;
-    rationale = `Balanced harmonic/envelope profile (f0=${detectedF0Hz.toFixed(1)} Hz, attack=${attackMs} ms) -> Set 0 (Synth & Neutral)`;
+    rationale = `Balanced harmonic/envelope profile (f0=${detectedF0Hz.toFixed(1)} Hz, attack=${attackMs} ms) -> Set 0 (Default Set / Synth & Leads)`;
   }
 
   if (hasStrongNameHint && nameCheck) {

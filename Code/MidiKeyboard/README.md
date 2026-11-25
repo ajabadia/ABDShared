@@ -29,6 +29,8 @@ Assembled from the strongest features of **ABDMS2000**, **ABDEep**, and **ABDCZ1
 | Aftertouch (channel + polyphonic) | ABDEep | Configurable pressure generation from pointer or software API |
 | Velocity callback | ABDEep | onVelocityChange fires on every note-on with velocity value |
 | Scale filter | All | Lock keys to a musical scale (major, minor, pentatonic, blues, etc.) |
+| Playable notes filter | All | Disable & visually dim unassigned MIDI notes (`setPlayableNotes`, `.kbd-key-disabled`, `.kbd-key-assigned`) |
+| Live Transpose (TR) | ABDMCX0X / Shared | MC-303 style arm-and-press live semitone transpose (`liveTranspose.js`, anchor `C4 = 60`, effective scale root shift) |
 | Chord Memory | ABDEep | Save/replay note groups — up to 12 slots with visual feedback |
 
 ## Layout Diagram
@@ -731,14 +733,29 @@ All colors and fonts are customizable via CSS custom properties:
 .kbd-white-key  { --kbd-white-top: #fdfcf8; --kbd-white-base: #ffffff; }
 .kbd-black-key  { --kbd-black-top: #2f2f35; }
 .active::before { --kbd-led-color: #00ccff; }
+/* Disabled / unassigned keys (drum maps & zones) */
+.kbd-key-disabled { --kbd-disabled-white-bg: linear-gradient(180deg, #565d68 0%, #3d434d 100%); --kbd-disabled-black-bg: linear-gradient(180deg, #1b1e24 0%, #101216 100%); --kbd-disabled-opacity: 0.45; }
+.kbd-key-assigned { --kbd-assigned-color: var(--color-accent, #00ccff); }
 ```
+
+### Playable Notes API (Transversal Key Disabling)
+
+- `keyboard.setPlayableNotes(notes)`: Pass an `Iterable<number>` of MIDI note numbers (`0..127`) that have assigned sounds. Unassigned keys receive `.kbd-key-disabled` + `aria-disabled="true"` and ignore pointer, QWERTY, and `latchNote` input. Assigned keys receive `.kbd-key-assigned`.
+- `keyboard.clearPlayableNotes()` / `keyboard.setPlayableNotes(null)`: Restore full chromatic playback (all keys enabled).
+- `keyboard.getPlayableNotes()`: Returns sorted array of playable MIDI notes or `null` when unrestricted.
+
+### Live Transpose API (MC-303 Style)
+
+- Options in `createKeyboard(...)`: `transposeBtnId`, `transposeValId`, `transposeLedId`, `onTransposeChange`, `onTransposeArmChange`, `onTransposeNotice`, `config.transposeAnchorNote` (default `60`).
+- Instance methods: `setTranspose(semitones, emit?)`, `getTranspose()`, `toggleTransposeArm()`, `isTransposeArmed()`, `interceptTransposeNoteOn(midiNote)`.
+- Pure helpers exported from `@abdsynths/midi-keyb`: `TRANSPOSE_ANCHOR_NOTE`, `computeTransposeFromNote(midiNote, anchorNote?)`, `computeEffectiveScaleRoot(scaleRoot, transposeSemitones?)`.
 
 ## Testing
 
 ```bash
 cd ABDKeyboard
 npm install
-npm test  # 318 tests, vitest + jsdom
+npm test  # 397 tests, vitest + jsdom
 ```
 
 ## License

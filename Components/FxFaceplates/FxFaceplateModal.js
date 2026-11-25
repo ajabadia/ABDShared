@@ -35,10 +35,22 @@ export class FxFaceplateModal {
     this.modalEl.setAttribute('aria-labelledby', 'fx-modal-title');
     this.modalEl.style.setProperty('--fx-base-color', desc.baseColor || 'var(--color-bg-secondary)');
     this.modalEl.style.setProperty('--fx-accent-color', desc.accentColor || 'var(--color-accent)');
+    if (desc.image) {
+      this.modalEl.style.setProperty('--fx-bg-artwork', `url("${desc.image}")`);
+    } else {
+      this.modalEl.style.removeProperty('--fx-bg-artwork');
+    }
 
-    const isDuck = Boolean(bridge?.getDucking?.()?.enabled ?? desc.canDuck);
+    const duckInfo = bridge?.getDucking?.();
+    const isDuck = Boolean(duckInfo?.enabled ?? desc.canDuck);
+    const duckAmt = Number(duckInfo?.amount ?? 0.6);
     const curMix = bridge?.getParam?.('mix') ?? 1.0;
-    const curPresetIdx = bridge?.getPresetIndex?.() ?? Math.max(0, (desc.presets || []).indexOf(bridge?.getPresetName?.() || ''));
+    const bridgePresets = bridge?.getPresets?.();
+    const presetsList = (Array.isArray(bridgePresets) && bridgePresets.length > 0)
+      ? bridgePresets.map((p, i) => ({ val: p.id !== undefined ? p.id : i, label: p.name || p.label || String(p) }))
+      : (desc.presets || []).map((p, i) => ({ val: i, label: p }));
+    const curPresetIdx = bridge?.getPresetIndex?.() ?? Math.max(0, presetsList.findIndex(p => p.label === bridge?.getPresetName?.()));
+    const customNick = (customName && !desc.name.toLowerCase().includes(customName.toLowerCase().trim())) ? customName.trim() : '';
 
     this.modalEl.innerHTML = `
       <div class="abd-fx-modal-window">
@@ -46,8 +58,8 @@ export class FxFaceplateModal {
           <div class="abd-fx-modal-title-wrap">
             <span class="abd-fx-modal-badge">${desc.badge || 'FX'}</span>
             <span class="abd-fx-modal-title" id="fx-modal-title">${desc.name}</span>
-            <input type="text" class="abd-fx-modal-name-input" id="fx-modal-custom-name" value="${customName || ''}" placeholder="${desc.name}" title="Renombrar unidad en el rack" maxlength="28" />
-            <span class="abd-fx-modal-custom-name" style="display:none">${customName ? `— "${customName}"` : ''}</span>
+            <input type="text" class="abd-fx-modal-name-input" id="fx-modal-custom-name" value="${customNick}" placeholder="${desc.name}" title="Renombrar unidad en el rack" maxlength="28" />
+            <span class="abd-fx-modal-custom-name" style="display:none">${customNick ? `— "${customNick}"` : ''}</span>
           </div>
           <div class="abd-fx-modal-header-actions">
             <button type="button" class="abd-fx-modal-btn btn-bypass" id="fx-modal-bypass" title="Bypass Slot (0% CPU)">
@@ -60,11 +72,13 @@ export class FxFaceplateModal {
           <div class="abd-fx-toolbar-group">
             <span class="abd-fx-toolbar-label">PRESET:</span>
             <select class="abd-fx-preset-select" id="fx-modal-presets">
-              ${(desc.presets || []).map((p, i) => `<option value="${i}"${i === curPresetIdx ? ' selected' : ''}>${p}</option>`).join('')}
+              ${presetsList.length === 0
+                ? '<option value="" disabled selected>(No presets for this FX)</option>'
+                : presetsList.map((p) => `<option value="${p.val}"${String(p.val) === String(curPresetIdx) ? ' selected' : ''}>${p.label}</option>`).join('')}
             </select>
           </div>
           <div class="abd-fx-toolbar-group">
-            ${desc.canDuck ? `<button type="button" class="abd-fx-modal-btn${isDuck ? ' is-active' : ''}" id="fx-modal-duck" title="Sidechain Ducking">SC DUCK [${isDuck ? 'ON' : 'OFF'}]</button>` : ''}
+            ${desc.canDuck ? `<button type="button" class="abd-fx-modal-btn${isDuck ? ' is-active' : ''}" id="fx-modal-duck" title="Sidechain Ducking">SC DUCK [${isDuck ? 'ON' : 'OFF'}]</button><input type="range" class="abd-fx-slider" id="fx-modal-duck-amt" min="0" max="1" step="0.01" value="${duckAmt}" style="width:52px" title="Sidechain Duck Depth"/><span class="abd-fx-toolbar-label" id="fx-modal-duck-val">${Math.round(duckAmt * 100)}%</span>` : ''}
             <span class="abd-fx-toolbar-label">MIX:</span>
             <input type="range" class="abd-fx-slider" id="fx-modal-mix" min="0" max="1" step="0.01" value="${curMix}" style="width:70px"/>
             <span class="abd-fx-toolbar-label" id="fx-modal-mix-val">${Math.round(curMix * 100)}%</span>
@@ -120,21 +134,33 @@ export class FxFaceplateModal {
     });
 
     this.modalEl?.querySelector('#fx-modal-presets')?.addEventListener('change', (e) => {
-      this.activeBridge.loadFactoryPreset?.(parseInt(e.target.value, 10));
+      const val = parseInt(e.target.value, 10);
+      if (Number.isNaN(val)) return;
+      if (typeof this.activeBridge.loadPreset === 'function') this.activeBridge.loadPreset(val);
+      else this.activeBridge.loadFactoryPreset?.(val);
       this.activeInstance?.syncFromBridge?.();
     });
 
     const duckBtn = this.modalEl?.querySelector('#fx-modal-duck');
+    const duckAmtEl = this.modalEl?.querySelector('#fx-modal-duck-amt');
+    const duckValEl = this.modalEl?.querySelector('#fx-modal-duck-val');
     if (duckBtn && desc.canDuck) {
-      const isDuck = Boolean(this.activeBridge.getDucking?.()?.enabled ?? desc.canDuck);
+      const duckState = this.activeBridge.getDucking?.();
+      const isDuck = Boolean(duckState?.enabled ?? desc.canDuck);
       duckBtn.classList.toggle('is-active', isDuck);
       duckBtn.textContent = `SC DUCK [${isDuck ? 'ON' : 'OFF'}]`;
+      const syncDuck = (enabled) => {
+        const amt = duckAmtEl ? parseFloat(duckAmtEl.value) : Number(this.activeBridge.getDucking?.()?.amount ?? 0.6);
+        if (duckValEl) duckValEl.textContent = `${Math.round(amt * 100)}%`;
+        this.activeBridge.setDucking?.(enabled, amt);
+      };
       duckBtn.addEventListener('click', () => {
         const next = !duckBtn.classList.contains('is-active');
         duckBtn.classList.toggle('is-active', next);
         duckBtn.textContent = `SC DUCK [${next ? 'ON' : 'OFF'}]`;
-        this.activeBridge.setDucking?.(next);
+        syncDuck(next);
       });
+      duckAmtEl?.addEventListener('input', () => syncDuck(duckBtn.classList.contains('is-active')));
     }
 
     const mixValEl = this.modalEl?.querySelector('#fx-modal-mix-val');
@@ -162,15 +188,12 @@ export class FxFaceplateModal {
       if (el.open && typeof el.close === 'function') el.close();
       el.remove();
     }
+    this.activeBridge?.dispose?.();
     this.activeBridge = null;
     this.activeSlotIdx = -1;
   }
 
-  destroy() {
-    this.close();
-  }
+  destroy() { this.close(); }
 }
 
-export function createFxFaceplateModal(options) {
-  return new FxFaceplateModal(options);
-}
+export function createFxFaceplateModal(options) { return new FxFaceplateModal(options); }

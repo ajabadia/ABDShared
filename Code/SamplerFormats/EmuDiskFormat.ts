@@ -38,7 +38,9 @@ const FILE_TYPE_SYS = 0x80;
 
 // E4B IFF Tags
 const E4P1_TAG = 0x45345031;   // "E4P1"
+const E5P1_TAG = 0x45355031;   // "E5P1"
 const E3S1_TAG = 0x45335331;   // "E3S1"
+const E5S1_TAG = 0x45355331;   // "E5S1"
 
 export interface EmuExtractedFile {
   name: string;
@@ -98,6 +100,19 @@ function decodeAscii(bytes: Uint8Array, offset: number, length: number): string 
   return str.trim();
 }
 
+function decodeUtf16LE(bytes: Uint8Array, offset: number, maxBytes: number): string {
+  let str = '';
+  const limit = Math.min(offset + maxBytes, bytes.length);
+  for (let i = offset; i + 1 < limit; i += 2) {
+    const code = bytes[i] | (bytes[i + 1] << 8);
+    if (code === 0) break;
+    if (code >= 32 && code <= 126) {
+      str += String.fromCharCode(code);
+    }
+  }
+  return str.trim();
+}
+
 /**
  * Checks if a byte buffer is an E-mu disk image (starts with "EMU3")
  * or a standalone E4B bank ("FORM....E4B0") or EIII bank ("EMULATOR THREE ").
@@ -124,14 +139,14 @@ export function isEmuDiskImage(data: ArrayBufferView | ArrayBuffer): boolean {
     return true;
   }
 
-  // 2. Standalone E-mu EOS E4B Bank (FORM....E4B0)
+  // 2. Standalone E-mu EOS E4B / E5B Bank (FORM....E4B0 or FORM....E5B0)
   if (
     bytes[0] === 0x46 &&
     bytes[1] === 0x4f &&
     bytes[2] === 0x52 &&
     bytes[3] === 0x4d &&
     bytes[8] === 0x45 &&
-    bytes[9] === 0x34 &&
+    (bytes[9] === 0x34 || bytes[9] === 0x35) &&
     bytes[10] === 0x42 &&
     bytes[11] === 0x30
   ) {
@@ -316,14 +331,14 @@ export function listEmuDiskPrograms(
 
   const programs: ArchiveSamplerProgramInfo[] = [];
 
-  // Case A: Standalone E4B Bank
+  // Case A: Standalone E4B / E5B Bank
   if (
     bytes[0] === 0x46 &&
     bytes[1] === 0x4f &&
     bytes[2] === 0x52 &&
     bytes[3] === 0x4d &&
     bytes[8] === 0x45 &&
-    bytes[9] === 0x34 &&
+    (bytes[9] === 0x34 || bytes[9] === 0x35) &&
     bytes[10] === 0x42 &&
     bytes[11] === 0x30
   ) {
@@ -372,18 +387,21 @@ function listE4bPresets(bankData: Uint8Array, bankName: string): ArchiveSamplerP
     const chunkEnd = pos + 8 + size;
     if (size < 0 || chunkEnd > bankData.length) break;
 
-    if (tag === E4P1_TAG && size >= 82) {
+    if ((tag === E4P1_TAG || tag === E5P1_TAG) && size >= 82) {
       const presetIdx = getU16BE(bankData, pos + 8);
-      const name = decodeAscii(bankData, pos + 10, 16) || `Preset ${presetIdx}`;
+      const name =
+        tag === E5P1_TAG
+          ? decodeUtf16LE(bankData, pos + 22, 64) || `Preset ${presetIdx}`
+          : decodeAscii(bankData, pos + 10, 16) || `Preset ${presetIdx}`;
       const numVoices = getU16BE(bankData, pos + 28);
 
       list.push({
-        id: `${bankName}/E4P1_${presetIdx}`,
+        id: `${bankName}/${tag === E5P1_TAG ? 'E5P1' : 'E4P1'}_${presetIdx}`,
         index: list.length,
         name,
         format: 'emu_disk',
         regionCount: numVoices,
-        detail: `E-mu EOS Preset (${numVoices} voices)`,
+        detail: `E-mu ${tag === E5P1_TAG ? 'Emulator X / Proteus X' : 'EOS'} Preset (${numVoices} voices)`,
       });
     }
 
@@ -446,7 +464,7 @@ export function parseEmuDiskProgram(
     const parts = targetPath.split('/');
     if (parts.length >= 2) {
       targetBankName = parts[0];
-      const match = parts[1].match(/(E4P1|E3P)_(\d+)/);
+      const match = parts[1].match(/(E5P1|E4P1|E3P)_(\d+)/);
       if (match) {
         targetPresetId = parseInt(match[2], 10);
       }
@@ -481,11 +499,11 @@ export function parseEmuDiskProgram(
     bankData[2] === 0x52 &&
     bankData[3] === 0x4d &&
     bankData[8] === 0x45 &&
-    bankData[9] === 0x34 &&
+    (bankData[9] === 0x34 || bankData[9] === 0x35) &&
     bankData[10] === 0x42 &&
     bankData[11] === 0x30
   ) {
-    return parseE4bBank(bankData, bankName, targetPresetId);
+    return parseE4bBank(bankData, bankName, targetPresetId, siblingFiles);
   }
 
   const idStr = decodeAscii(bankData, 0, 15);
@@ -505,9 +523,61 @@ function parseE4bBank(
   bankData: Uint8Array,
   bankName: string,
   targetPresetId: number,
+  siblingFiles?: Map<string, Uint8Array>,
 ): ParsedSamplerPreset {
   const samplesByIndex = new Map<number, EmuSample>();
-  const presetChunks: { id: number; name: string; body: Uint8Array }[] = [];
+  const presetChunks: { id: number; name: string; body: Uint8Array; isE5?: boolean }[] = [];
+
+  if (siblingFiles && siblingFiles.size > 0) {
+    for (const [k, v] of siblingFiles.entries()) {
+      if (k.toLowerCase().endsWith('.ebl') || k.toLowerCase().endsWith('.exb') || k.toLowerCase().endsWith('.e4b')) {
+        let eblPos = (v.length > 4 && v[0] === 0x46 && v[1] === 0x4f && v[2] === 0x52 && v[3] === 0x4d) ? 12 : 0;
+        while (eblPos + 8 <= v.length) {
+          const tag = getU32BE(v, eblPos);
+          const size = getU32BE(v, eblPos + 4);
+          const chunkEnd = eblPos + 8 + size;
+          if (size <= 0 || chunkEnd > v.length) break;
+          if (tag === E5S1_TAG && size >= 190) {
+            const sampleOffset = eblPos + 8;
+            const sampleIdx = getU16BE(v, sampleOffset) || (samplesByIndex.size + 1);
+            const name =
+              decodeUtf16LE(v, sampleOffset + 6, 64) ||
+              decodeAscii(v, sampleOffset + 6, 32) ||
+              (k.replace(/\\/g, '/').split('/').pop() ?? k).replace(/\.[^.]+$/, '');
+            const rawRate = getU32LE(v, sampleOffset + 106);
+            const sampleRate = rawRate >= 8000 && rawRate <= 192000 ? rawRate : 44100;
+            const actualFrames = Math.floor((size - 190) / 2);
+            if (actualFrames > 0) {
+              const pcmData = new Int16Array(v.buffer, v.byteOffset + sampleOffset + 190, actualFrames);
+              let rootKey = 60;
+              const noteMatch = name.match(/_([A-G]#?)(-?\d+)$/i) || name.match(/[\s-]([A-G]#?)(-?\d+)/i);
+              if (noteMatch) {
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const nIdx = noteNames.indexOf(noteMatch[1].toUpperCase());
+                if (nIdx >= 0) {
+                  const oct = parseInt(noteMatch[2], 10);
+                  rootKey = Math.max(0, Math.min(127, (oct + 2) * 12 + nIdx));
+                }
+              }
+              samplesByIndex.set(sampleIdx, {
+                index: sampleIdx,
+                name,
+                sampleRate: sampleRate > 0 ? sampleRate : 44100,
+                rootKey,
+                fineTune: 0,
+                hasLoop: false,
+                loopStart: 0,
+                loopEnd: 0,
+                numFrames: actualFrames,
+                pcmData,
+              });
+            }
+          }
+          eblPos = chunkEnd + (size % 2 === 0 ? 0 : 1);
+        }
+      }
+    }
+  }
 
   let pos = 12;
   while (pos + 8 <= bankData.length) {
@@ -566,13 +636,60 @@ function parseE4bBank(
           pcmData,
         });
       }
-    } else if (tag === E4P1_TAG && size >= 82) {
+    } else if (tag === E5S1_TAG && size >= 190) {
+      const sampleOffset = pos + 8;
+      const sampleIdx = getU16BE(bankData, sampleOffset) || (samplesByIndex.size + 1);
+      const name =
+        decodeUtf16LE(bankData, sampleOffset + 6, 64) ||
+        decodeAscii(bankData, sampleOffset + 6, 32) ||
+        `Sample_${sampleIdx}`;
+      const numFrames = getU32LE(bankData, sampleOffset + 78);
+      const sampleRate = getU32LE(bankData, sampleOffset + 106);
+      const pcmByteLen = Math.min(numFrames > 0 ? numFrames * 2 : size - 190, size - 190);
+      const actualFrames = Math.floor(pcmByteLen / 2);
+
+      if (actualFrames > 0) {
+        const pcmData = new Int16Array(
+          bankData.buffer,
+          bankData.byteOffset + sampleOffset + 190,
+          actualFrames,
+        );
+
+        let rootKey = 60;
+        const noteMatch = name.match(/_([A-G]#?)(-?\d+)$/i) || name.match(/[\s-]([A-G]#?)(-?\d+)/i);
+        if (noteMatch) {
+          const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+          const nIdx = noteNames.indexOf(noteMatch[1].toUpperCase());
+          if (nIdx >= 0) {
+            const oct = parseInt(noteMatch[2], 10);
+            rootKey = Math.max(0, Math.min(127, (oct + 2) * 12 + nIdx));
+          }
+        }
+
+        samplesByIndex.set(sampleIdx, {
+          index: sampleIdx,
+          name,
+          sampleRate: sampleRate > 0 ? sampleRate : 44100,
+          rootKey,
+          fineTune: 0,
+          hasLoop: false,
+          loopStart: 0,
+          loopEnd: 0,
+          numFrames: actualFrames,
+          pcmData,
+        });
+      }
+    } else if ((tag === E4P1_TAG || tag === E5P1_TAG) && size >= 82) {
       const presetIdx = getU16BE(bankData, pos + 8);
-      const name = decodeAscii(bankData, pos + 10, 16) || `Preset ${presetIdx}`;
+      const name =
+        tag === E5P1_TAG
+          ? decodeUtf16LE(bankData, pos + 22, 64) || `Preset ${presetIdx}`
+          : decodeAscii(bankData, pos + 10, 16) || `Preset ${presetIdx}`;
       presetChunks.push({
         id: presetIdx,
         name,
         body: bankData.subarray(pos + 8, chunkEnd),
+        isE5: tag === E5P1_TAG,
       });
     }
 
@@ -580,7 +697,58 @@ function parseE4bBank(
   }
 
   if (presetChunks.length === 0) {
-    throw new Error(`E4B Bank "${bankName}" contains no presets.`);
+    if (samplesByIndex.size > 0) {
+      const samplesList = Array.from(samplesByIndex.values());
+      const total = Math.max(1, samplesList.length);
+      const span = Math.max(1, Math.floor(88 / total));
+      const regions: ParsedImportRegion[] = [];
+      const audioBuffers = new Map<string, ArrayBuffer>();
+
+      for (let idx = 0; idx < samplesList.length; idx++) {
+        const sample = samplesList[idx];
+        const sWavName = `${sample.name}.wav`;
+        const float32 = new Float32Array(sample.pcmData.length);
+        for (let i = 0; i < sample.pcmData.length; i++) {
+          float32[i] = sample.pcmData[i] / 32768.0;
+        }
+        const wavBuf = encodeWavPcm16([float32], sample.sampleRate);
+        audioBuffers.set(sample.name, wavBuf);
+        audioBuffers.set(sWavName, wavBuf);
+
+        const lowKey = idx === 0 ? 0 : Math.min(127, 24 + idx * span);
+        const highKey = idx === samplesList.length - 1 ? 127 : Math.min(127, lowKey + span - 1);
+
+        regions.push({
+          id: `e5_reg_${idx + 1}`,
+          sampleName: sample.name,
+          samplePath: sWavName,
+          rootKey: sample.rootKey,
+          lowKey,
+          highKey,
+          lowVel: 1,
+          highVel: 127,
+          detuneCents: sample.fineTune,
+          volumeDb: 0,
+          pan: 0,
+          loopMode: sample.hasLoop ? 'loop_continuous' : 'no_loop',
+          loopStart: sample.loopStart,
+          loopEnd: sample.loopEnd,
+        });
+      }
+
+      const cls = classifyPresetCategory(bankName, samplesList.map((s) => s.name));
+      return {
+        format: 'emu_disk',
+        formatLabel: 'E-mu Emulator X / Proteus X Bank (.exb)',
+        presetName: bankName,
+        modelName: bankName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 11) || 'EMU_BANK',
+        detectedCategory: cls.category,
+        suggestedParameterSet: cls.parameterSet,
+        regions,
+        audioBuffers,
+      };
+    }
+    throw new Error(`E-mu Bank "${bankName}" contains no presets.`);
   }
 
   const selectedPreset =
@@ -676,6 +844,43 @@ function parseE4bBank(
     offset += 284 + numZones * 22;
   }
 
+  if (regions.length === 0 && samplesByIndex.size > 0) {
+    const samplesList = Array.from(samplesByIndex.values());
+    const total = Math.max(1, samplesList.length);
+    const span = Math.max(1, Math.floor(88 / total));
+    for (let idx = 0; idx < samplesList.length; idx++) {
+      const sample = samplesList[idx];
+      const sWavName = `${sample.name}.wav`;
+      const float32 = new Float32Array(sample.pcmData.length);
+      for (let i = 0; i < sample.pcmData.length; i++) {
+        float32[i] = sample.pcmData[i] / 32768.0;
+      }
+      const wavBuf = encodeWavPcm16([float32], sample.sampleRate);
+      audioBuffers.set(sample.name, wavBuf);
+      audioBuffers.set(sWavName, wavBuf);
+      const lowKey = idx === 0 ? 0 : Math.min(127, 24 + idx * span);
+      const highKey = idx === samplesList.length - 1 ? 127 : Math.min(127, lowKey + span - 1);
+      regions.push({
+        id: `emu_reg_${idx + 1}`,
+        sampleName: sample.name,
+        samplePath: sWavName,
+        rootKey: sample.rootKey,
+        lowKey,
+        highKey,
+        lowVel: 1,
+        highVel: 127,
+        detuneCents: sample.fineTune,
+        volumeDb: 0,
+        pan: 0,
+        loopMode: sample.hasLoop ? 'loop_continuous' : 'no_loop',
+        loopStart: sample.loopStart,
+        loopEnd: sample.loopEnd,
+        sampleStartFrame: 0,
+        sampleEndFrame: sample.numFrames,
+      });
+    }
+  }
+
   const cls = classifyPresetCategory(
     selectedPreset.name,
     regions.map((r) => r.sampleName),
@@ -683,7 +888,7 @@ function parseE4bBank(
 
   return {
     format: 'emu_disk' as any,
-    formatLabel: 'E-mu EOS (Emulator IV) Bank',
+    formatLabel: selectedPreset.isE5 ? 'E-mu Emulator X / Proteus X Bank (.exb)' : 'E-mu EOS (Emulator IV) Bank',
     presetName: selectedPreset.name,
     modelName: selectedPreset.name.replace(/[^a-zA-Z0-9_-]/g, '_'),
     detectedCategory: cls.category,
@@ -836,6 +1041,21 @@ export function parseEmuExbBank(
   siblingFiles?: Map<string, Uint8Array>,
 ): ParsedSamplerPreset {
   const cleanBankName = bankName.replace(/\.exb$/i, '') || 'EmulatorX_Bank';
+
+  // 0. If the bank container contains E5S1 / E3S1 or FORM chunks, parse via parseE4bBank
+  for (let i = 0; i + 4 <= Math.min(bankData.length, 4096); i++) {
+    if (
+      (bankData[i] === 0x45 && bankData[i + 1] === 0x35 && bankData[i + 2] === 0x53 && bankData[i + 3] === 0x31) || // E5S1
+      (bankData[i] === 0x45 && bankData[i + 1] === 0x33 && bankData[i + 2] === 0x53 && bankData[i + 3] === 0x31)    // E3S1
+    ) {
+      try {
+        return parseE4bBank(bankData, cleanBankName, -1);
+      } catch {
+        // Fallback to RIFF or sibling scan
+      }
+    }
+  }
+
   const audioBuffers = new Map<string, ArrayBuffer>();
   const sampleNames: string[] = [];
 

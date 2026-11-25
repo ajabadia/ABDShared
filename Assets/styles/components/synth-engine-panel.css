@@ -12,6 +12,8 @@
   font-family: var(--font-sans);
 }
 
+.abd-engine-panel [hidden] { display: none !important; }
+
 .abd-engine-header {
   display: flex;
   flex-wrap: wrap;
@@ -59,6 +61,7 @@
   background: var(--color-accent-dim);
   border-color: var(--color-accent);
   color: var(--color-accent);
+  font-weight: 700;
 }
 
 .abd-engine-tablist {
@@ -159,6 +162,14 @@
 .abd-engine-knob-cell {
   display: flex;
   justify-content: center;
+}
+
+.abd-engine-knob-cell.is-disabled,
+.synth-knob-cell.is-disabled {
+  opacity: 0.34;
+  filter: grayscale(0.8);
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .abd-engine-panel :is(button, select):focus-visible {

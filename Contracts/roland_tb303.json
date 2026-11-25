@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "2.0",
+  "id": "roland_tb303",
+  "aliases": ["roland-tb303", "tb303_synth", "abd-tb303", "tb303"],
+  "displayName": "Roland TB-303 Devilfish Acid Bassline",
+  "description": "Emulación aséptica del sintetizador monofónico Roland TB-303 con modificaciones Devilfish, filtro Diode Ladder 4P y saturación Soft/RAT.",
+  "deviceType": "AUTOMATED_MIDI_CC",
+  "category": "Acid Bassline Synth",
+  "brand": "Roland",
+  "brandLogo": "brands/roland-logo.svg",
+  "modelImage": "models/roland-tb303.webp",
+  "isSoftsynth": true,
+  "midiIdentification": {
+    "manufacturer": "Roland",
+    "manufacturerIdHex": "41",
+    "model": "TB-303",
+    "modelIdHex": "00 03",
+    "portNameMatches": ["TB-303", "TB303", "Devilfish"]
+  },
+  "functions": [
+    {
+      "id": "vco_pitch",
+      "name": "VCO & Pitch Tuning",
+      "blockType": "WaveShaper",
+      "controls": [
+        { "index": 1, "name": "Waveform", "semanticRole": "Osc1Waveform", "type": "Segmented", "controlMethod": "MIDI_CC", "cc": 70, "minVal": 0.0, "maxVal": 1.0, "defaultVal": 0.0, "unit": "enum", "options": ["SAW", "SQR"] },
+        { "index": 2, "name": "Coarse Tune", "semanticRole": "Osc1CoarseTune", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 20, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "st" },
+        { "index": 3, "name": "Fine Tune", "semanticRole": "Osc1FineTune", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 21, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "cents" },
+        { "index": 4, "name": "Tuning A4", "semanticRole": "MasterTuneCents", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 22, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "Hz" },
+        { "index": 5, "name": "Slide Time", "semanticRole": "PortamentoGlideTime", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 5, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 21.0, "unit": "ms" },
+        { "index": 6, "name": "Slide Always", "semanticRole": "PortamentoSwitch", "type": "Toggle", "controlMethod": "MIDI_CC", "cc": 65, "minVal": 0.0, "maxVal": 1.0, "defaultVal": 0.0, "unit": "enum" }
+      ]
+    },
+    {
+      "id": "diode_vcf",
+      "name": "Diode Ladder 4-Pole VCF",
+      "blockType": "SpectrumFilter",
+      "controls": [
+        { "index": 1, "name": "VCF Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 74, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 56.0, "unit": "Hz" },
+        { "index": 2, "name": "VCF Resonance", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 71, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 74.0, "unit": "ratio" },
+        { "index": 3, "name": "Env Mod", "semanticRole": "FilterEnvDepth", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 80, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 83.0, "unit": "ratio" }
+      ]
+    },
+    {
+      "id": "env_drive_out",
+      "name": "Envelope, Accent, Drive & Output",
+      "blockType": "TimeDynamic",
+      "controls": [
+        { "index": 1, "name": "Decay", "semanticRole": "AmpEnvDecay", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 75, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 53.0, "unit": "ms" },
+        { "index": 2, "name": "Accent", "semanticRole": "ModSlot1Amount", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 79, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 86.0, "unit": "ratio" },
+        { "index": 3, "name": "Accent Decay", "semanticRole": "FilterEnvDecay", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 81, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 52.0, "unit": "ms" },
+        { "index": 4, "name": "Drive", "semanticRole": "DistortionDrive", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 82, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 18.0, "unit": "ratio" },
+        { "index": 5, "name": "Overdrive Type", "semanticRole": "FilterDrive", "type": "Segmented", "controlMethod": "MIDI_CC", "cc": 83, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 64.0, "unit": "enum", "options": ["OFF", "SOFT", "RAT"] },
+        { "index": 6, "name": "Volume", "semanticRole": "PartVolume", "type": "Knob", "controlMethod": "MIDI_CC", "cc": 7, "minVal": 0.0, "maxVal": 127.0, "defaultVal": 110.0, "unit": "dB" }
+      ]
+    }
+  ]
+}

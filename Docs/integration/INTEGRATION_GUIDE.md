@@ -22,6 +22,9 @@ demás documentos del bloque, con sus alternativas y prioridades, están en
    - [4.2 Barra de Menús: SynthNavBar](#42-barra-de-menús-synthnavbar)
    - [4.3 Diálogo About y Actualizador: AboutDialog](#43-diálogo-about-y-actualizador-aboutdialog)
    - [4.4 Monitor de Tramas en Vivo: LiveSysExInspector](#44-monitor-de-tramas-en-vivo-livesysexinspector)
+   - [4.5 Armario Rack 19'' y Modal de Faceplates Fotorrealistas: FxFaceplateModal](#45-armario-rack-19-y-modal-de-faceplates-fotorrealistas-fxfaceplatemodal)
+   - [4.6 Arquitectura Multimotor de Cabecera, Browser Unificado y Taxonomía Hartmann 0..9](#46-arquitectura-multimotor-de-cabecera-browser-unificado-y-taxonomía-hartmann-09)
+   - [4.7 Previsualización Hover y Visor Ampliado de Carátulas: CoverPopup](#47-previsualización-hover-y-visor-ampliado-de-carátulas-coverpopup)
 5. [Contratos de Datos y Esquemas JSON](#5-contratos-de-datos-y-esquemas-json)
 6. [Checklist de Calidad para Nuevos Sintetizadores](#6-checklist-de-calidad-para-nuevos-sintetizadores)
 7. [Módulos header-only de `SynthCore/`](#7-módulos-header-only-de-synthcore)
@@ -220,6 +223,65 @@ audioEngine.onSysExUpdated = (bytes) => {
 };
 ```
 
+### 4.5 Armario Rack 19'' y Modal de Faceplates Fotorrealistas: `FxFaceplateModal`
+
+Proporciona acceso a los **72 algoritmos de efectos modelados de hardware** (59 algoritmos del catálogo `fx-effects` 1..60 + 7 extensiones Roland LA-50/MT-32/JV-880/GS 61..67 + 6 motores Korg MS2000 DSP56362 68..73: Lexicon, Roland, Korg MS2000, EMT, TC Electronic, Pultec, Culture Vulture, etc.) con carátulas WebP fotorrealistas de alta definición:
+
+```javascript
+import { 
+  FxFaceplateModal, 
+  findAlgorithmById, 
+  getAllAlgorithms, 
+  FX_CATEGORIES 
+} from '@abdsynths/shared/components';
+
+// 1. Instanciación de la modal desacoplada
+const fxModal = new FxFaceplateModal({
+  onNameChange: (slotIdx, newName) => {
+    // Sincronizar etiqueta personalizada con el motor C++
+  }
+});
+
+// 2. Apertura conectando el puente de la ranura seleccionada
+fxModal.open(slotIdx, algoId, customName, slotBridge);
+```
+
+Detalles completos de la arquitectura, contrato de descriptores y listado de los 72 efectos en [FX_FACEPLATES_AND_MODAL_INTEGRATION.md](FX_FACEPLATES_AND_MODAL_INTEGRATION.md).
+
+### 4.6 Arquitectura Multimotor de Cabecera, Browser Unificado y Taxonomía Hartmann 0..9
+
+Todo panel embebido de sintetizador en `Components/SynthEngines/` (`StructuredRomplerPanel`, `GenericEnginePanel` y próximos motores dedicados) consume la infraestructura común de `Components/SynthEngines/Common/` y el contrato `Contracts/enginePanelBridge.ts`:
+
+1. **Cabecera común (`EngineHeaderBar`) y Browser unificado (`EnginePresetBrowser`):**
+   - Muestra carátula en cascada, badge de modo (`CHROMATIC` / `DRUM KIT` cuando `supportsDrumMode: true`), selector `[ Fuente › Preset ]`, botones `◀`/`▶`, `Init` contextual (con submenú `Chromatic` / `Drum Kit` si aplica) y popover `Guardar` (`userPresetsStore` + `bridge.savePreset(name, { categoryId, author, playMode })`).
+   - Cuando `supportsBankArchives: true`, `EnginePresetBrowser` añade automáticamente la carga perezosa e importación drag-and-drop de archivos `.abdbank` mediante `listBrowserSources()`, `listBrowserItems(sourceId)`, `selectBrowserItem(item)`, `auditionBrowserItem(item)` e `importBankArchive(fileName, buffer)`.
+2. **Asignación de muestras por parcial o pad (`RomplerWavePicker`):**
+   - Los parciales PCM cromáticos (`partial_wave`) y los pads del kit rítmico (`drum_wave`) consultan `listWaveBanks()`, `listWavesInBank(bankId)` y `assignWaveToTarget(bankId, waveIndex, targetKind, targetIndex)` manteniendo el recuento de referencias sin fugas en `RomplerWavePool`.
+3. **Taxonomía canónica Hartmann Neuron `0..9` + `playMode` ortogonal:**
+   - Los índices `0..9` definidos en `Components/bank/bankCategories.js` (`CATEGORY_0_9`, invariables respecto a Hartmann Neuron) soportan literales `'musical' | 'neuron' | 'short'` (`getCategoryLiteral`, `listBankCategories`).
+   - El eje `playMode` (`'chromatic' | 'drum_map'`) es ortogonal a la categoría y determina las pestañas mostradas en `StructuredRomplerPanel`:
+     - **Cromático:** `Browse` · `Partials P1–P4` (con envolventes `[ Amp | Filter | Pitch ]` y visibilidad contextual `PW`/`Morph`) · `Vector & Mod` (`XYPad` 2D, `Glide`, `VCF 2`, `LFO 1/2`).
+     - **Drum Kit:** `Browse` · `Kit Pads` (cuadrícula poblada desde `extractRomplerPatchMeta()`, `MIDI Auto-Select` y `Audition`) · `Kit Filter & Drive`.
+
+### 4.7 Previsualización Hover y Visor Ampliado de Carátulas (`CoverPopup`)
+
+Todos los disparadores de carátula y frontales hardware (`EngineHeaderBar`, lista/cabecera de `.abdbank` en `EnginePresetBrowser`, tiras de canal en `ABDMCX0X`, pickers/bahías de rack FX 19'' en `MultiBusFxRack` y tarjetas FX en `ABDEep`) deben reutilizar `CoverPopup` (`Components/CoverPopup/coverPopup.js`, `Assets/styles/components/cover-popup.css`):
+
+```js
+import { attachCoverPopup } from '@abdsynths/shared/components';
+
+attachCoverPopup(thumbBtn, () => ({
+  title: presetName,
+  subtitle: `${bankLabel} · ${engineMeta.displayName}`,
+  badge: engineMeta.shortBadge,
+  coverUrl: bankCover || engineMeta.defaultImage,
+  fallbackSvg: engineMeta.iconSvg,
+  metaRows: [['Motor', engineMeta.displayName], ['Banco', bankLabel]],
+}));
+```
+
+El contrato completo (`CoverPopupData`), cascada multi-motor (`secondaryCard`) y soporte `fit: 'contain'` para rack 19'' están documentados en [COVER_POPUP_INTEGRATION.md](COVER_POPUP_INTEGRATION.md).
+
 ---
 
 ## 5. Contratos de Datos y Esquemas JSON
@@ -293,5 +355,25 @@ viven en el propio header; no hay guía aparte porque el dato es la tabla.
 - `SynthCore/GrooveArpeggiator.h` (`ABDMS2000`, `ABDMCX0X` y nuevos grooveboxes: 12 motivos, 16 divisores de reloj, swing bipolar invariante, `LatchReArm`, strum, acento y máscara/patrón de 32 pasos).
 
 La documentación matemática, ejemplos C++/WASM/Shim JUCE y matriz de decisión completos viven en [`Docs/dsp/ARPEGGIATORS_GUIDE.md`](../dsp/ARPEGGIATORS_GUIDE.md).
+
+---
+
+## 9. Integración del Motor LA-32 (`ABDShared::LinearArithmetic`) y Efectos Canónicos Roland
+
+`ABDShared::LinearArithmetic` expone el motor `La50SoundEngine` (`typeId = "la50_synth"`) compatible con la interfaz `ISoundEngine` (hosts multitímbricos como `ABDMCX0X` con `setDeferKernelUntilActive(true)`) y el envoltorio standalone `StandaloneLa50SoundEngine` (para construir un plugin independiente `ABDLA50`), reutilizando:
+- Los efectos header-only en `Code/DspEffects/`: `DspRolandToneEq.h`, `DspRolandMultiChorus.h`, `DspRolandBossReverb.h` (LA-50/MT-32) y `DspRolandJvReverb.h`, `DspRolandJvChorus.h`, `DspRolandGsDelay.h` + `profiles/RolandGsMc303FxProfile.h` (JV-880/GS/MC-303, también integrados en el rack multibus con `fxId 61..67`).
+- Los contratos declarativos `Contracts/roland_d50.json`, `roland_mt32.json`, `roland_d50_parameter_spec.json`, `roland_jv880_fx_microprogram.json`, `roland_jv880_parameter_spec.json`, `roland_cm32l_parameter_spec.json`, `abdmcs48_parameter_spec.json` y los adaptadores DT1 en `Code/BankManager/Contracts/`.
+- La carátula embebible `La50EnginePanel` registrada automáticamente bajo `"la50_synth"` en `Components/SynthEngines/`.
+
+La arquitectura completa, cobertura de modelos (**D-50/D-550/MT-32/CM-32L/D-110** vs **D-220/U-110/U-220/D-70/JD-800** en `StructuredRompler`) y la receta de extracción a plugin standalone se detallan en [`Docs/integration/LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md`](./LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md).
+
+---
+
+## 10. Checklist de Motores `ISoundEngine`, Filtros `DspCore` y Contratos Asépticos (`2026-11-25`)
+
+Todo motor integrado o promovido en `Code/SynthEngines/` (`Tb303Synth` con `tb303_synth` `15/15`, `EmaxSynth` con `emax_synth` `37/37`, `Mcs48Synth`, `LinearArithmetic`, `StructuredRompler`) debe seguir el procedimiento normativo de 4 capas asépticas y 10 pasos descrito en [`SYNTH_ENGINE_INTEGRATION_GUIDE.md`](./SYNTH_ENGINE_INTEGRATION_GUIDE.md):
+- Filtros hardware reutilizables en `Code/DspCore/` compatibles con `IsFilterStage<T>`: `DspTb303DiodeLadder.h` (`Tb303DiodeLadderFilter`) y `DspEmaxHChipFilter.h` (`EmaxHChipFilter`), además de `DspFilterFamily.h`.
+- Contratos canónicos declarativos en `Contracts/`: cada motor expone `<modelo>_parameter_spec.json` (`parameter_dictionary.schema.json` v2.0.0) y `<modelo>.json` (`hardware_profile.schema.json` v2.0), incluidos `roland_tb303_parameter_spec.json`, `roland_tb303.json`, `emu_emax2_parameter_spec.json` y `emu_emax2.json`.
+- Capa WebUI unificada en `Components/SynthEngines/<Motor>/`: specs con traducción `Wire ↔ Normalized ↔ Physical Domain`, paridad `N/N` de controles con `Knob`/`Segmented`/`Toggle`/`RomplerWavePicker`, `EngineHeaderBar` + `EnginePresetBrowser`, carátula `.webp` única y límites estrictos (`< 300` líneas C++, `< 200` JS/TS/CSS/JSON, `0` `#hex`).
 
 ---

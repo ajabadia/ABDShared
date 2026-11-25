@@ -1,0 +1,28 @@
+Prompt Genérico (Plantilla Reutilizable)
+
+Orthographic front-facing view of a professional 19-inch 2U audio rackmount effect unit for [NOMBRE_DEL_EQUIPO / HARDWARE_INSPIRADO]. 
+Studio audio mastering hardware style, ultra-photorealistic, 8k resolution, cinematic studio lighting with subtle ambient rim light. 
+Left and right 19-inch rack mounting ear flanges with standard black rack screws. 
+Faceplate finish: [MATERIAL: brushed black anodized aluminum / vintage silver brushed steel / cream powder-coated metal]. 
+Front panel layout: tactile heavy knurled metal rotary knobs with fine precision indicator lines, engraved white typography, vintage toggle switches, recessed illuminated buttons, and [ELEMENTO_CENTRAL: retro analog backlit needle VU meter / green CRT vector oscilloscope screen / vintage tape loop cassette chamber with acrylic cover]. 
+Clean industrial design, authentic hardware details, subtle surface texture, macro depth, sharp focus across entire faceplate. 
+No perspective distortion, perfectly straight orthographic head-on product photograph, flat studio background, studio gear product catalog.
+
+Prompts Específicos para el Pack de 10 Efectos
+
+Bahía / Efecto	Prompt Listo para Generar
+B1: Space Echo RE-201	Orthographic front-facing view of a vintage Roland Space Echo RE-201 19-inch 2U rackmount unit. Dark green and brushed aluminum faceplate, large central clear acrylic window showing the continuous tape loop transport mechanism and magnetic heads. Big knurled silver mode selector knob with positions 1 to 12, vintage silver rotary potentiometers for Repeat Rate, Intensity, Echo Vol, Bass and Treble EQ, orange power toggle switch, red peak LED indicator. Professional vintage studio audio hardware, orthographic head-on shot, 8k resolution.
+
+B2: Zita Reverb	Orthographic front-facing view of a high-end boutique 19-inch 1U digital stereo reverb rack unit. Matte charcoal anodized aluminum faceplate. Central glowing emerald green LCD matrix display showing real-time acoustic room decay impulse curve. Precision machined aluminum knobs for Decay Time, Damping, Early Diffusion, and Mix, with subtle white laser-etched markings and blue LED status rings. Pristine professional studio mastering gear, flat front-on orthographic photo.
+
+B3: Fairchild 670 Compressor	Orthographic front-facing view of a vintage tube Vari-Mu Fairchild 670 style 19-inch 3U compressor unit. Heavy dark industrial painted steel chassis, two large round backlit warm amber analog needle VU gain reduction meters. Massive vintage bakelite pointer knobs for Input Gain, Threshold, and Time Constant (1 to 6 rotary switch), jewel lamp power indicator, dual bypass toggles. Rugged 1950s tube mastering hardware, orthographic studio product shot.
+
+B4: Midas 4-Band Console EQ	Orthographic front-facing view of a classic British touring console 19-inch 2U 4-band parametric equalizer unit. Classic vintage dark blue-grey powder coat faceplate with four distinct color-coded knob rows (cyan for High, green for High-Mid, orange for Low-Mid, red for Low Shelf). Dual concentric precision pots for frequency sweep and boost/cut, Q-bandwidth mini-switches, balanced audio mastering hardware, orthographic front view.
+
+B5: Moog Ladder Filter (Mood Filter)	Orthographic front-facing view of an analog 24dB ladder filter 19-inch 2U rack module. Satin black textured front panel with iconic Moog-style fluted pointer knobs with chrome caps. Giant central cutoff frequency dial, resonance peak knob, 4-pole slope selector toggle (6dB, 12dB, 18dB, 24dB), drive saturation knob with warm amber overload LED. Authentic analog synthesizer studio outboard gear, straight orthographic photo.
+
+B6: Stereo Tape Flanger	Orthographic front-facing view of an analog studio bucket-brigade stereo flanger 19-inch 1U rack unit. Brushed silver front panel with dark purple accents. Heavy knurled knobs for Delay Time, Depth, Resonance / Feedback, and Manual Sweep, central Through-Zero Flange status LED and metallic comb switch. Orthographic front view, studio audio gear.
+
+B7: Roland BBD Chorus (Juno Chorus)	Orthographic front-facing view of a vintage Roland Juno-style stereo chorus 19-inch 1U rackmount unit. Matte dark grey faceplate with distinct yellow and blue push-buttons labelled 'I', 'II', and 'OFF'. Classic vintage styling, noise gate toggle, stereo width potentiometer, vintage Japanese analog hardware aesthetic, flat front-on orthographic view.
+
+B8: Tape Saturation / Preamp	Orthographic front-facing view of a warm analog tape saturation and tube drive 19-inch 1U rack unit. Warm bronze brushed faceplate, central warm glowing dual vacuum tubes visible through horizontal ventilation grille. Knurled bronze Drive pot, Tape Bias 3-way toggle, Output Trim, and miniature round analog VU meter showing saturation harmonics drive level. Orthographic studio photograph.

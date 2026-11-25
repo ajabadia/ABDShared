@@ -66,20 +66,30 @@ public:
 
     [[nodiscard]] const LoadedTone* getTone(int index) const noexcept;
     [[nodiscard]] const LoadedDrumKit* getDrumKit(int index) const noexcept;
+    [[nodiscard]] const IndexedWaveDescriptor* getWaveDescriptor(int index) const noexcept;
     [[nodiscard]] const IndexedWaveDescriptor* findWaveDescriptor(std::string_view waveId) const noexcept;
 
     bool loadToneOnDemand(int toneIndex,
                           StructuredRomplerEngine& engine,
                           RomplerWavePool* explicitPool = nullptr) const;
+    std::size_t preloadAllWaves(RomplerWavePool& pool) const;
     bool loadDrumKitOnDemand(int kitIndex,
                              StructuredRomplerEngine& engine,
                              RomplerWavePool* explicitPool = nullptr) const;
+    bool assignWaveToPartialOnDemand(int waveIndex,
+                                     int partialIndex,
+                                     StructuredRomplerEngine& engine,
+                                     RomplerWavePool* explicitPool = nullptr) const;
+    bool assignWaveToDrumSlotOnDemand(int waveIndex,
+                                      int midiNote,
+                                      StructuredRomplerEngine& engine,
+                                      RomplerWavePool* explicitPool = nullptr) const;
+    [[nodiscard]] WaveHandle acquireWaveOnDemand(std::string_view waveId, RomplerWavePool& pool) const;
 
 private:
     bool parseIndexedArchive(const void* memPtr, std::size_t memSize, const std::string& bankIdOverride);
     bool readEntryPayload(const IndexedZipEntry& entry, std::vector<std::uint8_t>& outBytes) const;
     [[nodiscard]] const IndexedZipEntry* findWaveEntry(const IndexedWaveDescriptor& desc) const noexcept;
-    [[nodiscard]] WaveHandle acquireWaveOnDemand(std::string_view waveId, RomplerWavePool& pool) const;
 
     bool valid_ { false };
     std::string filePath_ {};

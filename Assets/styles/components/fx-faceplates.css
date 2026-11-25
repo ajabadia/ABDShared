@@ -1,29 +1,33 @@
 /**
  * ABDShared -- Assets/styles/components/fx-faceplates.css
  * Canonical tokenized styling for 19'' FX faceplates and detailed edit modal.
- * Strict line limit: < 200 lines. ZERO hardcoded hex/rgb colors.
+ * Strict line limit: < 200 lines.
  */
-
 dialog.abd-fx-modal-backdrop {
   position: fixed; inset: 0; margin: auto; padding: 0; border: none; background: transparent;
-  width: min(780px, 94vw); max-height: 90vh; z-index: var(--z-modal, 10000); overflow: visible;
+  width: min(840px, 94vw); height: auto; max-height: 88vh; z-index: var(--z-modal, 10000); overflow: visible;
 }
 dialog.abd-fx-modal-backdrop[open] { display: flex; flex-direction: column; }
 dialog.abd-fx-modal-backdrop::backdrop { background: transparent; pointer-events: none; }
 
 .abd-fx-modal-window {
-  width: 100%; max-height: 90vh;
-  background: var(--color-panel-surface); border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg, 8px); box-shadow: 0 16px 40px var(--color-shadow);
-  display: flex; flex-direction: column; overflow: hidden;
+  width: 100%; height: auto; max-height: 88vh; background: var(--color-bg-base); border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg, 8px); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75);
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
   font-family: var(--font-mono, monospace); color: var(--color-text-primary);
 }
-
+.abd-fx-modal-window::before {
+  content: ''; position: absolute; inset: 0; background-image: var(--fx-bg-artwork, none);
+  background-size: auto 100%; background-repeat: no-repeat; background-position: left center; opacity: 0.65;
+  mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 55%);
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 55%);
+  pointer-events: none; z-index: 0;
+}
+.abd-fx-modal-header, .abd-fx-modal-toolbar, .abd-fx-faceplate-body, .abd-fx-modal-footer { position: relative; z-index: 1; }
 .abd-fx-modal-header {
-  height: 42px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
-  background: color-mix(in srgb, var(--color-bg-secondary) 85%, transparent);
-  border-bottom: 1px solid var(--color-border-subtle);
-  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
+  height: 40px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
+  background: var(--color-panel-surface); border-bottom: 1px solid var(--color-border-subtle);
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; flex-shrink: 0;
 }
 .abd-fx-modal-header:active { cursor: grabbing; }
 .abd-fx-modal-title-wrap { display: flex; align-items: center; gap: 8px; }
@@ -34,16 +38,13 @@ dialog.abd-fx-modal-backdrop::backdrop { background: transparent; pointer-events
 .abd-fx-modal-title { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
 .abd-fx-modal-name-input {
   height: 24px; padding: 0 8px; font-size: 11px; font-family: var(--font-mono, monospace);
-  background: var(--color-control-bg); color: var(--color-accent); font-weight: 700;
-  border: 1px solid var(--color-border-subtle); border-radius: 4px; outline: none;
-  max-width: 170px; transition: border-color 0.15s ease;
+  background: var(--color-bg-base); color: var(--color-accent); font-weight: 700;
+  border: 1px solid var(--color-border-subtle); border-radius: 4px; outline: none; max-width: 170px;
 }
-.abd-fx-modal-name-input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
-
 .abd-fx-modal-header-actions { display: flex; align-items: center; gap: 8px; }
 .abd-fx-modal-btn {
   height: 26px; padding: 0 10px; border-radius: 4px; font-size: 10px; font-weight: 700;
-  border: 1px solid var(--color-border-subtle); background: var(--color-control-bg);
+  border: 1px solid var(--color-border-subtle); background: var(--color-panel-surface);
   color: var(--color-text-primary); cursor: pointer; transition: all 0.15s ease;
 }
 .abd-fx-modal-btn:hover { border-color: var(--color-accent); }
@@ -53,70 +54,144 @@ dialog.abd-fx-modal-backdrop::backdrop { background: transparent; pointer-events
 
 .abd-fx-modal-toolbar {
   padding: 8px 16px; display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; background: color-mix(in srgb, var(--color-bg-primary) 40%, transparent);
-  border-bottom: 1px solid var(--color-border-subtle); font-size: 11px;
+  gap: 12px; background: color-mix(in srgb, var(--color-panel-surface) 90%, var(--color-bg-base));
+  border-bottom: 1px solid var(--color-border-subtle); font-size: 11px; flex-shrink: 0;
 }
 .abd-fx-toolbar-group { display: flex; align-items: center; gap: 8px; }
 .abd-fx-toolbar-label { font-size: 10px; color: var(--color-text-dim); text-transform: uppercase; }
 .abd-fx-preset-select {
   height: 24px; padding: 0 8px; font-size: 11px; font-family: inherit;
-  background: var(--color-control-bg); color: var(--color-text-primary);
+  background: var(--color-bg-base); color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle); border-radius: 4px;
 }
-
 .abd-fx-faceplate-body {
-  padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
-  background: var(--color-bg-primary);
+  padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: transparent; flex-grow: 1;
 }
-
 .abd-fx-chassis-shell {
-  border-radius: var(--radius-md, 6px); padding: 16px;
-  border: 1px solid var(--color-border-subtle);
-  background: color-mix(in srgb, var(--fx-base-color, var(--color-bg-secondary)) 25%, var(--color-panel-surface));
-  display: flex; flex-direction: column; gap: 14px; position: relative;
+  border-radius: var(--radius-md, 6px); padding: 14px; border: 1px solid var(--color-border-subtle);
+  background: color-mix(in srgb, var(--fx-base-color, var(--color-bg-secondary)) 25%, transparent);
+  display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;
 }
-
 .abd-fx-chassis-bezel {
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 50%, transparent);
-  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 50%, transparent); padding-bottom: 6px;
 }
-.abd-fx-brand-legend { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.7; }
+.abd-fx-brand-legend { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.8; }
 
+/* Inset hardware panel row protecting knobs against background intrusion */
 .abd-fx-controls-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-  gap: 16px; align-items: center; justify-items: center;
+  display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-evenly;
+  align-items: center; gap: 16px; width: 100%; padding: 12px 10px; box-sizing: border-box;
+  background: rgba(10, 12, 16, 0.88); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px; box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(255, 255, 255, 0.05);
 }
 
-.abd-fx-knob-col {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%;
-}
-.abd-fx-knob-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: var(--color-text-secondary); text-align: center; }
-.abd-fx-knob-val { font-size: 11px; color: var(--fx-accent-color, var(--color-accent)); font-weight: 700; }
-
+/* Tactile push button switches for Modes & Selectors */
 .abd-fx-modes-row {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%;
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%;
+  padding: 6px 10px; box-sizing: border-box;
+  background: rgba(14, 16, 20, 0.85); border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
 }
 .abd-fx-mode-btn {
-  height: 24px; padding: 0 10px; font-size: 10px; font-weight: 700; border-radius: 3px;
-  border: 1px solid var(--color-border-subtle); background: var(--color-control-bg);
-  color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s ease;
+  height: 26px; padding: 0 12px; font-size: 9px; font-weight: 800; font-family: inherit;
+  letter-spacing: 0.8px; border-radius: 4px; cursor: pointer; transition: all 0.12s ease;
+  background: linear-gradient(180deg, #2a2d34 0%, #1a1c22 100%);
+  color: #a0a6b5; border: 1px solid #3c404d;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.abd-fx-mode-btn:hover {
+  background: linear-gradient(180deg, #343842 0%, #22252c 100%);
+  color: #e0e5f2; border-color: var(--fx-accent-color, var(--color-accent));
 }
 .abd-fx-mode-btn.is-active {
-  background: var(--fx-accent-color, var(--color-accent)); color: var(--color-bg-primary);
-  border-color: var(--fx-accent-color, var(--color-accent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fx-accent-color, var(--color-accent)) 85%, #000) 0%, color-mix(in srgb, var(--fx-accent-color, var(--color-accent)) 60%, #000) 100%);
+  color: #ffffff; border-color: var(--fx-accent-color, var(--color-accent));
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 10px color-mix(in srgb, var(--fx-accent-color, var(--color-accent)) 40%, transparent);
 }
+
+/* RE-201 Hardware Faceplate Layout */
+.abd-re201-faceplate {
+  background: #355923 !important; border: 1px solid #1a3311 !important;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.5);
+}
+.abd-re201-hardware-bay { display: flex; flex-direction: row; gap: 16px; align-items: stretch; width: 100%; }
+.abd-re201-left-bay {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #2b491c; border: 1px solid #1a3311; border-radius: 6px; padding: 10px 14px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); flex-shrink: 0; min-width: 170px;
+}
+.abd-re201-right-bay { display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+.abd-re201-top-row {
+  background: #000000; border-radius: 4px; padding: 8px 12px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8); display: flex; justify-content: space-around;
+}
+.abd-re201-bottom-row { background: transparent; padding: 4px 12px; display: flex; justify-content: space-around; }
+
+.abd-fx-knob-col { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 70px; }
+.abd-fx-knob-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; color: var(--color-text-secondary); text-align: center; }
+.abd-fx-knob-val { font-size: 10px; color: var(--fx-accent-color, var(--color-accent)); font-weight: 700; }
+.abd-fx-knob-mount {
+  display: flex; align-items: center; justify-content: center; min-width: 52px; min-height: 52px; position: relative;
+}
+.abd-fx-knob-mount::before {
+  content: ''; position: absolute; width: 48px; height: 48px; border-radius: 50%;
+  background: #111215; border: 2px solid #5a5f6b;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.6); pointer-events: none; z-index: 0;
+}
+.abd-fx-knob-mount > * { position: relative; z-index: 1; }
+
+.abd-re201-preset-mount {
+  position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.abd-re201-preset-mount:hover { filter: brightness(1.08); }
 
 .abd-fx-tape-display-box {
-  width: 100%; height: 90px; border-radius: 4px; overflow: hidden;
-  background: color-mix(in srgb, var(--color-bg-primary) 90%, transparent);
-  border: 1px solid var(--color-border-subtle); display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 74px; border-radius: 4px; overflow: hidden;
+  background: rgba(10, 15, 12, 0.7); border: 1px solid rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
 }
-
+.abd-re201-sync-bar {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px; padding: 4px 8px; margin: 4px 0 8px 0; gap: 8px; box-sizing: border-box;
+}
+.abd-re201-sync-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px;
+  background: #181c22; border: 1px solid #3b4252; border-radius: 3px;
+  color: var(--color-text-secondary); font-size: 9px; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.5px; transition: all 0.15s ease;
+}
+.abd-re201-sync-toggle.is-active {
+  background: #0f3d23; border-color: #10b981; color: #a7f3d0;
+}
+.abd-re201-sync-led {
+  width: 6px; height: 6px; border-radius: 50%; background: #4b5563; display: inline-block;
+}
+.abd-re201-sync-toggle.is-active .abd-re201-sync-led {
+  background: #10b981; box-shadow: 0 0 6px #10b981;
+}
+.abd-re201-div-group {
+  display: flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto;
+}
+.abd-re201-div-btn {
+  padding: 2px 6px; font-size: 8.5px; font-family: monospace; font-weight: 700;
+  background: #161a20; border: 1px solid #2e3540; border-radius: 3px;
+  color: var(--color-text-dim); cursor: pointer; transition: all 0.12s ease;
+}
+.abd-re201-div-btn:hover { border-color: #4b5563; color: var(--color-text-primary); }
+.abd-re201-div-btn.is-active {
+  background: #1b4d2e; border-color: #34d399; color: #a7f3d0;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+}
+#head-h1.head-active, #head-h2.head-active, #head-h3.head-active {
+  fill: #10b981 !important;
+  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.9));
+}
 .abd-fx-modal-footer {
   height: 32px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
   background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent);
-  border-top: 1px solid var(--color-border-subtle); font-size: 10px; color: var(--color-text-dim);
+  border-top: 1px solid var(--color-border-subtle); font-size: 10px; color: var(--color-text-dim); flex-shrink: 0;
 }
 .abd-fx-status-indicator { display: flex; align-items: center; gap: 6px; }
 .abd-fx-status-led {

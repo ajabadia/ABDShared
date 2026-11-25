@@ -8,6 +8,8 @@ export { bankCardHtml, bindBankCards } from './bankCard.js';
 export { bankChipsHtml, bindBankChips } from './bankChips.js';
 export {
   classifyBankCategory,
+  CATEGORY_0_9,
+  getCategoryLiteral,
   getBankCategoryLabel,
   BANK_CATEGORY_LABELS,
   STANDARD_CATEGORY_NAMES,

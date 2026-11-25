@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { bankCardHtml, bindBankCards } from '../Components/bank/bankCard.js';
-import { classifyBankCategory } from '../Components/bank/bankCategories.js';
+import {
+  classifyBankCategory,
+  CATEGORY_0_9,
+  getCategoryLiteral,
+} from '../Components/bank/bankCategories.js';
 
 describe('bankCardHtml', () =>
 {
@@ -73,12 +77,43 @@ describe('classifyBankCategory', () =>
 {
   it('une las reglas de ambos hosts', () =>
   {
+    // IDs 0..9 inmutables de Hartmann Neuron (tabla canónica CATEGORY_0_9).
     expect(classifyBankCategory('Silk Strings')).toEqual({ catClass: 'cat-1', paramId: 1 });
-    expect(classifyBankCategory('Voice Choir')).toEqual({ catClass: 'cat-6', paramId: 6 });
-    expect(classifyBankCategory('Rhythm Kit')).toEqual({ catClass: 'cat-9', paramId: 9 });
+    expect(classifyBankCategory('Voice Choir')).toEqual({ catClass: 'cat-4', paramId: 4 });
+    expect(classifyBankCategory('Rhythm Kit')).toEqual({ catClass: 'cat-8', paramId: 8 });
     expect(classifyBankCategory('Sequenced Loop')).toEqual({ catClass: 'cat-8', paramId: 8 });
     expect(classifyBankCategory('Organ Keys')).toEqual({ catClass: 'cat-5', paramId: 5 });
     expect(classifyBankCategory('Brass Section')).toEqual({ catClass: 'cat-6', paramId: 6 });
     expect(classifyBankCategory('Weird Stuff')).toEqual({ catClass: 'cat-0', paramId: 0 });
+    expect(classifyBankCategory('Grand Piano')).toEqual({ catClass: 'cat-5', paramId: 5 });
+    expect(classifyBankCategory('Synth Bass')).toEqual({ catClass: 'cat-3', paramId: 3 });
+    expect(classifyBankCategory('Glockenspiel')).toEqual({ catClass: 'cat-2', paramId: 2 });
+    expect(classifyBankCategory('Cinematic Drone')).toEqual({ catClass: 'cat-9', paramId: 9 });
+  });
+});
+
+describe('CATEGORY_0_9 (tabla canónica multiliteral)', () =>
+{
+  it('tiene exactamente los 10 Parameter Sets de Hartmann Neuron, en orden', () =>
+  {
+    expect(CATEGORY_0_9.map((c) => c.id)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(CATEGORY_0_9.map((c) => c.neuron)).toEqual([
+      'Default Set', 'Stringed / Bowed', 'Plucked & Bells', 'Plucked & Picked',
+      'Carpet Shop', 'Piano etc.', 'Woodwinds', 'Extreme Pads',
+      'Loop Factory', 'Multipurpose',
+    ]);
+    expect(CATEGORY_0_9.map((c) => c.icon)).toEqual([
+      'param0', 'param1', 'param2', 'param3', 'param4',
+      'param5', 'param6', 'param7', 'param8', 'param9',
+    ]);
+  });
+
+  it('expone el literal neuron, el musical y el corto para el mismo ID', () =>
+  {
+    expect(getCategoryLiteral(8, 'neuron', 'en')).toBe('Loop Factory');
+    expect(getCategoryLiteral(8, 'music', 'en')).toBe('Drums, Perc & Loops');
+    expect(getCategoryLiteral(8, 'music', 'es')).toBe('Baterías, Perc y Loops');
+    expect(getCategoryLiteral(8, 'short', 'en')).toBe('Drums / Loops');
+    expect(getCategoryLiteral(9, 'neuron', 'en')).toBe('Multipurpose');
   });
 });

@@ -9,6 +9,8 @@
 > • `Code/DspCore/DspVAOnePole.h`  
 > • `Code/DspCore/DspMoogLadder.h`  
 > • `Code/DspCore/DspKorgMS20.h`  
+> • `Code/DspCore/DspTb303DiodeLadder.h`  
+> • `Code/DspCore/DspEmaxHChipFilter.h`  
 > **Estándar C++:** C++17 / C++20  
 > **Dependencias:** Ninguna (100% C++ puro estándar, `<cmath>`, `<algorithm>`, libre de JUCE)  
 > **Garantía de Tiempo Real:** Zero-alloc en lazo de audio, noexcept/RT-safe, precisión `double` en estados integradores, modelado no lineal de saturación analógica.
@@ -165,6 +167,22 @@ Basado en la transformada conservadora de topología (*Topology-Preserving Trans
 > En K35 LP y HP la realimentación se aplica de forma **explícita**: `x = sample + tanh(k · lp2)` usa la salida de la muestra anterior, así que el lazo resonante no se resuelve, se aproxima. Con `k` alto y corte cercano a Nyquist el comportamiento deja de ser físico (oscilación no senoidal, dependencia del sample rate); el clipper de diodos mantiene el valor acotado (≤ 10) pero **no** corrige el lazo.
 > **Alternativa:** Newton sobre el mismo `tanh` (1–2 iteraciones) o evaluar la realimentación en el dominio sobremuestreado, que es lo que hace el circuito real al no tener retardo.
 > **Prioridad:** alta — es el único filtro del módulo con realimentación no resuelta. Ver `ADR-002-2026-dsp-filtros-oversampling.md` §3 (P1).
+
+---
+
+### 3.4. Escalera de Diodos TB-303 (`Tb303DiodeLadderFilter` — `DspTb303DiodeLadder.h`)
+
+* **Estructura:** Modelo TeeBee de 4 polos en escalera de diodos ejecutado a **sobremuestreo 2x** con diezmador elíptico polifásico de media banda en 6 etapas all-pass (`decimHb1`), conforme al rasgo `abd::dsp::IsFilterStage<Tb303DiodeLadderFilter>`.
+* **Acondicionamiento y realimentación:** HPF de acoplamiento AC de entrada (`44.486 Hz`), HPF de lazo resonante (`150 Hz`), cadena post-filtro (`all-pass 14.008 Hz`, `HPF 24.167 Hz` y rechazo `4.7 oct @ 7.5164 Hz`).
+* **Interfaz de bloque rápido y de familia:** Además de `processSample(double)`, expone `computeCoeffs(fcHz, resoSkewed)` y `processOversampledPair(osc0, osc1, coeffs)` para que `Tb303DspCore` opere sin duplicar coeficientes ni estados.
+
+---
+
+### 3.5. Filtro H-Chip E-mu Emax II (`EmaxHChipFilter` — `DspEmaxHChipFilter.h`)
+
+* **Estructura:** Dos secciones biquad de 2 polos en cascada en coma fija `Q2.14` referenciadas a `39.0625 kHz`, conforme a `abd::dsp::IsFilterStage<EmaxHChipFilter>`.
+* **Parametrización polar logarítmica:** Tabla de 512 entradas `cos(theta)` en formato `Q1.15` con desplazamiento escalonado de polos (`±36` índices por etapa).
+* **Suavizado y saturación hardware:** *Slewing* entero por hardware `current += (target - current) >> 6` por muestra en los 5 coeficientes `(b0, b1, b2, a1, a2)` y saturación asimétrica de 16 bits (`softSaturate` + `quantize16`) entre ambas etapas. Permite compartir una sola LUT mediante `EmaxHChipFilter::DualState` por voz/capa en `EmaxSoundEngine`.
 
 ---
 

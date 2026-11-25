@@ -11,7 +11,7 @@ export const ROMPLER_SOURCES = Object.freeze(['DDSP', 'PCM', 'VA', 'FM', 'AX', '
 export const ROMPLER_VA_WAVES = Object.freeze(['SAW', 'PLS', 'TRI', 'SIN', 'SSW', 'NOI']);
 export const ROMPLER_FILTER_MODELS = Object.freeze(['SVF', 'TVF', 'MS20', 'LADD', 'Z-PLN', 'TC61']);
 export const ROMPLER_FILTER_MODES = Object.freeze(['LPF', 'HPF', 'BPF', 'OFF']);
-export const ROMPLER_LFO_SHAPES = Object.freeze(['SIN', 'TRI', 'SAW', 'SQR', 'S&H']);
+export const ROMPLER_LFO_SHAPES = Object.freeze(['SIN', 'TRI', 'SAW+', 'SAW-', 'SQR', 'S&H', 'RND', 'STP']);
 export const ROMPLER_LFO1_TARGETS = Object.freeze(['PITCH', 'FINE', 'PAN', 'VEC']);
 export const ROMPLER_LFO2_TARGETS = Object.freeze(['CUT', 'RESO', 'AMP', 'DRV']);
 export const ROMPLER_LFO_TRIGGERS = Object.freeze(['VOICE', 'BEAT', 'FREE']);
@@ -31,25 +31,39 @@ export const ROMPLER_DRUM_QUICK_NOTES = Object.freeze([
 export const ROMPLER_I18N = Object.freeze({
   en: {
     title: 'Structured Rompler', drumMode: 'DRUM', chromMode: 'CHROM', preset: 'Preset', bank: 'Bank...',
-    tabListLabel: 'Structured Rompler sections', tabPartials: 'Partials & Tone',
-    tabMod: 'Filter 2 & LFOs', tabDrum: 'Drum Kit', structure: 'Structure', partial: 'Partial',
-    active: 'Active', source: 'Osc Source', vaWave: 'VA Wave', oneShot: '1-Shot', pingPong: 'Ping-Pong',
+    tabListLabel: 'Structured Rompler sections',
+    tabBrowse: 'Browse', tabPartials: 'Partials P1-P4', tabMod: 'Vector & Mod',
+    tabDrumPads: 'Kit Pads', tabDrumMaster: 'Kit Filter & Drive',
+    structure: 'Structure', partial: 'Partial', active: 'Active', source: 'Osc Source',
+    vaWave: 'VA Wave', oneShot: '1-Shot', pingPong: 'Ping-Pong',
+    waveBank: 'PCM Bank', waveSample: 'Sample Wave',
     filterModel: 'Filter Model', filterMode: 'Filter Mode', partialsSection: 'Partial Synthesis & Envelope',
+    envAmp: 'Amp', envFlt: 'Filter', envPit: 'Pitch',
     vectorGlide: 'Vector 2D & Glide', vectorPad: 'Vector 2D Morph', glide: 'Glide', legato: 'Legato',
-    vcf2: 'Series Filter 2 (VCF 2)', lfo1: 'Voice LFO 1', lfo2: 'Voice LFO 2',
-    target: 'Target', sync: 'BPM Sync', trigger: 'Trigger',
+    activateVector: 'Activate Vector (VEC)', vectorHint: 'Vector active only in VEC structure mode.',
+    vcf2: 'Series Filter 2 (VCF 2)', kitFilterTitle: 'Kit Master Filter & Drive',
+    lfo1: 'Voice LFO 1', lfo2: 'Voice LFO 2', target: 'Target', sync: 'BPM Sync', trigger: 'Trigger',
     drumSelect: 'Pad Key (0-127)', drumNote: 'MIDI Note', triggerMode: 'Trigger',
+    midiAuto: 'MIDI Auto-Select', auditionPad: 'Audition',
+    padFilterKit: 'Kit Pads', padFilterGm: 'GM Std', padFilterAll: 'All 128',
   },
   es: {
     title: 'Structured Rompler', drumMode: 'BATERÍA', chromMode: 'CROMÁTICO', preset: 'Preset', bank: 'Banco...',
-    tabListLabel: 'Secciones de Structured Rompler', tabPartials: 'Parciales y Tono',
-    tabMod: 'Filtro 2 y LFOs', tabDrum: 'Batería', structure: 'Estructura', partial: 'Parcial',
-    active: 'Activo', source: 'Fuente Osc', vaWave: 'Onda VA', oneShot: '1-Shot', pingPong: 'Ping-Pong',
+    tabListLabel: 'Secciones de Structured Rompler',
+    tabBrowse: 'Explorar', tabPartials: 'Parciales P1-P4', tabMod: 'Vector y Mod',
+    tabDrumPads: 'Pads del Kit', tabDrumMaster: 'Filtro y Satur. Kit',
+    structure: 'Estructura', partial: 'Parcial', active: 'Activo', source: 'Fuente Osc',
+    vaWave: 'Onda VA', oneShot: '1-Shot', pingPong: 'Ping-Pong',
+    waveBank: 'Banco PCM', waveSample: 'Muestra PCM',
     filterModel: 'Modelo Filtro', filterMode: 'Modo Filtro', partialsSection: 'Síntesis del Parcial y Envolvente',
+    envAmp: 'Amp', envFlt: 'Filtro', envPit: 'Tono',
     vectorGlide: 'Vector 2D y Glide', vectorPad: 'Morf Vector 2D', glide: 'Glide', legato: 'Legato',
-    vcf2: 'Filtro Serie 2 (VCF 2)', lfo1: 'LFO Voz 1', lfo2: 'LFO Voz 2',
-    target: 'Destino', sync: 'Sinc. BPM', trigger: 'Disparo',
+    activateVector: 'Activar Vector (VEC)', vectorHint: 'El Vector actúa en modo de estructura VEC.',
+    vcf2: 'Filtro Serie 2 (VCF 2)', kitFilterTitle: 'Filtro Maestro y Satur. Kit',
+    lfo1: 'LFO Voz 1', lfo2: 'LFO Voz 2', target: 'Destino', sync: 'Sinc. BPM', trigger: 'Disparo',
     drumSelect: 'Tecla Pad (0-127)', drumNote: 'Nota MIDI', triggerMode: 'Disparo',
+    midiAuto: 'Auto-Sel MIDI', auditionPad: 'Audicionar',
+    padFilterKit: 'Pads Kit', padFilterGm: 'GM Estándar', padFilterAll: '128 Notas',
   },
 });
 
@@ -57,6 +71,8 @@ export const ROMPLER_PARAM_SPECS = Object.freeze({
   pw:            { label: 'PW',        labelEs: 'Ancho',     min: 0.05,  max: 0.95,  defaultValue: 0.5 },
   coarse:        { label: 'Coarse',    labelEs: 'Semitonos', min: -48,   max: 48,    defaultValue: 0,     bipolar: true,  intStep: true },
   fine:          { label: 'Fine',      labelEs: 'Centés.',   min: -100,  max: 100,   defaultValue: 0,     bipolar: true },
+  velLo:         { label: 'Vel Min',   labelEs: 'Vel Min',   min: 0,     max: 127,   defaultValue: 0,     intStep: true },
+  velHi:         { label: 'Vel Max',   labelEs: 'Vel Max',   min: 0,     max: 127,   defaultValue: 127,   intStep: true },
   level:         { label: 'Level',     labelEs: 'Nivel',     min: 0,     max: 1.5,   defaultValue: 0.85 },
   pan:           { label: 'Pan',       labelEs: 'Panorama',  min: -1,    max: 1,     defaultValue: 0,     bipolar: true },
   cutoffHz:      { label: 'Cutoff',    labelEs: 'Corte',     min: 20,    max: 20000, defaultValue: 12000, log: true },
@@ -67,16 +83,22 @@ export const ROMPLER_PARAM_SPECS = Object.freeze({
   pitchEnvSemi:  { label: 'Pitch Env', labelEs: 'Env Tono',  min: -48,   max: 48,    defaultValue: 0,     bipolar: true },
   t1Ms:          { label: 'Attack',    labelEs: 'Ataque',    min: 0.1,   max: 10000, defaultValue: 5,     log: true },
   t2Ms:          { label: 'Decay 1',   labelEs: 'Caída 1',   min: 1,     max: 15000, defaultValue: 40,    log: true },
+  t3Ms:          { label: 'Decay 2',   labelEs: 'Caída 2',   min: 1,     max: 15000, defaultValue: 80,    log: true },
+  l1:            { label: 'Peak Lvl',  labelEs: 'Nivel 1',   min: 0,     max: 1,     defaultValue: 1 },
+  l2:            { label: 'Break Lvl', labelEs: 'Quiebre',   min: 0,     max: 1,     defaultValue: 0.75 },
   l3:            { label: 'Sustain',   labelEs: 'Sostén',    min: 0,     max: 1,     defaultValue: 0.65 },
   t4Ms:          { label: 'Release',   labelEs: 'Relevo',    min: 1,     max: 20000, defaultValue: 250,   log: true },
   portaTimeMs:   { label: 'Glide ms',  labelEs: 'Glide ms',  min: 0,     max: 5000,  defaultValue: 60 },
   lfoRate:       { label: 'Rate Hz',   labelEs: 'Tasa Hz',   min: 0.05,  max: 40,    defaultValue: 2.4,   log: true },
   lfoDepth:      { label: 'Depth',     labelEs: 'Profund.',  min: -1,    max: 1,     defaultValue: 0,     bipolar: true },
   lfoDelayMs:    { label: 'Delay ms',  labelEs: 'Retardo',   min: 0,     max: 5000,  defaultValue: 0 },
-  decayMs:       { label: 'Decay ms',  labelEs: 'Caída ms',  min: 5,     max: 5000,  defaultValue: 280,   log: true },
+  decayMs:       { label: 'Decay ms',  labelEs: 'Caída ms',  min: 5,     max: 10000, defaultValue: 280,   log: true },
   muteGroup:     { label: 'Mute Grp',  labelEs: 'Grupo',     min: 0,     max: 31,    defaultValue: 0,     intStep: true },
   coarseKey:     { label: 'Tune Key',  labelEs: 'Afinación', min: 0,     max: 127,   defaultValue: 60,    intStep: true },
   pitchKeyTrack: { label: 'KeyTrk',    labelEs: 'Seg.Tecla', min: 0,     max: 1,     defaultValue: 0 },
+  reverbSend:    { label: 'Reverb',    labelEs: 'Reverb',    min: 0,     max: 1,     defaultValue: 0.25 },
+  chorusSend:    { label: 'Chorus',    labelEs: 'Chorus',    min: 0,     max: 1,     defaultValue: 0 },
+  delaySend:     { label: 'Delay',     labelEs: 'Delay',     min: 0,     max: 1,     defaultValue: 0 },
 });
 
 export function normFromSpec(spec, raw) {

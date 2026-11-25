@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "2.0",
+  "id": "roland_mt32",
+  "aliases": ["roland-mt32", "mt32", "roland-cm32l", "roland-d110"],
+  "displayName": "Roland MT-32 / CM-32L / D-110 LA Module",
+  "description": "Multitimbral LA32 sound module family sharing 13 partial structures, -1 octave compensated sawtooth WG, and Boss MB87136 reverb (Model ID 16h).",
+  "deviceType": "AUTOMATED_SYSEX",
+  "category": "Linear Arithmetic Sound Module",
+  "brand": "Roland",
+  "brandLogo": "brands/roland-logo.svg",
+  "modelImage": "models/roland-mt32.webp",
+  "midiIdentification": {
+    "manufacturer": "Roland",
+    "manufacturerIdHex": "41",
+    "model": "MT-32",
+    "modelIdHex": "16",
+    "sysexHeaderHex": "41 10 16 12",
+    "autoDetectSysEx": "F0 7E 7F 06 01 F7",
+    "portNameMatches": ["MT-32", "MT32", "CM-32L", "D-110", "D110"]
+  },
+  "functions": [
+    {
+      "id": "mt32_tvf",
+      "name": "LA32 Compensated TVF Filter",
+      "blockType": "SpectrumFilter",
+      "suggestedStimulus": "LOG_SINE_SWEEP",
+      "controls": [
+        { "index": 1, "name": "TVF Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "04 00 1A", "minVal": 0, "maxVal": 100, "defaultVal": 60, "unit": "step" },
+        { "index": 2, "name": "TVF Resonance", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "04 00 1B", "minVal": 0, "maxVal": 30, "defaultVal": 6, "unit": "step" }
+      ]
+    },
+    {
+      "id": "mt32_tva",
+      "name": "LA32 TVA 4-Segment Envelope",
+      "blockType": "TimeDynamic",
+      "suggestedStimulus": "GATE_PULSE",
+      "controls": [
+        { "index": 1, "name": "TVA T1 Attack", "semanticRole": "AmpEnvAttack", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "04 00 2C", "minVal": 0, "maxVal": 100, "defaultVal": 8, "unit": "step" },
+        { "index": 2, "name": "TVA T5 Release", "semanticRole": "AmpEnvRelease", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "04 00 30", "minVal": 0, "maxVal": 100, "defaultVal": 40, "unit": "step" }
+      ]
+    }
+  ],
+  "bankManagement": {
+    "bankCapacity": 64,
+    "banksCount": 8,
+    "programsPerBank": 8,
+    "patchDataSize": 246,
+    "patchNameMaxLength": 10,
+    "categories": ["Keys", "Strings", "Brass", "Pad", "Lead", "Bass", "Mallet", "FX", "Other"],
+    "defaultCategory": "Keys",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": ["roland-cm32l", "roland-d110"],
+    "sysexProtocol": {
+      "manufacturerIdHex": "41",
+      "modelIdByteHex": "16",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "RAW_7BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 25,
+      "dumpTimeoutMs": 3500,
+      "midiDefaultChannel": 2,
+      "midiDefaultDeviceIdHex": "10",
+      "portNameMatches": ["MT-32", "CM-32L", "D-110"]
+    }
+  }
+}

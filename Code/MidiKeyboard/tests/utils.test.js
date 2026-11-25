@@ -183,8 +183,12 @@ describe('applyVelocityCurve', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('SCALE_INTERVALS', () => {
-  it('has 16 scales defined', () => {
-    expect(Object.keys(SCALE_INTERVALS)).toHaveLength(16);
+  it('has 17 scales defined', () => {
+    expect(Object.keys(SCALE_INTERVALS)).toHaveLength(17);
+  });
+
+  it('diminished scale intervals match half-whole octatonic', () => {
+    expect(SCALE_INTERVALS.diminished).toEqual([0, 1, 3, 4, 6, 7, 9, 10]);
   });
 
   it('major scale has 7 notes', () => {

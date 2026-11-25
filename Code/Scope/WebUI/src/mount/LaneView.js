@@ -177,8 +177,8 @@ export class LaneView {
       case 'oscilloscope': return 'OSC';
       case 'spectrum':     return 'FFT';
       case 'lissajous':    return 'LISS';
-      case 'phase':        return 'PHASE';
-      case 'spectrogram':  return 'WATERFALL';
+      case 'phase':        return 'PHAS';
+      case 'spectrogram':  return 'SPEC';
       default: return mode.slice(0, 4).toUpperCase();
     }
   }

@@ -18,6 +18,8 @@ import {
   findAlgorithm,
   findAlgorithmById,
 } from '../Components/MultiBusFxRack/multiBusFxRegistry.js';
+import { RACK_PICKER_ENGINES } from '../Components/MultiBusFxRack/FxPickerModal.js';
+import { getFxDescriptor } from '../Components/FxFaceplates/fxFaceplateRegistry.js';
 
 describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
   beforeEach(() => {
@@ -78,7 +80,7 @@ describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
     catSelect.value = 'modulation';
     catSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
-    expect(bridge.setSlotEngine).toHaveBeenCalledWith(0, 'stereo_chorus');
+    expect(bridge.setSlotEngine).toHaveBeenCalledWith(0, 'stereo_phaser');
 
     // Cambiamos algoritmo a 'bbd_chorus'
     const algoSelect = modal.el.querySelector('.fx-algo-select[data-slot="0"]');
@@ -156,5 +158,39 @@ describe('MultiBusFxRackModal 3-Level Polymorphic Component', () => {
     const direct = findAlgorithmById('bbd_chorus');
     expect(direct.name).toBe('Roland BBD Chorus');
     expect(direct.category).toBe('modulation');
+  });
+
+  it('registers Roland LA-50/JV/GS, Korg MS2000 & Hartmann Neuron rack engines (61..77 -> 10..26)', () => {
+    for (const [id, fxId, rackEngine, img] of [
+      ['roland_boss_reverb', 61, 10], ['roland_mt32_reverb', 62, 11], ['roland_multi_chorus', 63, 12], ['roland_tone_eq', 64, 13],
+      ['roland_jv_reverb', 65, 14], ['roland_jv_chorus', 66, 15], ['roland_gs_delay', 67, 16],
+      ['ms2000_chorus_flanger', 68, 17, 'korg_ms2000r'], ['ms2000_ensemble', 69, 18, 'korg_ms2000r'], ['ms2000_phaser', 70, 19, 'korg_ms2000r'],
+      ['ms2000_delay', 71, 20, 'korg_ms2000r'], ['ms2000_distortion', 72, 21, 'korg_ms2000r'], ['ms2000_eq', 73, 22, 'korg_ms2000r'],
+      ['neuron_silver_filter', 74, 23, 'hartmann_neuron_fx'], ['neuron_silver_freq', 75, 24, 'hartmann_neuron_fx'], ['neuron_silver_time', 76, 25, 'hartmann_neuron_fx'], ['neuron_slicer', 77, 26, 'hartmann_neuron_fx'],
+      ['golana_reverb', 78, 27], ['iterum_delay', 79, 28], ['re201_wdf', 80, 29], ['kr106_chorus', 81, 30],
+    ]) {
+      const algo = findAlgorithmById(id);
+      expect(algo?.fxId).toBe(fxId);
+      expect(algo?.image).toBe(`assets/fx/models/${img || id}.webp`);
+      expect(RACK_PICKER_ENGINES.find((e) => e.id === id)?.rackEngine).toBe(rackEngine);
+      expect(getFxDescriptor(id).params.length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('renderiza rutas dinámicas LCD para topologías 0..9 y barra opt-in Sidechain', () => {
+    const setSidechainConfig = vi.fn();
+    const modal = new MultiBusFxRackModal({ enableSidechainConfig: true, partCount: 16, bridge: { setSidechainConfig } });
+    modal.open();
+    expect(modal.el.querySelector('#fx-sc-config-bar')).toBeTruthy();
+    const depth = modal.el.querySelector('[data-act="sc-depth"]');
+    depth.value = '-24';
+    depth.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(setSidechainConfig).toHaveBeenCalledWith(expect.objectContaining({ depthDb: -24 }));
+
+    for (let t = 0; t <= 9; t++) {
+      modal.lcd.setTopology(t);
+      expect(modal.lcd.container.querySelectorAll('.fx-lcd-svg path').length).toBeGreaterThanOrEqual(7);
+    }
+    modal.destroy();
   });
 });

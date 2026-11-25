@@ -56,6 +56,13 @@
   container-type: inline-size;
 }
 
+.abd-scope-root button {
+  box-sizing: border-box;
+  text-transform: none;
+  font-family: inherit;
+  margin: 0;
+}
+
 /* ─── Embedded Mount Layout ─── */
 .abd-scope-embedded {
   display: flex;
@@ -74,10 +81,10 @@
   position: fixed;
   top: 70px;
   right: 24px;
-  width: 520px;
-  height: 310px;
-  min-width: 340px;
-  min-height: 200px;
+  width: 680px;
+  height: 380px;
+  min-width: 480px;
+  min-height: 240px;
   max-width: 95vw;
   max-height: 95vh;
   resize: both;
@@ -104,11 +111,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
+  gap: 8px;
+  padding: 4px 8px;
   background: var(--scope-header-bg, rgba(0, 0, 0, 0.6));
   border-bottom: 1px solid var(--scope-border);
   flex-shrink: 0;
+  min-height: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .abd-scope-drag-handle {
@@ -124,6 +134,16 @@
   letter-spacing: 0.8px;
   color: var(--scope-accent);
   white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.abd-scope-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .abd-scope-indicator {
@@ -139,6 +159,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-right: 2px;
 }
 
 /* Layout buttons group (1 / 2 / 3 / 4 lanes) */
@@ -210,17 +233,22 @@
   color: var(--scope-text-muted);
   font-size: 14px;
   line-height: 1;
-  padding: 2px 4px;
+  padding: 0;
+  margin-left: 2px;
   border-radius: 3px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
 }
 
 .abd-scope-close-btn:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Icon sizing: icon markup (ABDSharedAssets/icons) ships with a 16px
@@ -310,6 +338,8 @@
   flex-shrink: 0;
   gap: 4px;
   min-height: 22px;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .abd-scope-lane-group-left,
@@ -317,6 +347,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
+  flex-shrink: 0;
 }
 
 .abd-scope-lane-badge {

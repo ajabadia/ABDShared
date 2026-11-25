@@ -36,6 +36,8 @@ struct LoadedTone
 {
     std::string id;
     std::string name;
+    int categoryId { -1 };
+    std::string category;
     StructureMode structureMode { StructureMode::Parallel };
     std::array<PartialConfig, 4> partials {};
     std::array<std::string, 4> partialWaveIds {};
@@ -57,6 +59,8 @@ struct LoadedDrumKit
 {
     std::string id;
     std::string name;
+    int categoryId { -1 };
+    std::string category;
     DrumMapMode drumMapMode { DrumMapMode::RolandGsMc };
     std::array<LoadedDrumSlot, 128> slots {};
 };

@@ -1,0 +1,218 @@
+/**
+ * ABDShared -- fx-picker.css
+ * Canonical Rack Effect Picker Popover (as designed and used in ABDMCX0X).
+ * Strictly CSS Vanilla. Strictly < 200 lines.
+ */
+
+.mcx-rack-picker-popover {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  width: 440px;
+  max-width: 94vw;
+  max-height: 520px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-panel-border-strong, var(--border-bright, #3a4252));
+  border-radius: var(--radius-md, 6px);
+  background: var(--color-bg-base, var(--bg-deepest, #0c1017));
+  color: var(--color-text-main, var(--text-main, #e6edf3));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  z-index: 10050;
+  outline: none;
+}
+
+.mcx-rack-picker-popover:is(:popover-open, .\:popover-open, .is-open) {
+  display: flex;
+}
+
+@supports (position-area: block-end) {
+  .mcx-rack-picker-popover {
+    inset: auto;
+    margin: 0;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+@supports not (position-area: block-end) {
+  .mcx-rack-picker-popover {
+    position: fixed;
+    margin: 0;
+  }
+}
+
+.mcx-rack-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-panel-border-dim, var(--border-dim, #21262d));
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-text-muted, var(--text-dim, #8b949e));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mcx-rack-picker-search {
+  padding: 4px 0 2px 0;
+}
+
+.mcx-rack-picker-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--color-panel-surface, #161b22) 80%, var(--color-bg-base, #0c1017));
+  border: 1px solid var(--color-panel-border-dim, #21262d);
+  border-radius: var(--radius-xs, 3px);
+  color: var(--color-text-main, #e6edf3);
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.mcx-rack-picker-search-input:focus {
+  border-color: var(--color-accent, #00ffaa);
+}
+
+.mcx-rack-picker-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0 4px 0;
+  border-bottom: 1px solid var(--color-panel-border-dim, #21262d);
+}
+
+.mcx-rack-picker-tab-btn {
+  appearance: none;
+  border: 1px solid var(--color-panel-border-dim, #21262d);
+  border-radius: var(--radius-xs, 3px);
+  background: var(--color-panel-surface, #161b22);
+  color: var(--color-text-dim, #8b949e);
+  font-family: var(--font-mono, monospace);
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.mcx-rack-picker-tab-btn:hover {
+  border-color: var(--color-accent, #00ffaa);
+  color: var(--color-text-main, #e6edf3);
+}
+
+.mcx-rack-picker-tab-btn.is-active {
+  border-color: var(--color-accent, #00ffaa);
+  background: color-mix(in srgb, var(--color-accent, #00ffaa) 15%, var(--color-panel-surface, #161b22));
+  color: var(--color-accent, #00ffaa);
+}
+
+.mcx-rack-picker-close {
+  appearance: none;
+  border: 1px solid var(--color-panel-border, var(--border-dim, #30363d));
+  border-radius: var(--radius-xs, 3px);
+  background: var(--color-panel-surface, var(--bg-surface, #161b22));
+  color: var(--color-text-muted, var(--text-dim, #8b949e));
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.mcx-rack-picker-close:hover {
+  border-color: var(--color-accent, var(--accent-primary, #00ffaa));
+  color: var(--color-accent, var(--accent-primary, #00ffaa));
+}
+
+.mcx-rack-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.mcx-rack-picker-cat-title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 8.5px;
+  font-weight: 800;
+  color: var(--color-accent, var(--accent-primary, #00ffaa));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 4px 2px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent, var(--accent-primary, #00ffaa)) 20%, transparent);
+  margin-top: 4px;
+}
+
+.mcx-rack-picker-item {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-panel-border-dim, var(--border-dim, #21262d));
+  border-radius: var(--radius-sm, 3px);
+  background: var(--color-panel-surface, var(--bg-surface, #161b22));
+  color: var(--color-text-main, var(--text-main, #e6edf3));
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mcx-rack-picker-item:hover,
+.mcx-rack-picker-item.is-selected {
+  border-color: var(--color-accent, var(--accent-primary, #00ffaa));
+  color: var(--color-accent, var(--accent-primary, #00ffaa));
+  background: color-mix(in srgb, var(--color-accent, var(--accent-primary, #00ffaa)) 12%, var(--color-panel-surface, var(--bg-surface, #161b22)));
+}
+
+.mcx-rack-picker-item-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mcx-rack-picker-thumb {
+  width: 82px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-bg-base, #000) 70%, transparent);
+  border: 1px solid var(--color-panel-border-dim, var(--border-dim, #30363d));
+  padding: 1px 2px;
+  box-sizing: border-box;
+}
+
+.mcx-rack-picker-bypass-thumb {
+  width: 82px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 8.5px;
+  font-weight: 800;
+  color: var(--color-text-dim, var(--text-dim, #8b949e));
+  background: color-mix(in srgb, var(--color-bg-base, #000) 70%, transparent);
+  border: 1px dashed var(--color-panel-border-dim, var(--border-dim, #30363d));
+  border-radius: 2px;
+  box-sizing: border-box;
+}

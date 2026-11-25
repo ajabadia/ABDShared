@@ -16,6 +16,9 @@
 /* Hartmann Advanced / Cyberpunk -- Precision Magenta & Platinum (Light Theme) */
 [data-theme="advanced-light"], body.skin-advanced-light, body.theme-advanced-light {
   --color-bg-base:                #edebee;
+  --color-bg-base-rgb:            237, 235, 238;
+  --abd-bg-tint:                  #d8d3dc;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(194, 0, 94, 0.10) 0%, rgba(237, 235, 238, 0.55) 100%);
   --color-panel-bg:               #f5f4f7;
   --color-panel-surface:          #fdfcff;
   --color-panel-surface-elevated: #ffffff;
@@ -45,6 +48,7 @@
 
   /* Typography (High contrast plum/charcoal on platinum) */
   --color-text-main:              #1c1722;
+  --color-text-main-rgb:          28, 23, 34;
   --color-text-muted:             #5e5468;
   --color-text-dim:               #887d94;
 
@@ -70,6 +74,9 @@
 [data-theme="advanced"], body.skin-advanced,
 [data-theme="cyberpunk"], body.skin-cyberpunk {
   --color-bg-base:             #08080c;
+  --color-bg-base-rgb:         8, 8, 12;
+  --abd-bg-tint:               #2d323b;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(148, 163, 184, 0.12) 0%, rgba(10, 12, 16, 0.48) 100%);
   --color-panel-bg:            #101018;
   --color-panel-surface:       #181824;
   --color-panel-surface-elevated: #202030;
@@ -82,6 +89,7 @@
   --color-accent-active: #cc0066;
   --color-accent-dim:    rgba(255, 0, 127, 0.15);
   --color-text-main:  #ffffff;
+  --color-text-main-rgb: 255, 255, 255;
   --color-text-muted: #8c8ca0;
   --color-text-dim:   #5a5a6e;
   --color-lcd-bg:     #0d1117;
@@ -98,6 +106,9 @@
 /* ABDAudioLab -- Clean Light / Precision Lab Theme ("Técnica Refinada") */
 [data-theme="audiolab-light"], [data-theme="light"], body.skin-audiolab-light, body.theme-light, body.theme-audiolab-light {
   --color-bg-base:                #f8f9fa;
+  --color-bg-base-rgb:            248, 249, 250;
+  --abd-bg-tint:                  #ced4da;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.6) 0%, rgba(180, 190, 200, 0.3) 100%);
   --color-panel-bg:               #ffffff;
   --color-panel-surface:          #f8fafc;
   --color-panel-surface-elevated: #ffffff;
@@ -127,6 +138,7 @@
 
   /* Typography (WCAG AA compliant: text-main 16.6:1, text-muted & dim 5.9:1) */
   --color-text-main:              #1a1d20;
+  --color-text-main-rgb:          26, 29, 32;
   --color-text-muted:             #475569;
   --color-text-dim:               #475569;
 
@@ -155,6 +167,9 @@
 /* ABDAudioLab -- Scientific Dark / Nordic Theme */
 [data-theme="audiolab"], [data-theme="dark"], body.skin-audiolab, body.theme-dark, body.theme-audiolab {
   --color-bg-base:             #070a0e;
+  --color-bg-base-rgb:         7, 10, 14;
+  --abd-bg-tint:               #0b1d16;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(0, 230, 118, 0.12) 0%, rgba(6, 15, 10, 0.46) 100%);
   --color-panel-bg:            #0b1118;
   --color-panel-surface:       #121a24;
   --color-panel-surface-elevated: #1a2636;
@@ -177,6 +192,7 @@
   --color-info:          #00c3ff;
   --color-info-rgb:      0, 195, 255;
   --color-text-main:  #e8fff0;
+  --color-text-main-rgb: 232, 255, 240;
   --color-text-muted: #7eb5a0;
   --color-text-dim:   #4a8a6a;
   --color-lcd-bg:     #09140e;
@@ -194,6 +210,9 @@
 /* Inspired by 1980s Japanese synth chassis with red graphic lines and matrix LCD */
 [data-theme="cz101-light"], body.skin-cz101-light, body.theme-cz101-light {
   --color-bg-base:                #e4ded4;
+  --color-bg-base-rgb:            228, 222, 212;
+  --abd-bg-tint:                  #d4cbbd;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(201, 34, 24, 0.10) 0%, rgba(228, 222, 212, 0.55) 100%);
   --color-panel-bg:               #eee8de;
   --color-panel-surface:          #faf6ee;
   --color-panel-surface-elevated: #ffffff;
@@ -223,6 +242,7 @@
 
   /* Typography (Charcoal ink on vintage ivory) */
   --color-text-main:              #221e1a;
+  --color-text-main-rgb:          34, 30, 26;
   --color-text-muted:             #5e564d;
   --color-text-dim:               #867c70;
 
@@ -247,6 +267,9 @@
 /* Casio CZ-101 -- Vintage Red & Slate Theme */
 [data-theme="cz101"], body.skin-cz101 {
   --color-bg-base:             #141416;
+  --color-bg-base-rgb:         20, 20, 22;
+  --abd-bg-tint:               #382c22;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(255, 177, 66, 0.15) 0%, rgba(20, 14, 10, 0.45) 100%);
   --color-panel-bg:            #1c1d22;
   --color-panel-surface:       #262830;
   --color-panel-surface-elevated: #323540;
@@ -259,6 +282,7 @@
   --color-accent-active: #cc2e25;
   --color-accent-dim:    rgba(255, 59, 48, 0.15);
   --color-text-main:  #f5f0ee;
+  --color-text-main-rgb: 245, 240, 238;
   --color-text-muted: #b5a8a0;
   --color-text-dim:   #7a6e66;
   --color-lcd-bg:     #2a382b;
@@ -644,6 +668,9 @@
 /* Inspired by the vintage silver/champagne casing with teal knobs and emerald LCD */
 [data-theme="ms2000-light"], body.skin-ms2000-light, body.theme-ms2000-light {
   --color-bg-base:                #dbe4ec;
+  --color-bg-base-rgb:            219, 228, 236;
+  --abd-bg-tint:                  #b4c8d8;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 122, 158, 0.14) 0%, rgba(219, 228, 236, 0.55) 100%);
   --color-panel-bg:               #e6edf4;
   --color-panel-surface:          #f2f7fb;
   --color-panel-surface-elevated: #ffffff;
@@ -673,6 +700,7 @@
 
   /* Typography (Deep navy/charcoal on cool light alloy) */
   --color-text-main:              #0a1824;
+  --color-text-main-rgb:          10, 24, 36;
   --color-text-muted:             #3b5c74;
   --color-text-dim:               #6b8a9f;
 
@@ -697,6 +725,9 @@
 /* Korg MS2000 & microKORG -- Teal Heritage Theme */
 [data-theme="ms2000"], body.skin-ms2000 {
   --color-bg-base:             #0a1118;
+  --color-bg-base-rgb:         10, 17, 24;
+  --abd-bg-tint:               #1b5286;
+  --bg-tint-overlay:           radial-gradient(ellipse at 50% 0%, rgba(56, 165, 255, 0.16) 0%, rgba(8, 24, 44, 0.42) 100%);
   --color-panel-bg:            #102130;
   --color-panel-surface:       #172d42;
   --color-panel-surface-elevated: #1e3b56;
@@ -709,6 +740,7 @@
   --color-accent-active: #0099cc;
   --color-accent-dim:    rgba(0, 195, 255, 0.15);
   --color-text-main:  #e8f4ff;
+  --color-text-main-rgb: 232, 244, 255;
   --color-text-muted: #7eb5d5;
   --color-text-dim:   #4a7a9a;
   --color-lcd-bg:     #1c3322;
@@ -726,6 +758,9 @@
 /* Studio / Rack Night Mode aesthetic with amber LED illuminated indicators */
 [data-theme="neuron-dark"], body.skin-neuron-dark, body.theme-neuron-dark {
   --color-bg-base:                #0e1014;
+  --color-bg-base-rgb:            14, 16, 20;
+  --abd-bg-tint:                  #14171d;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(255, 149, 0, 0.12) 0%, rgba(14, 16, 20, 0.6) 100%);
   --color-panel-bg:               #14171d;
   --color-panel-surface:          #1b2029;
   --color-panel-surface-elevated: #242a36;
@@ -755,6 +790,7 @@
 
   /* Typography */
   --color-text-main:              #f5f5f4;
+  --color-text-main-rgb:          245, 245, 244;
   --color-text-muted:             #a8a29e;
   --color-text-dim:               #6b7280;
 
@@ -785,6 +821,9 @@
 /* Inspired by the Axel Hartmann Neuron Synthesizer (2002) physical hardware */
 [data-theme="neuron-light"], [data-theme="neuron"], body.skin-neuron-light, body.theme-neuron-light {
   --color-bg-base:                #dedad3;
+  --color-bg-base-rgb:            222, 218, 211;
+  --abd-bg-tint:                  #dedad3;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(217, 83, 0, 0.08) 0%, rgba(222, 218, 211, 0.5) 100%);
   --color-panel-bg:               #ebe7df;
   --color-panel-surface:          #f6f4ee;
   --color-panel-surface-elevated: #ffffff;
@@ -814,6 +853,7 @@
 
   /* Typography (High contrast charcoal on warm champagne alloy) */
   --color-text-main:              #1c1917;
+  --color-text-main-rgb:          28, 25, 23;
   --color-text-muted:             #57534e;
   --color-text-dim:               #78716c;
 
@@ -844,6 +884,9 @@
 /* Dark studio variant with glowing ice-cyan fluorescent displays */
 [data-theme="virus-snow-dark"], body.skin-virus-snow-dark, body.theme-virus-snow-dark {
   --color-bg-base:                #070d16;
+  --color-bg-base-rgb:            7, 13, 22;
+  --abd-bg-tint:                  #0e1726;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.12) 0%, rgba(7, 13, 22, 0.6) 100%);
   --color-panel-bg:               #0e1726;
   --color-panel-surface:          #142136;
   --color-panel-surface-elevated: #1b2c48;
@@ -873,6 +916,7 @@
 
   /* Typography */
   --color-text-main:              #f0f9ff;
+  --color-text-main-rgb:          240, 249, 255;
   --color-text-muted:             #7dd3fc;
   --color-text-dim:               #38bdf8;
 
@@ -903,6 +947,9 @@
 /* Inspired by the Access Virus TI Snow hardware synthesizer */
 [data-theme="virus-snow"], [data-theme="virus-snow-light"], body.skin-virus-snow, body.theme-virus-snow {
   --color-bg-base:                #e7ecf1;
+  --color-bg-base-rgb:            231, 236, 241;
+  --abd-bg-tint:                  #e7ecf1;
+  --bg-tint-overlay:              radial-gradient(ellipse at 50% 0%, rgba(0, 136, 168, 0.08) 0%, rgba(231, 236, 241, 0.5) 100%);
   --color-panel-bg:               #f5f8fa;
   --color-panel-surface:          #ffffff;
   --color-panel-surface-elevated: #ffffff;
@@ -932,6 +979,7 @@
 
   /* Typography */
   --color-text-main:              #0f172a;
+  --color-text-main-rgb:          15, 23, 42;
   --color-text-muted:             #475569;
   --color-text-dim:               #64748b;
 

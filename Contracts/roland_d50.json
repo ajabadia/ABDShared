@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "2.0",
+  "id": "roland_d50",
+  "aliases": ["roland-d50", "d50", "roland-d550", "d550", "abd-la50"],
+  "displayName": "Roland D-50 / D-550 Linear Synthesizer",
+  "description": "8-voice bitimbral Linear Arithmetic synthesizer (LA32 / MB87136A, Model ID 14h, DT1 F0 41 dev 14 12).",
+  "deviceType": "AUTOMATED_SYSEX",
+  "category": "Linear Arithmetic Synthesizer",
+  "brand": "Roland",
+  "brandLogo": "brands/roland-logo.svg",
+  "modelImage": "models/roland-d50.webp",
+  "midiIdentification": {
+    "manufacturer": "Roland",
+    "manufacturerIdHex": "41",
+    "model": "D-50",
+    "modelIdHex": "14",
+    "sysexHeaderHex": "41 10 14 12",
+    "autoDetectSysEx": "F0 7E 7F 06 01 F7",
+    "portNameMatches": ["D-50", "D-550", "D50", "D550", "LA-50", "ABDLA50"]
+  },
+  "functions": [
+    {
+      "id": "la50_tvf",
+      "name": "LA32 Digital TVF Filter",
+      "blockType": "SpectrumFilter",
+      "suggestedStimulus": "LOG_SINE_SWEEP",
+      "controls": [
+        { "index": 1, "name": "TVF Cutoff", "semanticRole": "FilterCutoff", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 10", "minVal": 0, "maxVal": 100, "defaultVal": 50, "unit": "step" },
+        { "index": 2, "name": "TVF Resonance", "semanticRole": "FilterResonance", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 11", "minVal": 0, "maxVal": 30, "defaultVal": 8, "unit": "step" }
+      ]
+    },
+    {
+      "id": "la50_tva",
+      "name": "LA32 TVA 5-Stage Envelope",
+      "blockType": "TimeDynamic",
+      "suggestedStimulus": "GATE_PULSE",
+      "controls": [
+        { "index": 1, "name": "TVA T1 Attack", "semanticRole": "AmpEnvAttack", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 20", "minVal": 0, "maxVal": 100, "defaultVal": 10, "unit": "step" },
+        { "index": 2, "name": "TVA T2 Decay", "semanticRole": "AmpEnvDecay", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 21", "minVal": 0, "maxVal": 100, "defaultVal": 50, "unit": "step" },
+        { "index": 3, "name": "TVA L3 Sustain", "semanticRole": "AmpEnvSustain", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 26", "minVal": 0, "maxVal": 100, "defaultVal": 70, "unit": "%" },
+        { "index": 4, "name": "TVA T5 Release", "semanticRole": "AmpEnvRelease", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 00 24", "minVal": 0, "maxVal": 100, "defaultVal": 45, "unit": "step" }
+      ]
+    },
+    {
+      "id": "la50_fx",
+      "name": "Roland LA Multi-Chorus & Boss RRV-10 Reverb",
+      "blockType": "SpatialProcessor",
+      "suggestedStimulus": "IMPULSE",
+      "controls": [
+        { "index": 1, "name": "Chorus Balance", "semanticRole": "ChorusMix", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 02 2F", "minVal": 0, "maxVal": 100, "defaultVal": 40, "unit": "%" },
+        { "index": 2, "name": "Reverb Balance", "semanticRole": "ReverbSend", "type": "Knob", "controlMethod": "SYSEX", "sysexAddress": "00 06 1D", "minVal": 0, "maxVal": 100, "defaultVal": 35, "unit": "%" }
+      ]
+    }
+  ],
+  "bankManagement": {
+    "bankCapacity": 64,
+    "banksCount": 8,
+    "programsPerBank": 8,
+    "patchDataSize": 448,
+    "patchNameMaxLength": 18,
+    "categories": ["Keys", "Strings", "Brass", "Pad", "Lead", "Bass", "Mallet", "FX", "Other"],
+    "defaultCategory": "Pad",
+    "addressingFormat": "BANK_PATCH",
+    "compatibleModels": [],
+    "sysexProtocol": {
+      "manufacturerIdHex": "41",
+      "modelIdByteHex": "14",
+      "dumpCommandHex": "12",
+      "requestCommandHex": "11",
+      "checksumAlgorithm": "ROLAND_7BIT",
+      "encoding": "RAW_7BIT",
+      "supportsEditBuffer": true,
+      "interMessageDelayMs": 25,
+      "dumpTimeoutMs": 3500,
+      "midiDefaultChannel": 1,
+      "midiDefaultDeviceIdHex": "00",
+      "portNameMatches": ["D-50", "D-550", "D50", "D550", "LA-50"]
+    }
+  }
+}

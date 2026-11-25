@@ -67,6 +67,28 @@ WaveHandle StructuredRomplerEngine::getDrumSlotWaveHandle(int midiNote) const no
                : kInvalidWaveHandle;
 }
 
+void StructuredRomplerEngine::assignManagedPartialWaveHandle(int partialIndex, WaveHandle handle) noexcept
+{
+    if (partialIndex < 0 || partialIndex >= 4) return;
+    const WaveHandle oldH = partialWaveHandles_[static_cast<std::size_t>(partialIndex)];
+    partialWaveHandles_[static_cast<std::size_t>(partialIndex)] = handle;
+    bool oldStillUsed = false;
+    for (const WaveHandle h : partialWaveHandles_) if (h == oldH) oldStillUsed = true;
+    for (const WaveHandle h : drumSlotWaveHandles_) if (h == oldH) oldStillUsed = true;
+    waveHandles_.replaceHandle(oldH, handle, oldStillUsed);
+}
+
+void StructuredRomplerEngine::assignManagedDrumSlotWaveHandle(int midiNote, WaveHandle handle) noexcept
+{
+    if (midiNote < 0 || midiNote >= 128) return;
+    const WaveHandle oldH = drumSlotWaveHandles_[static_cast<std::size_t>(midiNote)];
+    drumSlotWaveHandles_[static_cast<std::size_t>(midiNote)] = handle;
+    bool oldStillUsed = false;
+    for (const WaveHandle h : partialWaveHandles_) if (h == oldH) oldStillUsed = true;
+    for (const WaveHandle h : drumSlotWaveHandles_) if (h == oldH) oldStillUsed = true;
+    waveHandles_.replaceHandle(oldH, handle, oldStillUsed);
+}
+
 void StructuredRomplerEngine::clearWaveHandleBindings() noexcept
 {
     partialWaveHandles_.fill(kInvalidWaveHandle);
@@ -75,16 +97,28 @@ void StructuredRomplerEngine::clearWaveHandleBindings() noexcept
 
 abd::engines::EngineDescriptor StructuredRomplerEngine::getDescriptor() const noexcept
 {
-    return { getEngineTypeId(), getEngineDisplayName(), true, true, 16 };
+    return { getEngineTypeId(), getEngineDisplayName(), !jv880Mode_, !jv880Mode_, 16 };
+}
+
+void StructuredRomplerEngine::configureAsJv880() noexcept
+{
+    jv880Mode_ = true;
+    isDrumKit_ = false;
+    patch_.filterModel = FilterModel::RolandTvfZdf;
+    (void)loadFactoryPreset(0);
 }
 
 int StructuredRomplerEngine::getFactoryPresetCount() const noexcept
 {
+    if (jv880Mode_) return RomplerFactoryPatches::kNumJv880FactoryTones;
     return RomplerFactoryPatches::kNumFactoryTones + RomplerFactoryPatches::kNumFactoryKits;
 }
 
 const char* StructuredRomplerEngine::getFactoryPresetName(int index) const noexcept
 {
+    if (jv880Mode_)
+        return (index >= 0 && index < RomplerFactoryPatches::kNumJv880FactoryTones)
+                   ? RomplerFactoryPatches::getJv880ToneName(index) : "";
     if (index >= 0 && index < RomplerFactoryPatches::kNumFactoryTones)
         return RomplerFactoryPatches::getToneName(index);
     if (index >= RomplerFactoryPatches::kNumFactoryTones &&
@@ -95,12 +129,40 @@ const char* StructuredRomplerEngine::getFactoryPresetName(int index) const noexc
     return "";
 }
 
+int StructuredRomplerEngine::getFactoryPresetCategory(int index) const noexcept
+{
+    if (jv880Mode_)
+        return (index >= 0 && index < RomplerFactoryPatches::kNumJv880FactoryTones)
+                   ? RomplerFactoryPatches::getJv880ToneCategory(index) : 0;
+    // Hartmann Neuron 0..9 IDs matching kToneNames / kKitNames in RomplerFactoryPatches.cpp
+    static constexpr int kToneCats[RomplerFactoryPatches::kNumFactoryTones] = {
+        3, 0, 4, 0, 3, 2, 3, 9, 0, 3, 6, 8, 0, 3, 7, 8
+    };
+    if (index >= 0 && index < RomplerFactoryPatches::kNumFactoryTones)
+        return kToneCats[index];
+    if (index >= RomplerFactoryPatches::kNumFactoryTones && index < getFactoryPresetCount())
+        return 8;
+    return 0;
+}
+
+bool StructuredRomplerEngine::isFactoryPresetDrumMode(int index) const noexcept
+{
+    if (jv880Mode_) return false;
+    return index >= RomplerFactoryPatches::kNumFactoryTones && index < getFactoryPresetCount();
+}
+
 bool StructuredRomplerEngine::loadFactoryPreset(int index) noexcept
 {
     if (index < 0 || index >= getFactoryPresetCount())
         return false;
 
     releaseActiveWaves();
+    if (jv880Mode_)
+    {
+        RomplerFactoryPatches::applyJv880FactoryTone(*this, index);
+        setCurrentPresetName(RomplerFactoryPatches::getJv880ToneName(index));
+        return true;
+    }
     if (index < RomplerFactoryPatches::kNumFactoryTones)
     {
         RomplerFactoryPatches::applyFactoryTone(*this, index);

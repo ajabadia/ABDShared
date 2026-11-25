@@ -31,11 +31,19 @@ namespace abd::synth
     if (role == "AmpDecay") return "AmpEnvDecay";
     if (role == "AmpSustain") return "AmpEnvSustain";
     if (role == "AmpRelease") return "AmpEnvRelease";
-    if (role == "VibratoRate") return "Lfo1Rate";
-    if (role == "VibratoDepth") return "Lfo1Depth";
-    if (role == "VibratoDelay") return "Lfo1Delay";
+    if (role == "VibratoRate" || role == "LfoRate") return "Lfo1Rate";
+    if (role == "VibratoDepth" || role == "LfoDepth") return "Lfo1Depth";
+    if (role == "VibratoDelay" || role == "LfoDelay") return "Lfo1Delay";
     if (role == "Cutoff") return "FilterCutoff";
     if (role == "Resonance") return "FilterResonance";
+    if (role == "ReverbSend") return "PartReverbSend";
+    if (role == "ChorusSend" || role == "ChorusMix") return "PartChorusSend";
+    if (role == "DelaySend") return "PartDelaySend";
+    if (role == "SaturationDrive") return "DistortionDrive";
+    if (role == "VectorX") return "VectorJoystickX";
+    if (role == "VectorY") return "VectorJoystickY";
+    if (role == "MasterPan") return "PartPan";
+    if (role == "PortamentoTime") return "PortamentoGlideTime";
     return role;
 }
 

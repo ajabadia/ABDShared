@@ -13,6 +13,7 @@ export * from './Arpeggiator/grooveArpeggiatorContract';
 export * from './GrooveShuffle/grooveShuffleModal';
 export * from './GrooveShuffle/grooveShuffleContract';
 export * from './FxFaceplates/index';
+export * from './CoverPopup/coverPopup';
 
 export interface PianoRollModalOptions {
   partIndex?: number;
@@ -31,7 +32,9 @@ export interface PianoRollModalOptions {
   playableRange?: { min: number; max: number } | null;
   drumMap?: Record<number, string> | any[];
   automationTargets?: any[];
+  recordMode?: 'overdub' | 'replace';
   onOpenGroove?: (partIdx?: number) => void;
+  onExportMidi?: (seq: any) => void;
 }
 
 export declare class PianoRollModal {
@@ -41,6 +44,8 @@ export declare class PianoRollModal {
   toggle(): void;
   isOpen(): boolean;
   isRecording(): boolean;
+  setRecording(recording: boolean): void;
+  setRecordMode(mode: 'overdub' | 'replace'): void;
   recordNoteOn(midiNote: number, velocity?: number, quantizeGrid?: string | null): void;
   recordNoteOff(midiNote: number): void;
   setPlaying(playing: boolean, bpm?: number): void;

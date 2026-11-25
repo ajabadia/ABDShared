@@ -114,6 +114,11 @@ export function createScope(config = {}) {
       mount.setActiveTab?.(modeName);
     },
 
+    setRenderOptions(newOptions = {}) {
+      if (!config.renderOptions) config.renderOptions = {};
+      Object.assign(config.renderOptions, newOptions);
+    },
+
     setLayout(layout) {
       if (mount.setLayout) mount.setLayout(layout);
     },

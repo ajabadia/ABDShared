@@ -134,6 +134,7 @@ private:
     std::uint64_t timestamp_ { 0 };
     float lastLevelEstimate_ { 0.0f };
     float voicePanOffset_ { 0.0f };
+    float voiceChorusSend_ { 0.0f };
     float voiceSlotLevel_ { 1.0f };
     float chokeGain_ { 1.0f };
     float chokeStep_ { 0.0f };

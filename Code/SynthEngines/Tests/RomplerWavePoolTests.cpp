@@ -214,6 +214,31 @@ int main()
               "W5: Deferred GC preserves PCM during active voices and reclaims cleanly when idle");
     }
 
+    // W6: Factory VA Sawtooth preset -> loadDrumKitOnDemand must render PCM sample, not VA sawtooth
+    {
+        const auto archive = makeMultiInstrumentArchive("KitSwitchBank", 220.0, 440.0, 310.0);
+        RomplerBankIndex idx;
+        auto eng = std::make_unique<StandaloneStructuredRomplerEngine>();
+        eng->prepare(44100.0, kBlock);
+        (void)eng->loadFactoryPreset(0);
+        const bool okIdx = idx.indexFromMemory(archive.data(), archive.size());
+        const bool okKit = okIdx && idx.loadDrumKitOnDemand(0, *eng);
+
+        std::fill(bufL.begin(), bufL.end(), 0.0f);
+        std::fill(bufR.begin(), bufR.end(), 0.0f);
+        eng->noteOn(60, 0.9f, 0.0f);
+        const bool unmappedActive = eng->renderBlock(bufL.data(), bufR.data(), kBlock);
+        const float unmappedRms = computeRms(bufL, bufR);
+        eng->allNotesOff();
+
+        eng->noteOn(36, 0.9f, 0.0f);
+        const bool mappedActive = eng->renderBlock(bufL.data(), bufR.data(), kBlock);
+        const float mappedRms = computeRms(bufL, bufR);
+        check(okKit && eng->isDrumMode() && eng->patch().partials[0].sourceKind == OscSourceKind::PcmZone &&
+                  !unmappedActive && unmappedRms < 1e-6f && mappedActive && mappedRms > 1e-3f,
+              "W6: loadDrumKitOnDemand after Factory VA preset forces PCM playback and silences unmapped pads");
+    }
+
     std::cout << "\nSummary: " << gPassed << " passed, " << gFailed << " failed.\n";
     return (gFailed == 0) ? 0 : 1;
 }

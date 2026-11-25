@@ -490,4 +490,33 @@ describe('LiveSysExInspector - Edicion byte a byte', () => {
 
     inspector.destroy();
   });
+
+  it('describeByte hook enriquece tooltip y actualiza el texto del footer en hover/click', () => {
+    const inspector = new LiveSysExInspector({
+      container: slot,
+      initialBuffer: frame(),
+      describeByte: (offset, val) => {
+        if (offset === 4) return { name: 'VCF Cutoff', group: 'VCF', detail: '1.2 kHz' };
+        if (offset === 5) return 'Custom byte description';
+        return null;
+      },
+    });
+
+    const byte4 = slot.querySelector('.sysex-byte[data-offset="4"]');
+    const byte5 = slot.querySelector('.sysex-byte[data-offset="5"]');
+    const footerInfo = slot.querySelector('.sysex-inspector__info-text');
+
+    expect(byte4.title).toContain('VCF Cutoff [VCF] (1.2 kHz)');
+    expect(byte5.title).toBe('Custom byte description');
+
+    // Simular hover/click en byte 4
+    byte4.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }));
+    expect(footerInfo.textContent).toContain('VCF Cutoff [VCF] · 1.2 kHz');
+
+    // Simular hover en byte 5
+    byte5.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }));
+    expect(footerInfo.textContent).toBe('Custom byte description');
+
+    inspector.destroy();
+  });
 });

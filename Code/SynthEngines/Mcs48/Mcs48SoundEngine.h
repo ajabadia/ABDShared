@@ -81,8 +81,17 @@ public:
     [[nodiscard]] bool renderBlock(float* outL, float* outR, int numSamples) noexcept override;
 
 private:
+    struct MatrixRow
+    {
+        bool enabled { false };
+        int note { 48 };
+        std::uint8_t target { 0 }; // 0=engine_clock, 1=latch_write
+        float value { 1.0f };
+    };
+
     void applyLoadedFirmware(int presetIndex) noexcept;
     void updateVoiceTiming() noexcept;
+    void applyMachineAndVoiceSettings() noexcept;
 
     double sampleRate_ { 44100.0 };
     int maxBlockSize_ { 512 };
@@ -93,16 +102,30 @@ private:
     bdmcs48::instrument::MonoVoice voice_;
     bdmcs48::instrument::VoiceConfig voiceConfig_;
 
+    float gainDb_ { -6.0f };
     float attackMs_ { 4.0f };
     float releaseMs_ { 80.0f };
+    float tuningA4Hz_ { 440.0f };
+    float dcBlockerR_ { 0.995f };
+    float velocitySens_ { 1.0f };
+    float glideMs_ { 0.0f };
+    int velocityCurve_ { 0 };
+    float dacTolerance_ { 0.0f };
+    int dacQuantize_ { 8 };
+    bool freeze_ { false };
+    bool diagnosticTone_ { false };
+    double diagPhase_ { 0.0 };
     float pitchOffsetSemitones_ { 0.0f };
+    float transportPitchBend_ { 0.0f };
+    float transportModWheel_ { 0.0f };
+    float matrixClockScale_ { 1.0f };
     int activeNote_ { 60 };
 
     // DC Blocker state: y[n] = x[n] - x[n-1] + R * y[n-1]
     float dcPrevX_ { 0.0f };
     float dcPrevY_ { 0.0f };
-    static constexpr float kDcBlockerR { 0.995f };
 
+    std::array<MatrixRow, 8> matrixRows_ {};
     std::array<float, kControlSlotCount> controlInputs_ {};
     std::vector<float> monoAudioScratch_;
 };

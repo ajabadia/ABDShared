@@ -50,6 +50,23 @@ Sin ids de ruedas, el componente no monta pitch/mod (el motor no las tiene).
 Sí genera sus botones **ALL OFF** (→ `allNotesOff`) y **SUSTAIN**, que sostiene
 notas retrasando el `noteOff`; el motor no tiene pedal propio.
 
+### Notas asignadas / deshabilitación de teclas sin sonido (transversal)
+
+Para kits de batería, mapas PCM parciales o zonas de notas limitadas, cualquier
+host (Groovebox o plugin standalone) puede indicar al keybed qué notas MIDI
+tienen sonido mediante `keyboard.setPlayableNotes(notes)` (o `playableNotes` en
+`config`):
+
+- `setPlayableNotes(notes)`: recibe un iterable/array de números MIDI (`0..127`)
+  con sonido asignado. El resto de teclas reciben `.kbd-key-disabled` +
+  `aria-disabled="true"` (aspecto apagado/mate y cursor `not-allowed`) y
+  quedan bloqueadas tanto al clic/touch como por QWERTY o `latchNote`.
+- Las teclas asignadas reciben `.kbd-key-assigned` (marca inferior con
+  `--kbd-assigned-color`, por defecto `--color-accent`).
+- `setPlayableNotes(null)` / `clearPlayableNotes()` restaura el modo cromático
+  completo (todas las teclas habilitadas). Al cambiar de octava (`OCT+/-`),
+  las clases se recalculan automáticamente sobre las notas reales resultantes.
+
 > **🟡 Marca de revisión (2026-11-07) — la autoridad ya está en C++, falta cerrar la pérdida de foco.**
 > La crítica externa supone que la máquina de estados MIDI vive solo en JS. No es el caso: este documento fija
 > «C++ sigue siendo la autoridad de la nota; el keybed no guarda estado musical propio» y el componente ya expone

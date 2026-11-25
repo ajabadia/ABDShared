@@ -84,6 +84,7 @@ export interface McxPartialConfig {
   slot: 1 | 2 | 3 | 4;
   enabled: boolean;
   sourceKind: McxWaveSourceKind;
+  bankId?: string;
   waveId?: string;
   vaShape?: 'saw' | 'pulse' | 'tri' | 'sine' | 'supersaw' | 'noise';
   coarseSemitones?: number;
@@ -108,7 +109,10 @@ export interface McxPartialConfig {
 export interface McxTonePatch {
   id: string;
   name: string;
+  subBank?: string;
   category?: string;
+  categoryId?: number;
+  coverWebpDataUrl?: string;
   structureMode: McxStructureMode;
   outputCharacter?: McxOutputCharacter;
   partials: McxPartialConfig[];
@@ -119,6 +123,8 @@ export interface McxTonePatch {
 export interface McxDrumKeySlot {
   midiNote: number;
   name: string;
+  bankId?: string;
+  waveId?: string;
   toneId?: string;
   muteGroup?: number;
   coarseKey?: number;
@@ -129,6 +135,7 @@ export interface McxDrumKeySlot {
   drive?: number;
   cutoffHzOverride?: number;
   resonanceOverride?: number;
+  decayMs?: number;
   decayScaleOverride?: number;
   triggerMode?: DrumTriggerMode;
   pitchKeyTrack?: boolean;
@@ -137,15 +144,21 @@ export interface McxDrumKeySlot {
 export interface McxDrumKitPatch {
   id: string;
   name: string;
+  subBank?: string;
+  category?: string;
+  categoryId?: number;
+  coverWebpDataUrl?: string;
   drumMapMode?: DrumMapMode;
   remapper?: DrumNoteRemapper;
   slots: McxDrumKeySlot[];
 }
 
 export interface AbdStructuredRomplerBank {
-  schemaVersion: '1.0.0';
+  schemaVersion: '1.0.0' | '1.1.0';
   formatId: 'abd_structured_rompler';
+  bankId?: string;
   bankName: string;
+  coverWebpDataUrl?: string;
   author?: string;
   targetHardwareFamily?: string;
   wavePool: McxWaveDescriptor[];
@@ -157,7 +170,7 @@ export function validateStructuredRomplerBank(input: unknown): { valid: boolean;
   const errors: string[] = [];
   if (!input || typeof input !== 'object') return { valid: false, errors: ['Bank payload must be an object'] };
   const bank = input as Record<string, unknown>;
-  if (bank.schemaVersion !== ABD_STRUCTURED_ROMPLER_CONTRACT_VERSION) errors.push('Unsupported schemaVersion');
+  if (bank.schemaVersion !== '1.0.0' && bank.schemaVersion !== '1.1.0') errors.push('Unsupported schemaVersion');
   if (bank.formatId !== ABD_STRUCTURED_ROMPLER_FORMAT_ID) errors.push('Invalid formatId');
   if (typeof bank.bankName !== 'string' || bank.bankName.length === 0) errors.push('Missing bankName');
   if (!Array.isArray(bank.wavePool)) errors.push('Missing wavePool array');

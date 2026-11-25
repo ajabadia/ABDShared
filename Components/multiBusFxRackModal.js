@@ -4,7 +4,8 @@
  * Strict line limit: < 200 lines.
  */
 
-export { MultiBusFxRackModal } from './MultiBusFxRack/multiBusFxRackModal.js';
+export { MultiBusFxRackModal, FxPickerModal, openFxPicker, buildFxCoverPopupData } from './MultiBusFxRack/multiBusFxRackModal.js';
+export { FxTopologyDiagram, renderTopologySvg } from './MultiBusFxRack/FxTopologyDiagram.js';
 export { MultiBusFxRackLcd, TOPOLOGY_NAMES } from './MultiBusFxRack/multiBusFxRackLcd.js';
 export {
   FX_CATEGORIES,
@@ -13,6 +14,8 @@ export {
   getAlgorithmsForCategory,
   findAlgorithm,
   findAlgorithmById,
+  findAlgorithmByFxId,
+  getAllAlgorithms,
   REVERB_MACROS,
   CHORUS_MACROS,
   DELAY_MODES,

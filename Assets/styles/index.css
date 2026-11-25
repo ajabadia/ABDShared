@@ -71,6 +71,8 @@
 @import './components/piano-roll.css';           /* PianoRollModal: secuenciador rollo de pianola y drum grid */
 @import './components/groove-shuffle.css';       /* GrooveShuffleModal: motor de groove y shuffle multialgorítmico */
 @import './components/synth-engine-panel.css';   /* EnginePanelHost & StructuredRomplerPanel */
+@import './components/synth-engine-browser.css'; /* EngineHeaderBar, EnginePresetBrowser & WavePicker */
 @import './components/fx-faceplates.css';        /* FxFaceplateModal & 19'' modular FX faceplates */
 @import './components/mpc-pad-modal.css';        /* MpcPadModal: modal flotante de 16 pads MPC */
 @import './components/groove-arpeggiator-modal.css'; /* GrooveArpeggiatorModal: modal flotante de arpegiador */
+@import './components/cover-popup.css';          /* CoverPopup: previsualización hover y visor ampliado de carátulas */

@@ -105,21 +105,34 @@ bool RomplerBankLoader::parseManifest(const std::string& json)
 
     if (const std::string tnArr = detail::extractJsonArraySlice(json, "tones"); !tnArr.empty())
     {
-        LoadedTone tone;
-        tone.id = detail::findJsonString(tnArr, "id", "tone_001");
-        tone.name = detail::findJsonString(tnArr, "name", bankName_);
-        const std::string firstWaveId = detail::findJsonString(tnArr, "waveId", "");
-        for (std::size_t p = 0; p < 4; ++p)
+        std::size_t curPos = 0;
+        int tIdx = 0;
+        while (curPos < tnArr.size())
         {
-            auto& pt = tone.partials[p];
-            pt.enabled = (p == 0 || p < waves_.size());
-            pt.sourceKind = OscSourceKind::PcmZone;
-            pt.cutoffHz = 16000.0f;
-            pt.level = 0.85f;
-            const std::string defId = "w_" + std::string(4 - std::to_string(p).length(), '0') + std::to_string(p);
-            tone.partialWaveIds[p] = (p == 0 && !firstWaveId.empty() && waves_.find(defId) == waves_.end()) ? firstWaveId : defId;
+            const auto startBrace = tnArr.find('{', curPos);
+            if (startBrace == std::string::npos) break;
+            const auto endBrace = tnArr.find('}', startBrace);
+            if (endBrace == std::string::npos) break;
+            const std::string tBlock = tnArr.substr(startBrace, endBrace - startBrace + 1);
+
+            LoadedTone tone;
+            tone.id = detail::findJsonString(tBlock, "id", "tone_" + std::to_string(tIdx));
+            tone.name = detail::findJsonString(tBlock, "name", bankName_);
+            const std::string firstWaveId = detail::findJsonString(tBlock, "waveId", "");
+            for (std::size_t p = 0; p < 4; ++p)
+            {
+                auto& pt = tone.partials[p];
+                pt.enabled = (p == 0);
+                pt.sourceKind = OscSourceKind::PcmZone;
+                pt.cutoffHz = 16000.0f;
+                pt.level = 0.85f;
+                const std::string defId = "w_" + std::string(4 - std::to_string(p).length(), '0') + std::to_string(p);
+                tone.partialWaveIds[p] = (p == 0 && !firstWaveId.empty()) ? firstWaveId : defId;
+            }
+            tones_.push_back(std::move(tone));
+            ++tIdx;
+            curPos = endBrace + 1;
         }
-        tones_.push_back(std::move(tone));
     }
     return !waves_.empty() || !tones_.empty();
 }
@@ -188,7 +201,10 @@ bool RomplerBankLoader::applyTone(int toneIndex, RomplerPatch& outPatch) const n
     for (std::size_t p = 0; p < 4; ++p)
     {
         outPatch.partials[p] = tone->partials[p];
-        bindSampleRef(findWave(tone->partialWaveIds[p]), outPatch.partials[p]);
+        const LoadedWave* wave = (outPatch.partials[p].sourceKind == OscSourceKind::PcmZone)
+                                     ? findWave(tone->partialWaveIds[p])
+                                     : nullptr;
+        bindSampleRef(wave, outPatch.partials[p]);
     }
     return true;
 }
@@ -212,9 +228,9 @@ bool RomplerBankLoader::applyDrumKit(int kitIndex, RomplerDrumKitPatch& outKit) 
         slot.muteGroup = s.muteGroup;
         slot.cutoffHzOverride = s.cutoffHzOverride;
         slot.triggerMode = s.triggerMode;
-        slot.level = s.level;
-        slot.pan = s.pan;
         const LoadedWave* wave = findWave(s.waveId);
+        slot.level = (wave != nullptr) ? s.level : 0.0f;
+        slot.pan = s.pan;
         bindSampleRef(wave, slot);
         if (wave != nullptr)
             slot.coarseKey = slot.externalRootKey;
@@ -224,8 +240,22 @@ bool RomplerBankLoader::applyDrumKit(int kitIndex, RomplerDrumKitPatch& outKit) 
 
 bool RomplerBankLoader::applyDrumKit(int kitIndex, StructuredRomplerEngine& engine) const noexcept
 {
-    if (!applyDrumKit(kitIndex, engine.drumKit())) return false;
     engine.setDrumMode(true);
+    if (!applyDrumKit(kitIndex, engine.drumKit())) return false;
+    auto& patch = engine.patch();
+    patch.structureMode = StructureMode::Parallel;
+    patch.filter2 = Stage2FilterConfig {};
+    patch.lfo1.depth = 0.0f;
+    patch.lfo2.depth = 0.0f;
+    for (auto& pt : patch.partials) pt = PartialConfig {};
+    auto& p0 = patch.partials[0];
+    p0.enabled = true;
+    p0.sourceKind = OscSourceKind::PcmZone;
+    p0.filterModel = patch.filterModel;
+    p0.level = 1.0f;
+    p0.cutoffHz = 18000.0f;
+    p0.resonance = 0.05f;
+    p0.filterEnvOctaves = 0.0f;
     return true;
 }
 

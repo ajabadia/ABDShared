@@ -25,8 +25,11 @@ OscSourceKind parseSourceKind(std::string_view s) noexcept
     return OscSourceKind::PcmZone;
 }
 
-StructureMode parseStructureMode(std::string_view s) noexcept
+StructureMode parseStructureModeValue(const JsonValue* val) noexcept
 {
+    if (val != nullptr && val->isNumber())
+        return static_cast<StructureMode>(std::clamp(static_cast<int>(val->numVal), 0, 3));
+    const std::string_view s = (val != nullptr && val->isString()) ? std::string_view(val->strVal) : std::string_view("parallel");
     if (s == "vector_2d") return StructureMode::Vector2D;
     if (s == "roland_struct_2" || s == "ring_mod12") return StructureMode::RingMod12;
     if (s == "roland_struct_3" || s == "booster12") return StructureMode::Booster12;
@@ -167,7 +170,8 @@ bool RomplerBankIndex::parseIndexedArchive(const void* manifestPtr, std::size_t 
 
     bankName_ = root.getString("bankName", "Unknown Bank");
     author_ = root.getString("author", "ABDSynths");
-    bankId_ = !bankIdOverride.empty() ? bankIdOverride : (!filePath_.empty() ? filePath_ : bankName_);
+    const std::string manifestBankId = root.getString("bankId");
+    bankId_ = !bankIdOverride.empty() ? bankIdOverride : (!manifestBankId.empty() ? manifestBankId : (!filePath_.empty() ? filePath_ : bankName_));
 
     if (const auto* wavesArr = root.find("wavePool"); wavesArr && wavesArr->isArray())
     {
@@ -197,6 +201,10 @@ bool RomplerBankIndex::parseIndexedArchive(const void* manifestPtr, std::size_t 
 
     if (const auto* tonesArr = root.find("tones"); tonesArr && tonesArr->isArray())
     {
+        auto isWaveLooped = [this](const std::string& wId) noexcept {
+            for (const auto& w : waveDescriptors_) if (w.id == wId) return w.isLooping;
+            return false;
+        };
         for (std::size_t tIdx = 0; tIdx < tonesArr->arrVal.size(); ++tIdx)
         {
             const auto& tObj = tonesArr->arrVal[tIdx];
@@ -204,7 +212,9 @@ bool RomplerBankIndex::parseIndexedArchive(const void* manifestPtr, std::size_t 
             LoadedTone tone;
             tone.id = tObj.getString("id", "tone_" + std::to_string(tIdx));
             tone.name = tObj.getString("name", bankName_);
-            tone.structureMode = parseStructureMode(tObj.getString("structureMode", "parallel"));
+            tone.category = tObj.getString("category");
+            tone.categoryId = tObj.find("categoryId") ? std::clamp(tObj.getInt("categoryId", -1), -1, 31) : -1;
+            tone.structureMode = parseStructureModeValue(tObj.find("structureMode"));
             if (const auto* partsArr = tObj.find("partials"); partsArr && partsArr->isArray() && !partsArr->arrVal.empty())
             {
                 for (std::size_t i = 0; i < partsArr->arrVal.size() && i < 4; ++i)
@@ -213,28 +223,30 @@ bool RomplerBankIndex::parseIndexedArchive(const void* manifestPtr, std::size_t 
                     if (!pObj.isObject()) continue;
                     const int slot = std::clamp(pObj.getInt("slot", static_cast<int>(i) + 1) - 1, 0, 3);
                     auto& pt = tone.partials[static_cast<std::size_t>(slot)];
+                    const std::string wId = pObj.getString("waveId");
+                    detail::applyToneCategoryDefaults(pt, tone.categoryId, isWaveLooped(wId));
                     pt.enabled = pObj.getBool("enabled", true);
                     pt.sourceKind = parseSourceKind(pObj.getString("sourceKind", "pcm_zone"));
                     pt.filterModel = parseFilterModel(pObj.getString("filterModel", "roland_tc6116_tvf"));
                     pt.filterMode = parseFilterModeIndex(pObj.getString("filterType", "lpf24"));
-                    pt.cutoffHz = static_cast<float>(pObj.getNumber("cutoffHz", 16000.0));
-                    pt.resonance = static_cast<float>(pObj.getNumber("resonance", 0.15));
+                    pt.cutoffHz = static_cast<float>(pObj.getNumber("cutoffHz", pt.cutoffHz));
+                    pt.resonance = static_cast<float>(pObj.getNumber("resonance", pt.resonance));
                     pt.coarseSemitones = static_cast<std::int8_t>(std::clamp(pObj.getInt("coarseSemitones", 0), -48, 48));
                     pt.fineCents = static_cast<float>(pObj.getNumber("fineCents", 0.0));
                     pt.pan = static_cast<float>(pObj.getNumber("pan", 0.0));
                     if (pObj.find("levelDb")) pt.level = std::clamp(std::pow(10.0f, static_cast<float>(pObj.getNumber("levelDb", 0.0)) / 20.0f), 0.0f, 1.5f);
                     else pt.level = static_cast<float>(pObj.getNumber("level", 0.85));
-                    tone.partialWaveIds[static_cast<std::size_t>(slot)] = pObj.getString("waveId");
+                    detail::applyPartialJsonOverrides(pObj, pt);
+                    tone.partialWaveIds[static_cast<std::size_t>(slot)] = wId;
                 }
             }
             else
             {
                 const std::string fallbackWave = !tObj.getString("waveId").empty() ? tObj.getString("waveId")
                                                : (!waveDescriptors_.empty() ? waveDescriptors_[0].id : "");
+                detail::applyToneCategoryDefaults(tone.partials[0], tone.categoryId, isWaveLooped(fallbackWave));
                 tone.partials[0].enabled = !fallbackWave.empty();
                 tone.partials[0].sourceKind = OscSourceKind::PcmZone;
-                tone.partials[0].cutoffHz = 16000.0f;
-                tone.partials[0].level = 0.85f;
                 tone.partialWaveIds[0] = fallbackWave;
             }
             tones_.push_back(std::move(tone));
@@ -250,6 +262,8 @@ bool RomplerBankIndex::parseIndexedArchive(const void* manifestPtr, std::size_t 
             LoadedDrumKit kit;
             kit.id = kObj.getString("id", "kit_" + std::to_string(kIdx));
             kit.name = kObj.getString("name", bankName_);
+            kit.category = kObj.getString("category");
+            kit.categoryId = kObj.find("categoryId") ? std::clamp(kObj.getInt("categoryId", -1), -1, 31) : -1;
             kit.drumMapMode = parseDrumMapMode(kObj.getString("drumMapMode", "roland_gs_mc"));
             if (const auto* slotsArr = kObj.find("slots"); slotsArr && slotsArr->isArray())
             {

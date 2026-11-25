@@ -1,0 +1,213 @@
+Prompt Maestro para Nano Banana (Formato Cuadrado 1:1)
+
+Para que Nano Banana te genere las imágenes cuadradas de cada equipo con el mismo encuadre, iluminación y proporción:
+
+text
+Square 1:1 aspect ratio, orthographic front-facing view of [NOMBRE_DEL_EQUIPO / MODELO]. 
+Studio audio mastering hardware outboard unit, perfectly centered inside a square frame. 
+Ultra-photorealistic, 8k, dark moody studio lighting with subtle rim lights. 
+Brushed metal front panel, authentic analog components (knurled metal dials, backlit warm amber needle meters, toggle switches, LED indicators). 
+Flat black studio backdrop, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+Lista de los 10 Equipos para ir pidiéndolos de uno en uno:
+Space Echo RE-201:
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Roland Space Echo RE-201 tape delay unit. Centered in frame, iconic two-tone brushed aluminum and dark forest-green faceplate, clear tape loop chamber with magnetic heads, analog warm backlit VU meter, classic silver pointer knobs. Flat black studio background, orthographic straight-on shot.
+
+Zita Reverb (Studio Digital Reverb):
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique 19-inch high-end digital stereo reverb processor. Centered in frame, dark anthracite anodized chassis, central emerald green CRT display showing reverb decay tail, machined aluminum knobs with blue LED glowing halos. Flat black studio background, orthographic shot.
+
+Fairchild 670 (Tube Vari-Mu Compressor):
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Fairchild 670 tube compressor. Centered in frame, heavy industrial dark grey faceplate, two circular backlit amber VU meters, large black bakelite knobs, jewel power lamp, bypass toggles. Flat black studio background, orthographic shot.
+
+Roland Juno BBD Chorus:
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Roland Juno analog BBD stereo chorus unit. Centered in frame, dark grey matte front panel with iconic yellow and light blue push-buttons 'I' and 'II', red status LEDs, stereo spread knob. Flat black studio background, orthographic shot.
+
+Midas 4-Band Parametric EQ:
+
+Square 1:1 aspect ratio, orthographic front-facing view of a classic British console 4-band parametric equalizer. Centered in frame, dark navy blue metal faceplate, four color-coded dual-concentric potentiometer bands (cyan, green, orange, red), precision dB markings. Flat black studio background, orthographic shot.
+
+Moog Ladder Filter (Mood Filter):
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Moog 24dB ladder filter unit. Centered in frame, textured matte black faceplate, giant central fluted pointer cutoff knob with silver cap, resonance dial, pole slope selector switches. Flat black studio background, orthographic shot.
+
+Stereo Tape Flanger:
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage analog stereo flanger and comb filter. Centered in frame, brushed silver aluminum chassis, purple and black accents, through-zero flange LED, manual sweep dial. Flat black studio background, orthographic shot.
+
+Tape Saturation / Preamp:
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique analog tape saturation and tube preamp processor. Centered in frame, dark brushed bronze faceplate, glowing twin vacuum tubes visible through metal mesh, vintage warm round VU meter. Flat black studio background, orthographic shot.
+
+Stereo Delay (BPM Sync):
+
+Square 1:1 aspect ratio, orthographic front-facing view of a modern studio stereo ping-pong digital delay rack processor. Centered in frame, dark brushed slate finish, dual numeric LED time displays, ping-pong width knob, feedback filter dials. Flat black studio background, orthographic shot.
+
+Generic Studio Outboard FX (Rack comodín):
+
+Square 1:1 aspect ratio, orthographic front-facing view of a high-end black brushed aluminum multi-effects studio processor. Centered in frame, sleek minimal interface, amber OLED parameter screen, precision stepped encoders, multi-bus bypass switch. Flat black studio background, orthographic shot.
+
+----
+
+
+1. Roland Dimension D SDD-320 (Chorus-D)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Roland Dimension D SDD-320 stereo spatial chorus unit. Centered in frame, iconic two-tone brushed silver and matte black faceplate, four rectangular push-buttons '1' '2' '3' '4' with green status lights, bypass switch, dual input signal LEDs. Flat black studio background, orthographic straight-on shot.
+
+2. EMT 140 / Plate Reverb (Plate Reverb / Rich Plate / Deep Verb)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a classic EMT 140 vintage plate reverb remote control unit. Centered in frame, heavy hammered steel and polished chrome faceplate, large mechanical damper knob with engraved seconds scale, vintage round warm-lit needle meter, brass nameplate. Flat black studio background, orthographic shot.
+
+3. Lexicon 224 / 480L Reverb (Hall / Room / Chamber / Ambience)
+
+Square 1:1 aspect ratio, orthographic front-facing view of an iconic vintage Lexicon digital reverb studio rack processor. Centered in frame, beige and dark grey chassis, six classic vertical motorized sliders with colored caps, green segmented digital alphanumeric LED display, soft-touch keypad buttons. Flat black studio background, orthographic shot.
+
+4. Solina String Ensemble (Solina Ensemble)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage ARP Solina String Ensemble modulation chorus rack. Centered in frame, dark brushed metal panel flanked by walnut wooden cheeks, push-button switches for instrument voices, Crescendo and Sustain faders, warm retro amber jewel lamp. Flat black studio background, orthographic shot.
+
+5. Leslie 122 Rotary Speaker (Rotary Speaker)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a classic Leslie rotary speaker preamp controller unit. Centered in frame, vintage dark stained wood and brushed brass control panel, classic half-moon Chorale/Tremolo rotary speed switch, drive saturation dial, warm vintage pilot light. Flat black studio background, orthographic shot.
+
+6. Roland Vocoder SVC-350 (MB Vocoder / Vocoder)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Roland SVC-350 10-band analog vocoder rack unit. Centered in frame, black aluminum faceplate with multi-colored horizontal graphic EQ level sliders, front-panel silver XLR microphone input, analog backlit VU meter, ensemble switch. Flat black studio background, orthographic shot.
+
+7. Eventide H910 / H949 Harmonizer (Dual Pitch / Vintage Pitch)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Eventide H910 Harmonizer pitch shifter rack. Centered in frame, brushed aluminum front panel, large illuminated yellow 7-segment digital pitch ratio readout, giant main pitch control wheel, anti-feedback toggle switches. Flat black studio background, orthographic shot.
+
+8. Mu-Tron Bi-Phase (Stereo Phaser)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage Mu-Tron dual optical phaser studio rack unit. Centered in frame, textured dark silver-grey faceplate with vibrant yellow and blue dial graphics, dual independent sweep rate and depth knobs, feedback toggle switches. Flat black studio background, orthographic shot.
+
+9. Drawmer DS201 Dual Noise Gate (Noise Gate)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a classic Drawmer DS201 dual noise gate rack processor. Centered in frame, black brushed aluminum faceplate, two channels of precision threshold/attack/decay pots, vertical traffic-light LED ladder meters (green, yellow, red), bypass toggles. Flat black studio background, orthographic shot.
+
+10. Tech 21 SansAmp PSA-1 (RackAmp / Guitar Amp Simulator)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a 19-inch vintage analog rackmount guitar preamp and amplifier simulator. Centered in frame, rugged brushed black anodized steel panel with distinct yellow, green, and red pointer knobs for Preamp, Buzz, Punch, Crunch, Drive and Level. Flat black studio background, orthographic shot.
+
+11. SPL Vitalizer / Sonic Enhancer (Enhancer)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a high-end psychoacoustic stereo vitalizer and harmonic enhancer processor. Centered in frame, champagne gold and brushed black chassis, illuminated backlit vintage needle meter, knurled stereo expander dials, tube process warmth indicator. Flat black studio background, orthographic shot.
+
+12. Moog / Maestro Ring Modulator (Ring Modulator)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage modular analog ring modulator processor. Centered in frame, textured matte black faceplate with dark walnut wooden side panels, large central carrier frequency knob with silver skirt, waveform selector, carrier drive toggle. Flat black studio background, orthographic shot.
+
+13. Behringer Edison EX1+ (Edison Stereo Imager)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage psychoacoustic stereo field expander processor. Centered in frame, dark brushed titanium faceplate, dual stereo correlation needle meters, center distance dial, spatial spread knob, gold push-button selectors. Flat black studio background, orthographic shot.
+
+14. Modern Shimmer / Granular Ambient Delay (Shimmer Delay / Granular / Nimbus)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique high-end ambient granular and shimmer delay rack unit. Centered in frame, deep anodized midnight-blue faceplate, circular OLED constellation parameter display, illuminated precision stepped encoders with ice-blue LED halos, pitch-decay dials. Flat black studio background, orthographic shot.
+
+-------------
+-------------
+
+1. Delays y Ecos Vintage Pendientes
+
+Analog Tape Delay (ID 40) → Nombre sugerido: echoplex_ep3.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a vintage Maestro Echoplex EP-3 solid state tape delay unit. Centered in frame, iconic dark brushed metal faceplate, horizontal sliding delay slider, round red jewel pilot lamp, analog VU needle meter, black control knobs. Flat black studio background, orthographic shot, ultra-photorealistic 8k studio product photography.
+
+T-Ray Delay (ID 21) → Nombre sugerido: telray_delay.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a vintage Tel-Ray Adineko electrostatic oil-can delay unit. Centered in frame, vintage dark hammered metal chassis with exposed spinning oil flywheel canister, warm amber indicator bulbs, knurled bakelite dials. Flat black studio background, orthographic shot, 8k dark studio lighting.
+
+3-Tap / 4-Tap / Ducking Delay (IDs 14, 15, 44) → Nombre sugerido: tc_2290_delay.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a legendary TC Electronic 2290 Dynamic Digital Delay 19-inch rack processor. Centered in frame, iconic brushed black aluminum 1U chassis, bright numeric blue and red 7-segment LED parameter displays, soft-touch numeric keypad buttons, modulation rate knobs. Flat black studio background, orthographic shot.
+
+2. Reverbs Clásicas de Estudio Pendientes
+
+Studio Hall / Ambience / Room / Chamber (IDs 1, 4, 26, 27) → Nombre sugerido: lexicon_480l.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a legendary Lexicon 480L Digital Effects System with iconic LARC remote controller. Centered in frame, vintage cream-white chassis, dual backlit red LED parameter displays, six vertical motorized faders, soft tactile gray silicone buttons. Flat black studio background, orthographic shot.
+
+Gated Reverb & Reverse Reverb (IDs 5, 6) → Nombre sugerido: ams_rmx16.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of an AMS RMX16 vintage digital reverberator rack processor. Centered in frame, matte grey industrial faceplate, red LED alphanumeric readout displays, continuous rotary encoder pot with silver cap, preset numeric keypad. Flat black studio background, orthographic shot.
+
+Rich Plate / Space Reverb (ID 3) → Nombre sugerido: emt_250.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of an iconic EMT 250 electronic reverberator control unit. Centered in frame, brushed aluminum console surface with four prominent vertical red slider levers (decay time, low filter, high filter, predelay), circular jewel lamps. Flat black studio background, orthographic shot.
+
+3. Modulaciones, Panning y EQ
+
+Stereo Chorus (ID 10) → Nombre sugerido: boss_ce1.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a vintage Boss CE-1 Chorus Ensemble analog processor. Centered in frame, dark textured metal enclosure, silver aluminum faceplate, knurled black dials, red peak level LED, toggle switches for chorus/vibrato. Flat black studio background, orthographic shot.
+
+Auto Pan / Tremolo (ID 20) → Nombre sugerido: rhodes_panner.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a vintage Dyno-My-Piano stereo auto-panner and tremolo outboard unit. Centered in frame, dark brushed silver rackmount chassis, twin stereo pulsating green LED indicators, rate and depth pointer knobs. Flat black studio background, orthographic shot.
+
+Shelf Filter (ID 60) → Nombre sugerido: pultec_eq.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a legendary Pultec EQP-1A tube program equalizer. Centered in frame, signature blue-grey enamel 3U faceplate, large black pointer bakelite knobs, vintage toggle power switch, warm red jewel lamp. Flat black studio background, orthographic shot.
+
+4. Distorsión y Filtros Especiales
+
+Oversampled Dist / Multi-Band Dist / Wave Shaper (IDs 32, 50, 51) → Nombre sugerido: culture_vulture.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a Thermionic Culture Vulture dual tube distortion rack unit. Centered in frame, dark anthracite metal panel, glowing glass vacuum tubes visible behind safety grille, twin backlit warm needle meters, heavy military chicken-head knobs. Flat black studio background, orthographic shot.
+
+Frequency Shifter / Harmonic Reso / Combulator (IDs 46, 47, 48) → Nombre sugerido: bode_freq_shifter.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a vintage Moog Bode 1630 frequency shifter rack processor. Centered in frame, black matte front panel, giant circular frequency dial with precision vernier markings, dual carrier balance needle meters, audio frequency band switches. Flat black studio background, orthographic shot.
+
+Efectos Combinados Duales (Mod Delay Verb, Flang Verb, Chorus Verb, Delay Verb) (IDs 12, 23, 24, 25) → Nombre sugerido: yamaha_spx90.webp
+
+Prompt Nano Banana: Square 1:1 aspect ratio, orthographic front-facing view of a classic Yamaha SPX90 multi-effects 19-inch rack unit. Centered in frame, dark slate metal finish, green backlit LCD screen, input level LED ladder meter, trigger buttons, memory recall dial. Flat black studio background, orthographic shot.
+
+
+----------
+----------
+----------
+
+1. TC Electronic M3000 (Deep Verb)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage TC Electronic M3000 dual engine digital reverb processor outboard unit. Centered inside a square frame, sleek brushed silver and dark charcoal 19-inch rack faceplate, distinctive central backlit emerald green and amber multi-segment LED meter display, continuous rotary encoder wheel, precision tactile rubber parameter buttons, studio power toggle switch. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+2. Decimator / Bitcrusher (Lo-Fi Vintage Sampler & Bit Reduction Rack)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique lo-fi bitcrusher and sample-rate decimator outboard rack unit. Centered inside a square frame, industrial brushed matte slate-grey faceplate, glowing retro red 7-segment LED display showing bit depth (4-bit to 16-bit) and sample frequency in kHz, chunky knurled aluminum knobs, stepped rotary resolution switches, anti-aliasing filter bypass rocker. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+3. Pattern Freeze / Stutter (Micro-Loop Glitch Buffer Processor)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique modular audio glitch buffer and pattern freeze stutter rack unit. Centered inside a square frame, stealth anodized jet-black brushed aluminum chassis, glowing illuminated silicone beat-sync step pushbuttons with cyan and magenta backlighting, illuminated circular LED ring encoders, micro-loop time display, manual momentary freeze punch button. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+4. Spectral Delay (FFT Spectral Filter / Phase Resonator)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a high-end mastering spectral FFT delay and acoustic resonator hardware unit. Centered inside a square frame, dark titanium metallic faceplate, glowing ultra-fine cyan OLED spectrum analyzer screen displaying frequency bins, precision machined aluminium dials with subtle blue LED halo indicators, frequency division toggle switches. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+5. FDN Reverb (Feedback Delay Network / Householder Matrix Reverb)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique esoteric 16-channel Feedback Delay Network (FDN) algorithmic matrix reverb processor. Centered inside a square frame, dark graphite anodized aluminum front panel, glowing amber matrix routing grid with 16 miniature LED cross-points, 4 large knurled master damping and diffusion knobs, dual stereo peak LED ladders. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+6. Nimbus Cloud Reverb (Granular Ambient Cloud / Shimmer Machine)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a modern high-end ambient cloud reverb and shimmer hardware unit. Centered inside a square frame, pearlescent matte white and silver brushed faceplate with frosted glass accent, soft glowing warm-white LED indicators, smooth satin aluminum potentiometers for decay, particle size and density, subtle ambient backlighting. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+7. Bonsai Pitch Delay (Japanese Shifting Delay & Harmonizer)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a boutique Japanese analog-modeled pitch-shifting tape delay rack unit. Centered inside a square frame, brushed dark forest-green metal chassis with minimalist gold typography, dual backlit circular VU needle meters with warm vintage yellow glow, tactile bakelite pointer knobs, pitch semitone stepped selector switch. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+8. Tree Monster Granular (Raw Organic Granular Texture Synthesizer / Processor)
+
+Square 1:1 aspect ratio, orthographic front-facing view of an experimental boutique granular audio processor rack unit. Centered inside a square frame, heavily textured dark hammered bronze and raw industrial metal front panel, amber nixie-tube style grain count readout, chunky knurled brass control dials, heavy-duty metal toggle switches with red rubber caps, spray and jitter modulation controls. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+9. Fender '63 Tube Spring Reverb (Standalone Spring Tank)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a vintage 1963 Fender tube spring reverb standalone outboard unit. Centered inside a square frame, iconic rough textured brown tolex casing with wheat grille cloth and brushed chrome chassis panel, vintage black numbered skirted amplifier knobs for Dwell, Mixer and Tone, glowing red jewel power lamp, metal Carling standby switch. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.
+
+10. Korg MS2000R (Rack Característico Azul Marino)
+
+Square 1:1 aspect ratio, orthographic front-facing view of a classic Korg MS2000R analog modeling synthesizer and vocoder rackmount unit. Centered inside a square frame, iconic signature deep teal-navy blue metal front panel, two rows of 16 illuminated red step-sequencer buttons along the bottom, compact green backlit LCD screen, dense grid of dark grey rotary parameter knobs, XLR vocoder mic input jack on the left, retro industrial Japanese synth typography. Flat black studio background, no camera perspective tilt, perfectly head-on orthographic product photography for professional audio gear catalog.

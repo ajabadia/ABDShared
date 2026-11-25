@@ -1,0 +1,35 @@
+{
+  "$schema": "./parameter_dictionary.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "roland_d50",
+  "displayName": "Roland D-50 / D-550 Linear Arithmetic Parameter Spec",
+  "topology": "multi_part",
+  "totalParameters": 20,
+  "parts": [
+    { "id": "patch", "name": "Patch Common", "scope": "global", "cardinality": 1 },
+    { "id": "tone", "name": "Upper / Lower Tone", "scope": "part", "cardinality": 2, "idPrefix": "u_" },
+    { "id": "partial", "name": "WG / TVF / TVA Partial", "scope": "group", "cardinality": 4 }
+  ],
+  "parameters": [
+    { "id": "modelProfile", "name": "LA32 Hardware Profile", "group": "Master", "scope": "global", "semanticRole": "VoicePolyMode", "type": "choice", "min": 0, "max": 1, "default": 0, "unit": "enum", "choices": ["D-50 / D-550", "MT-32 / CM-32L / D-110"], "curve": "Linear", "wire": "None" },
+    { "id": "keyMode", "name": "Key Mode", "group": "Voice", "scope": "global", "semanticRole": "VoicePolyMode", "type": "integer", "min": 0, "max": 8, "default": 0, "unit": "mode", "curve": "Linear", "wire": "None" },
+    { "id": "splitPoint", "name": "Split Point", "group": "Voice", "scope": "global", "semanticRole": "KeyboardSplitPoint", "type": "integer", "min": 0, "max": 60, "default": 24, "unit": "key", "curve": "Linear", "wire": "None" },
+    { "id": "upperBalance", "name": "Upper / Lower Balance", "group": "PartMixer", "scope": "global", "semanticRole": "PartMixBalance", "type": "continuous", "min": 0, "max": 100, "default": 50, "domainMin": 0, "domainMax": 100, "unit": "%", "curve": "Linear", "wire": "None" },
+    { "id": "outputMode", "name": "Output Mode", "group": "Effects", "scope": "global", "semanticRole": "OutputRouting", "type": "integer", "min": 0, "max": 3, "default": 0, "unit": "mode", "curve": "Linear", "wire": "None" },
+    { "id": "reverbType", "name": "Boss Reverb Type", "group": "Effects", "scope": "global", "semanticRole": "ReverbType", "type": "integer", "min": 0, "max": 31, "default": 2, "unit": "program", "curve": "Linear", "wire": "None" },
+    { "id": "reverbBalance", "name": "Reverb Balance", "group": "Effects", "scope": "global", "semanticRole": "PartReverbSend", "type": "continuous", "min": 0, "max": 100, "default": 35, "domainMin": 0, "domainMax": 100, "unit": "%", "curve": "Linear", "wire": "CC", "cc": 91 },
+    { "id": "totalVolume", "name": "Patch Volume", "group": "Master", "scope": "global", "semanticRole": "MasterVolume", "type": "continuous", "min": 0, "max": 100, "default": 90, "domainMin": 0, "domainMax": 100, "unit": "%", "curve": "Linear", "wire": "CC", "cc": 7 },
+    { "id": "u_structure", "name": "Upper Structure", "group": "Oscillators", "scope": "part", "semanticRole": "Osc1Waveform", "type": "integer", "min": 0, "max": 12, "default": 0, "unit": "struct", "curve": "Linear", "wire": "None" },
+    { "id": "l_structure", "name": "Lower Structure", "group": "Oscillators", "scope": "part", "semanticRole": "Osc2Waveform", "type": "integer", "min": 0, "max": 12, "default": 0, "unit": "struct", "curve": "Linear", "wire": "None" },
+    { "id": "u_chorusType", "name": "Upper Chorus Type", "group": "Effects", "scope": "part", "semanticRole": "ChorusMode", "type": "integer", "min": 0, "max": 7, "default": 0, "unit": "mode", "curve": "Linear", "wire": "None" },
+    { "id": "u_chorusRate", "name": "Upper Chorus Rate", "group": "Effects", "scope": "part", "semanticRole": "ChorusRate", "type": "continuous", "min": 0, "max": 100, "default": 30, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "None" },
+    { "id": "u_chorusDepth", "name": "Upper Chorus Depth", "group": "Effects", "scope": "part", "semanticRole": "ChorusDepth", "type": "continuous", "min": 0, "max": 100, "default": 45, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "None" },
+    { "id": "u_chorusBalance", "name": "Upper Chorus Balance", "group": "Effects", "scope": "part", "semanticRole": "ChorusMix", "type": "continuous", "min": 0, "max": 100, "default": 40, "domainMin": 0, "domainMax": 100, "unit": "%", "curve": "Linear", "wire": "CC", "cc": 93 },
+    { "id": "u_lowEqGain", "name": "Upper Low EQ Gain", "group": "Effects", "scope": "part", "semanticRole": "EqLowGain", "type": "bipolar", "min": -12, "max": 12, "default": 0, "domainMin": -12, "domainMax": 12, "unit": "dB", "curve": "Linear", "wire": "None" },
+    { "id": "u_highEqGain", "name": "Upper High EQ Gain", "group": "Effects", "scope": "part", "semanticRole": "EqHighGain", "type": "bipolar", "min": -12, "max": 12, "default": 0, "domainMin": -12, "domainMax": 12, "unit": "dB", "curve": "Linear", "wire": "None" },
+    { "id": "u_p1_tvfCutoff", "name": "Upper P1 TVF Cutoff", "group": "Filter", "scope": "group", "semanticRole": "FilterCutoff", "type": "continuous", "min": 0, "max": 100, "default": 60, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 74 },
+    { "id": "u_p1_tvfResonance", "name": "Upper P1 TVF Resonance", "group": "Filter", "scope": "group", "semanticRole": "FilterResonance", "type": "continuous", "min": 0, "max": 30, "default": 6, "domainMin": 0, "domainMax": 30, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 71 },
+    { "id": "u_p1_tvaEnvT1", "name": "Upper P1 TVA Attack T1", "group": "Envelopes", "scope": "group", "semanticRole": "AmpEnvAttack", "type": "continuous", "min": 0, "max": 100, "default": 10, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 73 },
+    { "id": "u_p1_tvaEnvT5", "name": "Upper P1 TVA Release T5", "group": "Envelopes", "scope": "group", "semanticRole": "AmpEnvRelease", "type": "continuous", "min": 0, "max": 100, "default": 45, "domainMin": 0, "domainMax": 100, "unit": "step", "curve": "Linear", "wire": "CC", "cc": 72 }
+  ]
+}

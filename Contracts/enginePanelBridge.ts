@@ -4,6 +4,26 @@
  * (StructuredRomplerPanel, future JunoPanel, etc.) from host Groovebox or standalone plugins.
  */
 
+import type {
+  EngineBrowserItem,
+  EngineBrowserSource,
+  EnginePatchMeta,
+  EnginePresetSaveMeta,
+  EngineWaveBank,
+  EngineWaveItem,
+} from './engineBrowserTypes';
+
+export type {
+  EngineBrowserItem,
+  EngineBrowserSource,
+  EnginePatchDrumSlotMeta,
+  EnginePatchMeta,
+  EnginePatchPartialMeta,
+  EnginePresetSaveMeta,
+  EngineWaveBank,
+  EngineWaveItem,
+} from './engineBrowserTypes';
+
 export interface EnginePanelDescriptor {
   typeId: string;
   displayName: string;
@@ -38,6 +58,36 @@ export interface EnginePanelBridge {
   onRequestBankBrowser?(): void;
   beginGesture?(key: string): void;
   endGesture?(key: string): void;
+  allNotesOff?(): void;
+  resetCpu?(): void;
+  savePreset?(name: string, meta?: EnginePresetSaveMeta): void | Promise<void>;
+  setPresetName?(name: string): void;
+  loadPresetDialog?(): void | Promise<void>;
+  onRequestFirmwareDrawer?(): void;
+  getCoverUrl?(): string | undefined;
+  getPatchMeta?(): EnginePatchMeta;
+  listBrowserSources?(): Promise<EngineBrowserSource[]>;
+  listBrowserItems?(sourceId?: string): Promise<EngineBrowserItem[]>;
+  selectBrowserItem?(item: EngineBrowserItem): Promise<boolean>;
+  auditionBrowserItem?(item: EngineBrowserItem, note?: number): Promise<void>;
+  importBankArchive?(fileName: string, buffer: ArrayBuffer): Promise<EngineBrowserSource | null>;
+  listWaveBanks?(): Promise<EngineWaveBank[]>;
+  listWavesInBank?(bankIdOrName: string): Promise<EngineWaveItem[]>;
+  assignWaveToTarget?(
+    bankIdOrName: string,
+    waveIndex: number,
+    targetKind: 'partial_wave' | 'drum_wave',
+    targetIndex: number
+  ): Promise<boolean>;
+  auditionNote?(note: number, velocity?: number, durationMs?: number): void;
+  initPatch?(mode?: 'chromatic' | 'drum_map'): void | Promise<void>;
+  applyPresetSnapshot?(
+    params: Record<string, number>,
+    presetName?: string,
+    categoryId?: number,
+    playMode?: 'chromatic' | 'drum_map'
+  ): void;
+  setMatrixRow?(rowIndex: number, row: Record<string, unknown>): void;
 }
 
 export interface EnginePanelOptions {
@@ -54,6 +104,7 @@ export interface EnginePanelInstance {
   setParamVisual(key: string, value: number): void;
   setModulation?(key: string, normDelta: number): void;
   setLocale(locale: 'en' | 'es'): void;
+  refreshBrowser?(): void;
   destroy(): void;
 }
 
@@ -63,50 +114,4 @@ export type EnginePanelFactory = (
   options?: EnginePanelOptions
 ) => EnginePanelInstance;
 
-/**
- * Creates an in-memory EnginePanelBridge for Vitest suites, offline previews,
- * and standalone component verification without WASM or native C++ runtime.
- */
-export function createMemoryEngineBridge(
-  descriptor: EnginePanelDescriptor,
-  initialState: Record<string, number> = {},
-  factoryPresets: readonly string[] = []
-): EnginePanelBridge & { setExternalState(patch: Record<string, number>, presetName?: string): void } {
-  const state: Record<string, number> = { ...initialState };
-  const listeners = new Set<(next: Record<string, number>) => void>();
-  let presetName = factoryPresets[0] ?? '';
-
-  const notify = () => {
-    const snap = { ...state };
-    listeners.forEach((fn) => fn(snap));
-  };
-
-  return {
-    getDescriptor: () => ({ ...descriptor }),
-    setParam(key: string, value: number) {
-      state[key] = value;
-    },
-    getParam(key: string): number {
-      return Object.prototype.hasOwnProperty.call(state, key) ? state[key] : 0;
-    },
-    getState: () => ({ ...state }),
-    onStateChange(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    getPresetName: () => presetName,
-    listFactoryPresets: () => [...factoryPresets],
-    loadFactoryPreset(index: number): boolean {
-      if (index < 0 || index >= factoryPresets.length) return false;
-      presetName = factoryPresets[index];
-      state['mode.drum'] = index >= 16 ? 1 : 0;
-      notify();
-      return true;
-    },
-    setExternalState(patch: Record<string, number>, nextPresetName?: string) {
-      Object.assign(state, patch);
-      if (typeof nextPresetName === 'string') presetName = nextPresetName;
-      notify();
-    },
-  };
-}
+export { createMemoryEngineBridge } from './memoryEngineBridge';

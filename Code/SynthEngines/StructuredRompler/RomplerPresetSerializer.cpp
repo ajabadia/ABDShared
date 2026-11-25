@@ -52,13 +52,18 @@ void writeWaveRef(std::ostringstream& os, const RomplerWavePool* pool, WaveHandl
         writeEscapedString(os, asset->bankId);
         os << ",\"waveId\":";
         writeEscapedString(os, asset->waveId);
+        if (!asset->name.empty())
+        {
+            os << ",\"waveName\":";
+            writeEscapedString(os, asset->name);
+        }
     }
 }
 
 bool isDefaultSlot(const DrumSlotConfig& s, int note, WaveHandle h) noexcept
 {
     return h == kInvalidWaveHandle && s.muteGroup == 0 && s.coarseKey == static_cast<std::uint8_t>(note) &&
-           s.triggerMode == DrumTriggerMode::OneShot && s.level == 1.0f && s.pan == 0.0f &&
+           s.triggerMode == DrumTriggerMode::OneShot && (s.level == 1.0f || s.level == 0.0f) && s.pan == 0.0f &&
            s.reverbSend == 0.25f && s.chorusSend == 0.0f && s.cutoffHzOverride == 14000.0f &&
            s.resonanceOverride == 0.1f && s.decayMs == 280.0f && s.pitchKeyTrack == 0.0f;
 }
@@ -74,7 +79,7 @@ std::string RomplerPresetSerializer::serialize(const StructuredRomplerEngine& en
     const RomplerWavePool* pool = engine.getWavePool();
 
     os << "{\"formatId\":\"abd_structured_rompler_state\",\"schemaVersion\":\"1.0.0\","
-       << "\"engineTypeId\":\"structured_rompler\",\"presetName\":";
+       << "\"engineTypeId\":\"" << engine.getEngineTypeId() << "\",\"presetName\":";
     writeEscapedString(os, engine.getCurrentPresetName());
     os << ",\"isDrumKit\":" << (engine.isDrumMode() ? "true" : "false");
 

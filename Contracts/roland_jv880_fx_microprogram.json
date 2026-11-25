@@ -1,0 +1,4380 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "roland_jv880_fx_microprogram",
+  "displayName": "Roland JV-880 Reverb / Chorus PCM microprogram (declarative extraction)",
+  "source": {
+    "archive": "D:/desarrollos/ABDSynths/_RESOURCES/roland/jv/jv880_juce-main.zip",
+    "entry": "jv880_juce-main/Source/emulator/pcm.cpp",
+    "requestedRange": "309-890",
+    "primitivesRange": "259-277",
+    "outputRoutingRange": "1330-1405",
+    "uiLabelsEntry": "jv880_juce-main/Source/ui/EditCommonTab.cpp",
+    "bitPackingEntry": "jv880_juce-main/Source/dataStructures.h",
+    "extracted": "2026-11-24"
+  },
+  "scope": {
+    "literal": "Los bloques numerados, registros, taps, LUTs y operaciones de esta declaracion estan copiados de pcm.cpp. Los bloques son 1..23 y 31 (24 en total), no 20.",
+    "limitation": "pcm.cpp NO contiene constantes numericas de coefficient por algoritmo: los coeficientes son bytes de ram2[28..31] escritos en tiempo de ejecucion por el MCU desde el firmware. No se han inventado valores. Los nombres de algoritmo y su codificacion selectora si son literales (EditCommonTab.cpp / dataStructures.h). La ausencia de constantes en el codigo fuente se supera con la captura runtime documentada en runtimeCapture (no se inventaron valores: se leyo ram2[28..31] del emulador tras DT1 real).",
+    "validated": "Extraccion estatica verificada mas captura runtime de 153 configuraciones (8 reverb x 3x3, 3 chorus x 3x3x3) con dos instantaneas por configuracion. Sin golden vector de hardware: la exactitud bit a bit frente al JV-880 real no esta demostrada."
+  },
+  "primitives": {
+    "sx20": {
+      "lines": "259-263",
+      "expression": "(in << 12) >> 12"
+    },
+    "addclip20": {
+      "lines": "265-273",
+      "mask": "0xfffff",
+      "saturatePositive": "0x7ffff",
+      "saturateNegative": "0x80000",
+      "rule": "suma add1+add2+cin en 20 bits; satura a 0x80000 si ambos operandos son negativos y el resultado no lo es; satura a 0x7ffff si ambos son positivos y el resultado no lo es"
+    },
+    "multi": {
+      "lines": "275-277",
+      "expression": "sx20(val1) * int8_t(val2)"
+    },
+    "flip_nibble_lut": [
+      0,
+      8,
+      4,
+      12,
+      2,
+      10,
+      6,
+      14,
+      1,
+      9,
+      5,
+      13,
+      3,
+      11,
+      7,
+      15
+    ],
+    "tvc_lut": [
+      3,
+      15,
+      63,
+      127
+    ],
+    "calc_tv": {
+      "lines": "312-414",
+      "inputs": [
+        "adjust = ram2[3+e]",
+        "levelcur = ram2[9+e] & 0x7fff",
+        "active"
+      ],
+      "typeEncoding": "w1=!(speed&0xf0); w2=w1||(speed&0x10); w3=(!b80||(!b40&&(!w2||!b20))); type=w2|(w3<<3); if(b20) type|=2; if(!b80||!b40) type|=4",
+      "addLowType4": "flip_nibble_lut[tv_counter & 0x0f]",
+      "addLowOtherwise": "flip_nibble_lut[(tv_counter >> (2*(type&3)+2)) & 0x0f]",
+      "linearBranch": "shift=(10-(speed&15))&15; sum1=(target<<11)-(levelcur<<4); sum2=(target<<11)+addlow+((sum1>>shift)-sum1); levelcur=(sum2>>4)&0x7fff",
+      "nonLinearBranch": "shift=(10-((((speed>>4)&14)|w2)))&15; sale por target<<7 cuando xnor es falso",
+      "uses": [
+        {
+          "e": 1,
+          "adjust": "ram2[30][0]",
+          "levelcur": "ram2[30][9]",
+          "active": "(ram2[31][7]&0x20)!=0"
+        }
+      ]
+    },
+    "eram": {
+      "sizeWords": 16384,
+      "unpack": {
+        "lines": "416-425",
+        "expression": "addr &= 0x3fff; val = data & 0x3fff; sh = (data >> 14) & 3; return (val << 18) >> (18 - sh*2 + type)"
+      },
+      "pack": {
+        "lines": "427-446",
+        "expression": "top=(val>>13)&0x7f; if(top&0x40) top^=0x7f; sh = top>=16?3:top>=4?2:top>=1?1:0; data=((val>>(sh*2))&0x3fff)|(sh<<14)"
+      }
+    }
+  },
+  "coefficientRegisters": [
+    {
+      "register": "ram2[30][0]",
+      "role": "calc_tv e=1 adjust (reverb TV envelope)",
+      "usedBy": [
+        "calc_tv"
+      ]
+    },
+    {
+      "register": "ram2[30][1]",
+      "role": "reverb input mix; high byte -> ram1[29][0], low byte -> rcsum[0]",
+      "usedBy": [
+        "input_mix_reverb"
+      ]
+    },
+    {
+      "register": "ram2[30][2]",
+      "role": "reverb send A (rcadd[0]/rcadd2[0]); high byte -> left, low byte -> rcsum[1]",
+      "usedBy": [
+        17
+      ]
+    },
+    {
+      "register": "ram2[30][3]",
+      "role": "reverb send B (rcadd[1]/rcadd2[1]); high byte -> right, low byte -> rcsum[1]",
+      "usedBy": [
+        18
+      ]
+    },
+    {
+      "register": "ram2[30][4]",
+      "role": "comb 1..3; high byte -> input gain (>>6), low byte -> feedback, bits 0x30 -> feedback enable",
+      "usedBy": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "register": "ram2[30][5]",
+      "role": "comb 4; high byte -> input gain, low byte -> feedback, bits 0x30 -> feedback enable",
+      "usedBy": [
+        4
+      ]
+    },
+    {
+      "register": "ram2[30][6]",
+      "role": "allpass coefficient; high byte -> feedforward, low byte -> feedback",
+      "usedBy": [
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    {
+      "register": "ram2[30][7]",
+      "role": "block 5 coefficient; high byte -> ram1[29][2] mix, low byte -> tap ram2[29][0]",
+      "usedBy": [
+        5
+      ]
+    },
+    {
+      "register": "ram2[30][8]",
+      "role": "block 6 coefficient; high byte -> ram1[29][3] mix, low byte -> tap ram2[29][8]",
+      "usedBy": [
+        6
+      ]
+    },
+    {
+      "register": "ram2[30][9]",
+      "role": "block 7 coefficient (high byte -> ram1[29][2]/[3]); compartido con levelcur de calc_tv e=1",
+      "usedBy": [
+        7,
+        "calc_tv"
+      ]
+    },
+    {
+      "register": "ram2[30][10]",
+      "role": "LFSR de ruido: xr=(s>>0)^(s>>1)^(s>>7)^(s>>12)&1; s=(s>>1)|(xr<<15)",
+      "usedBy": [
+        "final_mixing"
+      ]
+    },
+    {
+      "register": "ram2[31][1]",
+      "role": "chorus input mix; high byte -> ram1[29][1], low byte -> rcsum[1]",
+      "usedBy": [
+        "input_mix_chorus"
+      ]
+    },
+    {
+      "register": "ram2[31][2]",
+      "role": "chorus send A (rcadd[2]/rcadd2[2]); high byte -> left, low byte -> rcsum[0]",
+      "usedBy": [
+        21
+      ]
+    },
+    {
+      "register": "ram2[31][3]",
+      "role": "chorus send B (rcadd[3]/rcadd2[3]); high byte -> right, low byte -> rcsum[1]",
+      "usedBy": [
+        22
+      ]
+    },
+    {
+      "register": "ram2[31][4]",
+      "role": "chorus send C (rcadd[4]/rcadd2[4]); high byte -> left, low byte -> rcsum[0]",
+      "usedBy": [
+        23
+      ]
+    },
+    {
+      "register": "ram2[31][5]",
+      "role": "chorus send D (rcadd[5]/rcadd2[5]); high byte -> right, low byte -> rcsum[1]",
+      "usedBy": [
+        31
+      ]
+    },
+    {
+      "register": "ram2[31][7]",
+      "role": "flags del generador de direcciones: 0x20 okey, 0x40 b6, 0x80 b7, bits 0..4 seleccionan banco ram2 del sub-phase",
+      "usedBy": [
+        "address_generator",
+        "calc_tv"
+      ]
+    },
+    {
+      "register": "ram2[31][8]",
+      "role": "contador de fase y tv_counter: 0x8000 b15, 0x3fff sub_phase",
+      "usedBy": [
+        "address_generator",
+        "calc_tv"
+      ]
+    },
+    {
+      "register": "ram2[31][9]",
+      "role": "fase inversa cuando b15: ram2[31][8]&0x7fff; ademas coeficiente del bloque 19 (high byte)",
+      "usedBy": [
+        "phase_flip",
+        19
+      ]
+    },
+    {
+      "register": "ram2[31][10]",
+      "role": "fase inversa cuando !b15: (0x4000-ram2[31][8])&0x7fff; ademas coeficiente del bloque 20 (high byte)",
+      "usedBy": [
+        "phase_flip",
+        20
+      ]
+    }
+  ],
+  "inputMix": [
+    {
+      "lines": "537-544",
+      "name": "chorus",
+      "coefficient": "ram2[31][1]",
+      "expression": "ram1[29][1] = addclip20((multi(ram1[29][1], v1>>8)>>5)>>1, (multi(rcsum[1], v1&255)>>5)>>1, (m1|m2)&1)"
+    },
+    {
+      "lines": "554-560",
+      "name": "reverb",
+      "coefficient": "ram2[30][1]",
+      "expression": "ram1[29][0] = addclip20((multi(ram1[29][0], v1>>8)>>5)>>1, (multi(rcsum[0], v1&255)>>5)>>1, (m1|m2)&1)"
+    }
+  ],
+  "delayTaps": {
+    "addressRegisters": {
+      "ram2[28][0..11]": "direcciones ERAM de la rama A; se leen con +tv_counter y, en los bloques 17/18, +tv_counter+1",
+      "ram2[29][0..11]": "direcciones ERAM de la rama B; [10]/[11] son calculadas por el generador de direcciones",
+      "computed": {
+        "ram2[29][10]": "t3 = address_end - (ram1[31][4] - address_loop)",
+        "ram2[29][11]": "t4 = ram1[31][4]",
+        "lines": "957-963"
+      }
+    },
+    "addressGenerator": {
+      "lines": "887-964",
+      "inputs": [
+        "ram1[31][4] address",
+        "ram1[31][0] address_end",
+        "ram1[31][2] address_loop",
+        "ram2[31][7] flags",
+        "ram2[31][8] sub_phase"
+      ],
+      "outputs": [
+        "ram1[31][4] next_address",
+        "ram2[31][8] bit15 next_b15",
+        "ram2[29][10]",
+        "ram2[29][11]"
+      ],
+      "rules": [
+        "cmp1 = b15 ? address_loop : address_end",
+        "address_cmp = (cmp1 & 0xfffff) == (address_cnt & 0xfffff)",
+        "address_add = (!address_cmp && b6 && !b15) || (!address_cmp && !b6)",
+        "address_sub = !address_cmp && b6 && b15",
+        "address_cnt2 = (kon || (!b6 && address_cmp)) ? (b15 ? address_loop : address_cnt) : address_cnt",
+        "if (b7) address_cnt2 -= address_add - address_sub; else address_cnt2 += address_add - address_sub",
+        "b15 = b6 && (b15 ^ address_cmp)"
+      ]
+    }
+  },
+  "microprogramSteps": [
+    {
+      "step": 1,
+      "lines": "566-581",
+      "kind": "comb_feedback",
+      "coefficient": "ram2[30][4]",
+      "input": "ram1[29][0]",
+      "outputs": [
+        "ram1[29][4]",
+        "ram1[29][5]"
+      ],
+      "taps": [
+        "ram2[28][1]+tv_counter"
+      ],
+      "operation": "m1=multi(input, v1>>8)>>6; v2=s1 si v1&0x30; v3=addclip20(m1, v2^0xfffff, 1); ram1[29][5]=addclip20((multi(v3, v1&255)>>5)>>1, s2, m2&1)"
+    },
+    {
+      "step": 2,
+      "lines": "582-596",
+      "kind": "comb_feedback",
+      "coefficient": "ram2[30][4]",
+      "input": "ram1[29][5]",
+      "outputs": [
+        "ram1[29][5]",
+        "ram1[28][0]"
+      ],
+      "taps": [
+        "ram2[28][2]+tv_counter"
+      ],
+      "operation": "igual que 1 con v3=addclip20(input, v2^0xfffff, 1)"
+    },
+    {
+      "step": 3,
+      "lines": "597-614",
+      "kind": "comb_feedback",
+      "coefficient": "ram2[30][4]",
+      "input": "ram1[28][0]",
+      "outputs": [
+        "ram1[28][0]",
+        "ram1[28][1]",
+        "ram1[28][2]"
+      ],
+      "taps": [
+        "ram2[28][3]+tv_counter",
+        "ram2[28][5]+tv_counter"
+      ],
+      "operation": "comb 3; ram1[28][2]=eram_unpack(ram2[28][5]+tv_counter)"
+    },
+    {
+      "step": 4,
+      "lines": "615-632",
+      "kind": "comb_feedback",
+      "coefficient": "ram2[30][5]",
+      "input": "ram1[28][1]",
+      "outputs": [
+        "ram1[28][1]",
+        "ram1[28][3]",
+        "ram1[28][4]"
+      ],
+      "taps": [
+        "ram2[28][4]+tv_counter",
+        "ram2[29][1]+tv_counter"
+      ],
+      "operation": "comb 4; ram1[28][4]=eram_unpack(ram2[29][1]+tv_counter)"
+    },
+    {
+      "step": 5,
+      "lines": "633-643",
+      "kind": "two_tap_mix",
+      "coefficient": "ram2[30][7]",
+      "input": "ram1[29][2]",
+      "outputs": [
+        "ram1[29][2]"
+      ],
+      "taps": [
+        "ram2[29][0]+tv_counter",
+        "ram2[28][0]+tv_counter (pack)"
+      ],
+      "operation": "ram1[29][2]=addclip20((multi(in,v1>>8)>>5)>>1, (multi(s1,v1&255)>>5)>>1, ...); eram_pack(ram2[28][0]+tv_counter, ram1[29][4])"
+    },
+    {
+      "step": 6,
+      "lines": "644-656",
+      "kind": "two_tap_mix",
+      "coefficient": "ram2[30][8]",
+      "input": "ram1[29][3]",
+      "outputs": [
+        "ram1[29][3]"
+      ],
+      "taps": [
+        "ram2[29][8]+tv_counter",
+        "ram2[28][1]+tv_counter (pack)",
+        "ram2[28][2]+tv_counter (pack)"
+      ],
+      "operation": "mezcla dos taps; escribe ram1[29][5] y ram1[28][0] en ERAM"
+    },
+    {
+      "step": 7,
+      "lines": "657-668",
+      "kind": "accumulate",
+      "coefficient": "ram2[30][9]",
+      "input": "ram1[29][2], ram1[29][3]",
+      "outputs": [
+        "ram1[28][3]",
+        "ram1[28][5]"
+      ],
+      "taps": [
+        "ram2[28][3]+tv_counter (pack)"
+      ],
+      "operation": "ram1[28][3]=addclip20(v2, (multi(ram1[29][2],v1>>8)>>5)>>1, ...); ram1[28][5]=addclip20(v2, (multi(ram1[29][3],v1>>8)>>5)>>1, ...)"
+    },
+    {
+      "step": 8,
+      "lines": "669-682",
+      "kind": "allpass",
+      "coefficient": "ram2[30][6]",
+      "input": "ram1[28][2]",
+      "outputs": [
+        "ram1[28][3]",
+        "ram1[28][2]",
+        "ram1[28][1]"
+      ],
+      "taps": [
+        "ram2[28][9]+tv_counter"
+      ],
+      "operation": "v2=addclip20(ram1[28][3], (multi(ram1[28][2],v1>>8)>>5)>>1, ...); ram1[28][2]=addclip20(ram1[28][2], (multi(v2,v1&255)>>5)>>1, ...)"
+    },
+    {
+      "step": 9,
+      "lines": "683-696",
+      "kind": "allpass",
+      "coefficient": "ram2[30][6]",
+      "input": "ram1[28][4]",
+      "outputs": [
+        "ram1[28][5]",
+        "ram1[28][4]",
+        "ram1[29][4]"
+      ],
+      "taps": [
+        "ram2[29][5]+tv_counter"
+      ],
+      "operation": "misma estructura allpass sobre ram1[28][4]/[5]"
+    },
+    {
+      "step": 10,
+      "lines": "697-710",
+      "kind": "allpass",
+      "coefficient": "ram2[30][6]",
+      "input": "ram1[28][1]",
+      "outputs": [
+        "ram1[28][1]",
+        "ram1[29][5]"
+      ],
+      "taps": [
+        "ram2[28][8]+tv_counter",
+        "ram2[28][4]+tv_counter (pack)"
+      ],
+      "operation": "v3=addclip20((multi(v2,v1>>8)>>5)>>1, s1, ...); ram1[29][5]=addclip20((multi(v3,v1&255)>>5)>>1, v2, ...)"
+    },
+    {
+      "step": 11,
+      "lines": "711-727",
+      "kind": "allpass",
+      "coefficient": "ram2[30][6]",
+      "input": "ram1[29][4]",
+      "outputs": [
+        "ram1[29][4]",
+        "ram1[28][0]"
+      ],
+      "taps": [
+        "ram2[29][4]+tv_counter",
+        "ram2[28][5]+tv_counter (pack)",
+        "ram2[29][0]+tv_counter (pack)"
+      ],
+      "operation": "estructura allpass; escribe ram1[28][2] y ram1[28][5] en ERAM"
+    },
+    {
+      "step": 12,
+      "lines": "728-732",
+      "kind": "tap_read",
+      "coefficient": null,
+      "input": null,
+      "outputs": [
+        "ram1[28][5]"
+      ],
+      "taps": [
+        "ram2[28][6]+tv_counter"
+      ],
+      "operation": "ram1[28][5]=eram_unpack(...)"
+    },
+    {
+      "step": 13,
+      "lines": "734-741",
+      "kind": "tap_sum",
+      "coefficient": null,
+      "input": "ram1[28][5]",
+      "outputs": [
+        "ram1[28][5]",
+        "ram1[28][2]"
+      ],
+      "taps": [
+        "ram2[28][10]+tv_counter",
+        "ram2[29][2]+tv_counter"
+      ],
+      "operation": "ram1[28][5]=addclip20(ram1[28][5], s1, 0); ram1[28][2]=eram_unpack(...)"
+    },
+    {
+      "step": 14,
+      "lines": "743-752",
+      "kind": "tap_sum",
+      "coefficient": null,
+      "input": "ram1[28][2]",
+      "outputs": [
+        "ram1[28][5]",
+        "ram1[28][2]"
+      ],
+      "taps": [
+        "ram2[29][6]+tv_counter",
+        "ram2[28][7]+tv_counter"
+      ],
+      "operation": "t1=addclip20(s1, ram1[28][2], 0); ram1[28][5]=addclip20(t1, ram1[28][5], 0)"
+    },
+    {
+      "step": 15,
+      "lines": "754-761",
+      "kind": "tap_sum",
+      "coefficient": null,
+      "input": "ram1[28][2]",
+      "outputs": [
+        "ram1[28][2]",
+        "ram1[28][3]"
+      ],
+      "taps": [
+        "ram2[28][11]+tv_counter",
+        "ram2[29][3]+tv_counter"
+      ],
+      "operation": "ram1[28][2]=addclip20(ram1[28][2], s1, 0)"
+    },
+    {
+      "step": 16,
+      "lines": "763-774",
+      "kind": "tap_sum",
+      "coefficient": null,
+      "input": "ram1[28][2]",
+      "outputs": [
+        "ram1[28][2]"
+      ],
+      "taps": [
+        "ram2[29][7]+tv_counter",
+        "ram2[29][1]+tv_counter (pack)",
+        "ram2[28][8]+tv_counter (pack)"
+      ],
+      "operation": "t1=addclip20(s1, ram1[28][2], 0); ram1[28][2]=addclip20(t1, ram1[28][3], 0)"
+    },
+    {
+      "step": 17,
+      "lines": "776-790",
+      "kind": "send_reverb",
+      "coefficient": "ram2[30][2]",
+      "input": "ram1[28][5]",
+      "outputs": [
+        "rcadd[0]",
+        "rcadd2[0]",
+        "ram1[29][5]"
+      ],
+      "taps": [
+        "ram2[29][10]+tv_counter+1",
+        "ram2[28][9]+tv_counter (pack)"
+      ],
+      "operation": "rcadd[0]=multi(v2,v1>>8)>>5; rcadd2[0]=multi(v2,v1&255)>>5"
+    },
+    {
+      "step": 18,
+      "lines": "792-804",
+      "kind": "send_reverb",
+      "coefficient": "ram2[30][3]",
+      "input": "ram1[28][2]",
+      "outputs": [
+        "rcadd[1]",
+        "rcadd2[1]",
+        "ram1[28][1]"
+      ],
+      "taps": [
+        "ram2[29][11]+tv_counter+1"
+      ],
+      "operation": "rcadd[1]=multi(v2,v1>>8)>>5; rcadd2[1]=multi(v2,v1&255)>>5"
+    },
+    {
+      "step": 19,
+      "lines": "805-820",
+      "kind": "chorus_delay_feedback",
+      "coefficient": "ram2[31][9]",
+      "input": "ram1[29][5]",
+      "outputs": [
+        "ram1[29][5]"
+      ],
+      "taps": [
+        "ram2[29][10]+tv_counter",
+        "ram2[29][4]+tv_counter (pack)"
+      ],
+      "operation": "t2=addclip20(s1, (multi(s1,v1>>8)>>5)>>1 ^ 0xfffff, 1); ram1[29][5]=addclip20(t2, (multi(ram1[29][5],v1>>8)>>5)>>1, m2&1)"
+    },
+    {
+      "step": 20,
+      "lines": "821-838",
+      "kind": "chorus_delay_feedback",
+      "coefficient": "ram2[31][10]",
+      "input": "ram1[28][1]",
+      "outputs": [
+        "ram1[28][1]"
+      ],
+      "taps": [
+        "ram2[29][11]+tv_counter",
+        "ram2[29][5]+tv_counter (pack)",
+        "ram2[29][9]+tv_counter (pack)"
+      ],
+      "operation": "estructura de realimentacion sustractiva del bloque 19 sobre la rama B"
+    },
+    {
+      "step": 21,
+      "lines": "839-850",
+      "kind": "send_chorus",
+      "coefficient": "ram2[31][2]",
+      "input": "ram1[29][5]",
+      "outputs": [
+        "rcadd[2]",
+        "rcadd2[2]"
+      ],
+      "taps": [],
+      "operation": "rcadd[2]=multi(v2,v1>>8)>>5; rcadd2[2]=multi(v2,v1&255)>>5"
+    },
+    {
+      "step": 22,
+      "lines": "851-862",
+      "kind": "send_chorus",
+      "coefficient": "ram2[31][3]",
+      "input": "ram1[29][5]",
+      "outputs": [
+        "rcadd[3]",
+        "rcadd2[3]"
+      ],
+      "taps": [],
+      "operation": "igual que 21 con ram2[31][3]"
+    },
+    {
+      "step": 23,
+      "lines": "863-874",
+      "kind": "send_chorus",
+      "coefficient": "ram2[31][4]",
+      "input": "ram1[28][1]",
+      "outputs": [
+        "rcadd[4]",
+        "rcadd2[4]"
+      ],
+      "taps": [],
+      "operation": "igual que 21 con ram2[31][4] sobre ram1[28][1]"
+    },
+    {
+      "step": 31,
+      "lines": "875-886",
+      "kind": "send_chorus",
+      "coefficient": "ram2[31][5]",
+      "input": "ram1[28][1]",
+      "outputs": [
+        "rcadd[5]",
+        "rcadd2[5]"
+      ],
+      "taps": [],
+      "operation": "igual que 21 con ram2[31][5] sobre ram1[28][1]"
+    }
+  ],
+  "outputRouting": {
+    "lines": "1333-1405",
+    "voiceSends": {
+      "reverb": "rc0 = multi(sample3, (ram2[2]>>8)&255) >> 5",
+      "chorus": "rc1 = multi(sample3, ram2[2]&255) >> 5",
+      "accumulate": "rcsum[0]=addclip20(rcsum[0], rc0>>1, rc0&1); rcsum[1]=addclip20(rcsum[1], rc1>>1, rc1&1)"
+    },
+    "rcadd": [
+      {
+        "index": 0,
+        "slot": 17,
+        "destination": "ram1[31][1] (L)"
+      },
+      {
+        "index": 1,
+        "slot": 18,
+        "destination": "ram1[31][3] (R)"
+      },
+      {
+        "index": 2,
+        "slot": 21,
+        "destination": "ram1[31][1] (L)"
+      },
+      {
+        "index": 3,
+        "slot": 22,
+        "destination": "ram1[31][3] (R)"
+      },
+      {
+        "index": 4,
+        "slot": 23,
+        "destination": "ram1[31][1] (L)"
+      },
+      {
+        "index": 5,
+        "slot": 31,
+        "destination": "ram1[31][3] (R)"
+      }
+    ],
+    "rcadd2": [
+      {
+        "index": 0,
+        "slot": 17,
+        "destination": "rcsum[1] (chorus bus)"
+      },
+      {
+        "index": 1,
+        "slot": 18,
+        "destination": "rcsum[1] (chorus bus)"
+      },
+      {
+        "index": 2,
+        "slot": 21,
+        "destination": "rcsum[0] (reverb bus)"
+      },
+      {
+        "index": 3,
+        "slot": 22,
+        "destination": "rcsum[1] (chorus bus)"
+      },
+      {
+        "index": 4,
+        "slot": 23,
+        "destination": "rcsum[0] (reverb bus)"
+      },
+      {
+        "index": 5,
+        "slot": 31,
+        "destination": "rcsum[1] (chorus bus)"
+      }
+    ],
+    "reset": "ram1[31][1]=0; ram1[31][3]=0; rcsum[0]=0 al final de cada tick (lineas 968-970)"
+  },
+  "algorithmSelection": {
+    "storageField": "Patch::revChorConfig (dataStructures.h:109)",
+    "bitPacking": "reverbType = revChorConfig & 0x07; chorusType = (revChorConfig >> 4) & 0x03; velocitySwitch = bit7; bit6 sin documentar ('?')",
+    "uiSource": "Source/ui/EditCommonTab.cpp:32-39,64-66,173-183,386-397",
+    "sysexCommonParamChange": "F0 41 10 46 12 00 08 20 <offset> <value> <checksum> F7; reverbType offset 0x0d, chorusType offset 0x11",
+    "enableBits": "nvram[0x02] bit0 = reverbEnabled, bit1 = chorusEnabled (PluginProcessor.cpp:373-374)",
+    "delayFeedbackEnabled": "solo para reverbType >= 6 (EditCommonTab.cpp:196,391)",
+    "coefficientValues": {
+      "availableInSource": false,
+      "reason": "pcm.cpp lee ram2[28..31] escritos por el MCU; no hay tablas de coeficientes por algoritmo en el codigo del emulador",
+      "requiredToComplete": "COMPLETADO: ver runtimeCapture (tablas ROM2 + ram2/ram1 capturados).",
+      "capturedAtRuntime": true,
+      "captureSection": "runtimeCapture"
+    },
+    "reverb": [
+      {
+        "index": 0,
+        "uiLabel": "Room 1",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 1,
+        "uiLabel": "Room 2",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 2,
+        "uiLabel": "Stage 1",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 3,
+        "uiLabel": "Stage 2",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 4,
+        "uiLabel": "Hall 1",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 5,
+        "uiLabel": "Hall 2",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": false
+      },
+      {
+        "index": 6,
+        "uiLabel": "Delay",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": true
+      },
+      {
+        "index": 7,
+        "uiLabel": "Pan Delay",
+        "selectorBits": "0..2",
+        "sysexOffset": "0x0d",
+        "delayFeedback": true
+      }
+    ],
+    "chorus": [
+      {
+        "index": 0,
+        "uiLabel": "Type 1",
+        "selectorBits": "4..5",
+        "sysexOffset": "0x11"
+      },
+      {
+        "index": 1,
+        "uiLabel": "Type 2",
+        "selectorBits": "4..5",
+        "sysexOffset": "0x11"
+      },
+      {
+        "index": 2,
+        "uiLabel": "Type 3",
+        "selectorBits": "4..5",
+        "sysexOffset": "0x11"
+      }
+    ]
+  },
+  "runtimeCapture": {
+    "status": "completed",
+    "purpose": "Coeficientes reales escritos por el MCU en ram2[28..31] para los 8 reverb y 3 chorus.",
+    "methodology": {
+      "harness": "capture/capture_fx.cpp (headless Emscripten, fuera de los arboles Git)",
+      "build": "emcc 6.0.4, C++17, NODERAWFS=1, INITIAL_MEMORY=134217728; enlaza mcu*.cpp, pcm.cpp, lcd.cpp, submcu.cpp y libresample (.c compilados aparte)",
+      "firmwareStart": "MCU::startSC55(rom1, rom2, waverom1, waverom2, nvram) + nvram[0x11]=1 + memcpy(&nvram[0x0d70], &rom2[0x010ce0], 0x16a) + nvram[0x02]=0x03 + SC55_Reset()",
+      "clocks": "MCU::updateSC55WithSampleRate(..., 512 frames, 64000 Hz); 128 bloques (2 s) de arranque hasta midi_ready=1, 128 bloques tras DT1 y 64 bloques adicionales para la segunda instantanea",
+      "sysex": {
+        "template": "F0 41 10 46 12 00 08 20 <offset> <value> <checksum> F7",
+        "checksum": "suma de 00 08 20 <offset> <value>, restando 128 si excede 128; checksum = 128 - suma (128 -> 0)",
+        "delivery": "MCU::postMidiSC55; el firmware emulado consume el DT1 y reescribe ram2",
+        "offsets": {
+          "velocitySwitch": "0x0c",
+          "reverbType": "0x0d",
+          "reverbLevel": "0x0e",
+          "reverbTime": "0x0f",
+          "reverbFeedback": "0x10",
+          "chorusType": "0x11",
+          "chorusLevel": "0x12",
+          "chorusDepth": "0x13",
+          "chorusRate": "0x14",
+          "chorusFeedback": "0x15",
+          "chorusOutput": "0x16"
+        }
+      },
+      "baseParameters": {
+        "velocitySwitch": 0,
+        "reverbLevel": 100,
+        "reverbTime": 64,
+        "reverbFeedback": 0,
+        "chorusLevel": 40,
+        "chorusDepth": 30,
+        "chorusRate": 40,
+        "chorusFeedback": 0,
+        "chorusOutput": 0
+      },
+      "sweeps": {
+        "reverb": "8 tipos x reverbTime {0,64,127} x reverbFeedback {0,64,127} = 72 configuraciones",
+        "chorus": "3 tipos x chorusRate {0,64,127} x chorusDepth {0,64,127} x chorusFeedback {0,64,127} = 81 configuraciones",
+        "total": 153,
+        "snapshotsPerConfig": 2
+      },
+      "revChorConfigObserved": {
+        "composition": "revChorConfig = reverbType + (chorusType << 4) + (velocitySwitch << 7) (EditCommonTab.cpp:348-350,388-390,395-397)",
+        "reverbSweep": "chorusType=0, velocitySwitch=0 -> revChorConfig = 0x00..0x07",
+        "chorusSweep": "reverbType=0, velocitySwitch=0 -> revChorConfig = 0x00, 0x10, 0x20",
+        "note": "El DT1 modifica los parametros comunes en RAM de trabajo del firmware; el espejo nvram[0x0d70+0x0c..] usado por el host permanece con el valor del parche copiado y no refleja el selector (ver observedNvramPatchMirror)."
+      }
+    },
+    "romSources": {
+      "directory": "C:/Users/ajaba/AppData/Local/Temp/opencode/jvfx/roms (temporal, fuera de Git)",
+      "archive": "D:/desarrollos/ABDSynths/_RESOURCES/roland/jv/jv880_rompack_v1.zip",
+      "files": [
+        {
+          "name": "jv880_nvram.bin",
+          "bytes": 32768,
+          "sha1": "d2bc039f4e9748f2aa72db0dc8822591c53d580f"
+        },
+        {
+          "name": "jv880_rom1.bin",
+          "bytes": 32768,
+          "sha1": "6c1b59905b361ac3c4803d39589406bc3e1d0647"
+        },
+        {
+          "name": "jv880_rom2.bin",
+          "bytes": 262144,
+          "sha1": "282116e8e8471053cf159d22675931592b7f7c8f"
+        },
+        {
+          "name": "jv880_waverom1.bin",
+          "bytes": 2097152,
+          "sha1Raw": "37e28498351fb502f6d43398d288a026c02b446d",
+          "sha1Unscrambled": "3e2eaf248a81960b2849441a2ab6e2ac8cf58037"
+        },
+        {
+          "name": "jv880_waverom2.bin",
+          "bytes": 2097152,
+          "sha1Raw": "963ce75b6668dab377d3a2fd895630a745491be5",
+          "sha1Unscrambled": "b2d922dad4169bd30ab517418cc4263a0f20c22e"
+        }
+      ]
+    },
+    "microprogramTable": {
+      "location": "jv880_rom2.bin",
+      "pointerTableOffset": "0x4800",
+      "pointerFormat": "11 punteros big-endian de 16 bits: 8 reverb + 3 chorus",
+      "entries": [
+        {
+          "index": 0,
+          "pointsTo": "0x4816",
+          "algorithm": "reverb 0",
+          "wordCount": 30
+        },
+        {
+          "index": 1,
+          "pointsTo": "0x4852",
+          "algorithm": "reverb 1",
+          "wordCount": 30
+        },
+        {
+          "index": 2,
+          "pointsTo": "0x488e",
+          "algorithm": "reverb 2",
+          "wordCount": 30
+        },
+        {
+          "index": 3,
+          "pointsTo": "0x48ca",
+          "algorithm": "reverb 3",
+          "wordCount": 30
+        },
+        {
+          "index": 4,
+          "pointsTo": "0x4906",
+          "algorithm": "reverb 4",
+          "wordCount": 30
+        },
+        {
+          "index": 5,
+          "pointsTo": "0x4942",
+          "algorithm": "reverb 5",
+          "wordCount": 30
+        },
+        {
+          "index": 6,
+          "pointsTo": "0x497e",
+          "algorithm": "reverb 6",
+          "wordCount": 30
+        },
+        {
+          "index": 7,
+          "pointsTo": "0x49b6",
+          "algorithm": "reverb 7",
+          "wordCount": 30
+        },
+        {
+          "index": 8,
+          "pointsTo": "0x49ee",
+          "algorithm": "chorus 0",
+          "wordCount": 5
+        },
+        {
+          "index": 9,
+          "pointsTo": "0x49f8",
+          "algorithm": "chorus 1",
+          "wordCount": 5
+        },
+        {
+          "index": 10,
+          "pointsTo": "0x4a02",
+          "algorithm": "chorus 2",
+          "wordCount": 5
+        }
+      ]
+    },
+    "registerMapping": {
+      "verified": "Las words 0..11 de cada tabla reverb -> ram2[28][0..11]; words 12..20 -> ram2[29][0..8]; words 21,22,23,24,25,26 -> ram2[30][1],[4],[5],[6],[7],[8]. Verificado en los 8 algoritmos.",
+      "ram2[29][9]": "constante 0x3d00 en los 153 configuraciones",
+      "ram2[29][10] / ram2[29][11]": "calculadas por el generador de direcciones desde ram1[31][4], ram1[31][0] y ram1[31][2]; cambian entre instantaneas",
+      "ram2[30][0]": "target de calc_tv e=1: funciona de reverbTime en Room/Stage/Hall y de reverbFeedback en Delay/Pan Delay",
+      "ram2[30][2] / ram2[30][3]": "sends A/B de reverb, constantes por algoritmo en el barrido",
+      "ram2[30][9]": "levelcur de calc_tv e=1; mismo conductor que ram2[30][0]",
+      "ram2[30][10]": "estado del LFSR de ruido; cambia en todas las instantaneas",
+      "ram2[31][0]": "chorusType 0/1/2: 0x10/0x08/0x76 en depth=0; incremento de fase creciente con chorusDepth",
+      "ram2[31][1] / ram2[31][2] / ram2[31][4]": "sends de chorus, fijos por algoritmo",
+      "ram2[31][3] / ram2[31][5]": "funcion de chorusFeedback: 0x0000/0x0010/0x001f y 0x1400/0x1410/0x141f para 0/64/127",
+      "ram2[31][8..10]": "contadores de fase/tv_counter; derivan de chorusRate y del tiempo de emulacion",
+      "timeScaledTaps": "En Delay (6) y Pan Delay (7) las words de tap 3cf0/1e7d de la ROM se escalan con reverbTime: 0x000a/0x000b (time=0), ~0x1efb (64), ~0x3cf9 (127)."
+    },
+    "algorithms": [
+      {
+        "kind": "reverb",
+        "index": 0,
+        "uiLabel": "Room 1",
+        "selector": "reverbType=0 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x4816",
+        "rom2PointerIndex": 0,
+        "romWordsHex": [
+          "0001",
+          "012c",
+          "0213",
+          "02a4",
+          "0324",
+          "0659",
+          "055d",
+          "07c7",
+          "0971",
+          "0c59",
+          "0abd",
+          "0d76",
+          "0e8d",
+          "1162",
+          "1337",
+          "107d",
+          "1476",
+          "196a",
+          "1bcb",
+          "1615",
+          "1d10",
+          "1927",
+          "1f20",
+          "0000",
+          "e81a",
+          "1e1f",
+          "1e1f",
+          "4ad9",
+          "1f00",
+          "1f00"
+        ],
+        "romWordsDecimal": [
+          1,
+          300,
+          531,
+          676,
+          804,
+          1625,
+          1373,
+          1991,
+          2417,
+          3161,
+          2749,
+          3446,
+          3725,
+          4450,
+          4919,
+          4221,
+          5238,
+          6506,
+          7115,
+          5653,
+          7440,
+          6439,
+          7968,
+          0,
+          59418,
+          7711,
+          7711,
+          19161,
+          7936,
+          7936
+        ],
+        "fixedRegisters": {
+          "28.0": "0001",
+          "28.1": "012c",
+          "28.2": "0213",
+          "28.3": "02a4",
+          "28.4": "0324",
+          "28.5": "0659",
+          "28.6": "055d",
+          "28.7": "07c7",
+          "28.8": "0971",
+          "28.9": "0c59",
+          "28.10": "0abd",
+          "28.11": "0d76",
+          "29.0": "0e8d",
+          "29.1": "1162",
+          "29.2": "1337",
+          "29.3": "107d",
+          "29.4": "1476",
+          "29.5": "196a",
+          "29.6": "1bcb",
+          "29.7": "1615",
+          "29.8": "1d10",
+          "29.9": "3d00",
+          "30.1": "1927",
+          "30.2": "1800",
+          "30.3": "1800",
+          "30.4": "1f20",
+          "30.6": "e81a",
+          "30.7": "1e1f",
+          "30.8": "1e1f",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "25b0",
+              "127": "49b0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1241",
+              "127": "2441"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 0 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0001",
+            "012c",
+            "0213",
+            "02a4",
+            "0324",
+            "0659",
+            "055d",
+            "07c7",
+            "0971",
+            "0c59",
+            "0abd",
+            "0d76"
+          ],
+          "29": [
+            "0e8d",
+            "1162",
+            "1337",
+            "107d",
+            "1476",
+            "196a",
+            "1bcb",
+            "1615",
+            "1d10",
+            "3d00",
+            "3f65",
+            "3f45"
+          ],
+          "30": [
+            "25b0",
+            "1927",
+            "1800",
+            "1800",
+            "1f20",
+            "0000",
+            "e81a",
+            "1e1f",
+            "1e1f",
+            "1241",
+            "66fe",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "b714",
+            "36ea",
+            "0916",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f45",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 1,
+        "uiLabel": "Room 2",
+        "selector": "reverbType=1 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x4852",
+        "rom2PointerIndex": 1,
+        "romWordsHex": [
+          "0000",
+          "0143",
+          "0232",
+          "02c1",
+          "02c2",
+          "03b9",
+          "0584",
+          "0443",
+          "06f4",
+          "08ee",
+          "0c9c",
+          "0a09",
+          "0f8d",
+          "1098",
+          "112e",
+          "1289",
+          "1417",
+          "15ea",
+          "16ef",
+          "194f",
+          "1c07",
+          "033d",
+          "1f20",
+          "0020",
+          "e020",
+          "07e1",
+          "0fe6",
+          "8ec7",
+          "1d00",
+          "1d00"
+        ],
+        "romWordsDecimal": [
+          0,
+          323,
+          562,
+          705,
+          706,
+          953,
+          1412,
+          1091,
+          1780,
+          2286,
+          3228,
+          2569,
+          3981,
+          4248,
+          4398,
+          4745,
+          5143,
+          5610,
+          5871,
+          6479,
+          7175,
+          829,
+          7968,
+          32,
+          57376,
+          2017,
+          4070,
+          36551,
+          7424,
+          7424
+        ],
+        "fixedRegisters": {
+          "28.1": "0143",
+          "28.2": "0232",
+          "28.3": "02c1",
+          "28.4": "02c2",
+          "28.5": "03b9",
+          "28.6": "0584",
+          "28.7": "0443",
+          "28.8": "06f4",
+          "28.9": "08ee",
+          "28.10": "0c9c",
+          "28.11": "0a09",
+          "29.0": "0f8d",
+          "29.1": "1098",
+          "29.2": "112e",
+          "29.3": "1289",
+          "29.4": "1417",
+          "29.5": "15ea",
+          "29.6": "16ef",
+          "29.7": "194f",
+          "29.8": "1c07",
+          "29.9": "3d00",
+          "30.1": "033d",
+          "30.2": "1600",
+          "30.3": "1600",
+          "30.4": "1f20",
+          "30.5": "0020",
+          "30.6": "e020",
+          "30.7": "07e1",
+          "30.8": "0fe6",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "47b0",
+              "127": "8db0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "2341",
+              "127": "4641"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 1 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "0143",
+            "0232",
+            "02c1",
+            "02c2",
+            "03b9",
+            "0584",
+            "0443",
+            "06f4",
+            "08ee",
+            "0c9c",
+            "0a09"
+          ],
+          "29": [
+            "0f8d",
+            "1098",
+            "112e",
+            "1289",
+            "1417",
+            "15ea",
+            "16ef",
+            "194f",
+            "1c07",
+            "3d00",
+            "3f60",
+            "3f4a"
+          ],
+          "30": [
+            "47b0",
+            "033d",
+            "1600",
+            "1600",
+            "1f20",
+            "0020",
+            "e020",
+            "07e1",
+            "0fe6",
+            "2341",
+            "67a5",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "3714",
+            "0916",
+            "36ea",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f4a",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 2,
+        "uiLabel": "Stage 1",
+        "selector": "reverbType=2 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x488e",
+        "rom2PointerIndex": 2,
+        "romWordsHex": [
+          "0001",
+          "02b7",
+          "03b3",
+          "0484",
+          "0517",
+          "0659",
+          "05ac",
+          "0747",
+          "0a11",
+          "0c59",
+          "0b2d",
+          "0e76",
+          "12aa",
+          "1462",
+          "16a7",
+          "137f",
+          "1976",
+          "1b6a",
+          "1edb",
+          "1a15",
+          "212e",
+          "1030",
+          "1f20",
+          "0020",
+          "e020",
+          "18e1",
+          "18e1",
+          "5ed9",
+          "1f00",
+          "1f00"
+        ],
+        "romWordsDecimal": [
+          1,
+          695,
+          947,
+          1156,
+          1303,
+          1625,
+          1452,
+          1863,
+          2577,
+          3161,
+          2861,
+          3702,
+          4778,
+          5218,
+          5799,
+          4991,
+          6518,
+          7018,
+          7899,
+          6677,
+          8494,
+          4144,
+          7968,
+          32,
+          57376,
+          6369,
+          6369,
+          24281,
+          7936,
+          7936
+        ],
+        "fixedRegisters": {
+          "28.0": "0001",
+          "28.1": "02b7",
+          "28.2": "03b3",
+          "28.3": "0484",
+          "28.4": "0517",
+          "28.5": "0659",
+          "28.6": "05ac",
+          "28.7": "0747",
+          "28.8": "0a11",
+          "28.9": "0c59",
+          "28.10": "0b2d",
+          "28.11": "0e76",
+          "29.0": "12aa",
+          "29.1": "1462",
+          "29.2": "16a7",
+          "29.3": "137f",
+          "29.4": "1976",
+          "29.5": "1b6a",
+          "29.6": "1edb",
+          "29.7": "1a15",
+          "29.8": "212e",
+          "29.9": "3d00",
+          "30.1": "1030",
+          "30.2": "1800",
+          "30.3": "1800",
+          "30.4": "1f20",
+          "30.5": "0020",
+          "30.6": "e020",
+          "30.7": "18e1",
+          "30.8": "18e1",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "2fb0",
+              "127": "5db0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1741",
+              "127": "2e41"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 2 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0001",
+            "02b7",
+            "03b3",
+            "0484",
+            "0517",
+            "0659",
+            "05ac",
+            "0747",
+            "0a11",
+            "0c59",
+            "0b2d",
+            "0e76"
+          ],
+          "29": [
+            "12aa",
+            "1462",
+            "16a7",
+            "137f",
+            "1976",
+            "1b6a",
+            "1edb",
+            "1a15",
+            "212e",
+            "3d00",
+            "3f50",
+            "3f5a"
+          ],
+          "30": [
+            "2fb0",
+            "1030",
+            "1800",
+            "1800",
+            "1f20",
+            "0020",
+            "e020",
+            "18e1",
+            "18e1",
+            "1741",
+            "f2ef",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "3714",
+            "0916",
+            "36ea",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f5a",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 3,
+        "uiLabel": "Stage 2",
+        "selector": "reverbType=3 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x48ca",
+        "rom2PointerIndex": 3,
+        "romWordsHex": [
+          "0000",
+          "039e",
+          "051b",
+          "058b",
+          "058c",
+          "0892",
+          "0abe",
+          "0f9d",
+          "1145",
+          "14fb",
+          "17a5",
+          "1d9f",
+          "1fa6",
+          "2302",
+          "256c",
+          "2ad5",
+          "2cac",
+          "3039",
+          "31b9",
+          "36ff",
+          "37fe",
+          "033d",
+          "1720",
+          "0020",
+          "1be5",
+          "1f1e",
+          "2118",
+          "74c7",
+          "1c00",
+          "1d00"
+        ],
+        "romWordsDecimal": [
+          0,
+          926,
+          1307,
+          1419,
+          1420,
+          2194,
+          2750,
+          3997,
+          4421,
+          5371,
+          6053,
+          7583,
+          8102,
+          8962,
+          9580,
+          10965,
+          11436,
+          12345,
+          12729,
+          14079,
+          14334,
+          829,
+          5920,
+          32,
+          7141,
+          7966,
+          8472,
+          29895,
+          7168,
+          7424
+        ],
+        "fixedRegisters": {
+          "28.1": "039e",
+          "28.2": "051b",
+          "28.3": "058b",
+          "28.4": "058c",
+          "28.5": "0892",
+          "28.6": "0abe",
+          "28.7": "0f9d",
+          "28.8": "1145",
+          "28.9": "14fb",
+          "28.10": "17a5",
+          "28.11": "1d9f",
+          "29.0": "1fa6",
+          "29.1": "2302",
+          "29.2": "256c",
+          "29.3": "2ad5",
+          "29.4": "2cac",
+          "29.5": "3039",
+          "29.6": "31b9",
+          "29.7": "36ff",
+          "29.8": "37fe",
+          "29.9": "3d00",
+          "30.1": "033d",
+          "30.2": "1500",
+          "30.3": "1500",
+          "30.4": "1720",
+          "30.5": "0020",
+          "30.6": "1be5",
+          "30.7": "1f1e",
+          "30.8": "2118",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "3ab0",
+              "127": "73b0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1cc1",
+              "127": "3941"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 3 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "039e",
+            "051b",
+            "058b",
+            "058c",
+            "0892",
+            "0abe",
+            "0f9d",
+            "1145",
+            "14fb",
+            "17a5",
+            "1d9f"
+          ],
+          "29": [
+            "1fa6",
+            "2302",
+            "256c",
+            "2ad5",
+            "2cac",
+            "3039",
+            "31b9",
+            "36ff",
+            "37fe",
+            "3d00",
+            "3f40",
+            "3f6a"
+          ],
+          "30": [
+            "3ab0",
+            "033d",
+            "1500",
+            "1500",
+            "1720",
+            "0020",
+            "1be5",
+            "1f1e",
+            "2118",
+            "1cc1",
+            "6107",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "3714",
+            "0916",
+            "36ea",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f6a",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 4,
+        "uiLabel": "Hall 1",
+        "selector": "reverbType=4 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x4906",
+        "rom2PointerIndex": 4,
+        "romWordsHex": [
+          "0000",
+          "0395",
+          "050f",
+          "057e",
+          "05cb",
+          "0865",
+          "0d83",
+          "0a33",
+          "0fe0",
+          "130d",
+          "1557",
+          "1b73",
+          "21a1",
+          "2108",
+          "212e",
+          "2536",
+          "2831",
+          "297f",
+          "2f8c",
+          "28e1",
+          "3277",
+          "033d",
+          "1720",
+          "0020",
+          "20e0",
+          "1f1e",
+          "2118",
+          "74c7",
+          "1c00",
+          "1d00"
+        ],
+        "romWordsDecimal": [
+          0,
+          917,
+          1295,
+          1406,
+          1483,
+          2149,
+          3459,
+          2611,
+          4064,
+          4877,
+          5463,
+          7027,
+          8609,
+          8456,
+          8494,
+          9526,
+          10289,
+          10623,
+          12172,
+          10465,
+          12919,
+          829,
+          5920,
+          32,
+          8416,
+          7966,
+          8472,
+          29895,
+          7168,
+          7424
+        ],
+        "fixedRegisters": {
+          "28.1": "0395",
+          "28.2": "050f",
+          "28.3": "057e",
+          "28.4": "05cb",
+          "28.5": "0865",
+          "28.6": "0d83",
+          "28.7": "0a33",
+          "28.8": "0fe0",
+          "28.9": "130d",
+          "28.10": "1557",
+          "28.11": "1b73",
+          "29.0": "21a1",
+          "29.1": "2108",
+          "29.2": "212e",
+          "29.3": "2536",
+          "29.4": "2831",
+          "29.5": "297f",
+          "29.6": "2f8c",
+          "29.7": "28e1",
+          "29.8": "3277",
+          "29.9": "3d00",
+          "30.1": "033d",
+          "30.2": "1500",
+          "30.3": "1500",
+          "30.4": "1720",
+          "30.5": "0020",
+          "30.6": "20e0",
+          "30.7": "1f1e",
+          "30.8": "2118",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "3ab0",
+              "127": "73b0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1cc1",
+              "127": "3941"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 4 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "0395",
+            "050f",
+            "057e",
+            "05cb",
+            "0865",
+            "0d83",
+            "0a33",
+            "0fe0",
+            "130d",
+            "1557",
+            "1b73"
+          ],
+          "29": [
+            "21a1",
+            "2108",
+            "212e",
+            "2536",
+            "2831",
+            "297f",
+            "2f8c",
+            "28e1",
+            "3277",
+            "3d00",
+            "3f4f",
+            "3f5b"
+          ],
+          "30": [
+            "3ab0",
+            "033d",
+            "1500",
+            "1500",
+            "1720",
+            "0020",
+            "20e0",
+            "1f1e",
+            "2118",
+            "1cc1",
+            "f093",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "b714",
+            "36ea",
+            "0916",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f5b",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 5,
+        "uiLabel": "Hall 2",
+        "selector": "reverbType=5 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x4942",
+        "rom2PointerIndex": 5,
+        "romWordsHex": [
+          "0000",
+          "0395",
+          "050f",
+          "057e",
+          "05cb",
+          "0865",
+          "0590",
+          "0590",
+          "0fdf",
+          "130d",
+          "1556",
+          "1a74",
+          "1c31",
+          "1f18",
+          "20f6",
+          "2526",
+          "2771",
+          "2a7f",
+          "2cb1",
+          "319c",
+          "3348",
+          "013f",
+          "1720",
+          "0020",
+          "20e0",
+          "171e",
+          "1818",
+          "9ac7",
+          "1c00",
+          "1d00"
+        ],
+        "romWordsDecimal": [
+          0,
+          917,
+          1295,
+          1406,
+          1483,
+          2149,
+          1424,
+          1424,
+          4063,
+          4877,
+          5462,
+          6772,
+          7217,
+          7960,
+          8438,
+          9510,
+          10097,
+          10879,
+          11441,
+          12700,
+          13128,
+          319,
+          5920,
+          32,
+          8416,
+          5918,
+          6168,
+          39623,
+          7168,
+          7424
+        ],
+        "fixedRegisters": {
+          "28.1": "0395",
+          "28.2": "050f",
+          "28.3": "057e",
+          "28.4": "05cb",
+          "28.5": "0865",
+          "28.6": "0590",
+          "28.7": "0590",
+          "28.8": "0fdf",
+          "28.9": "130d",
+          "28.10": "1556",
+          "28.11": "1a74",
+          "29.0": "1c31",
+          "29.1": "1f18",
+          "29.2": "20f6",
+          "29.3": "2526",
+          "29.4": "2771",
+          "29.5": "2a7f",
+          "29.6": "2cb1",
+          "29.7": "319c",
+          "29.8": "3348",
+          "29.9": "3d00",
+          "30.1": "013f",
+          "30.2": "1500",
+          "30.3": "1500",
+          "30.4": "1720",
+          "30.5": "0020",
+          "30.6": "20e0",
+          "30.7": "171e",
+          "30.8": "1818",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "30.0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "4db0",
+              "127": "99b0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "2641",
+              "127": "4c41"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 5 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "0395",
+            "050f",
+            "057e",
+            "05cb",
+            "0865",
+            "0590",
+            "0590",
+            "0fdf",
+            "130d",
+            "1556",
+            "1a74"
+          ],
+          "29": [
+            "1c31",
+            "1f18",
+            "20f6",
+            "2526",
+            "2771",
+            "2a7f",
+            "2cb1",
+            "319c",
+            "3348",
+            "3d00",
+            "3f5f",
+            "3f4b"
+          ],
+          "30": [
+            "4db0",
+            "013f",
+            "1500",
+            "1500",
+            "1720",
+            "0020",
+            "20e0",
+            "171e",
+            "1818",
+            "2641",
+            "d850",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "b714",
+            "36ea",
+            "0916",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f4b",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": false,
+        "timeScaledTaps": false
+      },
+      {
+        "kind": "reverb",
+        "index": 6,
+        "uiLabel": "Delay",
+        "selector": "reverbType=6 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x497e",
+        "rom2PointerIndex": 6,
+        "romWordsHex": [
+          "0000",
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005",
+          "3cf0",
+          "3cf0",
+          "0006",
+          "0007",
+          "3cf0",
+          "3cf0",
+          "0008",
+          "0009",
+          "3cf0",
+          "3cf0",
+          "3cf0",
+          "3cf1",
+          "3cf0",
+          "3cf0",
+          "3cf0",
+          "0040",
+          "0800",
+          "0000",
+          "0000",
+          "0000",
+          "0040",
+          "6ec7",
+          "0000",
+          "0001"
+        ],
+        "romWordsDecimal": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          15600,
+          15600,
+          6,
+          7,
+          15600,
+          15600,
+          8,
+          9,
+          15600,
+          15600,
+          15600,
+          15601,
+          15600,
+          15600,
+          15600,
+          64,
+          2048,
+          0,
+          0,
+          0,
+          64,
+          28359,
+          0,
+          1
+        ],
+        "fixedRegisters": {
+          "28.1": "0001",
+          "28.2": "0002",
+          "28.3": "0003",
+          "28.4": "0004",
+          "28.5": "0005",
+          "28.8": "0006",
+          "28.9": "0007",
+          "29.0": "0008",
+          "29.1": "0009",
+          "29.9": "3d00",
+          "30.1": "0040",
+          "30.2": "3200",
+          "30.3": "3200",
+          "30.4": "0800",
+          "30.8": "0040",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "28.6": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "28.7": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "28.10": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "28.11": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.2": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.3": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.4": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.5": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000b",
+              "64": "1efc",
+              "127": "3cfa"
+            }
+          },
+          "29.6": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.7": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.8": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "30.0": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "00b0",
+              "64": "40b0",
+              "127": "7fb0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "1fc1",
+              "127": "3f41"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 6 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "1efb",
+            "1efb",
+            "0006",
+            "0007",
+            "1efb",
+            "1efb"
+          ],
+          "29": [
+            "0008",
+            "0009",
+            "1efb",
+            "1efb",
+            "1efb",
+            "1efc",
+            "1efb",
+            "1efb",
+            "1efb",
+            "3d00",
+            "3f66",
+            "3f44"
+          ],
+          "30": [
+            "00b0",
+            "0040",
+            "3200",
+            "3200",
+            "0800",
+            "0000",
+            "0000",
+            "0000",
+            "0040",
+            "0000",
+            "ec40",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "3714",
+            "0916",
+            "36ea",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f44",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": true,
+        "timeScaledTaps": true
+      },
+      {
+        "kind": "reverb",
+        "index": 7,
+        "uiLabel": "Pan Delay",
+        "selector": "reverbType=7 (revChorConfig bits 0..2)",
+        "rom2Offset": "0x49b6",
+        "rom2PointerIndex": 7,
+        "romWordsHex": [
+          "0000",
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005",
+          "1e7d",
+          "3cf0",
+          "0006",
+          "0007",
+          "1e7d",
+          "3cf0",
+          "0008",
+          "0009",
+          "1e7d",
+          "3cf0",
+          "3cf0",
+          "3cf1",
+          "1e7d",
+          "3cf0",
+          "3cf0",
+          "0040",
+          "1000",
+          "0000",
+          "0000",
+          "0000",
+          "0040",
+          "6ec7",
+          "3d00",
+          "1828"
+        ],
+        "romWordsDecimal": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          7805,
+          15600,
+          6,
+          7,
+          7805,
+          15600,
+          8,
+          9,
+          7805,
+          15600,
+          15600,
+          15601,
+          7805,
+          15600,
+          15600,
+          64,
+          4096,
+          0,
+          0,
+          0,
+          64,
+          28359,
+          15616,
+          6184
+        ],
+        "fixedRegisters": {
+          "28.1": "0001",
+          "28.2": "0002",
+          "28.3": "0003",
+          "28.4": "0004",
+          "28.5": "0005",
+          "28.8": "0006",
+          "28.9": "0007",
+          "29.0": "0008",
+          "29.1": "0009",
+          "29.9": "3d00",
+          "30.1": "0040",
+          "30.2": "3200",
+          "30.3": "3200",
+          "30.4": "1000",
+          "30.8": "0040",
+          "31.0": "002a",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.5": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "28.6": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "0f85",
+              "127": "1e86"
+            }
+          },
+          "28.7": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "28.10": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "0f85",
+              "127": "1e86"
+            }
+          },
+          "28.11": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.2": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "0f85",
+              "127": "1e86"
+            }
+          },
+          "29.3": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.4": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.5": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000b",
+              "64": "1efc",
+              "127": "3cfa"
+            }
+          },
+          "29.6": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "0f85",
+              "127": "1e86"
+            }
+          },
+          "29.7": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "29.8": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "000a",
+              "64": "1efb",
+              "127": "3cf9"
+            }
+          },
+          "30.0": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "00b0",
+              "64": "40b0",
+              "127": "7fb0"
+            }
+          },
+          "30.9": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "1fc1",
+              "127": "3f41"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": "ram2[30][10]",
+        "canonicalConfig": "reverb 7 time 64 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0000",
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0f85",
+            "1efb",
+            "0006",
+            "0007",
+            "0f85",
+            "1efb"
+          ],
+          "29": [
+            "0008",
+            "0009",
+            "0f85",
+            "1efb",
+            "1efb",
+            "1efc",
+            "0f85",
+            "1efb",
+            "1efb",
+            "3d00",
+            "3f56",
+            "3f54"
+          ],
+          "30": [
+            "00b0",
+            "0040",
+            "3200",
+            "3200",
+            "1000",
+            "0000",
+            "0000",
+            "0000",
+            "0040",
+            "0000",
+            "2cae",
+            "0000"
+          ],
+          "31": [
+            "002a",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "3714",
+            "0916",
+            "36ea",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f6a",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f54",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ],
+        "delayFeedbackEnabled": true,
+        "timeScaledTaps": true
+      },
+      {
+        "kind": "chorus",
+        "index": 0,
+        "uiLabel": "Type 1",
+        "selector": "chorusType=0 (revChorConfig bits 4..5)",
+        "rom2Offset": "0x49ee",
+        "rom2PointerIndex": 8,
+        "romWordsHex": [
+          "3d00",
+          "1828",
+          "3f40",
+          "3ff8",
+          "0084"
+        ],
+        "romWordsDecimal": [
+          15616,
+          6184,
+          16192,
+          16376,
+          132
+        ],
+        "fixedRegisters": {
+          "28.0": "0001",
+          "28.1": "012c",
+          "28.2": "0213",
+          "28.3": "02a4",
+          "28.4": "0324",
+          "28.5": "0659",
+          "28.6": "055d",
+          "28.7": "07c7",
+          "28.8": "0971",
+          "28.9": "0c59",
+          "28.10": "0abd",
+          "28.11": "0d76",
+          "29.0": "0e8d",
+          "29.1": "1162",
+          "29.2": "1337",
+          "29.3": "107d",
+          "29.4": "1476",
+          "29.5": "196a",
+          "29.6": "1bcb",
+          "29.7": "1615",
+          "29.8": "1d10",
+          "29.9": "3d00",
+          "30.0": "25b0",
+          "30.1": "1927",
+          "30.2": "1800",
+          "30.3": "1800",
+          "30.4": "1f20",
+          "30.6": "e81a",
+          "30.7": "1e1f",
+          "30.8": "1e1f",
+          "30.9": "1241",
+          "31.1": "1828",
+          "31.2": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "31.0": {
+            "drivenBy": "depth",
+            "byValue": {
+              "0": "0010",
+              "64": "004a",
+              "127": "0082"
+            }
+          },
+          "31.3": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          },
+          "31.5": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": null,
+        "canonicalConfig": "chorus 0 rate 64 depth 0 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0001",
+            "012c",
+            "0213",
+            "02a4",
+            "0324",
+            "0659",
+            "055d",
+            "07c7",
+            "0971",
+            "0c59",
+            "0abd",
+            "0d76"
+          ],
+          "29": [
+            "0e8d",
+            "1162",
+            "1337",
+            "107d",
+            "1476",
+            "196a",
+            "1bcb",
+            "1615",
+            "1d10",
+            "3d00",
+            "3f45",
+            "3f47"
+          ],
+          "30": [
+            "25b0",
+            "1927",
+            "1800",
+            "1800",
+            "1f20",
+            "0000",
+            "e81a",
+            "1e1f",
+            "1e1f",
+            "1241",
+            "8ad9",
+            "0000"
+          ],
+          "31": [
+            "0010",
+            "1828",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "002a",
+            "3fe6",
+            "001a",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003f4c",
+            "00000000",
+            "00003f40",
+            "00000000",
+            "00003f47",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ]
+      },
+      {
+        "kind": "chorus",
+        "index": 1,
+        "uiLabel": "Type 2",
+        "selector": "chorusType=1 (revChorConfig bits 4..5)",
+        "rom2Offset": "0x49f8",
+        "rom2PointerIndex": 9,
+        "romWordsHex": [
+          "3d00",
+          "2818",
+          "3d0e",
+          "3ff4",
+          "004c"
+        ],
+        "romWordsDecimal": [
+          15616,
+          10264,
+          15630,
+          16372,
+          76
+        ],
+        "fixedRegisters": {
+          "28.0": "0001",
+          "28.1": "012c",
+          "28.2": "0213",
+          "28.3": "02a4",
+          "28.4": "0324",
+          "28.5": "0659",
+          "28.6": "055d",
+          "28.7": "07c7",
+          "28.8": "0971",
+          "28.9": "0c59",
+          "28.10": "0abd",
+          "28.11": "0d76",
+          "29.0": "0e8d",
+          "29.1": "1162",
+          "29.2": "1337",
+          "29.3": "107d",
+          "29.4": "1476",
+          "29.5": "196a",
+          "29.6": "1bcb",
+          "29.7": "1615",
+          "29.8": "1d10",
+          "29.9": "3d00",
+          "30.0": "25b0",
+          "30.1": "1927",
+          "30.2": "1800",
+          "30.3": "1800",
+          "30.4": "1f20",
+          "30.6": "e81a",
+          "30.7": "1e1f",
+          "30.8": "1e1f",
+          "30.9": "1241",
+          "31.1": "2818",
+          "31.2": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "31.0": {
+            "drivenBy": "depth",
+            "byValue": {
+              "0": "0008",
+              "64": "002a",
+              "127": "004a"
+            }
+          },
+          "31.3": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          },
+          "31.5": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": null,
+        "canonicalConfig": "chorus 1 rate 64 depth 0 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0001",
+            "012c",
+            "0213",
+            "02a4",
+            "0324",
+            "0659",
+            "055d",
+            "07c7",
+            "0971",
+            "0c59",
+            "0abd",
+            "0d76"
+          ],
+          "29": [
+            "0e8d",
+            "1162",
+            "1337",
+            "107d",
+            "1476",
+            "196a",
+            "1bcb",
+            "1615",
+            "1d10",
+            "3d00",
+            "3d2d",
+            "3d1f"
+          ],
+          "30": [
+            "25b0",
+            "1927",
+            "1800",
+            "1800",
+            "1f20",
+            "0000",
+            "e81a",
+            "1e1f",
+            "1e1f",
+            "1241",
+            "2570",
+            "0000"
+          ],
+          "31": [
+            "0008",
+            "2818",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "0422",
+            "3be6",
+            "041a",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003d3e",
+            "00000000",
+            "00003d0e",
+            "00000000",
+            "00003d1f",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ]
+      },
+      {
+        "kind": "chorus",
+        "index": 2,
+        "uiLabel": "Type 3",
+        "selector": "chorusType=2 (revChorConfig bits 4..5)",
+        "rom2Offset": "0x4a02",
+        "rom2PointerIndex": 10,
+        "romWordsHex": [
+          "3d00",
+          "003f",
+          "3d08",
+          "3fce",
+          "03b1"
+        ],
+        "romWordsDecimal": [
+          15616,
+          63,
+          15624,
+          16334,
+          945
+        ],
+        "fixedRegisters": {
+          "28.0": "0001",
+          "28.1": "012c",
+          "28.2": "0213",
+          "28.3": "02a4",
+          "28.4": "0324",
+          "28.5": "0659",
+          "28.6": "055d",
+          "28.7": "07c7",
+          "28.8": "0971",
+          "28.9": "0c59",
+          "28.10": "0abd",
+          "28.11": "0d76",
+          "29.0": "0e8d",
+          "29.1": "1162",
+          "29.2": "1337",
+          "29.3": "107d",
+          "29.4": "1476",
+          "29.5": "196a",
+          "29.6": "1bcb",
+          "29.7": "1615",
+          "29.8": "1d10",
+          "29.9": "3d00",
+          "30.0": "25b0",
+          "30.1": "1927",
+          "30.2": "1800",
+          "30.3": "1800",
+          "30.4": "1f20",
+          "30.6": "e81a",
+          "30.7": "1e1f",
+          "30.8": "1e1f",
+          "30.9": "1241",
+          "31.1": "003f",
+          "31.2": "1400",
+          "31.7": "007f"
+        },
+        "parameterDependentRegisters": {
+          "31.0": {
+            "drivenBy": "depth",
+            "byValue": {
+              "0": "0076",
+              "64": "0214",
+              "127": "03ae"
+            }
+          },
+          "31.3": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          },
+          "31.5": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          }
+        },
+        "runtimeStateRegisters": [
+          "29.10",
+          "29.11",
+          "31.10",
+          "31.8",
+          "31.9"
+        ],
+        "noiseLfsrRegister": null,
+        "canonicalConfig": "chorus 2 rate 64 depth 0 feedback 0",
+        "canonicalRam2": {
+          "28": [
+            "0001",
+            "012c",
+            "0213",
+            "02a4",
+            "0324",
+            "0659",
+            "055d",
+            "07c7",
+            "0971",
+            "0c59",
+            "0abd",
+            "0d76"
+          ],
+          "29": [
+            "0e8d",
+            "1162",
+            "1337",
+            "107d",
+            "1476",
+            "196a",
+            "1bcb",
+            "1615",
+            "1d10",
+            "3d00",
+            "3d0c",
+            "3d32"
+          ],
+          "30": [
+            "25b0",
+            "1927",
+            "1800",
+            "1800",
+            "1f20",
+            "0000",
+            "e81a",
+            "1e1f",
+            "1e1f",
+            "1241",
+            "f1a0",
+            "0000"
+          ],
+          "31": [
+            "0076",
+            "003f",
+            "1400",
+            "0000",
+            "0000",
+            "1400",
+            "0000",
+            "007f",
+            "0562",
+            "3b14",
+            "04ec",
+            "0000"
+          ]
+        },
+        "canonicalRam1": {
+          "28": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "29": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "30": [
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000",
+            "00000000"
+          ],
+          "31": [
+            "00003d36",
+            "00000000",
+            "00003d08",
+            "00000000",
+            "00003d32",
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        "observedNvramPatchMirror": [
+          "0c",
+          "5b",
+          "59",
+          "00",
+          "5a",
+          "10",
+          "00",
+          "00",
+          "08",
+          "7f",
+          "40",
+          "fe",
+          "02",
+          "5d"
+        ]
+      }
+    ],
+    "crossChecks": {
+      "delayPanDelay": "Las constantes de Delay (0x497e) y Pan Delay (0x49b6) aparecen solo en jv880_rom2.bin; no se encontraron en jv880_rom1.bin (busqueda de secuencias big-endian).",
+      "romTableMatchesRuntime": "Las tablas ROM2 de los reverb 0..5 coinciden byte a byte con ram2[28][0..11] y ram2[29][0..8] capturados; en 6 y 7 coinciden salvo los taps escalados por tiempo.",
+      "sha1": "Los SHA1 de las ROMs usadas coinciden con los literales de Source/rom.cpp y con el rompack_v1.zip.",
+      "noHardwareGolden": "La captura proviene del emulador; no se dispone de golden vector de hardware JV-880 real."
+    },
+    "declaredRegisterMapping": [
+      {
+        "register": "ram2[30][0]",
+        "role": "calc_tv e=1 adjust (reverb TV envelope)",
+        "usedBy": [
+          "calc_tv"
+        ],
+        "observedFixedByAlgorithm": {
+          "chorus 0": "25b0",
+          "chorus 1": "25b0",
+          "chorus 2": "25b0"
+        },
+        "observedParameterDependentByAlgorithm": {
+          "reverb 0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "25b0",
+              "127": "49b0"
+            }
+          },
+          "reverb 1": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "47b0",
+              "127": "8db0"
+            }
+          },
+          "reverb 2": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "2fb0",
+              "127": "5db0"
+            }
+          },
+          "reverb 3": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "3ab0",
+              "127": "73b0"
+            }
+          },
+          "reverb 4": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "3ab0",
+              "127": "73b0"
+            }
+          },
+          "reverb 5": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "00b0",
+              "64": "4db0",
+              "127": "99b0"
+            }
+          },
+          "reverb 6": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "00b0",
+              "64": "40b0",
+              "127": "7fb0"
+            }
+          },
+          "reverb 7": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "00b0",
+              "64": "40b0",
+              "127": "7fb0"
+            }
+          }
+        },
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][1]",
+        "role": "reverb input mix; high byte -> ram1[29][0], low byte -> rcsum[0]",
+        "usedBy": [
+          "input_mix_reverb"
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1927",
+          "reverb 1": "033d",
+          "reverb 2": "1030",
+          "reverb 3": "033d",
+          "reverb 4": "033d",
+          "reverb 5": "013f",
+          "reverb 6": "0040",
+          "reverb 7": "0040",
+          "chorus 0": "1927",
+          "chorus 1": "1927",
+          "chorus 2": "1927"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][2]",
+        "role": "reverb send A (rcadd[0]/rcadd2[0]); high byte -> left, low byte -> rcsum[1]",
+        "usedBy": [
+          17
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1800",
+          "reverb 1": "1600",
+          "reverb 2": "1800",
+          "reverb 3": "1500",
+          "reverb 4": "1500",
+          "reverb 5": "1500",
+          "reverb 6": "3200",
+          "reverb 7": "3200",
+          "chorus 0": "1800",
+          "chorus 1": "1800",
+          "chorus 2": "1800"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][3]",
+        "role": "reverb send B (rcadd[1]/rcadd2[1]); high byte -> right, low byte -> rcsum[1]",
+        "usedBy": [
+          18
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1800",
+          "reverb 1": "1600",
+          "reverb 2": "1800",
+          "reverb 3": "1500",
+          "reverb 4": "1500",
+          "reverb 5": "1500",
+          "reverb 6": "3200",
+          "reverb 7": "3200",
+          "chorus 0": "1800",
+          "chorus 1": "1800",
+          "chorus 2": "1800"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][4]",
+        "role": "comb 1..3; high byte -> input gain (>>6), low byte -> feedback, bits 0x30 -> feedback enable",
+        "usedBy": [
+          1,
+          2,
+          3
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1f20",
+          "reverb 1": "1f20",
+          "reverb 2": "1f20",
+          "reverb 3": "1720",
+          "reverb 4": "1720",
+          "reverb 5": "1720",
+          "reverb 6": "0800",
+          "reverb 7": "1000",
+          "chorus 0": "1f20",
+          "chorus 1": "1f20",
+          "chorus 2": "1f20"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][5]",
+        "role": "comb 4; high byte -> input gain, low byte -> feedback, bits 0x30 -> feedback enable",
+        "usedBy": [
+          4
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 1": "0020",
+          "reverb 2": "0020",
+          "reverb 3": "0020",
+          "reverb 4": "0020",
+          "reverb 5": "0020"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][6]",
+        "role": "allpass coefficient; high byte -> feedforward, low byte -> feedback",
+        "usedBy": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "e81a",
+          "reverb 1": "e020",
+          "reverb 2": "e020",
+          "reverb 3": "1be5",
+          "reverb 4": "20e0",
+          "reverb 5": "20e0",
+          "chorus 0": "e81a",
+          "chorus 1": "e81a",
+          "chorus 2": "e81a"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][7]",
+        "role": "block 5 coefficient; high byte -> ram1[29][2] mix, low byte -> tap ram2[29][0]",
+        "usedBy": [
+          5
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1e1f",
+          "reverb 1": "07e1",
+          "reverb 2": "18e1",
+          "reverb 3": "1f1e",
+          "reverb 4": "1f1e",
+          "reverb 5": "171e",
+          "chorus 0": "1e1f",
+          "chorus 1": "1e1f",
+          "chorus 2": "1e1f"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][8]",
+        "role": "block 6 coefficient; high byte -> ram1[29][3] mix, low byte -> tap ram2[29][8]",
+        "usedBy": [
+          6
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1e1f",
+          "reverb 1": "0fe6",
+          "reverb 2": "18e1",
+          "reverb 3": "2118",
+          "reverb 4": "2118",
+          "reverb 5": "1818",
+          "reverb 6": "0040",
+          "reverb 7": "0040",
+          "chorus 0": "1e1f",
+          "chorus 1": "1e1f",
+          "chorus 2": "1e1f"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][9]",
+        "role": "block 7 coefficient (high byte -> ram1[29][2]/[3]); compartido con levelcur de calc_tv e=1",
+        "usedBy": [
+          7,
+          "calc_tv"
+        ],
+        "observedFixedByAlgorithm": {
+          "chorus 0": "1241",
+          "chorus 1": "1241",
+          "chorus 2": "1241"
+        },
+        "observedParameterDependentByAlgorithm": {
+          "reverb 0": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1241",
+              "127": "2441"
+            }
+          },
+          "reverb 1": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "2341",
+              "127": "4641"
+            }
+          },
+          "reverb 2": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1741",
+              "127": "2e41"
+            }
+          },
+          "reverb 3": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1cc1",
+              "127": "3941"
+            }
+          },
+          "reverb 4": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "1cc1",
+              "127": "3941"
+            }
+          },
+          "reverb 5": {
+            "drivenBy": "time",
+            "byValue": {
+              "0": "0000",
+              "64": "2641",
+              "127": "4c41"
+            }
+          },
+          "reverb 6": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "1fc1",
+              "127": "3f41"
+            }
+          },
+          "reverb 7": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "1fc1",
+              "127": "3f41"
+            }
+          }
+        },
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[30][10]",
+        "role": "LFSR de ruido: xr=(s>>0)^(s>>1)^(s>>7)^(s>>12)&1; s=(s>>1)|(xr<<15)",
+        "usedBy": [
+          "final_mixing"
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": [],
+        "observation": "sin variacion observada en el barrido (valor 0 o no usado por el algoritmo)"
+      },
+      {
+        "register": "ram2[31][1]",
+        "role": "chorus input mix; high byte -> ram1[29][1], low byte -> rcsum[1]",
+        "usedBy": [
+          "input_mix_chorus"
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1828",
+          "reverb 1": "1828",
+          "reverb 2": "1828",
+          "reverb 3": "1828",
+          "reverb 4": "1828",
+          "reverb 5": "1828",
+          "reverb 6": "1828",
+          "reverb 7": "1828",
+          "chorus 0": "1828",
+          "chorus 1": "2818",
+          "chorus 2": "003f"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[31][2]",
+        "role": "chorus send A (rcadd[2]/rcadd2[2]); high byte -> left, low byte -> rcsum[0]",
+        "usedBy": [
+          21
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1400",
+          "reverb 1": "1400",
+          "reverb 2": "1400",
+          "reverb 3": "1400",
+          "reverb 4": "1400",
+          "reverb 5": "1400",
+          "reverb 6": "1400",
+          "reverb 7": "1400",
+          "chorus 0": "1400",
+          "chorus 1": "1400",
+          "chorus 2": "1400"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[31][3]",
+        "role": "chorus send B (rcadd[3]/rcadd2[3]); high byte -> right, low byte -> rcsum[1]",
+        "usedBy": [
+          22
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {
+          "chorus 0": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          },
+          "chorus 1": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          },
+          "chorus 2": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "0000",
+              "64": "0010",
+              "127": "001f"
+            }
+          }
+        },
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[31][4]",
+        "role": "chorus send C (rcadd[4]/rcadd2[4]); high byte -> left, low byte -> rcsum[0]",
+        "usedBy": [
+          23
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": [],
+        "observation": "sin variacion observada en el barrido (valor 0 o no usado por el algoritmo)"
+      },
+      {
+        "register": "ram2[31][5]",
+        "role": "chorus send D (rcadd[5]/rcadd2[5]); high byte -> right, low byte -> rcsum[1]",
+        "usedBy": [
+          31
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "1400",
+          "reverb 1": "1400",
+          "reverb 2": "1400",
+          "reverb 3": "1400",
+          "reverb 4": "1400",
+          "reverb 5": "1400",
+          "reverb 6": "1400",
+          "reverb 7": "1400"
+        },
+        "observedParameterDependentByAlgorithm": {
+          "chorus 0": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          },
+          "chorus 1": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          },
+          "chorus 2": {
+            "drivenBy": "feedback",
+            "byValue": {
+              "0": "1400",
+              "64": "1410",
+              "127": "141f"
+            }
+          }
+        },
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[31][7]",
+        "role": "flags del generador de direcciones: 0x20 okey, 0x40 b6, 0x80 b7, bits 0..4 seleccionan banco ram2 del sub-phase",
+        "usedBy": [
+          "address_generator",
+          "calc_tv"
+        ],
+        "observedFixedByAlgorithm": {
+          "reverb 0": "007f",
+          "reverb 1": "007f",
+          "reverb 2": "007f",
+          "reverb 3": "007f",
+          "reverb 4": "007f",
+          "reverb 5": "007f",
+          "reverb 6": "007f",
+          "reverb 7": "007f",
+          "chorus 0": "007f",
+          "chorus 1": "007f",
+          "chorus 2": "007f"
+        },
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": []
+      },
+      {
+        "register": "ram2[31][8]",
+        "role": "contador de fase y tv_counter: 0x8000 b15, 0x3fff sub_phase",
+        "usedBy": [
+          "address_generator",
+          "calc_tv"
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": [
+          "reverb 0",
+          "reverb 1",
+          "reverb 2",
+          "reverb 3",
+          "reverb 4",
+          "reverb 5",
+          "reverb 6",
+          "reverb 7",
+          "chorus 0",
+          "chorus 1",
+          "chorus 2"
+        ]
+      },
+      {
+        "register": "ram2[31][9]",
+        "role": "fase inversa cuando b15: ram2[31][8]&0x7fff; ademas coeficiente del bloque 19 (high byte)",
+        "usedBy": [
+          "phase_flip",
+          19
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": [
+          "reverb 0",
+          "reverb 1",
+          "reverb 2",
+          "reverb 3",
+          "reverb 4",
+          "reverb 5",
+          "reverb 6",
+          "reverb 7",
+          "chorus 0",
+          "chorus 1",
+          "chorus 2"
+        ]
+      },
+      {
+        "register": "ram2[31][10]",
+        "role": "fase inversa cuando !b15: (0x4000-ram2[31][8])&0x7fff; ademas coeficiente del bloque 20 (high byte)",
+        "usedBy": [
+          "phase_flip",
+          20
+        ],
+        "observedFixedByAlgorithm": {},
+        "observedParameterDependentByAlgorithm": {},
+        "runtimeStateInAlgorithms": [
+          "reverb 0",
+          "reverb 1",
+          "reverb 2",
+          "reverb 3",
+          "reverb 4",
+          "reverb 5",
+          "reverb 6",
+          "reverb 7",
+          "chorus 0",
+          "chorus 1",
+          "chorus 2"
+        ]
+      }
+    ]
+  }
+}

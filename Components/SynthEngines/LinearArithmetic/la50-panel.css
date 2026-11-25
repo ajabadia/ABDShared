@@ -1,0 +1,36 @@
+/**
+ * ABDShared — Components/SynthEngines/LinearArithmetic/la50-panel.css
+ * Estilos del panel ABD Linear LA-50 (100% design tokens CSS).
+ * Strict line limit: < 200 lines.
+ */
+
+.la50-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-main);
+  font-family: var(--font-sans, inherit);
+}
+
+.la50-patch-strip {
+  background: var(--color-panel-surface);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 6px 10px;
+}
+
+.la50-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.la50-env-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--color-panel-border-dim);
+}

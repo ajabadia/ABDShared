@@ -114,6 +114,30 @@ describe('Renderers: SpectrumRenderer', () => {
     expect(renderer.ctx.fill).toHaveBeenCalled();
   });
 
+  it('should invoke optional filterOverlay hook with geometry metrics', () => {
+    const spectrum = new Float32Array(512).fill(-18.0);
+    const frame = createDataFrame({
+      timeDataL: new Float32Array(512),
+      spectrumDb: spectrum,
+      sampleRate: 44100
+    });
+    const overlayMock = vi.fn();
+
+    expect(() => renderer.render(frame, { filterOverlay: overlayMock })).not.toThrow();
+    expect(overlayMock).toHaveBeenCalledTimes(1);
+    expect(overlayMock).toHaveBeenCalledWith(
+      renderer.ctx,
+      expect.objectContaining({
+        width: 300,
+        height: 150,
+        minFreq: 20.0,
+        maxFreq: 20000.0,
+        minDb: -96.0,
+        maxDb: 0.0,
+      })
+    );
+  });
+
   it('should clean up buffers on destroy()', () => {
     renderer.destroy();
     expect(renderer.isDestroyed).toBe(true);

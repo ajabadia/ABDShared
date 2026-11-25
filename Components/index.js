@@ -182,7 +182,7 @@ export {
 export { SHARED_EN, SHARED_ES, SHARED_LOCALES, DEFAULT_STORAGE_KEY, deepMergeLocales, collectLocaleKeys, createSynthI18n } from './i18n.js';
 
 // Universal Modals: Multi-Bus Effects Rack & Master Global LFOs
-export { MultiBusFxRackModal, MultiBusFxRackLcd, TOPOLOGY_NAMES, REVERB_MACROS, CHORUS_MACROS, DELAY_MODES, AUX_MODES, findAlgorithmById, FX_ALGORITHMS } from './multiBusFxRackModal.js';
+export { MultiBusFxRackModal, FxPickerModal, openFxPicker, buildFxCoverPopupData, MultiBusFxRackLcd, FxTopologyDiagram, renderTopologySvg, TOPOLOGY_NAMES, REVERB_MACROS, CHORUS_MACROS, DELAY_MODES, AUX_MODES, findAlgorithmById, findAlgorithmByFxId, getAllAlgorithms, FX_ALGORITHMS, FX_CATEGORIES } from './multiBusFxRackModal.js';
 export { GlobalLfoModal, GLOBAL_LFO_WAVES, LFO_SYNC_DIVISIONS, GLOBAL_LFO1_TARGETS, GLOBAL_LFO2_TARGETS } from './globalLfoModal.js';
 export { PianoRollModal } from './PianoRoll/pianoRollModal.js';
 export { MpcPadModal } from './Pads/MpcPadModal.js';
@@ -190,6 +190,15 @@ export { GrooveArpeggiatorModal } from './Arpeggiator/GrooveArpeggiatorModal.js'
 export { ARP_MOTIFS, ARP_RATES, ARP_LATCH_MODES, DEFAULT_ARP_STATE } from './Arpeggiator/grooveArpeggiatorContract.js';
 export { GrooveShuffleModal } from './GrooveShuffle/grooveShuffleModal.js';
 export { GROOVE_ALGORITHMS, GROOVE_RESOLUTIONS, GROOVE_MODES, calculateGrooveTick } from './GrooveShuffle/grooveShuffleContract.js';
+export {
+  renderCoverArtHtml,
+  showCoverHoverPopover,
+  hideCoverHoverPopover,
+  openCoverModal,
+  closeCoverModal,
+  closeAllCoverPopups,
+  attachCoverPopup,
+} from './CoverPopup/coverPopup.js';
 export * from './SynthEngines/index.js';
 export * from './FxFaceplates/index.js';
 

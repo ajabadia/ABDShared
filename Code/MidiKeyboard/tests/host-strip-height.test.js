@@ -49,7 +49,7 @@ const HOSTS = [
   {
     project: 'ABDEep',
     stripSelector: '.keyboard-container',
-    cssFiles: ['ABDEep/WebUI/css/keyboard.css'],
+    cssFiles: ['ABDEep/WebUI/css/vars.css', 'ABDEep/WebUI/css/keyboard.css'],
     stripHeightPx: 185,
   },
   {

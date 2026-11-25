@@ -168,6 +168,7 @@ export class LiveSysExInspector {
    * @param {Function}    [options.onClose]      Callback al cerrar u ocultar.
    * @param {Function}    [options.onOpen]       Callback al abrir o mostrar.
    * @param {Function}    [options.onByteEdited] Callback al editar un byte: ({ index, previous, value, buffer }).
+   * @param {Function}    [options.describeByte] Callback para describir un byte: (index, value, buffer) => string | { name, group, detail }.
    */
   constructor(options = {}) {
     this.options = {
@@ -202,6 +203,7 @@ export class LiveSysExInspector {
     this.metaEl = null;
     this.bodyEl = null;
     this.footerEl = null;
+    this.infoTextEl = null;
     this.feedbackEl = null;
     this.sizeBadgeEl = null;
     this.diffBadgeEl = null;
@@ -367,22 +369,24 @@ export class LiveSysExInspector {
     this.bodyEl = document.createElement('div');
     this.bodyEl.className = 'sysex-inspector__body';
 
-    // Delegación de eventos de edición: una sola pareja de listeners sobrevive
+    // Delegación de eventos de edición y hover/inspección: una sola pareja de listeners sobrevive
     // a los re-render de la rejilla.
     this.bodyEl.addEventListener('click', (e) => this._onByteCellClick(e));
     this.bodyEl.addEventListener('keydown', (e) => this._onByteCellKeyDown(e));
+    this.bodyEl.addEventListener('pointerover', (e) => this._onByteCellPointerOver(e));
 
     // --- Footer ---
     this.footerEl = document.createElement('div');
     this.footerEl.className = 'sysex-inspector__footer';
 
-    const infoText = document.createElement('span');
-    infoText.textContent = 'Byte mutators emit visual pulse on mutation.';
+    this.infoTextEl = document.createElement('span');
+    this.infoTextEl.className = 'sysex-inspector__info-text';
+    this.infoTextEl.textContent = 'Byte mutators emit visual pulse on mutation.';
 
     this.feedbackEl = document.createElement('span');
     this.feedbackEl.className = 'sysex-inspector__feedback';
 
-    this.footerEl.appendChild(infoText);
+    this.footerEl.appendChild(this.infoTextEl);
     this.footerEl.appendChild(this.feedbackEl);
 
     this.rootEl.appendChild(this.headerEl);
@@ -884,10 +888,54 @@ export class LiveSysExInspector {
 
   /** Click en una celda editable. */
   _onByteCellClick(e) {
+    const cell = e.target.closest ? e.target.closest('.sysex-byte') : null;
+    if (cell && cell.dataset && cell.dataset.offset !== undefined) {
+      this._updateByteDescription(Number(cell.dataset.offset));
+    }
     if (this._editing) return;
-    const cell = e.target.closest ? e.target.closest('.sysex-byte--editable') : null;
-    if (!cell) return;
+    if (!cell || !cell.classList.contains('sysex-byte--editable')) return;
     this._beginByteEdit(cell, Number(cell.dataset.offset));
+  }
+
+  /** Puntero sobre una celda para actualizar la descripción en el footer. */
+  _onByteCellPointerOver(e) {
+    const cell = e.target.closest ? e.target.closest('.sysex-byte') : null;
+    if (cell && cell.dataset && cell.dataset.offset !== undefined) {
+      this._updateByteDescription(Number(cell.dataset.offset));
+    }
+  }
+
+  /** Actualiza la descripción semántica en el footer para un byte. */
+  _updateByteDescription(byteIdx) {
+    if (!this.infoTextEl || byteIdx < 0 || byteIdx >= this.buffer.length) return;
+    const val = this.buffer[byteIdx];
+    const hex = toHexByte(val);
+
+    if (typeof this.options.describeByte === 'function') {
+      try {
+        const desc = this.options.describeByte(byteIdx, val, this.buffer);
+        if (typeof desc === 'string' && desc.trim().length > 0) {
+          this.infoTextEl.textContent = desc;
+          return;
+        } else if (desc && typeof desc === 'object') {
+          const name = desc.name || `Byte ${byteIdx}`;
+          const grp = desc.group ? ` [${desc.group}]` : '';
+          const det = desc.detail ? ` · ${desc.detail}` : '';
+          this.infoTextEl.textContent = `Offset ${byteIdx} (0x${hex}): ${name}${grp}${det}`;
+          return;
+        }
+      } catch (err) {
+        // Fallback en caso de error en el hook
+      }
+    }
+
+    // Descripción por defecto si no hay hook o no retornó nada
+    const meta = this.getByteMeta(byteIdx);
+    const roleText = meta.role === 'sof' ? 'Start of Exclusive (F0)' :
+                     meta.role === 'eox' ? 'End of Exclusive (F7)' :
+                     byteIdx === 1 ? 'Manufacturer ID' :
+                     `Data byte (0x${hex})`;
+    this.infoTextEl.textContent = `Offset ${byteIdx} [0x${toHexByte(byteIdx)}]: ${roleText}`;
   }
 
   /** Teclado sobre una celda editable (accesibilidad: Enter o F2). */
@@ -1178,16 +1226,30 @@ export class LiveSysExInspector {
 
           // Edición byte a byte: SOF y EOX quedan bloqueados, el resto se edita
           const meta = this.getByteMeta(byteIdx);
+          let customTitle = null;
+          if (typeof this.options.describeByte === 'function') {
+            try {
+              const desc = this.options.describeByte(byteIdx, val, this.buffer);
+              if (typeof desc === 'string') customTitle = desc;
+              else if (desc && typeof desc === 'object') {
+                customTitle = `${desc.name || `Byte ${byteIdx}`}${desc.group ? ` [${desc.group}]` : ''}${desc.detail ? ` (${desc.detail})` : ''}`;
+              }
+            } catch (err) {
+              // fallback
+            }
+          }
+
           if (meta.editable) {
             span.classList.add('sysex-byte--editable');
             span.setAttribute('role', 'button');
             span.setAttribute('tabindex', '0');
             span.setAttribute('aria-label', `Byte ${byteIdx}, ${toHexByte(val)}, editable`);
-            span.title = `Clic o Enter para editar el byte ${byteIdx} (00-7F)`;
+            span.title = customTitle || `Clic o Enter para editar el byte ${byteIdx} (00-7F)`;
           } else {
             span.classList.add('sysex-byte--locked');
             span.setAttribute('aria-disabled', 'true');
-            if (meta.reason) span.title = meta.reason;
+            if (customTitle) span.title = customTitle;
+            else if (meta.reason) span.title = meta.reason;
           }
 
           // Mutación en vivo

@@ -1,34 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { listContracts, listSchemas, getContract } from './index.js';
-import {
-  DRUM_MAP_MODES,
-  getDrumMapProfile,
-  getDrumSlotName,
-  resolveRemappedDrumNote,
-} from './abdDrumMapProfiles.ts';
-import {
-  SEMANTIC_ROLE_CATEGORIES,
-  getSemanticRoleCategory,
-  getDefaultMidiCC,
-  isPerVoiceSemanticRole,
-  isBipolarSemanticRole,
-} from './semanticRoles.ts';
+import { listContracts, listSchemas, getContract, MidiTranslationEngine } from './index.js';
+import { DRUM_MAP_MODES, getDrumMapProfile, getDrumSlotName, resolveRemappedDrumNote } from './abdDrumMapProfiles.ts';
+import { SEMANTIC_ROLE_CATEGORIES, getSemanticRoleCategory, getDefaultMidiCC, isPerVoiceSemanticRole, isBipolarSemanticRole, normalizeSemanticRole } from './semanticRoles.ts';
 import { validateModelContract } from '../Code/BankManager/Contracts/ModelContract.ts';
-import {
-  allJsonHydratedContracts,
-  buildParameterMidiStreamFromContract,
-  getMidiConfig,
-  getModelContract,
-} from '../Code/BankManager/Contracts/Models/index.ts';
-import {
-  allJsonHardwareLinks,
-  getExportAdapter,
-  getImportAdapter,
-} from '../Code/BankManager/Contracts/Adapters/index.ts';
-import {
-  createStandaloneRegistry,
-  createUniversalContractRegistry,
-} from '../Code/BankManager/Contracts/ContractRegistry.ts';
+import { allJsonHydratedContracts, buildParameterMidiStreamFromContract, getMidiConfig, getModelContract } from '../Code/BankManager/Contracts/Models/index.ts';
+import { allJsonHardwareLinks, getExportAdapter, getImportAdapter } from '../Code/BankManager/Contracts/Adapters/index.ts';
+import { createStandaloneRegistry, createUniversalContractRegistry } from '../Code/BankManager/Contracts/ContractRegistry.ts';
 
 describe('@abdsynths/contracts', () => {
   it('listContracts returns canonical synth contracts', () => {
@@ -126,18 +103,8 @@ describe('@abdsynths/contracts', () => {
 
     const dr5Json = getContract('boss_dr5.json');
     expect(dr5Json.bankManagement.bankCapacity).toBe(256);
-    const midiMsgs = buildParameterMidiStreamFromContract(
-      dr5Json,
-      { 'Track Level': 110, 'Drum Pitch Coarse': 72 },
-      10,
-      { drumNote: 36 },
-    );
-    expect(midiMsgs.map(m => Array.from(m))).toEqual([
-      [0xB9, 7, 110],
-      [0xB9, 99, 24],
-      [0xB9, 98, 36],
-      [0xB9, 6, 72],
-    ]);
+    const midiMsgs = buildParameterMidiStreamFromContract(dr5Json, { 'Track Level': 110, 'Drum Pitch Coarse': 72 }, 10, { drumNote: 36 });
+    expect(midiMsgs.map(m => Array.from(m))).toEqual([[0xB9, 7, 110], [0xB9, 99, 24], [0xB9, 98, 36], [0xB9, 6, 72]]);
   });
 
   it('semanticRoles taxonomy categorizes and maps standard synthesizer roles accurately', () => {
@@ -181,5 +148,48 @@ describe('@abdsynths/contracts', () => {
     expect(isAccentVelocity(100)).toBe(false);
     expect(isAccentVelocity(101)).toBe(true);
     expect(isAccentVelocity(127)).toBe(true);
+  });
+
+  it('registers Roland D-50 / MT-32 contracts, LUTs, and roland-d50 SysEx round-trip', async () => {
+    expect(listContracts()).toEqual(expect.arrayContaining(['roland_d50.json', 'roland_mt32.json', 'roland_d50_parameter_spec.json']));
+    const d50Spec = getContract('roland_d50_parameter_spec');
+    expect(d50Spec.topology).toBe('multi_part');
+    const { getLut } = await import('./lutRegistry.js');
+    expect(getLut('roland_d50_lfo_rate_hz').length).toBe(101);
+    const d50 = getModelContract('roland-d50');
+    expect(validateModelContract(d50).valid).toBe(true);
+    const raw = new Uint8Array(448); raw[384] = 6; raw[385] = 27; // "Fa"
+    const syx = d50.buildPatchSysEx(raw, 2, 1);
+    expect(d50.verifyChecksum(syx)).toBe(true);
+    expect(d50.parsePatchSysEx(syx).slot).toBe(2);
+    expect(d50.extractPatchName(d50.parsePatchSysEx(syx).rawData)).toBe('Fa');
+    const syxMsgs = buildParameterMidiStreamFromContract(getContract('roland_d50.json'), { 'TVF Cutoff': 64 }, 1);
+    expect(syxMsgs.length).toBe(1);
+    expect(syxMsgs[0][0]).toBe(0xF0);
+    expect(syxMsgs[0][4]).toBe(0x12);
+    expect(syxMsgs[0][syxMsgs[0].length - 1]).toBe(0xF7);
+    const nrpn14 = buildParameterMidiStreamFromContract({ id: 't', displayName: 'T', functions: [{ id: 'f', controls: [{ name: 'P', controlMethod: 'NRPN_14BIT', nrpn: 200, minVal: 0, maxVal: 16383 }] }], bankManagement: { bankCapacity: 1, banksCount: 1, programsPerBank: 1 } }, { P: 1000 }, 1);
+    expect(nrpn14.map(m => Array.from(m))).toEqual([[0xB0, 99, 1], [0xB0, 98, 72], [0xB0, 6, 7], [0xB0, 38, 104]]);
+    expect(normalizeSemanticRole('ReverbSend')).toBe('PartReverbSend'); expect(getDefaultMidiCC('LfoRate')).toBe(76); expect(getMidiConfig('korg-ms2000')?.deviceId).toBe(0x58);
+    expect(buildParameterMidiStreamFromContract(getContract('roland_sc55.json'), { 'TVF Cutoff': 0.5 }, 1).map(m => Array.from(m))).toEqual([[0xB0, 99, 1], [0xB0, 98, 32], [0xB0, 6, 64]]);
+    expect(buildParameterMidiStreamFromContract(getContract('roland_sc55.json'), { 'TVF Cutoff': 114 }, 1).map(m => Array.from(m))).toEqual([[0xB0, 99, 1], [0xB0, 98, 32], [0xB0, 6, 114]]);
+  });
+
+  it('hydrates TB-303 and Emax II parameter specs + profiles through MidiTranslationEngine', () => {
+    expect(listContracts()).toEqual(expect.arrayContaining(['roland_tb303.json', 'roland_tb303_parameter_spec.json', 'emu_emax2.json', 'emu_emax2_parameter_spec.json']));
+    const tbSpec = getContract('roland_tb303_parameter_spec.json'), emaxSpec = getContract('emu_emax2_parameter_spec.json');
+    expect(tbSpec.parameters).toHaveLength(15); expect(emaxSpec.parameters).toHaveLength(37);
+    const tbEngine = new MidiTranslationEngine(tbSpec);
+    expect(tbEngine.wireToDomain('cutoff', 0)).toBeCloseTo(314, 1); expect(tbEngine.wireToDomain('cutoff', 127)).toBeCloseTo(2394, 0);
+    expect(tbEngine.wireToDomain('coarse', 64)).toBe(0); expect(tbEngine.domainToWire('coarse', 0)).toBe(64);
+    expect(tbEngine.domainToWire('FilterCutoff', tbEngine.wireToDomain('FilterCutoff', 56))).toBe(56);
+    const emaxEngine = new MidiTranslationEngine(emaxSpec);
+    expect(emaxEngine.normalizedToDomain('filterCutoff', 0)).toBeCloseTo(60, 2);
+    expect(emaxEngine.normalizedToDomain('filterCutoff', 0.5)).toBeCloseTo(3935, 1);
+    expect(emaxEngine.normalizedToDomain('filterCutoff', 1)).toBeCloseTo(15560, 1);
+    expect(emaxEngine.wireToDomain('voiceTune', 64)).toBe(0); expect(emaxEngine.domainToWire('voiceTune', 0)).toBe(64);
+    expect(emaxEngine.normalizedToDomain('ampAttack', 0)).toBeCloseTo(0.0015, 4);
+    expect(getContract('roland_tb303.json').functions.flatMap((f) => f.controls)).toHaveLength(15);
+    expect(getContract('emu_emax2.json').functions.flatMap((f) => f.controls)).toHaveLength(37);
   });
 });

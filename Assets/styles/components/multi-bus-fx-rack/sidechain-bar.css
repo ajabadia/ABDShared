@@ -1,0 +1,33 @@
+/**
+ * ABDShared -- sidechain-bar.css
+ * 100% tokenized styles for the MultiBusFxRack Sidechain configuration bar (< 50 lines).
+ */
+.fx-sc-bar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+  padding: 5px 8px; border: 1px solid var(--color-panel-border-dim); border-radius: 4px;
+  background: color-mix(in srgb, var(--color-panel-surface) 70%, var(--color-bg-base));
+  font-family: var(--font-mono); font-size: 8px;
+}
+.fx-sc-group, .fx-sc-field { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-dim); font-weight: 700; }
+.fx-sc-title { color: var(--color-accent); font-weight: 900; letter-spacing: 0.06em; margin-right: 2px; }
+.fx-sc-btn {
+  appearance: none; background: var(--color-panel-surface); border: 1px solid var(--color-panel-border-dim);
+  color: var(--color-text-dim); font-family: var(--font-mono); font-size: 7.5px; font-weight: 800;
+  padding: 2px 5px; border-radius: 2px; cursor: pointer;
+}
+.fx-sc-btn.is-active { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-inverse, var(--color-bg-base)); }
+.fx-sc-select {
+  background: var(--color-bg-base); border: 1px solid var(--color-panel-border-dim); color: var(--color-accent);
+  font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+  cursor: pointer; max-height: 200px;
+}
+.fx-sc-select optgroup {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 800; color: var(--color-accent);
+  background: var(--color-panel-surface);
+}
+.fx-sc-select option {
+  background: var(--color-bg-base); color: var(--color-text-main); font-family: var(--font-mono);
+  font-size: 9px; padding: 2px 4px;
+}
+.fx-sc-range { width: 48px; accent-color: var(--color-accent); cursor: pointer; }
+.fx-sc-val { color: var(--color-accent); min-width: 30px; text-align: right; font-weight: 800; }

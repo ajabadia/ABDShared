@@ -69,6 +69,27 @@ WaveHandle acquireOrResolve(RomplerWavePool* pool,
     return h;
 }
 
+WaveHandle acquirePartialOrSlotWave(const StructuredRomplerEngine& engine,
+                                    RomplerWavePool* pool,
+                                    const JsonValue& o,
+                                    RomplerPresetSerializer::WaveResolveFn resolver,
+                                    void* resolverUserData,
+                                    std::unordered_map<std::string, WaveHandle>& seen,
+                                    std::vector<WaveHandle>& owned)
+{
+    const std::string waveId = o.getString("waveId");
+    const std::string bankId = !o.getString("bankId").empty() ? o.getString("bankId")
+                               : (engine.isJv880Mode() ? std::string("roland_jv880") : std::string());
+    WaveHandle h = acquireOrResolve(pool, bankId, waveId, resolver, resolverUserData, seen, owned);
+    if (h == kInvalidWaveHandle && engine.isJv880Mode() && bankId != "roland_jv880" && !waveId.empty())
+    {
+        h = acquireOrResolve(pool, "roland_jv880", waveId, resolver, resolverUserData, seen, owned);
+        if (h == kInvalidWaveHandle)
+            h = acquireOrResolve(pool, "roland_jv880", "w_0005", resolver, resolverUserData, seen, owned);
+    }
+    return h;
+}
+
 template <typename TargetT>
 void bindAssetToTarget(const WaveAsset* asset, TargetT& dst) noexcept
 {
@@ -159,8 +180,7 @@ bool RomplerPresetSerializer::deserialize(StructuredRomplerEngine& engine,
                 readEnv(o.find("ampEnv"), pt.ampEnv);
                 readEnv(o.find("filterEnv"), pt.filterEnv);
                 readEnv(o.find("pitchEnv"), pt.pitchEnv);
-                const WaveHandle h = acquireOrResolve(pool, o.getString("bankId"), o.getString("waveId"),
-                                                      resolver, resolverUserData, seen, newHandles);
+                const WaveHandle h = acquirePartialOrSlotWave(engine, pool, o, resolver, resolverUserData, seen, newHandles);
                 if (h != kInvalidWaveHandle && pool != nullptr)
                 {
                     bindAssetToTarget(pool->get(h), pt);
@@ -198,8 +218,7 @@ bool RomplerPresetSerializer::deserialize(StructuredRomplerEngine& engine,
                 s.resonanceOverride = static_cast<float>(o.getNumber("resonanceOverride", 0.1));
                 s.decayMs = static_cast<float>(o.getNumber("decayMs", 280.0));
                 s.pitchKeyTrack = static_cast<float>(o.getNumber("pitchKeyTrack", 0.0));
-                const WaveHandle h = acquireOrResolve(pool, o.getString("bankId"), o.getString("waveId"),
-                                                      resolver, resolverUserData, seen, newHandles);
+                const WaveHandle h = acquirePartialOrSlotWave(engine, pool, o, resolver, resolverUserData, seen, newHandles);
                 if (h != kInvalidWaveHandle && pool != nullptr)
                 {
                     bindAssetToTarget(pool->get(h), s);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RomplerBankLoader.h"
+#include "SynthCore/MiniJsonParser.h"
 
 #include <algorithm>
 #include <cmath>
@@ -233,4 +234,65 @@ inline void finalizeZipDirectory(std::vector<std::uint8_t>& zip, const std::vect
     pushU32(zip, cdSize); pushU32(zip, cdOffset); pushU16(zip, 0u);
 }
 
+inline void applyToneCategoryDefaults(PartialConfig& pt, int categoryId, bool isLooping) noexcept
+{
+    struct CatDef { float t1, t2, t3, t4, t4NL, l2, l2NL, l3, l3NL, cut, res, fOct; };
+    static constexpr CatDef kTable[10] = {
+        {   4.0f,  45.0f, 180.0f,  140.0f,  140.0f, 0.85f, 0.85f, 0.78f, 0.20f, 14000.0f, 0.18f, 1.4f }, // 0: Synths
+        { 110.0f,  90.0f, 320.0f,  520.0f,  520.0f, 0.92f, 0.92f, 0.88f, 0.35f,  9500.0f, 0.10f, 0.8f }, // 1: Strings
+        {   1.0f,  65.0f, 520.0f,  480.0f,  480.0f, 0.55f, 0.55f, 0.25f, 0.08f, 15500.0f, 0.12f, 1.2f }, // 2: Bells
+        {   2.0f,  45.0f, 260.0f,  110.0f,  110.0f, 0.70f, 0.70f, 0.55f, 0.15f,  8500.0f, 0.22f, 1.6f }, // 3: Bass
+        { 280.0f, 180.0f, 450.0f,  900.0f,  900.0f, 0.95f, 0.95f, 0.92f, 0.45f,  5500.0f, 0.15f, 1.2f }, // 4: Pads
+        {   2.0f,  80.0f, 550.0f,  160.0f,  320.0f, 0.92f, 0.65f, 0.88f, 0.30f, 11500.0f, 0.10f, 1.0f }, // 5: Keys
+        {  38.0f,  70.0f, 260.0f,  210.0f,  210.0f, 0.90f, 0.90f, 0.85f, 0.35f, 10500.0f, 0.18f, 1.5f }, // 6: Brass
+        { 420.0f, 260.0f, 600.0f, 1350.0f, 1350.0f, 0.92f, 0.92f, 0.86f, 0.40f,  4800.0f, 0.26f, 2.2f }, // 7: Atmos
+        {   1.0f,  30.0f, 240.0f,  160.0f,  160.0f, 0.50f, 0.50f, 0.40f, 0.05f, 16500.0f, 0.08f, 0.6f }, // 8: Drums
+        {  25.0f, 120.0f, 450.0f,  680.0f,  680.0f, 0.80f, 0.80f, 0.72f, 0.25f, 13000.0f, 0.28f, 1.8f }  // 9: FX
+    };
+    const auto& d = kTable[(categoryId >= 0 && categoryId < 10) ? categoryId : 0];
+    const float t4 = isLooping ? d.t4 : d.t4NL;
+    pt.ampEnv = makeEnv4T4L(0.0f, 0.0f, d.t1, d.t2, d.t3, t4, 1.0f, isLooping ? d.l2 : d.l2NL, isLooping ? d.l3 : d.l3NL, 0.0f);
+    pt.filterEnv = makeEnv4T4L(0.0f, 0.0f, d.t1, d.t2, d.t3, t4, 1.0f, 0.4f, 0.2f, 0.0f);
+    pt.cutoffHz = d.cut; pt.resonance = d.res; pt.filterEnvOctaves = d.fOct;
+}
+
+inline void parseEnv4T4LJson(const abd::synth::json::JsonValue* eObj, Env4T4L& env) noexcept
+{
+    if (!eObj || !eObj->isObject()) return;
+    struct Field { float Env4T4L::* m; const char* k1; const char* k2; const char* k3; float lo, hi; };
+    static constexpr Field kFields[] = {
+        { &Env4T4L::t0Ms, "t0Ms", nullptr, nullptr, 0.0f, 30000.0f }, { &Env4T4L::t1Ms, "t1Ms", "attackMs", nullptr, 0.0f, 30000.0f },
+        { &Env4T4L::t2Ms, "t2Ms", "decayMs", nullptr, 0.0f, 30000.0f }, { &Env4T4L::t3Ms, "t3Ms", "decay2Ms", "decayMs", 0.0f, 30000.0f },
+        { &Env4T4L::t4Ms, "t4Ms", "releaseMs", nullptr, 0.0f, 30000.0f }, { &Env4T4L::l0, "l0", nullptr, nullptr, -1.0f, 1.0f },
+        { &Env4T4L::l1, "l1", nullptr, nullptr, -1.0f, 1.0f }, { &Env4T4L::l2, "l2", "sustain", nullptr, -1.0f, 1.0f },
+        { &Env4T4L::l3, "l3", "sustain", nullptr, -1.0f, 1.0f }, { &Env4T4L::l4, "l4", nullptr, nullptr, -1.0f, 1.0f }
+    };
+    for (const auto& f : kFields)
+        for (const char* k : { f.k1, f.k2, f.k3 })
+            if (k && eObj->find(k)) { env.*(f.m) = std::clamp(static_cast<float>(eObj->getNumber(k, env.*(f.m))), f.lo, f.hi); break; }
+}
+
+inline void applyPartialJsonOverrides(const abd::synth::json::JsonValue& pObj, PartialConfig& pt) noexcept
+{
+    if (const auto* wv = pObj.find("vaShape") ? pObj.find("vaShape") : pObj.find("vaWaveform")) {
+        if (wv->isNumber()) pt.vaWaveform = static_cast<std::uint8_t>(std::clamp(static_cast<int>(wv->numVal), 0, 5));
+        else if (wv->isString()) {
+            static constexpr struct { std::string_view k; std::uint8_t v; } kWf[] = { {"saw",0},{"pulse",1},{"square",1},{"tri",2},{"triangle",2},{"sine",3},{"supersaw",4},{"noise",5} };
+            for (const auto& e : kWf) if (wv->strVal == e.k) { pt.vaWaveform = e.v; break; }
+        }
+    }
+    auto numClamp = [&](const char* k, float cur, float lo, float hi) noexcept { return std::clamp(static_cast<float>(pObj.getNumber(k, cur)), lo, hi); };
+    pt.pulseWidth = numClamp("pulseWidth", pt.pulseWidth, 0.05f, 0.95f);
+    pt.zplaneMorph = numClamp("zplaneMorph", pt.zplaneMorph, 0.0f, 1.0f); pt.drive = numClamp("drive", pt.drive, 0.0f, 1.0f);
+    pt.velLo = static_cast<std::uint8_t>(std::clamp(pObj.getInt("velLo", pt.velLo), 0, 127));
+    pt.velHi = static_cast<std::uint8_t>(std::clamp(pObj.getInt("velHi", pt.velHi), 0, 127));
+    pt.filterEnvOctaves = static_cast<float>(pObj.getNumber(pObj.find("filterEnvOctaves") ? "filterEnvOctaves" : "envOctaves", pt.filterEnvOctaves));
+    pt.pitchEnvSemitones = static_cast<float>(pObj.getNumber("pitchEnvSemitones", pt.pitchEnvSemitones));
+    pt.oneShotMode = pObj.getBool("oneShotMode", pt.oneShotMode); pt.pingPongLoop = pObj.getBool("pingPongLoop", pt.pingPongLoop);
+    if (pObj.find("attackMs") || pObj.find("decayMs") || pObj.find("sustain") || pObj.find("releaseMs")) parseEnv4T4LJson(&pObj, pt.ampEnv);
+    struct EnvMap { Env4T4L PartialConfig::* m; const char* k[3]; };
+    static constexpr EnvMap kEnvs[] = { {&PartialConfig::ampEnv, {"ampEnv4T4L","ampEnv","ampEnvelope"}},
+        {&PartialConfig::filterEnv, {"filterEnv4T4L","filterEnv","filterEnvelope"}}, {&PartialConfig::pitchEnv, {"pitchEnv4T4L","pitchEnv","pitchEnvelope"}} };
+    for (const auto& em : kEnvs) for (const char* k : em.k) parseEnv4T4LJson(pObj.find(k), pt.*(em.m)); pt.ampEnv.l4 = 0.0f;
+}
 } // namespace abd::rompler::detail

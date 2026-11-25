@@ -19,3 +19,4 @@ export * from './filterRegistry';
 export * from './abdPattern';
 export * from './enginePanelBridge';
 export * from './fxFaceplateBridge';
+export * from './MidiTranslationEngine';

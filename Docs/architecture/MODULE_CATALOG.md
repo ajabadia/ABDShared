@@ -21,6 +21,8 @@ Namespace: `abd::dsp`
 - `DspLeakedObjectDetector.h` — detector de fugas portable.
 - `DspMidiBuffer.h`, `DspMidiMessage.h` — mensajes MIDI puros sin JUCE.
 - `DspResonantFilter.h` — filtro resonante TPT de etapa, con AGC de auto-oscilación.
+- `DspTb303DiodeLadder.h` — filtro escalera de diodos TB-303 de 4 polos sobremuestreado 2x con diezmador polifásico (`Tb303DiodeLadderFilter`, cumple `IsFilterStage`).
+- `DspEmaxHChipFilter.h` — filtro dual cascada biquad `Q2.14` H-Chip del E-mu Emax II con LUT `512` `cos(theta)` @ `39.0625 kHz` y *slew* hardware `>> 6` (`EmaxHChipFilter`, cumple `IsFilterStage`).
 
 **Contrato clave (leyendo el header):**
 
@@ -192,16 +194,25 @@ Modelo: motor sin política + catálogo inyectado + etapas inyectadas.
   - `profiles/MS2000EqProfile.h`
   - `profiles/Re201Profile.h`
   - `profiles/ReverbProfile.h`
+  - `profiles/RolandGsMc303FxProfile.h`
 - Motores por efecto:
+  - `DspMultiBusFxRack.h`
   - `DspChorus.h`, `JunoBBD.h`
   - `DspDelay.h`, `MultiHeadEcho.h`
-  - `DspReverb.h`, `DspSchroederReverb.h`
+  - `DspReverb.h`, `DspSchroederReverb.h`, `DspFdnReverb.h`, `DspZitaReverb.h`
   - `DspSaturation.h`
   - `Phaser4.h`
   - `RingMod.h`
   - `ShelfFilter.h`
   - `CascadeShelfEq.h`
-  - **Familia Korg MS2000 DSP56362 (extraídos del microcódigo v1.07 `P:$0834–$10A7`, agnósticos al sample rate):**
+  - **Familia Roland LA-50 / MT-32 / JV-880 / GS / MC-303 (`fxId 61..67`):**
+    - `DspRolandBossReverb.h` (LA-50 / MT-32 Boss Reverb MB87136, 32 programas)
+    - `DspRolandMultiChorus.h` (LA-50 Multi-Chorus / Flanger / Tremolo / Dimension, 8 modos)
+    - `DspRolandToneEq.h` (LA-50 Parametric Tone EQ)
+    - `DspRolandJvReverb.h` (JV-880 / GS PCM Reverb & Delay, 8 algoritmos)
+    - `DspRolandJvChorus.h` (JV-880 / GS Stereo Chorus, 8 modos, LFO 24-bit tri)
+    - `DspRolandGsDelay.h` (GS / MC-303 3-Tap System Delay, 10 macros + LUT hardware)
+  - **Familia Korg MS2000 DSP56362 (extraídos del microcódigo v1.07 `P:$0834–$10A7`, agnósticos al sample rate e integrados en el rack multibus con `fxId 68..73`):**
     - `DspMS2000ChorusFlanger.h` (`P:$0F50–$0F95`: Stereo Chorus/Flanger con LFO triangular parabólico en contrafase L/R y cuantización DRAM de 16 bits).
     - `DspMS2000Ensemble.h` (`P:$0F96–$0FE8`: Stereo 3-Phase Ensemble con suma mono `0.35`, LFO trifásico $120^\circ$ + shimmer `0.20` y matriz `0.8 / -0.4 / -0.2`).
     - `DspMS2000Phaser.h` (`P:$105D–$10A7`: Stereo 4-Stage Phaser con LFO cuadrático en contrafase L/R).
@@ -713,3 +724,32 @@ Restricción cumplida: **100 % C++20 JUCE-free**, compatible con Nativo Headless
 - **`StructuredRompler/` (`abd::rompler::*`):** motor completo estéreo de 4 parciales y Drum Kit (`StructuredRomplerEngine`, `StandaloneStructuredRomplerEngine`, `Parallel` / `RingMod12` / `Booster12` / `Vector2D`), doble filtro en serie (VCF1 + VCF2), envolventes `5-Stage` (`Env4T4L` + helper `makeEnv4T4L`), `RomplerVoicePool` compartido con presupuesto de parciales y callback `VoiceStolenFn`, `RomplerWavePool` multi-banco con deduplicación por `(bankId, waveId)` y recolección diferida segura para audio (`collectGarbage`), `RomplerBankIndex` para indexación ligera y carga selectiva *on-demand* por offset ZIP (`indexFromFilePath` / `indexFromMemory`, `loadToneOnDemand`, `loadDrumKitOnDemand`), `RomplerParamCodec` (acceso RT-safe por clave), `RomplerPresetSerializer` (estado JSON completo con `WaveResolveFn`), `RomplerBankPacker` (exportador `.abdbank` con *tree-shaking* de muestras no usadas), `RomplerBankLoader` y `RomplerFactoryPatches` (4 kits + 16 tonos).
 - **WebUI Desacoplada (`Contracts/enginePanelBridge.ts`, `Components/SynthEngines/`, `Assets/styles/components/synth-engine-panel.css`):** contrato universal `EnginePanelBridge`, gestor de slot `EnginePanelHost` con fallback automático `GenericEnginePanel`, y panel embebible `StructuredRomplerPanel` (3 pestañas accesibles ARIA `Partials & Tone` / `Filter 2 & LFOs` / `Drum Kit`, CSS `@container` 100 % tokenizado sin colores hardcodeados, i18n EN/ES y test unitario en `tests/synthEnginePanel.test.js`).
 - **Verificación y consumidor real:** suites `ABDShared_StructuredRompler_Tests` (**14 passed, 0 failed**), `ABDShared_RomplerWavePool_Tests` (**7 passed, 0 failed**) y `ABDShared_RomplerRefinement_Tests` (**4 passed, 0 failed**), y consumidor real `ABDMCX0X` (Headless C++20, JUCE 9 Standalone + VST3, Emscripten WASM).
+
+### Módulo: `ABDShared::LinearArithmetic` + `DspEffects` Roland (`LA-50`, `JV-880`, `GS`)
+- **Ubicación C++:** `ABDShared/Code/SynthEngines/LinearArithmetic/` y `ABDShared/Code/DspEffects/`
+- **Target CMake:** `ABDShared::LinearArithmetic` (vincula `ABDShared::SynthCore` y `ABDShared::StructuredRompler` para `RomplerWavePool`)
+- **Tipo de motor (`ISoundEngine`):** `La50SoundEngine` (`typeId = "la50_synth"`, `displayName = "ABD Linear LA-50"`, 16 voces) + envoltorio standalone `StandaloneLa50SoundEngine`.
+- **Cobertura LA32:** D-50 / D-550 (`LaModelProfile::kD50`, 7 estructuras LA, bloques SysEx de 448 B / DT1 `.syx` + 16 presets de fábrica de `PND50-00.syx`) y MT-32 / CM-32L / D-110 (`LaModelProfile::kMt32D110`, 13 estructuras LA y decodificador de timbres de 246 B).
+- **Efectos canónicos compartibles (`fxId 61..67`):** `DspRolandToneEq.h`, `DspRolandMultiChorus.h`, `DspRolandBossReverb.h`, `DspRolandJvReverb.h`, `DspRolandJvChorus.h`, `DspRolandGsDelay.h` y `profiles/RolandGsMc303FxProfile.h`.
+- **Contratos / BankManager / UI:** `Contracts/roland_d50.json`, `roland_mt32.json`, `roland_d50_parameter_spec.json`, `roland_jv880_fx_microprogram.json`, `roland_jv880_parameter_spec.json`, `roland_cm32l_parameter_spec.json`, `lut_tables.json`; `BankManager/Contracts/Models/roland-d50.ts` & `Adapters/rolandD50Adapter.ts`; carátula embebible `Components/SynthEngines/LinearArithmetic/La50EnginePanel.js` y carátulas FX en `Components/FxFaceplates/faceplates/RolandLa50FxFaceplates.js` + `RolandJvGsFxFaceplates.js`.
+- **Guías dedicadas:** [`LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md`](../integration/LINEAR_ARITHMETIC_ENGINE_INTEGRATION.md) y [`FX_FACEPLATES_AND_MODAL_INTEGRATION.md`](../integration/FX_FACEPLATES_AND_MODAL_INTEGRATION.md).
+
+### Módulo: `ABDShared::Mcs48Synth` (`mcs48_synth` — 8-Bit Microcontroller Synth)
+- **Ubicación C++ / CMake:** `Code/SynthEngines/Mcs48/` (`Mcs48SoundEngine.h` / `Mcs48SoundEngine.cpp`, target `ABDShared::Mcs48Synth`). Enlaza directamente las fuentes originales de `ABDMCS48SE` (`GenericMcs48Machine`, `MonoVoice`, `ProgramMemory`, `Mcs48Cpu`) sin duplicación de código.
+- **Tipo de motor (`ISoundEngine`):** `abd::engines::Mcs48SoundEngine` (`typeId = "mcs48_synth"`, `8` ranuras `kControlSlotCount` y `3` presets de fábrica), con filtro DC blocker pre-envolvente y apagado inteligente 0 % CPU en reposo.
+- **WebUI SSOT:** `Components/SynthEngines/Mcs48/Mcs48EnginePanel.js`, `mcs48ParamSpecs.js` y `mcs48-panel.css` (compartida por el host multi-motor y el standalone `ABDMCS48SE`).
+- **Verificación y guía:** suite `ABDShared_Mcs48Engine_Tests` y [`SYNTH_ENGINE_INTEGRATION_GUIDE.md`](../integration/SYNTH_ENGINE_INTEGRATION_GUIDE.md).
+
+### Módulo: `ABDShared::Tb303Synth` (`tb303_synth` — Roland TB-303 Devilfish, `15/15`)
+- **Ubicación C++ / CMake:** `Code/SynthEngines/Tb303/` (`Tb303SoundEngine.h` / `.cpp`, `Tb303DspCore.h`, `Tb303DriveStage.h`, target `ABDShared::Tb303Synth`).
+- **Filtro promovido a `DspCore`:** `Code/DspCore/DspTb303DiodeLadder.h` (`abd::dsp::Tb303DiodeLadderFilter`, cumple `IsFilterStage`).
+- **Tipo de motor (`ISoundEngine`):** `abd::engines::Tb303SoundEngine` (`typeId = "tb303_synth"`, `15` parámetros completos con overdrive `Off`/`Soft`/`RAT`, `coarse`, `fine`, `portaSwitch` y 16 presets de fábrica contrastados).
+- **Contratos y capa aséptica JS/TS:** `Contracts/roland_tb303_parameter_spec.json` (`15` parámetros) + `Contracts/roland_tb303.json` (`15` controles); `Components/SynthEngines/Tb303/Tb303EnginePanel.js`, `tb303ParamSpecs.js` (conversores `tb303NormToDomain`, `tb303DomainToNorm`, `tb303WireToDomain`, `tb303DomainToWire`), `tb303Types.d.ts` y `tb303-panel.css`.
+- **Verificación y guía:** suites `ABDShared_Tb303Engine_Tests` + Vitest `tests/tb303EnginePanel.test.js` + `Contracts/Contracts.test.js` y [`SYNTH_ENGINE_INTEGRATION_GUIDE.md`](../integration/SYNTH_ENGINE_INTEGRATION_GUIDE.md).
+
+### Módulo: `ABDShared::EmaxSynth` (`emax_synth` — E-mu Emax II Player, `37/37`)
+- **Ubicación C++ / CMake:** `Code/SynthEngines/Emax/` (`EmaxSoundEngine.h`, `EmaxWaveSincReader.h`, `EmaxSoundEngine.cpp`, `EmaxSoundEngineParams.cpp`, `EmaxSoundEngineRender.cpp`, todos `< 300` lín., target `ABDShared::EmaxSynth`, vinculado con `ABDShared::StructuredRompler` para compartir `RomplerWavePool`).
+- **Filtro promovido a `DspCore`:** `Code/DspCore/DspEmaxHChipFilter.h` (`abd::dsp::EmaxHChipFilter`, cascada dual biquad `Q2.14` con entrada `cos(theta)` en LUT `512` `Q1.15`).
+- **Tipo de motor (`ISoundEngine`):** `abd::emax::EmaxSoundEngine` (`typeId = "emax_synth"`, hasta `32` voces / `88` zonas, `8` presets internos + bancos `.abdbank`), con publicación semántica completa y alias físicos de host (`cutoffHz`/`p1.cutoffHz`, `p1.amp.t1Ms..t4Ms`, `p1.fine`, `lfo1.*`, `p1.pan`/`p1.level`).
+- **Contratos y capa aséptica JS/TS:** `Contracts/emu_emax2_parameter_spec.json` (`37` parámetros) + `Contracts/emu_emax2.json` (`37` controles); `Components/SynthEngines/Emax/EmaxEnginePanel.js`, `emaxSynthStageView.js`, `emaxMenuView.js`, `emaxParamSpecs.js` (conversores `emaxWireToNorm`, `emaxNormToWire`, `emaxNormToPhysicalDomain`), `emaxTypes.d.ts` y `emax-panel.css` (carátula host `/assets/models/emu-emax2.webp`).
+- **Verificación y guía:** suites `ABDShared_EmaxEngine_Tests` + Vitest `tests/emaxEnginePanel.test.js` + `Contracts/Contracts.test.js` y procedimiento maestro [`SYNTH_ENGINE_INTEGRATION_GUIDE.md`](../integration/SYNTH_ENGINE_INTEGRATION_GUIDE.md).

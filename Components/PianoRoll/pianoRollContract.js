@@ -8,9 +8,20 @@ export const GRID_DIVISIONS = [
   { id: 'off', label: 'OFF (Libre)', stepsPerBar: 0 },
   { id: '1/4', label: '1/4', stepsPerBar: 4 },
   { id: '1/8', label: '1/8', stepsPerBar: 8 },
+  { id: '1/8T', label: '1/8 T', stepsPerBar: 12 },
   { id: '1/16', label: '1/16', stepsPerBar: 16 },
-  { id: '1/32', label: '1/32', stepsPerBar: 32 },
   { id: '1/16T', label: '1/16 T', stepsPerBar: 24 },
+  { id: '1/32', label: '1/32', stepsPerBar: 32 },
+  { id: '1/64', label: '1/64', stepsPerBar: 64 },
+];
+
+export const QUANTIZE_STRENGTHS = [
+  { id: '1', label: '100%' }, { id: '0.75', label: '75%' }, { id: '0.5', label: '50%' }, { id: '0.25', label: '25%' },
+];
+export const HUMANIZE_PRESETS = [
+  { id: 'subtle', label: 'Soft', tick: 2, vel: 4 },
+  { id: 'medium', label: 'Med', tick: 4, vel: 8 },
+  { id: 'loose', label: 'Loose', tick: 8, vel: 16 },
 ];
 
 export const SWING_PRESETS = [

@@ -132,6 +132,31 @@ public:
     [[nodiscard]] const RomplerWavePool* pool() const noexcept { return pool_; }
 
     void adopt(std::vector<WaveHandle> newHandles) noexcept;
+    void replaceHandle(WaveHandle oldHandle, WaveHandle newHandle, bool keepOldInPool) noexcept
+    {
+        if (oldHandle != kInvalidWaveHandle && !keepOldInPool)
+        {
+            for (auto it = handles_.begin(); it != handles_.end(); ++it)
+            {
+                if (*it == oldHandle)
+                {
+                    handles_.erase(it);
+                    if (pool_ != nullptr) pool_->release(oldHandle);
+                    break;
+                }
+            }
+        }
+        if (newHandle == kInvalidWaveHandle) return;
+        for (const WaveHandle existing : handles_)
+        {
+            if (existing == newHandle)
+            {
+                if (pool_ != nullptr) pool_->release(newHandle);
+                return;
+            }
+        }
+        handles_.push_back(newHandle);
+    }
     void releaseAll() noexcept;
     [[nodiscard]] std::size_t size() const noexcept { return handles_.size(); }
 

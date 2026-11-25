@@ -13,6 +13,8 @@ import { allBehringerDm12dContracts } from './behringer-dm12d.ts';
 import { allBehringerPro800Contracts } from './behringer-pro800.ts';
 import { allYamahaContracts } from './yamaha-dx7.ts';
 import { allRolandAiraContracts } from './roland-aira.ts';
+import { allRolandD50Contracts } from './roland-d50.ts';
+import { allRolandCm32Contracts } from './roland-cm32.ts';
 import { hydratedContractMap } from './jsonContractHydrator.ts';
 import { HARDWARE_QUEUE_CONFIGS } from '../HardwareQueueConfigs.ts';
 export type { HARDWARE_QUEUE_CONFIGS } from '../HardwareQueueConfigs.ts';
@@ -29,6 +31,8 @@ export * from './behringer-dm12d.ts';
 export * from './behringer-pro800.ts';
 export * from './yamaha-dx7.ts';
 export * from './roland-aira.ts';
+export * from './roland-d50.ts';
+export * from './roland-cm32.ts';
 export * from './jsonContractHydrator.ts';
 
 // All contracts combined
@@ -42,7 +46,9 @@ export const allModelContracts = [
   ...allBehringerDm12dContracts,
   ...allBehringerPro800Contracts,
   ...allYamahaContracts,
-  ...allRolandAiraContracts
+  ...allRolandAiraContracts,
+  ...allRolandD50Contracts,
+  ...allRolandCm32Contracts
 ];
 
 // Lookup by modelId
@@ -116,9 +122,7 @@ export function getMidiConfig(modelId: string): MidiConfig {
 
   return {
     channel: contract?.midi?.defaultChannel ?? 1,
-    deviceId: contract?.manufacturer === 'Korg'
-      ? 0x10
-      : contract?.midi?.defaultDeviceId ?? 0x10,
+    deviceId: contract?.midi?.defaultDeviceId ?? 0x10,
     interMessageDelayMs: isHydrated
       ? (contract?.interMessageDelayMs ?? queue?.interMessageDelayMs ?? 20)
       : (queue?.interMessageDelayMs ?? 20),

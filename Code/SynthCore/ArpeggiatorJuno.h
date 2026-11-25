@@ -92,7 +92,22 @@ public:
     // acorde nuevo (cuando no hay ninguna pulsada fisicamente) sustituye al latch.
     bool mHold = false;
 
+    // Emulacion del jitter de sondeo T1 del microcontrolador NEC uPD8049C (1.0 a 2.1 ms)
+    bool mEnablePollJitter = true;
+    float mNextJitterPhase = 0.0f;
+    uint32_t mJitterRng    = 0x8049C238u;
+
     ArpeggiatorJuno() noexcept = default;
+
+    /** Jitter de sondeo de la ventana del bucle 8049 sobre el pin T1 (1.0ms a 2.1ms) */
+    float nextJitter() noexcept
+    {
+        mJitterRng = mJitterRng * 1664525u + 1013904223u;
+        float norm = static_cast<float>(mJitterRng & 0x00FFFFFFu) / static_cast<float>(0x01000000u);
+        float jitterSec = 0.0010f + norm * 0.0011f;
+        float phaseJitter = jitterSec * (mRate / 60.0f);
+        return std::min(phaseJitter, 0.25f);
+    }
 
     /** Curva de frecuencia analógica derivada del circuito RC del Juno-60 */
     static float arpRate(float t) noexcept
@@ -111,37 +126,66 @@ public:
         if (mHold)
         {
             if (mPhysDown == 0)
-                mHeldCount = 0; // acorde nuevo: el latch anterior se descarta
+            {
+                // Acorde nuevo: el latch anterior se descarta
+                mHeldCount       = 0;
+                mHeldBits[0]     = 0;
+                mHeldBits[1]     = 0;
+                mCurrentChordIdx = -1;
+                mLastBaseNote    = -1;
+            }
             ++mPhysDown;
         }
 
+        const uint64_t mask = 1ULL << (note & 63);
+        const size_t word   = static_cast<size_t>(note >> 6);
+
+        if ((mHeldBits[word] & mask) != 0)
+            return; // Ya existe
+
+        mHeldBits[word] |= mask;
+
+        // Inserción ordenada sin heap
         auto* begin = mHeldNotes.data();
         auto* end   = begin + mHeldCount;
         auto* it    = std::lower_bound(begin, end, note);
 
-        if (it != end && *it == note) return; // ya existe
-        if (mHeldCount >= kMaxHeldNotes) return;
-
-        // Inserción ordenada sin heap
-        std::move_backward(it, end, end + 1);
-        *it = note;
-        ++mHeldCount;
+        if (mHeldCount < kMaxHeldNotes)
+        {
+            std::move_backward(it, end, end + 1);
+            *it = note;
+            ++mHeldCount;
+        }
 
         if (mHeldCount == 1)
         {
-            mPhase     = 1.f;
-            mStepIndex = 0;
-            mDirection = 1;
+            mPhase           = 1.f;
+            mNextJitterPhase = 0.f;
+            mStepIndex       = 0;
+            mDirection       = 1;
+            mCurrentChordIdx = -1;
+            mCurrentOctave   = (mMode == 2) ? std::clamp(mRange, 0, 2) : 0;
+            mLastBaseNote    = -1;
         }
     }
 
     void NoteOff(int note) noexcept
     {
+        if (note < 0 || note > 127) return;
+
         if (mHold)
         {
             if (mPhysDown > 0) --mPhysDown;
-            return; // latcheadas: el acorde sigue sonando
+            return; // Latcheadas: el acorde sigue sonando
         }
+
+        const uint64_t mask = 1ULL << (note & 63);
+        const size_t word   = static_cast<size_t>(note >> 6);
+
+        if ((mHeldBits[word] & mask) == 0)
+            return; // No estaba pulsada
+
+        mHeldBits[word] &= ~mask;
 
         auto* begin = mHeldNotes.data();
         auto* end   = begin + mHeldCount;
@@ -155,9 +199,12 @@ public:
 
         if (mHeldCount == 0)
         {
-            mStepIndex = 0;
-            mDirection = 1;
-            mPhase     = 0.f;
+            mStepIndex       = 0;
+            mDirection       = 1;
+            mPhase           = 0.f;
+            mCurrentChordIdx = -1;
+            mCurrentOctave   = 0;
+            mLastBaseNote    = -1;
         }
     }
 
@@ -169,22 +216,34 @@ public:
         // Al soltar HOLD sin teclas pulsadas, el latch se suelta.
         if (! on && mPhysDown == 0)
         {
-            mHeldCount = 0;
-            mStepIndex = 0;
-            mDirection = 1;
-            mPhase     = 0.f;
+            mHeldCount       = 0;
+            mStepIndex       = 0;
+            mDirection       = 1;
+            mPhase           = 0.f;
+            mCurrentChordIdx = -1;
+            mCurrentOctave   = 0;
+            mLastBaseNote    = -1;
+            mHeldBits[0]     = 0;
+            mHeldBits[1]     = 0;
         }
     }
 
     void Reset() noexcept
     {
-        mHeldCount    = 0;
-        mPhysDown     = 0;
-        mStepIndex    = 0;
-        mDirection    = 1;
-        mPhase        = 0.f;
-        mLastNote     = -1;
-        mLastSyncStep = -1;
+        mHeldCount        = 0;
+        mPhysDown         = 0;
+        mStepIndex        = 0;
+        mDirection        = 1;
+        mCurrentChordIdx  = -1;
+        mCurrentOctave    = 0;
+        mLastBaseNote     = -1;
+        mPhase            = 0.f;
+        mNextJitterPhase  = 0.f;
+        mJitterRng        = 0x8049C238u;
+        mLastNote         = -1;
+        mLastSyncStep     = -1;
+        mHeldBits[0]      = 0;
+        mHeldBits[1]      = 0;
     }
 
     [[nodiscard]] int SeqLen() const noexcept
@@ -233,47 +292,194 @@ public:
 
     int NextNote() noexcept
     {
-        int len = SeqLen();
-        if (len == 0) return -1;
+        if (mHeldCount == 0) return -1;
 
-        if (mStepIndex >= len) mStepIndex = 0;
-        if (mStepIndex < 0) mStepIndex = len - 1;
+        const int K = mHeldCount;
+        const int maxOctave = std::clamp(mRange, 0, 2);
 
-        int note = -1;
+        // Re-sincronizar mCurrentChordIdx si el acorde mutó dinámicamente
+        if (mLastBaseNote >= 0)
+        {
+            auto* begin = mHeldNotes.data();
+            auto* end   = begin + K;
+            auto* it    = std::find(begin, end, mLastBaseNote);
+            if (it != end)
+            {
+                mCurrentChordIdx = static_cast<int>(std::distance(begin, it));
+            }
+            else
+            {
+                // La nota que estaba sonando fue soltada: buscar la más cercana en la dirección actual
+                if (mDirection == 1)
+                {
+                    auto* lb = std::lower_bound(begin, end, mLastBaseNote);
+                    mCurrentChordIdx = static_cast<int>(std::distance(begin, lb)) - 1;
+                }
+                else
+                {
+                    auto* ub = std::upper_bound(begin, end, mLastBaseNote);
+                    mCurrentChordIdx = static_cast<int>(std::distance(begin, ub));
+                }
+            }
+        }
+
         switch (mMode)
         {
             case 0: // Up
-                note       = SeqNote(mStepIndex);
-                mStepIndex = (mStepIndex + 1) % len;
-                break;
-
-            case 1: // Up/Down
-                note = SeqNote(mStepIndex);
-                if (len > 1)
+            {
+                if (mCurrentChordIdx < 0 || mCurrentChordIdx >= K)
                 {
-                    mStepIndex += mDirection;
-                    if (mStepIndex >= len)
+                    mCurrentChordIdx = 0;
+                    mCurrentOctave   = 0;
+                }
+                else
+                {
+                    ++mCurrentChordIdx;
+                    if (mCurrentChordIdx >= K)
                     {
-                        mStepIndex = len - 2;
-                        mDirection = -1;
+                        mCurrentChordIdx = 0;
+                        ++mCurrentOctave;
+                        if (mCurrentOctave > maxOctave)
+                            mCurrentOctave = 0;
                     }
-                    else if (mStepIndex < 0)
+                }
+                mDirection = 1;
+                break;
+            }
+
+            case 1: // Up/Down (Roland 8049 ROM exact: sin repetición de extremos)
+            {
+                if (K == 1)
+                {
+                    if (mCurrentChordIdx < 0)
                     {
-                        mStepIndex = 1;
-                        mDirection = 1;
+                        mCurrentChordIdx = 0;
+                        mCurrentOctave   = 0;
+                        mDirection       = 1;
+                    }
+                    else if (maxOctave == 0)
+                    {
+                        mCurrentChordIdx = 0;
+                        mCurrentOctave   = 0;
+                    }
+                    else
+                    {
+                        mCurrentChordIdx = 0;
+                        mCurrentOctave += mDirection;
+                        if (mCurrentOctave > maxOctave)
+                        {
+                            mCurrentOctave = maxOctave - 1;
+                            mDirection     = -1;
+                        }
+                        else if (mCurrentOctave < 0)
+                        {
+                            mCurrentOctave = 1;
+                            mDirection     = 1;
+                        }
+                    }
+                }
+                else
+                {
+                    if (mCurrentChordIdx < 0 || mCurrentChordIdx >= K)
+                    {
+                        mCurrentChordIdx = 0;
+                        mCurrentOctave   = 0;
+                        mDirection       = 1;
+                    }
+                    else
+                    {
+                        if (mDirection == 1)
+                        {
+                            if (mCurrentChordIdx + 1 < K)
+                            {
+                                ++mCurrentChordIdx;
+                            }
+                            else
+                            {
+                                if (mCurrentOctave + 1 <= maxOctave)
+                                {
+                                    ++mCurrentOctave;
+                                    mCurrentChordIdx = 0;
+                                }
+                                else
+                                {
+                                    // Rebote superior: cambiar dirección a descendente y saltar nota superior (R6=2 en ROM)
+                                    mDirection       = -1;
+                                    mCurrentChordIdx = K - 2;
+                                }
+                            }
+                        }
+                        else // mDirection == -1
+                        {
+                            if (mCurrentChordIdx - 1 >= 0)
+                            {
+                                --mCurrentChordIdx;
+                            }
+                            else
+                            {
+                                if (mCurrentOctave - 1 >= 0)
+                                {
+                                    --mCurrentOctave;
+                                    mCurrentChordIdx = K - 1;
+                                }
+                                else
+                                {
+                                    // Rebote inferior: cambiar dirección a ascendente y saltar nota inferior (R6=2 en ROM)
+                                    mDirection       = 1;
+                                    mCurrentChordIdx = 1;
+                                }
+                            }
+                        }
                     }
                 }
                 break;
+            }
 
             case 2: // Down
-                note       = SeqNote(len - 1 - mStepIndex);
-                mStepIndex = (mStepIndex + 1) % len;
+            {
+                if (mCurrentChordIdx < 0 || mCurrentChordIdx >= K)
+                {
+                    mCurrentChordIdx = K - 1;
+                    mCurrentOctave   = maxOctave;
+                }
+                else
+                {
+                    --mCurrentChordIdx;
+                    if (mCurrentChordIdx < 0)
+                    {
+                        mCurrentChordIdx = K - 1;
+                        --mCurrentOctave;
+                        if (mCurrentOctave < 0)
+                            mCurrentOctave = maxOctave;
+                    }
+                }
+                mDirection = -1;
                 break;
+            }
 
             default:
-                note = SeqNote(0);
+                mCurrentChordIdx = 0;
+                mCurrentOctave   = 0;
                 break;
         }
+
+        mCurrentChordIdx = std::clamp(mCurrentChordIdx, 0, K - 1);
+        mCurrentOctave   = std::clamp(mCurrentOctave, 0, maxOctave);
+
+        const int baseNote = mHeldNotes[static_cast<size_t>(mCurrentChordIdx)];
+        mLastBaseNote      = baseNote;
+
+        int note = baseNote + mCurrentOctave * 12;
+
+        if (mLimitToKeyboard)
+        {
+            while (note > kMaxArpNote)
+                note -= 12;
+        }
+
+        // Mantener mStepIndex para compatibilidad de inspección
+        mStepIndex = mCurrentChordIdx + mCurrentOctave * K;
+
         return note;
     }
 
@@ -354,9 +560,10 @@ public:
         for (int s = 0; s < nFrames; ++s)
         {
             mPhase += inc;
-            if (mPhase >= 1.f)
+            if (mPhase >= (1.f + mNextJitterPhase))
             {
                 mPhase -= 1.f;
+                mNextJitterPhase = mEnablePollJitter ? nextJitter() : 0.0f;
                 mTickCount.fetch_add(1, std::memory_order_relaxed);
 
                 if (mLastNote >= 0)
@@ -385,6 +592,12 @@ private:
     std::array<int, kMaxHeldNotes> mHeldNotes{};
     int mHeldCount = 0;
     int mPhysDown  = 0; // teclas pulsadas de verdad (para separar latch de HOLD)
+
+    // Estado del escáner fiel a la ROM 8049
+    std::array<uint64_t, 2> mHeldBits{0, 0}; // Bitmap de 128 notas (C1..C6 en 36..96)
+    int mCurrentChordIdx = -1;               // 0..mHeldCount-1 dentro del acorde
+    int mCurrentOctave   = 0;                // 0..mRange
+    int mLastBaseNote    = -1;               // Última nota base tocada para transiciones al vuelo
 };
 
 } // namespace abd::synth

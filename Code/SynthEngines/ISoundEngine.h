@@ -36,6 +36,8 @@ struct EngineTransportContext
     double bpm { 120.0 };
     float masterTuneSemitones { 0.0f };
     float pitchBendSemitones { 0.0f };
+    float modWheel01 { 0.0f };
+    float aftertouch01 { 0.0f };
 };
 
 /**
@@ -78,6 +80,9 @@ public:
     // Optional built-in preset hooks (default no-op for lightweight/custom engines)
     [[nodiscard]] virtual int getFactoryPresetCount() const noexcept { return 0; }
     [[nodiscard]] virtual const char* getFactoryPresetName(int /*index*/) const noexcept { return ""; }
+    [[nodiscard]] virtual int getFactoryPresetCategory(int /*index*/) const noexcept { return 0; }
+    [[nodiscard]] virtual bool isFactoryPresetDrumMode(int /*index*/) const noexcept { return false; }
+    [[nodiscard]] virtual bool isActiveStateDrumMode() const noexcept { return false; }
     virtual bool loadFactoryPreset(int /*index*/) noexcept { return false; }
     [[nodiscard]] virtual const char* getCurrentPresetName() const noexcept { return ""; }
 

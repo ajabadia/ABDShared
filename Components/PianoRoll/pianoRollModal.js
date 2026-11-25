@@ -7,7 +7,10 @@
 import { PianoRollCanvas } from './pianoRollCanvas.js';
 import { PianoRollVelocityLane } from './pianoRollVelocityLane.js';
 import { buildPianoRollModalHtml } from './pianoRollViews.js';
-import { DEFAULT_AUTOMATION_TARGETS, DEFAULT_DRUM_MAP, PR_TOOLS, transposeNotes, quantizeNotes, humanizeNotes, serializeSequence, parseSequence } from './pianoRollContract.js';
+import {
+  DEFAULT_AUTOMATION_TARGETS, DEFAULT_DRUM_MAP, GRID_DIVISIONS, HUMANIZE_PRESETS,
+  PR_TOOLS, transposeNotes, quantizeNotes, humanizeNotes, serializeSequence, parseSequence,
+} from './pianoRollContract.js';
 import { attachDialogDrag, bringToFront } from '../../Code/DiagnosticProbe/WebUI/DiagnosticProbeI18n.js';
 
 export class PianoRollModal {
@@ -15,9 +18,12 @@ export class PianoRollModal {
     this.opts = options; this.partIndex = options.partIndex ?? 0;
     this.bridge = options.bridge; this.onPatternChange = options.onPatternChange || null;
     this.onMotionPlayback = options.onMotionPlayback || null; this.onNotePreview = options.onNotePreview || null;
+    this.onExportMidi = options.onExportMidi || null;
     this.onClose = options.onClose || null; this.onNotice = options.onNotice || null;
     this.locale = options.locale || 'es'; this.bars = options.bars || 1; this.ppq = options.ppq || 96;
     this.mode = options.mode || 'chromatic'; this.grid = '1/16'; this.swing = options.swing || 0.50;
+    this.quantizeStrength = 1.0; this.humanizePreset = 'medium';
+    this.recordMode = options.recordMode === 'replace' ? 'replace' : 'overdub'; this.recReplaceCleared = false;
     this.target = 'velocity'; this.playing = false; this.recording = false; this.currentTick = 0;
     this.zoomH = 1.0; this.zoomV = 1.0; this.activeRecordNotes = {};
     this.activeTool = PR_TOOLS.PENCIL; this.notes = options.initialNotes ? [...options.initialNotes] : [];
@@ -31,26 +37,18 @@ export class PianoRollModal {
 
   render() {
     this.el.innerHTML = buildPianoRollModalHtml(this, this.locale, this.automationTargets);
-    const handle = this.el.querySelector('.abd-pianoroll-head');
-    if (handle) attachDialogDrag(this.el, handle);
-
-    const gridCanvas = this.el.querySelector('#abd-pianoroll-canvas');
-    const keysCanvas = this.el.querySelector('#abd-pr-keys-canvas');
-    this.gridRenderer = new PianoRollCanvas(gridCanvas, {
-      keysCanvas, mode: this.mode, totalTicks: this.getTotalTicks(), zoomH: this.zoomH, zoomV: this.zoomV,
-      playableRange: this.playableRange, drumMap: this.drumMap, activeTool: this.activeTool,
+    const handle = this.el.querySelector('.abd-pianoroll-head'); if (handle) attachDialogDrag(this.el, handle);
+    this.gridRenderer = new PianoRollCanvas(this.el.querySelector('#abd-pianoroll-canvas'), {
+      keysCanvas: this.el.querySelector('#abd-pr-keys-canvas'), mode: this.mode, totalTicks: this.getTotalTicks(),
+      zoomH: this.zoomH, zoomV: this.zoomV, playableRange: this.playableRange, drumMap: this.drumMap, activeTool: this.activeTool,
       onNotesChange: (notes) => this.handleNotesUpdated(notes),
       onNotePreview: (m, v) => (this.onNotePreview ? this.onNotePreview(m, v) : this.bridge?.noteOn?.(0, m, v / 127)),
       onNotice: this.onNotice,
     });
-
-    const velCanvas = this.el.querySelector('#abd-pianoroll-vel-canvas');
-    this.velRenderer = new PianoRollVelocityLane(velCanvas, {
+    this.velRenderer = new PianoRollVelocityLane(this.el.querySelector('#abd-pianoroll-vel-canvas'), {
       totalTicks: this.getTotalTicks(), zoomH: this.zoomH, hasSpacer: true,
-      onVelocityChange: () => this.handleNotesUpdated(this.notes),
-      onMotionChange: (t, k, v) => this.handleMotionUpdated(t, k, v),
+      onVelocityChange: () => this.handleNotesUpdated(this.notes), onMotionChange: (t, k, v) => this.handleMotionUpdated(t, k, v),
     });
-
     const gs = this.el.querySelector('#abd-pr-grid-scroll'), kc = this.el.querySelector('#abd-pr-keys-col'), vs = this.el.querySelector('#abd-pr-vel-scroll');
     gs?.addEventListener('scroll', () => { if (kc) kc.scrollTop = gs.scrollTop; if (vs) vs.scrollLeft = gs.scrollLeft; });
     vs?.addEventListener('scroll', () => { if (gs) gs.scrollLeft = vs.scrollLeft; });
@@ -68,35 +66,35 @@ export class PianoRollModal {
 
   open() {
     if (!this.isOpen()) { (typeof this.el.show === 'function') ? this.el.show() : this.el.setAttribute('open', ''); }
-    bringToFront(this.el);
-    window.addEventListener('keydown', this._onKeyDown);
+    bringToFront(this.el); window.addEventListener('keydown', this._onKeyDown);
     requestAnimationFrame(() => requestAnimationFrame(() => this.syncData()));
   }
   close() {
     window.removeEventListener('keydown', this._onKeyDown);
     if (this.isOpen()) { (typeof this.el.close === 'function') ? this.el.close() : this.el.removeAttribute('open'); this.onClose?.(); }
   }
-
   toggle() { this.isOpen() ? this.close() : this.open(); }
   isOpen() { return Boolean(this.el.open || this.el.hasAttribute('open')); }
   setLocale(loc) { this.locale = loc; this.render(); }
   setPartIndex(idx) { this.partIndex = idx ?? 0; }
   setPlayhead(tick) { this.currentTick = tick; this.gridRenderer?.setPlayhead(tick); }
-
   setPlaying(p) {
     this.playing = Boolean(p);
     this.el.querySelector('.abd-pr-play-btn')?.classList.toggle('is-playing', this.playing);
     this.el.querySelector('.abd-pr-stop-btn')?.classList.toggle('is-stopped', !this.playing);
   }
   isRecording() { return Boolean(this.recording); }
-  setRecording(r) { this.recording = Boolean(r); this.el.querySelector('.abd-pr-rec-btn')?.classList.toggle('is-rec', this.recording); }
-
-  gridTicks(g) { const q = this.ppq * 4; return g === '1/8' ? q / 8 : g === '1/32' ? q / 32 : q / 16; }
+  setRecording(r) {
+    const next = Boolean(r); if (next !== this.recording) this.recReplaceCleared = false;
+    this.recording = next; this.el.querySelector('.abd-pr-rec-btn')?.classList.toggle('is-rec', this.recording);
+  }
+  setRecordMode(mode) { this.recordMode = mode === 'replace' ? 'replace' : 'overdub'; this.recReplaceCleared = false; }
+  gridTicks(g) { if (g === 'off') return 0; const m = GRID_DIVISIONS.find((d) => d.id === g); return (this.ppq * 4) / (m && m.stepsPerBar > 0 ? m.stepsPerBar : 16); }
 
   recordNoteOn(midi, vel = 100, quantizeGrid = null) {
     if (!this.recording) return;
-    const total = Math.max(1, this.getTotalTicks());
-    const g = quantizeGrid || this.inputQuantize, step = g && g !== 'off' ? this.gridTicks(g) : 0;
+    if (this.recordMode === 'replace' && !this.recReplaceCleared) { this.recReplaceCleared = true; this.notes = []; }
+    const total = Math.max(1, this.getTotalTicks()), g = quantizeGrid || this.inputQuantize, step = g && g !== 'off' ? this.gridTicks(g) : 0;
     let t = this.currentTick; if (step > 0) t = Math.round(t / step) * step;
     t = ((t % total) + total) % total;
     if (this.playing) { this.activeRecordNotes[midi] = { startTick: t, velocity: vel, step }; return; }
@@ -106,7 +104,6 @@ export class PianoRollModal {
     this.currentTick = (this.currentTick + dur) % total;
     this.setPlayhead(this.currentTick); this.handleNotesUpdated(this.notes);
   }
-
   recordNoteOff(midi) {
     if (!this.recording || !this.playing || !this.activeRecordNotes[midi]) return;
     const total = Math.max(1, this.getTotalTicks()), rec = this.activeRecordNotes[midi]; delete this.activeRecordNotes[midi];
@@ -159,7 +156,6 @@ export class PianoRollModal {
       this.el.querySelectorAll('.abd-pr-tool-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
       this.syncData();
     }));
-
     const on = (sel, ev, fn) => this.el.querySelector(sel)?.addEventListener(ev, fn);
     on('[data-act="bars"]', 'change', (e) => { this.bars = Number(e.target.value); this.syncData(); this.bridge?.setBars?.(this.bars); });
     on('[data-act="grid"]', 'change', (e) => { this.grid = e.target.value; this.syncData(); });
@@ -175,14 +171,19 @@ export class PianoRollModal {
     on('[data-act="lane-target"]', 'change', (e) => { this.target = e.target.value; this.syncData(); });
     on('[data-act="oct-down"]', 'click', () => { this.notes = transposeNotes(this.notes, -12, this.playableRange); this.handleNotesUpdated(this.notes); });
     on('[data-act="oct-up"]', 'click', () => { this.notes = transposeNotes(this.notes, +12, this.playableRange); this.handleNotesUpdated(this.notes); });
-    on('[data-act="quantize"]', 'click', () => { this.notes = quantizeNotes(this.notes, this.getStepTicks(), 1.0, this.getTotalTicks()); this.handleNotesUpdated(this.notes); });
-    on('[data-act="humanize"]', 'click', () => { this.notes = humanizeNotes(this.notes, 4, 8); this.handleNotesUpdated(this.notes); });
+    on('[data-act="quantize-strength"]', 'change', (e) => { this.quantizeStrength = Math.max(0.1, Math.min(1, Number(e.target.value) || 1)); });
+    on('[data-act="quantize"]', 'click', () => { this.notes = quantizeNotes(this.notes, this.getStepTicks(), this.quantizeStrength, this.getTotalTicks()); this.handleNotesUpdated(this.notes); });
+    on('[data-act="humanize-preset"]', 'change', (e) => { this.humanizePreset = e.target.value; });
+    on('[data-act="humanize"]', 'click', () => { const p = HUMANIZE_PRESETS.find((x) => x.id === this.humanizePreset) || HUMANIZE_PRESETS[1]; this.notes = humanizeNotes(this.notes, p.tick, p.vel); this.handleNotesUpdated(this.notes); });
     on('[data-act="clear"]', 'click', () => { this.notes = []; this.motionData = {}; this.handleNotesUpdated(this.notes); });
+    on('[data-act="export-midi"]', 'click', () => this.onExportMidi?.(this.getSequence()));
     const fileInput = this.el.querySelector('.abd-pr-file-input');
     on('[data-act="export"]', 'click', () => this.exportSequenceFile());
     on('[data-act="import"]', 'click', () => fileInput?.click());
     fileInput?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) this.importSequenceFile(f); e.target.value = ''; });
+    const host = this.el.querySelector('#abd-pianoroll-grid-host');
+    host?.addEventListener('dragover', (e) => e.preventDefault());
+    host?.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f && (f.name.endsWith('.abdseq') || f.name.endsWith('.json'))) this.importSequenceFile(f); });
   }
-
   destroy() { window.removeEventListener('keydown', this._onKeyDown); this.gridRenderer?.destroy(); this.velRenderer?.destroy(); this.el.remove(); }
 }

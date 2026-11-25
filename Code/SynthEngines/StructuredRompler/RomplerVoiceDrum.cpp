@@ -35,6 +35,18 @@ void applyDrumSynthFallback(int slotNote, int partialIdx, PartialConfig& drumPc,
         drumPc.filterMode = 2;
         drumPc.cutoffHz = 2800.0f;
     }
+    else if (slotNote == 41 || slotNote == 45)
+    {
+        drumPc.vaWaveform = 2;
+        drumPc.pitchEnvSemitones = (slotNote == 41) ? 18.0f : 22.0f;
+        drumPitchEnv = makeEnv4T4L(0.0f, 0.0f, 0.5f, 35.0f, 90.0f, 50.0f, 1.0f, 0.0f, 0.0f, 0.0f);
+    }
+    else if (slotNote == 49)
+    {
+        drumPc.vaWaveform = 5;
+        drumPc.filterMode = 1;
+        drumPc.cutoffHz = 5200.0f;
+    }
 }
 } // namespace
 
@@ -51,6 +63,7 @@ void RomplerVoice::noteOnDrum(int ownerSlot, int rawInputNote, int slotNote, flo
     drumTriggerMode_ = slotCfg.triggerMode;
     timestamp_ = timestamp;
     voicePanOffset_ = slotCfg.pan;
+    voiceChorusSend_ = std::clamp(slotCfg.chorusSend, 0.0f, 1.0f);
     voiceSlotLevel_ = std::clamp(slotCfg.level, 0.0f, 1.5f);
     updateLfoSettings(lfo1_, cfg.lfo1, cfg.hostBpm, true);
     updateLfoSettings(lfo2_, cfg.lfo2, cfg.hostBpm, true);
@@ -78,10 +91,14 @@ void RomplerVoice::noteOnDrum(int ownerSlot, int rawInputNote, int slotNote, flo
         drumAmp.l2 = (pc.ampEnv.l2 > 0.05f) ? pc.ampEnv.l2 : 0.8f;
         drumAmp.t1Ms = std::min(pc.ampEnv.t1Ms, 2.5f);
         drumAmp.t3Ms = std::max(10.0f, slotCfg.decayMs);
-        drumAmp.t4Ms = std::max(15.0f, slotCfg.decayMs * 0.65f);
+        drumAmp.t4Ms = std::max(15.0f, slotCfg.decayMs * 0.65f) * (1.0f + 0.75f * std::clamp(slotCfg.reverbSend, 0.0f, 1.0f) + 0.50f * std::clamp(slotCfg.delaySend, 0.0f, 1.0f));
         drumAmp.l3 = (slotCfg.triggerMode == DrumTriggerMode::Gated) ? pc.ampEnv.l3 : 0.0f;
 
         PartialConfig drumPc = pc;
+        if (slotCfg.triggerMode == DrumTriggerMode::OneShot)
+        {
+            drumPc.oneShotMode = true;
+        }
         Env4T4L drumPitchEnv = pc.pitchEnv;
         const bool hasSlotSample = (slotCfg.externalSampleData && slotCfg.externalSampleLength > 0);
         const auto* extData = hasSlotSample ? slotCfg.externalSampleData : pc.externalSampleData;
@@ -89,11 +106,19 @@ void RomplerVoice::noteOnDrum(int ownerSlot, int rawInputNote, int slotNote, flo
         const int extLen = hasSlotSample ? slotCfg.externalSampleLength : pc.externalSampleLength;
         if (!extData || extLen <= 0)
         {
+            if (slotCfg.level <= 0.001f)
+                continue;
             u.exciter.setExternalTable(nullptr, 0, 0, 0);
             applyDrumSynthFallback(slotNote, i, drumPc, drumPitchEnv);
         }
         else
         {
+            drumPc.sourceKind = OscSourceKind::PcmZone;
+            if (hasSlotSample)
+            {
+                drumPc.coarseSemitones = 0;
+                drumPc.fineCents = 0.0f;
+            }
             const int lStart = hasSlotSample ? slotCfg.externalLoopStart : pc.externalLoopStart;
             const int lEnd = hasSlotSample ? slotCfg.externalLoopEnd : pc.externalLoopEnd;
             const float extRate = hasSlotSample ? slotCfg.externalSampleRate : pc.externalSampleRate;

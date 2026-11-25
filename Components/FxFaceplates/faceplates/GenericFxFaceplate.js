@@ -4,6 +4,8 @@
  * Strict line limit: < 200 lines. 100% tokenized.
  */
 
+import { Knob } from '../../Controls/Knob.js';
+
 export class GenericFxFaceplate {
   constructor(container, bridge, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
@@ -11,10 +13,10 @@ export class GenericFxFaceplate {
     this.options = options;
     const desc = bridge.getDescriptor();
     this.algoId = desc.algoId;
+    this.knobs = new Map();
     this.el = document.createElement('div');
     this.el.className = 'abd-fx-chassis-shell abd-generic-fx-faceplate';
     this.render();
-    this.bindEvents();
     this.syncFromBridge();
   }
 
@@ -31,49 +33,50 @@ export class GenericFxFaceplate {
         <span class="abd-fx-brand-legend">${desc.name.toUpperCase()} RACK PROCESSOR</span>
         <span class="abd-fx-brand-legend" style="color:var(--fx-accent-color)">${desc.category.toUpperCase()}</span>
       </div>
-      <div class="abd-fx-controls-grid">
+      <div class="abd-fx-controls-grid" id="controls-grid">
         ${params.map((p) => `
           <div class="abd-fx-knob-col">
             <span class="abd-fx-knob-lbl">${p.label.toUpperCase()}</span>
-            <input type="range" class="abd-fx-slider" data-param="${p.key}" min="${p.min ?? 0}" max="${p.max ?? 1}" step="${p.step ?? 0.01}" value="${p.defaultValue ?? 0.5}" />
+            <div class="abd-fx-knob-mount" id="mount-${p.key}"></div>
             <span class="abd-fx-knob-val" id="val-${p.key}">${Math.round((p.defaultValue ?? 0.5) * 100)}%</span>
           </div>
         `).join('')}
       </div>
     `;
     this.container.appendChild(this.el);
-  }
 
-  bindEvents() {
-    this.el.querySelectorAll('.abd-fx-slider').forEach((slider) => {
-      slider.addEventListener('input', (e) => {
-        const key = (e.target).dataset.param;
-        const val = parseFloat((e.target).value);
-        if (key) {
-          this.bridge.setParam(key, val);
-          const valEl = this.el.querySelector(`#val-${key}`);
-          if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
-        }
-      });
+    params.forEach((p) => {
+      const mount = this.el.querySelector(`#mount-${p.key}`);
+      if (mount) {
+        const knob = new Knob(mount, {
+          size: 54,
+          value: p.defaultValue ?? 0.5,
+          label: '',
+          format: (v) => `${Math.round(v * 100)}%`,
+          onChange: (v) => {
+            this.bridge.setParam(p.key, v);
+            const valEl = this.el.querySelector(`#val-${p.key}`);
+            if (valEl) valEl.textContent = `${Math.round(v * 100)}%`;
+          },
+        });
+        this.knobs.set(p.key, knob);
+      }
     });
   }
 
   syncFromBridge() {
     const st = this.bridge.getState();
-    const desc = this.bridge.getDescriptor();
-    const params = desc.params && desc.params.length > 0 ? desc.params : [{ key: 'p1' }, { key: 'p2' }, { key: 'mix' }];
-    params.forEach((p) => {
-      const val = st[p.key] ?? p.defaultValue ?? 0.5;
-      const input = this.el.querySelector(`.abd-fx-slider[data-param="${p.key}"]`);
-      if (input) input.value = String(val);
-      const valEl = this.el.querySelector(`#val-${p.key}`);
-      if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
+    this.knobs.forEach((knob, key) => {
+      const v = st[key] ?? 0.5;
+      knob.setValue(v);
+      const valEl = this.el.querySelector(`#val-${key}`);
+      if (valEl) valEl.textContent = `${Math.round(v * 100)}%`;
     });
   }
 
   setParamVisual(key, value) {
-    const input = this.el.querySelector(`.abd-fx-slider[data-param="${key}"]`);
-    if (input) input.value = String(value);
+    const knob = this.knobs.get(key);
+    if (knob) knob.setValue(value);
     const valEl = this.el.querySelector(`#val-${key}`);
     if (valEl) valEl.textContent = `${Math.round(value * 100)}%`;
   }
@@ -81,6 +84,8 @@ export class GenericFxFaceplate {
   setLocale(_locale) {}
 
   destroy() {
+    this.knobs.forEach((k) => k.destroy?.());
+    this.knobs.clear();
     this.el.remove();
   }
 }

@@ -218,6 +218,7 @@
                     "MANUAL",
                     "MIDI_CC",
                     "NRPN",
+                    "NRPN_14BIT",
                     "SYSEX"
                   ]
                 },

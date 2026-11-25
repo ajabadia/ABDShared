@@ -105,4 +105,17 @@ describe('MpcPadMatrix (ABDShared)', () => {
     matrix.highlightPad(2, false);
     expect(pad2.classList.contains('is-active')).toBe(false);
   });
+
+  it('supports Scale Chords mode and 16-Levels Velocity/Tuning toggle', () => {
+    const onPadTrigger = vi.fn();
+    ({ container, matrix } = mount({ onPadTrigger }));
+    matrix.setMode('chords');
+    container.querySelector('[data-pad-index="0"]').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(onPadTrigger).toHaveBeenCalledTimes(3);
+
+    matrix.setMode('16_levels');
+    container.querySelector('#mpc-lvl16-type').click();
+    expect(container.querySelector('[data-pad-index="7"] .abd-mpc-pad__vel').textContent).toBe('0st');
+    expect(container.querySelector('[data-pad-index="8"] .abd-mpc-pad__vel').textContent).toBe('+1st');
+  });
 });

@@ -154,4 +154,59 @@ describe('CompactTransportBar (ABDShared)', () => {
 
     expect(() => transport.playMetroClick(true)).not.toThrow();
   });
+
+  it('supports extended controls (RTZ, REW, PAUSE, FF, Count-in, RecMode) and inline BPM edit', () => {
+    const onPause = vi.fn(); const onReturnToZero = vi.fn(); const onRewind = vi.fn(); const onForward = vi.fn();
+    const onCountInChange = vi.fn(); const onRecordModeChange = vi.fn();
+    ({ container, transport } = mount({
+      showExtendedControls: true, onPause, onReturnToZero, onRewind, onForward, onCountInChange, onRecordModeChange,
+    }));
+    container.querySelector('[data-act="rtz"]').click(); expect(onReturnToZero).toHaveBeenCalledTimes(1);
+    container.querySelector('[data-act="rew"]').click(); expect(onRewind).toHaveBeenCalledTimes(1);
+    container.querySelector('[data-act="ff"]').click(); expect(onForward).toHaveBeenCalledTimes(1);
+    container.querySelector('[data-act="pause"]').click();
+    expect(onPause).toHaveBeenCalledTimes(1); expect(transport.getState().paused).toBe(true);
+    container.querySelector('[data-act="countin"]').click(); expect(onCountInChange).toHaveBeenCalledWith(1);
+    container.querySelector('[data-act="recmode"]').click(); expect(onRecordModeChange).toHaveBeenCalledWith('replace');
+
+    const disp = container.querySelector('.abd-transport__tempo-display');
+    disp.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    const inp = disp.querySelector('.abd-transport__tempo-input');
+    expect(inp).not.toBeNull();
+    inp.value = '136.5';
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(transport.getState().bpm).toBe(136.5);
+  });
+
+  it('renders navbar orientation with BAR:BEAT:TICK clock, TC quantize cycle, SWG and TAP button', () => {
+    const onQuantizeChange = vi.fn();
+    const onSwingChange = vi.fn();
+    ({ container, transport } = mount({
+      orientation: 'navbar',
+      showExtendedControls: true,
+      initialQuantizeSteps: 16,
+      initialSwingPct: 50,
+      onQuantizeChange,
+      onSwingChange,
+    }));
+
+    expect(container.querySelector('.abd-transport--navbar')).not.toBeNull();
+    transport.setPosition(384 + 96 + 24, 96);
+    expect(container.querySelector('[data-role="clock-bar"]').textContent).toBe('02');
+    expect(container.querySelector('[data-role="clock-beat"]').textContent).toBe('2');
+    expect(container.querySelector('[data-role="clock-tick"]').textContent).toBe('24');
+
+    const tcBtn = container.querySelector('[data-act="tc"]');
+    expect(container.querySelector('[data-role="tc-val"]').textContent).toBe('1/16');
+    tcBtn.click();
+    expect(onQuantizeChange).toHaveBeenCalledWith(32);
+    expect(container.querySelector('[data-role="tc-val"]').textContent).toBe('1/32');
+
+    const swBtn = container.querySelector('[data-act="swing"]');
+    swBtn.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true }));
+    expect(onSwingChange).toHaveBeenCalledWith(51);
+    expect(container.querySelector('[data-role="swing-val"]').textContent).toBe('51%');
+
+    expect(container.querySelector('[data-act="tap-btn"]')).not.toBeNull();
+  });
 });

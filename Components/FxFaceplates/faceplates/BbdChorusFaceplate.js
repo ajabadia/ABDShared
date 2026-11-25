@@ -4,12 +4,15 @@
  * Strict line limit: < 200 lines. 100% tokenized.
  */
 
+import { Knob } from '../../Controls/Knob.js';
+
 export class BbdChorusFaceplate {
   constructor(container, bridge, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
     this.bridge = bridge;
     this.options = options;
     this.algoId = 'bbd_chorus';
+    this.knobs = new Map();
     this.el = document.createElement('div');
     this.el.className = 'abd-fx-chassis-shell abd-bbd-faceplate';
     this.render();
@@ -32,27 +35,51 @@ export class BbdChorusFaceplate {
       <div class="abd-fx-controls-grid">
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">LFO RATE</span>
-          <input type="range" class="abd-fx-slider" data-param="rate" min="0" max="1" step="0.01" value="0.4" />
+          <div class="abd-fx-knob-mount" id="mount-rate"></div>
           <span class="abd-fx-knob-val" id="val-rate">0.8 Hz</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">MOD DEPTH</span>
-          <input type="range" class="abd-fx-slider" data-param="depth" min="0" max="1" step="0.01" value="0.7" />
+          <div class="abd-fx-knob-mount" id="mount-depth"></div>
           <span class="abd-fx-knob-val" id="val-depth">70%</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">STEREO WIDTH</span>
-          <input type="range" class="abd-fx-slider" data-param="width" min="0" max="1" step="0.01" value="0.85" />
+          <div class="abd-fx-knob-mount" id="mount-width"></div>
           <span class="abd-fx-knob-val" id="val-width">85%</span>
         </div>
         <div class="abd-fx-knob-col">
           <span class="abd-fx-knob-lbl">BBD NOISE</span>
-          <input type="range" class="abd-fx-slider" data-param="noise" min="0" max="1" step="0.01" value="0.1" />
+          <div class="abd-fx-knob-mount" id="mount-noise"></div>
           <span class="abd-fx-knob-val" id="val-noise">10%</span>
         </div>
       </div>
     `;
     this.container.appendChild(this.el);
+
+    const params = [
+      { key: 'rate', defaultVal: 0.4, fmt: (v) => `${(0.1 + v * 4.9).toFixed(2)} Hz` },
+      { key: 'depth', defaultVal: 0.7, fmt: (v) => `${Math.round(v * 100)}%` },
+      { key: 'width', defaultVal: 0.85, fmt: (v) => `${Math.round(v * 100)}%` },
+      { key: 'noise', defaultVal: 0.1, fmt: (v) => `${Math.round(v * 100)}%` },
+    ];
+
+    params.forEach((p) => {
+      const mount = this.el.querySelector(`#mount-${p.key}`);
+      if (mount) {
+        const knob = new Knob(mount, {
+          size: 52,
+          value: p.defaultVal,
+          format: p.fmt,
+          onChange: (v) => {
+            this.bridge.setParam(p.key, v);
+            const valEl = this.el.querySelector(`#val-${p.key}`);
+            if (valEl) valEl.textContent = p.fmt(v);
+          },
+        });
+        this.knobs.set(p.key, knob);
+      }
+    });
   }
 
   bindEvents() {
@@ -61,18 +88,6 @@ export class BbdChorusFaceplate {
         const mode = parseInt((e.currentTarget).dataset.mode || '0', 10);
         this.bridge.setParam('mode', mode);
         this.syncFromBridge();
-      });
-    });
-
-    this.el.querySelectorAll('.abd-fx-slider').forEach((slider) => {
-      slider.addEventListener('input', (e) => {
-        const key = (e.target).dataset.param;
-        const val = parseFloat((e.target).value);
-        if (key) {
-          this.bridge.setParam(key, val);
-          const valEl = this.el.querySelector(`#val-${key}`);
-          if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
-        }
       });
     });
   }
@@ -85,25 +100,31 @@ export class BbdChorusFaceplate {
       b.classList.toggle('is-active', idx === curMode);
     });
 
-    ['rate', 'depth', 'width', 'noise'].forEach((key) => {
+    const fmts = {
+      rate: (v) => `${(0.1 + v * 4.9).toFixed(2)} Hz`,
+      depth: (v) => `${Math.round(v * 100)}%`,
+      width: (v) => `${Math.round(v * 100)}%`,
+      noise: (v) => `${Math.round(v * 100)}%`,
+    };
+
+    this.knobs.forEach((knob, key) => {
       const val = st[key] ?? 0.5;
-      const input = this.el.querySelector(`.abd-fx-slider[data-param="${key}"]`);
-      if (input) input.value = String(val);
+      knob.setValue(val);
       const valEl = this.el.querySelector(`#val-${key}`);
-      if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
+      if (valEl && fmts[key]) valEl.textContent = fmts[key](val);
     });
   }
 
   setParamVisual(key, value) {
-    const input = this.el.querySelector(`.abd-fx-slider[data-param="${key}"]`);
-    if (input) input.value = String(value);
-    const valEl = this.el.querySelector(`#val-${key}`);
-    if (valEl) valEl.textContent = `${Math.round(value * 100)}%`;
+    const knob = this.knobs.get(key);
+    if (knob) knob.setValue(value);
   }
 
   setLocale(_locale) {}
 
   destroy() {
+    this.knobs.forEach((k) => k.destroy?.());
+    this.knobs.clear();
     this.el.remove();
   }
 }

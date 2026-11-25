@@ -110,6 +110,7 @@ export function attachDialogDrag(dialog, handle) {
     ev.preventDefault();
     bringToFront(dialog);
     const rect = dialog.getBoundingClientRect();
+    dialog.style.transform = 'none';
     dialog.style.margin = '0';
     dialog.style.right = 'auto';
     dialog.style.bottom = 'auto';
@@ -151,6 +152,7 @@ export function attachDialogDrag(dialog, handle) {
     dialog.style.right = '';
     dialog.style.bottom = '';
     dialog.style.margin = '';
+    dialog.style.transform = '';
   });
 }
 

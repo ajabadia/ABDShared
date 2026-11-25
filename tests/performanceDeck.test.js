@@ -127,6 +127,12 @@ describe('PerformanceDeck UI component (Bloque B)', () => {
     deck.el.querySelector('[data-act="toggle-pin"]')?.click();
     expect(onPin).toHaveBeenCalledWith(true);
 
+    const dragHandle = deck.el.querySelector('[data-drag-handle]');
+    const downEv = Object.assign(new Event('pointerdown', { bubbles: true }), { button: 0, clientX: 100, clientY: 20, pointerId: 1 });
+    dragHandle?.dispatchEvent(downEv);
+    expect(deck.el.style.transform).toBe('none');
+    dragHandle?.dispatchEvent(new Event('pointerup', { bubbles: true }));
+
     deck.setAutomationOverride(true);
     const autoBtn = deck.el.querySelector('[data-act="re-enable-auto"]');
     expect(autoBtn?.hasAttribute('hidden')).toBe(false);
